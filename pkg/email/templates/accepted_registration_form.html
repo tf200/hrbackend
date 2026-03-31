@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registratie Goedgekeurd - Jeugdopvangdienst</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      color: #333;
+      background: #f9fafb;
+      margin: 0;
+      padding: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 40px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 20px;
+    }
+    .logo-container {
+      margin-right: 20px;
+      flex-shrink: 0;
+    }
+    .logo {
+      max-width: 60px;
+      height: auto;
+      display: block;
+    }
+    .header-text {
+      flex-grow: 1;
+    }
+    h1 {
+      color: #1f2937;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #6b7280;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1f2937;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 6px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 14px;
+    }
+    .info-row span:first-child {
+      color: #6b7280;
+    }
+    .highlight-box {
+      background: #f0fdf4;
+      border-left: 4px solid #10b981;
+      padding: 15px 20px;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .steps ul {
+      padding-left: 20px;
+    }
+    .steps li {
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .contact {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      padding: 20px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .signature {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .signature strong {
+      color: #1f2937;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    @media (max-width: 600px) {
+      .email-container {
+        padding: 20px;
+      }
+      .header {
+        flex-direction: column;
+        text-align: center;
+      }
+      .logo-container {
+        margin-right: 0;
+        margin-bottom: 15px;
+      }
+      .logo {
+        max-width: 50px;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <div class="logo-container">
+        <!-- Replace src with your actual logo URL -->
+        <img src="https://f003.backblazeb2.com/file/maicare/logo.ico" alt="MaiCare Logo" class="logo" />
+      </div>
+      <div class="header-text">
+        <h1>MaiCare</h1>
+        <div class="subtitle">Rijswijk, Nederland</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="highlight-box">
+        Beste {{.ReferrerName}},<br><br>
+        Uw registratie is <strong>goedgekeurd</strong>. We kijken ernaar uit om {{.ChildName}} te verwelkomen en de juiste ondersteuning te bieden.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Cliëntgegevens</div>
+      <div class="info-row"><span>Naam:</span><span>{{.ChildName}}</span></div>
+      <div class="info-row"><span>BSN:</span><span>{{.ChildBSN}}</span></div>
+      <div class="info-row"><span>Verwezen door:</span><span>{{.ReferrerName}}</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Intakeafspraak</div>
+      <div class="info-row"><span>Datum & Tijd:</span><span>{{.AppointmentDate}}</span></div>
+      <div class="info-row"><span>Locatie:</span><span>{{.AppointmentLocation}}</span></div>
+    </div>
+
+    <div class="section steps">
+      <div class="section-title">Voorbereiding</div>
+      <ul>
+        <li>Bevestig uw aanwezigheid voor de intake.</li>
+        <li>Neem relevante documenten mee.</li>
+        <li>Noteer uw vragen en aandachtspunten.</li>
+        <li>Geef tijdig wijzigingen door.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      Tijdens het intakegesprek bespreken wij de situatie en behoeften om passende zorg te kunnen bieden. Dank voor uw vertrouwen.
+    </div>
+
+    <div class="contact">
+      <div><strong>Contact</strong></div>
+      <div>Telefoon: 070-XXX-XXXX</div>
+      <div>E-mail: info@jeugdopvangdienst-rijswijk.nl</div>
+    </div>
+
+    <div class="signature">
+      Met vriendelijke groet,<br>
+      <strong>Jeugdopvangdienst</strong><br>
+      Rijswijk, Nederland
+    </div>
+
+    <div class="footer">
+      Dit bericht is automatisch gegenereerd. Reageer niet direct, maar neem contact op via de bovenstaande gegevens.
+    </div>
+  </div>
+</body>
+</html>

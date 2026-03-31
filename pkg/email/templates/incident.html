@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: #ffffff;
+        }
+
+        .header {
+            padding: 20px;
+            background: #f8f9fa;
+            text-align: center;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .logo {
+            max-height: 50px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .card {
+            border: 1px solid #e1e5e8;
+            border-radius: 4px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .title {
+            color: #dc3545;
+            font-size: 24px;
+            margin-top: 0;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 140px;
+            display: inline-block;
+        }
+
+        .footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+            background: #f8f9fa;
+        }
+
+        .ernst-hoog {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .ernst-gemiddeld {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+
+        .ernst-laag {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .knop {
+            display: inline-block;
+            background: #0d6efd;
+            color: white !important;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Logo Sectie -->
+        <div class="header">
+            <!-- BEDRIJFSLOGO HIER -->
+            <img src="https://f003.backblazeb2.com/file/maicare/logo.ico" alt="Bedrijfslogo" class="logo">
+            <!-- Optionele bedrijfsnaam -->
+            <h2>MAICARE</h2>
+        </div>
+
+        <div class="content">
+            <h1 class="title">🚨 Incidentmelding</h1>
+            <p>Er is een nieuw incident gemeld dat uw aandacht vereist:</p>
+
+            <div class="card">
+                <h3>Incidentdetails</h3>
+                <p>
+                    <span class="label">Incident ID:</span> {{.IncidentID}}<br>
+                    <span class="label">Gemeld door:</span> {{.ReportedBy}}<br>
+                    <span class="label">Betrokken klant:</span> {{.ClientName}}<br>
+                    <span class="label">Type incident:</span> {{.IncidentType}}<br>
+                    <span class="label">Ernstniveau:</span> <span
+                        class="ernst-{{.Severity | toLower}}">{{.Severity}}</span><br>
+                    <span class="label">Locatie:</span> {{.Location}}<br>
+                </p>
+
+                {{if .DocumentLink}}
+                <a href="{{.DocumentLink}}" class="knop">Incidentdocumentatie bekijken</a>
+                {{end}}
+            </div>
+
+            <p><strong>Benodigde actie:</strong> Gelieve dit incident volgens de bedrijfsprotocollen te behandelen.
+                Neem contact op met de melder voor aanvullende details indien nodig.</p>
+
+            <p>Met vriendelijke groeten,
+                Maicare</p>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 [Bedrijfsnaam]. Alle rechten voorbehouden.</p>
+            <p>Dit is een automatische melding - reageer niet rechtstreeks op dit bericht</p>
+            <p>[Bedrijfsadres] | [Contactgegevens] | maicare.online</p>
+        </div>
+    </div>
+</body>
+
+</html>
