@@ -1,194 +1,116 @@
 -- ==========================================
--- TABLES
+-- DOWN MIGRATION - Rollback all changes
 -- ==========================================
-DROP TABLE IF EXISTS audit CASCADE;
-DROP TABLE IF EXISTS template_items CASCADE;
-DROP TABLE IF EXISTS data_sharing_statement CASCADE;
-DROP TABLE IF EXISTS youth_care_intake CASCADE;
-DROP TABLE IF EXISTS consent_declaration CASCADE;
-DROP TABLE IF EXISTS risk_assessment CASCADE;
-DROP TABLE IF EXISTS collaboration_agreement CASCADE;
-DROP TABLE IF EXISTS appointment_card CASCADE;
--- Backward-compatibility: legacy appointment tables
-DROP TABLE IF EXISTS appointment_clients CASCADE;
-DROP TABLE IF EXISTS appointment_participants CASCADE;
-DROP TABLE IF EXISTS scheduled_appointments CASCADE;
-DROP TABLE IF EXISTS appointment_templates CASCADE;
-DROP TABLE IF EXISTS calendar_event_reminders CASCADE;
-DROP TABLE IF EXISTS calendar_event_attendees CASCADE;
-DROP TABLE IF EXISTS calendar_events CASCADE;
-DROP TABLE IF EXISTS shift_swap_requests CASCADE;
-DROP TABLE IF EXISTS late_arrivals CASCADE;
-DROP TABLE IF EXISTS leave_requests CASCADE;
-DROP TABLE IF EXISTS leave_balance_adjustments CASCADE;
-DROP TABLE IF EXISTS leave_balances CASCADE;
-DROP TABLE IF EXISTS leave_policies CASCADE;
-DROP TABLE IF EXISTS schedules CASCADE;
-DROP TABLE IF EXISTS ai_generated_reports CASCADE;
-DROP TABLE IF EXISTS progress_report CASCADE;
-DROP TABLE IF EXISTS assigned_employee CASCADE;
-DROP TABLE IF EXISTS assignment CASCADE;
-DROP TABLE IF EXISTS incident CASCADE;
-DROP TABLE IF EXISTS billed_calendar_event CASCADE;
-DROP TABLE IF EXISTS invoice_line_calendar_event CASCADE;
-DROP TABLE IF EXISTS invoice_line CASCADE;
-DROP TABLE IF EXISTS invoice_run_item CASCADE;
-DROP TABLE IF EXISTS invoice_run CASCADE;
-DROP TABLE IF EXISTS invoice_payment_history CASCADE;
-DROP TABLE IF EXISTS invoice_audit CASCADE;
-DROP TABLE IF EXISTS invoice CASCADE;
-DROP TABLE IF EXISTS framework_agreement CASCADE;
-DROP TABLE IF EXISTS provision CASCADE;
-DROP TABLE IF EXISTS client_agreement CASCADE;
-DROP TABLE IF EXISTS contract_working_hours CASCADE;
-DROP TABLE IF EXISTS contract_reminder CASCADE;
-DROP TABLE IF EXISTS contract_audit CASCADE;
-DROP TABLE IF EXISTS contract CASCADE;
-DROP TABLE IF EXISTS contract_type CASCADE;
-DROP TABLE IF EXISTS client_location_transfer CASCADE;
-DROP TABLE IF EXISTS client_medication_order CASCADE;
-DROP TABLE IF EXISTS client_documents CASCADE;
-DROP TABLE IF EXISTS client_emergency_contact CASCADE;
-DROP TABLE IF EXISTS client_diagnosis CASCADE;
-DROP TABLE IF EXISTS scheduled_status_changes CASCADE;
-DROP TABLE IF EXISTS client_status_history CASCADE;
-DROP TABLE IF EXISTS client_goal_evaluation_items CASCADE;
-DROP INDEX IF EXISTS client_goal_evaluations_unique_draft_client_date_idx;
-DROP TABLE IF EXISTS client_goal_evaluations CASCADE;
-DROP TABLE IF EXISTS client_goals CASCADE;
-DROP TABLE IF EXISTS client_details CASCADE;
-DROP TABLE IF EXISTS intake_topic_assessments CASCADE;
-DROP TABLE IF EXISTS intake_forms CASCADE;
-DROP TABLE IF EXISTS registration_form CASCADE;
-DROP TABLE IF EXISTS sender CASCADE;
-DROP TABLE IF EXISTS employee_handbook_step_progress CASCADE;
-DROP TABLE IF EXISTS employee_handbooks CASCADE;
-DROP TABLE IF EXISTS handbook_steps CASCADE;
-DROP TABLE IF EXISTS handbook_templates CASCADE;
-DROP TABLE IF EXISTS employee_experience CASCADE;
-DROP TABLE IF EXISTS certification CASCADE;
-DROP TABLE IF EXISTS employee_education CASCADE;
+
+-- ==========================================
+-- DROP FUNCTIONS & TRIGGERS (reverse dependency order)
+-- ==========================================
+
+-- Drop trigger and function for shift swap active schedule uniqueness
+DROP TRIGGER IF EXISTS trg_shift_swap_active_schedule_uniqueness ON shift_swap_requests;
+DROP FUNCTION IF EXISTS enforce_shift_swap_active_schedule_uniqueness();
+
+-- Drop trigger and function for calendar event work approval reset
+DROP TRIGGER IF EXISTS trigger_calendar_event_reset_work_approval ON calendar_events;
+DROP FUNCTION IF EXISTS calendar_event_reset_work_approval_on_time_change();
+
+-- Drop trigger and function for leave balance initialization
+DROP TRIGGER IF EXISTS trigger_initialize_leave_balance_on_employee_insert ON employee_profile;
+DROP FUNCTION IF EXISTS initialize_leave_balance_on_employee_insert();
+
+-- Drop trigger and function for default shifts on location
+DROP TRIGGER IF EXISTS trigger_insert_default_shifts ON location;
+DROP FUNCTION IF EXISTS insert_default_shifts();
+
+-- Drop helper functions
+DROP FUNCTION IF EXISTS get_current_employee_id();
+DROP FUNCTION IF EXISTS is_admin();
+DROP FUNCTION IF EXISTS is_coordinator();
+
+-- ==========================================
+-- DROP TABLES (reverse dependency order)
+-- ==========================================
+
+-- Calendar tables
+DROP TABLE IF EXISTS calendar_event_reminders;
+DROP TABLE IF EXISTS calendar_event_attendees;
+DROP TABLE IF EXISTS calendar_events;
+
+-- Leave management tables
+DROP TABLE IF EXISTS leave_requests;
+DROP TABLE IF EXISTS leave_balance_adjustments;
+DROP TABLE IF EXISTS leave_balances;
+DROP TABLE IF EXISTS leave_policies;
+
+-- Shift swap tables
+DROP TABLE IF EXISTS shift_swap_requests;
+
+-- Late arrivals table
+DROP TABLE IF EXISTS late_arrivals;
+
+-- Schedule tables
+DROP TABLE IF EXISTS schedules;
+
+-- Handbook tables (onboarding)
+DROP TABLE IF EXISTS employee_handbook_step_progress;
+DROP TABLE IF EXISTS employee_handbook_assignment_history;
+DROP TABLE IF EXISTS employee_handbooks;
+DROP TABLE IF EXISTS handbook_steps;
+DROP TABLE IF EXISTS handbook_templates;
+
+-- Employee tables
+DROP TABLE IF EXISTS employee_experience;
+DROP TABLE IF EXISTS certification;
+DROP TABLE IF EXISTS employee_education;
 DROP TABLE IF EXISTS employee_profile CASCADE;
-DROP TABLE IF EXISTS departments CASCADE;
-DROP TABLE IF EXISTS temporary_file CASCADE;
-DROP TABLE IF EXISTS attachment_file CASCADE;
-DROP TABLE IF EXISTS notifications CASCADE;
-DROP TABLE IF EXISTS sessions CASCADE;
-DROP TABLE IF EXISTS user_roles CASCADE;
-DROP TABLE IF EXISTS user_permission_overrides CASCADE;
-DROP TYPE IF EXISTS permission_override_effect CASCADE;
-DROP TABLE IF EXISTS custom_user CASCADE;
-DROP TABLE IF EXISTS role_permissions CASCADE;
-DROP TABLE IF EXISTS permissions CASCADE;
-DROP TABLE IF EXISTS roles CASCADE;
-DROP TABLE IF EXISTS location_shift CASCADE;
-DROP TABLE IF EXISTS room CASCADE;
-DROP TABLE IF EXISTS location CASCADE;
-DROP TABLE IF EXISTS app_organization_profile CASCADE;
-DROP TABLE IF EXISTS organisations CASCADE;
-DROP TABLE IF EXISTS topics CASCADE;
-DROP TABLE IF EXISTS employee_handbook_assignment_history CASCADE;
+
+-- Department foreign key constraint cleanup (before dropping departments)
+ALTER TABLE IF EXISTS departments DROP CONSTRAINT IF EXISTS departments_department_head_employee_id_fkey;
+DROP TABLE IF EXISTS departments;
+
+-- File management tables
+DROP TABLE IF EXISTS temporary_file;
+DROP TABLE IF EXISTS attachment_file;
+
+-- Notification tables
+DROP TABLE IF EXISTS notifications;
+
+-- Session and auth tables
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS user_permission_overrides;
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS custom_user;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS roles;
+
+-- Location tables
+DROP TABLE IF EXISTS location_shift;
+DROP TABLE IF EXISTS location;
+
+-- Organization tables
+DROP TABLE IF EXISTS app_organization_profile;
+DROP TABLE IF EXISTS organisations;
 
 -- ==========================================
--- FUNCTIONS
+-- DROP ENUMS (after all tables using them)
 -- ==========================================
-DROP FUNCTION IF EXISTS get_client_id_from_intake_form(UUID) CASCADE;
-DROP FUNCTION IF EXISTS apply_client_rls(TEXT, TEXT) CASCADE;
-DROP FUNCTION IF EXISTS get_client_id_from_registration_form(UUID) CASCADE;
-DROP FUNCTION IF EXISTS get_client_id_from_invoice(UUID) CASCADE;
-DROP FUNCTION IF EXISTS get_client_id_from_contract(UUID) CASCADE;
-DROP FUNCTION IF EXISTS set_updated_at() CASCADE;
-DROP FUNCTION IF EXISTS enforce_shift_swap_active_schedule_uniqueness() CASCADE;
-DROP FUNCTION IF EXISTS initialize_leave_balance_on_employee_insert() CASCADE;
-DROP FUNCTION IF EXISTS get_client_id_from_goal_evaluation(UUID) CASCADE;
-DROP FUNCTION IF EXISTS get_client_id_from_goal(UUID) CASCADE;
-DROP FUNCTION IF EXISTS update_client_evaluation_cadence() CASCADE;
-DROP FUNCTION IF EXISTS enforce_evaluation_submission_window() CASCADE;
-DROP FUNCTION IF EXISTS initialize_client_evaluation_dates() CASCADE;
-DROP FUNCTION IF EXISTS ensure_client_has_active_goals_before_care_status() CASCADE;
-DROP FUNCTION IF EXISTS is_assigned_coordinator(UUID) CASCADE;
-DROP FUNCTION IF EXISTS is_coordinator() CASCADE;
-DROP FUNCTION IF EXISTS is_admin() CASCADE;
-DROP FUNCTION IF EXISTS get_current_employee_id() CASCADE;
-DROP FUNCTION IF EXISTS invoice_audit_trigger_func() CASCADE;
-DROP FUNCTION IF EXISTS contract_audit_trigger_func() CASCADE;
-DROP FUNCTION IF EXISTS calendar_event_reset_work_approval_on_time_change() CASCADE;
-DROP FUNCTION IF EXISTS generate_client_filenumber() CASCADE;
-DROP FUNCTION IF EXISTS insert_default_shifts() CASCADE;
-DROP SEQUENCE IF EXISTS client_filenumber_seq;
 
--- ==========================================
--- TYPES (ENUMS)
--- ==========================================
-DROP TYPE IF EXISTS reminder_channel_enum CASCADE;
-DROP TYPE IF EXISTS attendee_response_enum CASCADE;
-DROP TYPE IF EXISTS calendar_event_work_approval_status_enum CASCADE;
-DROP TYPE IF EXISTS calendar_event_status_enum CASCADE;
-DROP TYPE IF EXISTS calendar_event_kind_enum CASCADE;
--- Backward-compatibility: legacy appointment enums
-DROP TYPE IF EXISTS appointment_status_enum CASCADE;
-DROP TYPE IF EXISTS recurrence_type_enum CASCADE;
-DROP TYPE IF EXISTS emotional_state_enum CASCADE;
-DROP TYPE IF EXISTS progress_report_type_enum CASCADE;
-DROP TYPE IF EXISTS needed_consultation_enum CASCADE;
-DROP TYPE IF EXISTS psychological_damage_enum CASCADE;
-DROP TYPE IF EXISTS physical_injury_enum CASCADE;
-DROP TYPE IF EXISTS recurrence_risk_enum CASCADE;
-DROP TYPE IF EXISTS severity_of_incident_enum CASCADE;
-DROP TYPE IF EXISTS incident_reporter_involvement_enum CASCADE;
-DROP TYPE IF EXISTS payment_status_enum CASCADE;
-DROP TYPE IF EXISTS payment_method_enum CASCADE;
-DROP TYPE IF EXISTS invoice_audit_operation_enum CASCADE;
-DROP TYPE IF EXISTS invoice_run_item_status_enum CASCADE;
-DROP TYPE IF EXISTS invoice_run_status_enum CASCADE;
-DROP TYPE IF EXISTS invoice_line_type_enum CASCADE;
-DROP TYPE IF EXISTS invoice_source_enum CASCADE;
-DROP TYPE IF EXISTS invoice_type_enum CASCADE;
-DROP TYPE IF EXISTS invoice_status_enum CASCADE;
-DROP TYPE IF EXISTS contract_reminder_type_enum CASCADE;
-DROP TYPE IF EXISTS contract_audit_operation_enum CASCADE;
-DROP TYPE IF EXISTS medication_admin_mode_enum CASCADE;
-DROP TYPE IF EXISTS medication_order_status_enum CASCADE;
-DROP TYPE IF EXISTS diagnosis_severity_enum CASCADE;
-DROP TYPE IF EXISTS diagnosis_status_enum CASCADE;
-DROP TYPE IF EXISTS financing_option_enum CASCADE;
-DROP TYPE IF EXISTS financing_act_enum CASCADE;
-DROP TYPE IF EXISTS care_type_enum CASCADE;
-DROP TYPE IF EXISTS hours_type_enum CASCADE;
-DROP TYPE IF EXISTS price_time_unit_enum CASCADE;
-DROP TYPE IF EXISTS contract_status_enum CASCADE;
-DROP TYPE IF EXISTS client_location_transfer_status_enum CASCADE;
-DROP TYPE IF EXISTS client_document_label_enum CASCADE;
-DROP TYPE IF EXISTS relation_status_enum CASCADE;
-DROP TYPE IF EXISTS evaluation_status_enum CASCADE;
-DROP TYPE IF EXISTS client_goal_progress_enum CASCADE;
-DROP TYPE IF EXISTS client_goal_source_enum CASCADE;
-DROP TYPE IF EXISTS client_goal_status_enum CASCADE;
-DROP TYPE IF EXISTS client_goal_priority_enum CASCADE;
-DROP TYPE IF EXISTS client_living_situation_enum CASCADE;
-DROP TYPE IF EXISTS discharge_reason_enum CASCADE;
-DROP TYPE IF EXISTS client_status_enum CASCADE;
-DROP TYPE IF EXISTS intake_conclusion_enum CASCADE;
-DROP TYPE IF EXISTS intake_participants_enum CASCADE;
-DROP TYPE IF EXISTS intake_care_type_enum CASCADE;
-DROP TYPE IF EXISTS admission_type_enum CASCADE;
-DROP TYPE IF EXISTS education_level_enum CASCADE;
-DROP TYPE IF EXISTS form_status_enum CASCADE;
-DROP TYPE IF EXISTS sender_types_enum CASCADE;
-DROP TYPE IF EXISTS handbook_step_status_enum CASCADE;
-DROP TYPE IF EXISTS handbook_assignment_status_enum CASCADE;
-DROP TYPE IF EXISTS handbook_step_kind_enum CASCADE;
-DROP TYPE IF EXISTS employee_contract_type_enum CASCADE;
-DROP TYPE IF EXISTS gender_enum CASCADE;
-DROP TYPE IF EXISTS notification_type_enum CASCADE;
-DROP TYPE IF EXISTS location_type_enum CASCADE;
-DROP TYPE IF EXISTS incident_type_enum CASCADE;
-DROP TYPE IF EXISTS informed_party_enum CASCADE;
-DROP TYPE IF EXISTS incident_cause_category_enum CASCADE;
-DROP TYPE IF EXISTS incident_follow_up_action_enum CASCADE;
-DROP TYPE IF EXISTS handbook_template_status_enum CASCADE;
-DROP TYPE IF EXISTS handbook_assignment_event_enum CASCADE;
-DROP TYPE IF EXISTS employee_handbook_assignment_history CASCADE;
-DROP TYPE IF EXISTS shift_swap_status_enum CASCADE;
-DROP TYPE IF EXISTS leave_request_status_enum CASCADE;
-DROP TYPE IF EXISTS leave_request_type_enum CASCADE;
+DROP TYPE IF EXISTS reminder_channel_enum;
+DROP TYPE IF EXISTS attendee_response_enum;
+DROP TYPE IF EXISTS calendar_event_work_approval_status_enum;
+DROP TYPE IF EXISTS calendar_event_status_enum;
+DROP TYPE IF EXISTS calendar_event_kind_enum;
+DROP TYPE IF EXISTS leave_request_status_enum;
+DROP TYPE IF EXISTS leave_request_type_enum;
+DROP TYPE IF EXISTS shift_swap_status_enum;
+DROP TYPE IF EXISTS handbook_assignment_event_enum;
+DROP TYPE IF EXISTS handbook_step_status_enum;
+DROP TYPE IF EXISTS handbook_assignment_status_enum;
+DROP TYPE IF EXISTS handbook_step_kind_enum;
+DROP TYPE IF EXISTS handbook_template_status_enum;
+DROP TYPE IF EXISTS employee_contract_type_enum;
+DROP TYPE IF EXISTS gender_enum;
+DROP TYPE IF EXISTS permission_override_effect;
+DROP TYPE IF EXISTS notification_type_enum;
+DROP TYPE IF EXISTS location_type_enum;

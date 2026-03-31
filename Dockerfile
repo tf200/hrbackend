@@ -24,7 +24,7 @@ RUN apt-get update \
 COPY go.mod go.sum ./
 
 # The main module uses a local replace for OR-Tools Go bindings.
-COPY third_party/google-or-tools/go.mod ./third_party/google-or-tools/go.mod
+COPY third-party/google-or-tools/go.mod ./third-party/google-or-tools/go.mod
 
 
 ENV GOPROXY=https://proxy.golang.org,direct
@@ -75,7 +75,7 @@ COPY --from=builder /opt/ortools/lib /opt/ortools/lib
 
 ENV LD_LIBRARY_PATH=/opt/ortools/lib
 
-COPY db/migrations /app/db/migrations
+COPY migrations /app/migrations
 
 # Expose the desired port
 EXPOSE 8080
