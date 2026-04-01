@@ -106,7 +106,7 @@ CREATE TABLE roles (
 -- System permissions
 CREATE TABLE permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     resource VARCHAR(255) NOT NULL,
     method VARCHAR(255) NOT NULL,
     group_key VARCHAR(100) NOT NULL DEFAULT 'general',
@@ -116,16 +116,6 @@ CREATE TABLE permissions (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 
-INSERT INTO permissions (id, name, resource, method, group_key, section_key, display_name, description, sort_order) VALUES
-    (gen_random_uuid(), 'TIME_ENTRY.CREATE', 'time-entries', 'POST', 'time_entries', 'entries', 'Create time entry', 'Create a time entry for the authenticated employee', 0),
-    (gen_random_uuid(), 'TIME_ENTRY.CREATE_ALL', 'time-entries', 'POST', 'time_entries', 'entries', 'Create time entry for any employee', 'Create a time entry for a selected employee', 1),
-    (gen_random_uuid(), 'TIME_ENTRY.VIEW', 'time-entries', 'GET', 'time_entries', 'entries', 'View own time entries', 'View the authenticated employee time entries', 2),
-    (gen_random_uuid(), 'TIME_ENTRY.VIEW_ALL', 'time-entries', 'GET', 'time_entries', 'entries', 'View all time entries', 'View time entries for all employees', 3),
-    (gen_random_uuid(), 'PAYOUT.REQUEST.CREATE', 'payout-requests', 'POST', 'payout_requests', 'requests', 'Create payout request', 'Create a payout request for the authenticated employee', 4),
-    (gen_random_uuid(), 'PAYOUT.REQUEST.VIEW', 'payout-requests', 'GET', 'payout_requests', 'requests', 'View own payout requests', 'View payout requests for the authenticated employee', 5),
-    (gen_random_uuid(), 'PAYOUT.REQUEST.VIEW_ALL', 'payout-requests', 'GET', 'payout_requests', 'requests', 'View all payout requests', 'View payout requests for all employees', 6),
-    (gen_random_uuid(), 'PAYOUT.REQUEST.DECIDE', 'payout-requests', 'POST', 'payout_requests', 'requests', 'Decide payout request', 'Approve or reject payout requests', 7),
-    (gen_random_uuid(), 'PAYOUT.REQUEST.MARK_PAID', 'payout-requests', 'POST', 'payout_requests', 'requests', 'Mark payout request paid', 'Mark approved payout requests as paid', 8);
 
 CREATE TYPE permission_override_effect AS ENUM ('allow', 'deny');
 
@@ -137,6 +127,161 @@ CREATE TABLE role_permissions (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
 );
+
+-- Bootstrap default admin role
+INSERT INTO roles (name, description)
+VALUES ('admin', 'System administrator with full access')
+ON CONFLICT (name) DO NOTHING;
+
+-- Bootstrap known API permissions (code-derived)
+WITH seeded(name, sort_order) AS (
+    VALUES
+        ('EMPLOYEE.CREATE', 10),
+        ('EMPLOYEE.DELETE', 20),
+        ('EMPLOYEE.UPDATE', 30),
+        ('EMPLOYEE.VIEW', 40),
+        ('HANDBOOK.ASSIGN', 50),
+        ('HANDBOOK.SELF.UPDATE', 60),
+        ('HANDBOOK.SELF.VIEW', 70),
+        ('HANDBOOK.STEP.CREATE', 80),
+        ('HANDBOOK.STEP.DELETE', 90),
+        ('HANDBOOK.STEP.UPDATE', 100),
+        ('HANDBOOK.STEP.VIEW', 110),
+        ('HANDBOOK.TEMPLATE.CREATE', 120),
+        ('HANDBOOK.TEMPLATE.PUBLISH', 130),
+        ('HANDBOOK.TEMPLATE.UPDATE', 140),
+        ('HANDBOOK.TEMPLATE.VIEW', 150),
+        ('LEAVE.BALANCE.ADJUST', 160),
+        ('LEAVE.BALANCE.VIEW', 170),
+        ('LEAVE.BALANCE.VIEW_ALL', 180),
+        ('LEAVE.REQUEST.CREATE', 190),
+        ('LEAVE.REQUEST.DECIDE', 200),
+        ('LEAVE.REQUEST.UPDATE', 210),
+        ('LEAVE.REQUEST.UPDATE_ALL', 220),
+        ('LEAVE.REQUEST.VIEW', 230),
+        ('LEAVE.REQUEST.VIEW_ALL', 240),
+        ('LOCATION.CREATE', 250),
+        ('LOCATION.DELETE', 260),
+        ('LOCATION.UPDATE', 270),
+        ('LOCATION.VIEW', 280),
+        ('PAYOUT.REQUEST.CREATE', 290),
+        ('PAYOUT.REQUEST.DECIDE', 300),
+        ('PAYOUT.REQUEST.MARK_PAID', 310),
+        ('PAYOUT.REQUEST.VIEW', 320),
+        ('PAYOUT.REQUEST.VIEW_ALL', 330),
+        ('SCHEDULE.CREATE', 340),
+        ('SCHEDULE.DELETE', 350),
+        ('SCHEDULE.UPDATE', 360),
+        ('SCHEDULE.VIEW', 370),
+        ('SCHEDULE_SWAP.APPROVE', 380),
+        ('SCHEDULE_SWAP.REQUEST', 390),
+        ('SCHEDULE_SWAP.RESPOND', 400),
+        ('SCHEDULE_SWAP.VIEW', 410),
+        ('SHIFT.CREATE', 420),
+        ('SHIFT.DELETE', 430),
+        ('SHIFT.UPDATE', 440),
+        ('SHIFT.VIEW', 450),
+        ('TIME_ENTRY.CREATE', 460),
+        ('TIME_ENTRY.CREATE_ALL', 470),
+        ('TIME_ENTRY.VIEW', 480),
+        ('TIME_ENTRY.VIEW_ALL', 490)
+)
+INSERT INTO permissions (
+    name,
+    resource,
+    method,
+    group_key,
+    section_key,
+    display_name,
+    description,
+    sort_order
+)
+SELECT
+    s.name,
+    split_part(s.name, '.', 1) AS resource,
+    CASE
+        WHEN strpos(s.name, '.') > 0 THEN substr(s.name, strpos(s.name, '.') + 1)
+        ELSE s.name
+    END AS method,
+    lower(split_part(s.name, '.', 1)) AS group_key,
+    lower(COALESCE(NULLIF(split_part(s.name, '.', 2), ''), 'general')) AS section_key,
+    initcap(replace(lower(s.name), '.', ' ')) AS display_name,
+    NULL,
+    s.sort_order
+FROM seeded s
+ON CONFLICT (name) DO UPDATE SET
+    resource = EXCLUDED.resource,
+    method = EXCLUDED.method,
+    group_key = EXCLUDED.group_key,
+    section_key = EXCLUDED.section_key,
+    display_name = CASE
+        WHEN permissions.display_name = '' THEN EXCLUDED.display_name
+        ELSE permissions.display_name
+    END,
+    sort_order = EXCLUDED.sort_order;
+
+-- Grant all seeded permissions to admin
+WITH admin_role AS (
+    SELECT id
+    FROM roles
+    WHERE name = 'admin'
+)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT ar.id, p.id
+FROM admin_role ar
+CROSS JOIN permissions p
+WHERE p.name IN (
+    'EMPLOYEE.CREATE',
+    'EMPLOYEE.DELETE',
+    'EMPLOYEE.UPDATE',
+    'EMPLOYEE.VIEW',
+    'HANDBOOK.ASSIGN',
+    'HANDBOOK.SELF.UPDATE',
+    'HANDBOOK.SELF.VIEW',
+    'HANDBOOK.STEP.CREATE',
+    'HANDBOOK.STEP.DELETE',
+    'HANDBOOK.STEP.UPDATE',
+    'HANDBOOK.STEP.VIEW',
+    'HANDBOOK.TEMPLATE.CREATE',
+    'HANDBOOK.TEMPLATE.PUBLISH',
+    'HANDBOOK.TEMPLATE.UPDATE',
+    'HANDBOOK.TEMPLATE.VIEW',
+    'LEAVE.BALANCE.ADJUST',
+    'LEAVE.BALANCE.VIEW',
+    'LEAVE.BALANCE.VIEW_ALL',
+    'LEAVE.REQUEST.CREATE',
+    'LEAVE.REQUEST.DECIDE',
+    'LEAVE.REQUEST.UPDATE',
+    'LEAVE.REQUEST.UPDATE_ALL',
+    'LEAVE.REQUEST.VIEW',
+    'LEAVE.REQUEST.VIEW_ALL',
+    'LOCATION.CREATE',
+    'LOCATION.DELETE',
+    'LOCATION.UPDATE',
+    'LOCATION.VIEW',
+    'PAYOUT.REQUEST.CREATE',
+    'PAYOUT.REQUEST.DECIDE',
+    'PAYOUT.REQUEST.MARK_PAID',
+    'PAYOUT.REQUEST.VIEW',
+    'PAYOUT.REQUEST.VIEW_ALL',
+    'SCHEDULE.CREATE',
+    'SCHEDULE.DELETE',
+    'SCHEDULE.UPDATE',
+    'SCHEDULE.VIEW',
+    'SCHEDULE_SWAP.APPROVE',
+    'SCHEDULE_SWAP.REQUEST',
+    'SCHEDULE_SWAP.RESPOND',
+    'SCHEDULE_SWAP.VIEW',
+    'SHIFT.CREATE',
+    'SHIFT.DELETE',
+    'SHIFT.UPDATE',
+    'SHIFT.VIEW',
+    'TIME_ENTRY.CREATE',
+    'TIME_ENTRY.CREATE_ALL',
+    'TIME_ENTRY.VIEW',
+    'TIME_ENTRY.VIEW_ALL'
+)
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- User authentication data
 CREATE TABLE custom_user (
