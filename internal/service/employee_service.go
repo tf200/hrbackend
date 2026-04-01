@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"hrbackend/internal/domain"
 	"hrbackend/pkg/password"
@@ -108,6 +109,43 @@ func (s *EmployeeService) AddContractDetails(ctx context.Context, employeeID uui
 		return nil, err
 	}
 	return emp, nil
+}
+
+func (s *EmployeeService) ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]domain.EmployeeContractChange, error) {
+	if employeeID == uuid.Nil {
+		return nil, domain.ErrContractChangeInvalid
+	}
+	items, err := s.repo.ListContractChanges(ctx, employeeID)
+	if err != nil {
+		s.logError(ctx, "ListContractChanges", err, zap.String("employee_id", employeeID.String()))
+		return nil, err
+	}
+	return items, nil
+}
+
+func (s *EmployeeService) CreateContractChange(ctx context.Context, actorEmployeeID, employeeID uuid.UUID, params domain.CreateEmployeeContractChangeParams) (*domain.CreateEmployeeContractChangeResult, error) {
+	if actorEmployeeID == uuid.Nil || employeeID == uuid.Nil {
+		return nil, domain.ErrContractChangeInvalid
+	}
+	if params.EffectiveFrom.IsZero() {
+		return nil, domain.ErrContractChangeInvalid
+	}
+	if params.ContractHours < 0 {
+		return nil, fmt.Errorf("%w: contract_hours must be >= 0", domain.ErrContractChangeInvalid)
+	}
+	if params.ContractType != "loondienst" && params.ContractType != "ZZP" && params.ContractType != "none" {
+		return nil, fmt.Errorf("%w: invalid contract_type", domain.ErrContractChangeInvalid)
+	}
+
+	result, err := s.repo.CreateContractChange(ctx, actorEmployeeID, employeeID, params)
+	if err != nil {
+		s.logError(ctx, "CreateContractChange", err,
+			zap.String("employee_id", employeeID.String()),
+			zap.String("actor_employee_id", actorEmployeeID.String()),
+		)
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *EmployeeService) UpdateIsSubcontractor(ctx context.Context, employeeID uuid.UUID, params domain.UpdateIsSubcontractorParams) (*domain.EmployeeDetail, error) {

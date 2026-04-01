@@ -211,6 +211,10 @@ func (h *EmployeeHandler) AddContractDetails(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
+		if errors.Is(err, domain.ErrContractHistoryExists) {
+			ctx.JSON(http.StatusConflict, httpapi.Fail(err.Error(), ""))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add contract details", ""))
 		return
 	}
@@ -236,6 +240,70 @@ func (h *EmployeeHandler) GetContractDetails(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpapi.OK(toContractDetailsResponse(details), "Contract details retrieved successfully"))
+}
+
+func (h *EmployeeHandler) ListContractChanges(ctx *gin.Context) {
+	id, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	items, err := h.service.ListContractChanges(ctx.Request.Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list contract changes", ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toContractChangeResponses(items), "Contract changes retrieved successfully"))
+}
+
+func (h *EmployeeHandler) CreateContractChange(ctx *gin.Context) {
+	id, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	var req createContractChangeRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toCreateContractChangeParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	result, err := h.service.CreateContractChange(ctx.Request.Context(), adminEmployeeID, id, params)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrEmployeeNotFound):
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+		case errors.Is(err, domain.ErrContractChangeInvalid):
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		case errors.Is(err, domain.ErrContractBaselineMissingStartDate),
+			errors.Is(err, domain.ErrContractChangeLeaveConflict):
+			ctx.JSON(http.StatusConflict, httpapi.Fail(err.Error(), ""))
+		default:
+			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create contract change", ""))
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, httpapi.OK(toCreateContractChangeResponse(result), "Contract change created successfully"))
 }
 
 func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {

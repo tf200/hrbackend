@@ -83,6 +83,14 @@ type addContractDetailsRequest struct {
 	ContractRate      *float64 `json:"contract_rate"`
 }
 
+type createContractChangeRequest struct {
+	EffectiveFrom   string   `json:"effective_from" binding:"required,datetime=2006-01-02"`
+	ContractHours   float64  `json:"contract_hours" binding:"required"`
+	ContractType    string   `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
+	ContractRate    *float64 `json:"contract_rate"`
+	ContractEndDate *string  `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
+}
+
 type createEducationRequest struct {
 	InstitutionName string `json:"institution_name" binding:"required"`
 	Degree          string `json:"degree" binding:"required"`
@@ -219,6 +227,32 @@ type contractDetailsResponse struct {
 	ContractType      string    `json:"contract_type"`
 	ContractRate      *float64  `json:"contract_rate"`
 	IsSubcontractor   *bool     `json:"is_subcontractor"`
+}
+
+type contractChangeResponse struct {
+	ID                  uuid.UUID  `json:"id"`
+	EmployeeID          uuid.UUID  `json:"employee_id"`
+	EffectiveFrom       time.Time  `json:"effective_from"`
+	EffectiveTo         *time.Time `json:"effective_to,omitempty"`
+	ContractHours       float64    `json:"contract_hours"`
+	ContractType        string     `json:"contract_type"`
+	ContractRate        *float64   `json:"contract_rate,omitempty"`
+	ContractEndDate     *time.Time `json:"contract_end_date,omitempty"`
+	CreatedByEmployeeID uuid.UUID  `json:"created_by_employee_id"`
+	CreatedAt           time.Time  `json:"created_at"`
+	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+type leaveRecalculationImpactResponse struct {
+	Year        int32 `json:"year"`
+	LegalBefore int32 `json:"legal_before"`
+	LegalAfter  int32 `json:"legal_after"`
+	Delta       int32 `json:"delta"`
+}
+
+type createContractChangeResponse struct {
+	Change         contractChangeResponse             `json:"change"`
+	Recalculations []leaveRecalculationImpactResponse `json:"recalculations"`
 }
 
 type educationResponse struct {
@@ -432,6 +466,25 @@ func toAddContractDetailsParams(req addContractDetailsRequest) domain.AddContrac
 	}
 }
 
+func toCreateContractChangeParams(req createContractChangeRequest) (domain.CreateEmployeeContractChangeParams, error) {
+	effectiveFrom, err := parseDate(req.EffectiveFrom)
+	if err != nil {
+		return domain.CreateEmployeeContractChangeParams{}, err
+	}
+	contractEndDate, err := parseDatePtr(req.ContractEndDate)
+	if err != nil {
+		return domain.CreateEmployeeContractChangeParams{}, err
+	}
+
+	return domain.CreateEmployeeContractChangeParams{
+		EffectiveFrom:   effectiveFrom,
+		ContractHours:   req.ContractHours,
+		ContractType:    req.ContractType,
+		ContractRate:    req.ContractRate,
+		ContractEndDate: contractEndDate,
+	}, nil
+}
+
 func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse {
 	return employeeDetailResponse{
 		ID:                  emp.ID,
@@ -526,6 +579,47 @@ func toContractDetailsResponse(details *domain.ContractDetails) contractDetailsR
 		ContractType:      details.ContractType,
 		ContractRate:      details.ContractRate,
 		IsSubcontractor:   details.IsSubcontractor,
+	}
+}
+
+func toContractChangeResponse(item domain.EmployeeContractChange) contractChangeResponse {
+	return contractChangeResponse{
+		ID:                  item.ID,
+		EmployeeID:          item.EmployeeID,
+		EffectiveFrom:       item.EffectiveFrom,
+		EffectiveTo:         item.EffectiveTo,
+		ContractHours:       item.ContractHours,
+		ContractType:        item.ContractType,
+		ContractRate:        item.ContractRate,
+		ContractEndDate:     item.ContractEndDate,
+		CreatedByEmployeeID: item.CreatedByEmployeeID,
+		CreatedAt:           item.CreatedAt,
+		UpdatedAt:           item.UpdatedAt,
+	}
+}
+
+func toContractChangeResponses(items []domain.EmployeeContractChange) []contractChangeResponse {
+	results := make([]contractChangeResponse, len(items))
+	for i, item := range items {
+		results[i] = toContractChangeResponse(item)
+	}
+	return results
+}
+
+func toCreateContractChangeResponse(result *domain.CreateEmployeeContractChangeResult) createContractChangeResponse {
+	recalcs := make([]leaveRecalculationImpactResponse, len(result.Recalculations))
+	for i, impact := range result.Recalculations {
+		recalcs[i] = leaveRecalculationImpactResponse{
+			Year:        impact.Year,
+			LegalBefore: impact.LegalBefore,
+			LegalAfter:  impact.LegalAfter,
+			Delta:       impact.Delta,
+		}
+	}
+
+	return createContractChangeResponse{
+		Change:         toContractChangeResponse(result.Change),
+		Recalculations: recalcs,
 	}
 }
 

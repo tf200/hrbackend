@@ -664,6 +664,50 @@ func (ns NullNotificationTypeEnum) Value() (driver.Value, error) {
 	return string(ns.NotificationTypeEnum), nil
 }
 
+type PayoutRequestStatusEnum string
+
+const (
+	PayoutRequestStatusEnumPending  PayoutRequestStatusEnum = "pending"
+	PayoutRequestStatusEnumApproved PayoutRequestStatusEnum = "approved"
+	PayoutRequestStatusEnumRejected PayoutRequestStatusEnum = "rejected"
+	PayoutRequestStatusEnumPaid     PayoutRequestStatusEnum = "paid"
+)
+
+func (e *PayoutRequestStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PayoutRequestStatusEnum(s)
+	case string:
+		*e = PayoutRequestStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PayoutRequestStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullPayoutRequestStatusEnum struct {
+	PayoutRequestStatusEnum PayoutRequestStatusEnum `json:"payout_request_status_enum"`
+	Valid                   bool                    `json:"valid"` // Valid is true if PayoutRequestStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPayoutRequestStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.PayoutRequestStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PayoutRequestStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPayoutRequestStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PayoutRequestStatusEnum), nil
+}
+
 type PermissionOverrideEffect string
 
 const (
@@ -794,6 +838,96 @@ func (ns NullShiftSwapStatusEnum) Value() (driver.Value, error) {
 	return string(ns.ShiftSwapStatusEnum), nil
 }
 
+type TimeEntryHourTypeEnum string
+
+const (
+	TimeEntryHourTypeEnumNormal   TimeEntryHourTypeEnum = "normal"
+	TimeEntryHourTypeEnumOvertime TimeEntryHourTypeEnum = "overtime"
+	TimeEntryHourTypeEnumTravel   TimeEntryHourTypeEnum = "travel"
+	TimeEntryHourTypeEnumLeave    TimeEntryHourTypeEnum = "leave"
+	TimeEntryHourTypeEnumSick     TimeEntryHourTypeEnum = "sick"
+	TimeEntryHourTypeEnumTraining TimeEntryHourTypeEnum = "training"
+)
+
+func (e *TimeEntryHourTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TimeEntryHourTypeEnum(s)
+	case string:
+		*e = TimeEntryHourTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TimeEntryHourTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullTimeEntryHourTypeEnum struct {
+	TimeEntryHourTypeEnum TimeEntryHourTypeEnum `json:"time_entry_hour_type_enum"`
+	Valid                 bool                  `json:"valid"` // Valid is true if TimeEntryHourTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTimeEntryHourTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.TimeEntryHourTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TimeEntryHourTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTimeEntryHourTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TimeEntryHourTypeEnum), nil
+}
+
+type TimeEntryStatusEnum string
+
+const (
+	TimeEntryStatusEnumDraft     TimeEntryStatusEnum = "draft"
+	TimeEntryStatusEnumSubmitted TimeEntryStatusEnum = "submitted"
+	TimeEntryStatusEnumApproved  TimeEntryStatusEnum = "approved"
+	TimeEntryStatusEnumRejected  TimeEntryStatusEnum = "rejected"
+)
+
+func (e *TimeEntryStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TimeEntryStatusEnum(s)
+	case string:
+		*e = TimeEntryStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TimeEntryStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullTimeEntryStatusEnum struct {
+	TimeEntryStatusEnum TimeEntryStatusEnum `json:"time_entry_status_enum"`
+	Valid               bool                `json:"valid"` // Valid is true if TimeEntryStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTimeEntryStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.TimeEntryStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TimeEntryStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTimeEntryStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TimeEntryStatusEnum), nil
+}
+
 type AppOrganizationProfile struct {
 	Singleton             bool               `json:"singleton"`
 	Name                  string             `json:"name"`
@@ -895,6 +1029,19 @@ type Department struct {
 	DepartmentHeadEmployeeID *uuid.UUID         `json:"department_head_employee_id"`
 	CreatedAt                pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
+}
+
+type EmployeeContractChange struct {
+	ID                  uuid.UUID                `json:"id"`
+	EmployeeID          uuid.UUID                `json:"employee_id"`
+	EffectiveFrom       pgtype.Date              `json:"effective_from"`
+	ContractHours       float64                  `json:"contract_hours"`
+	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
+	ContractRate        *float64                 `json:"contract_rate"`
+	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
+	CreatedByEmployeeID uuid.UUID                `json:"created_by_employee_id"`
+	CreatedAt           pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz       `json:"updated_at"`
 }
 
 type EmployeeEducation struct {
@@ -1029,31 +1176,52 @@ type LateArrival struct {
 }
 
 type LeaveBalance struct {
-	ID             uuid.UUID          `json:"id"`
-	EmployeeID     uuid.UUID          `json:"employee_id"`
-	Year           int32              `json:"year"`
-	LegalTotalDays int32              `json:"legal_total_days"`
-	ExtraTotalDays int32              `json:"extra_total_days"`
-	LegalUsedDays  int32              `json:"legal_used_days"`
-	ExtraUsedDays  int32              `json:"extra_used_days"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID              uuid.UUID          `json:"id"`
+	EmployeeID      uuid.UUID          `json:"employee_id"`
+	Year            int32              `json:"year"`
+	LegalTotalHours int32              `json:"legal_total_hours"`
+	ExtraTotalHours int32              `json:"extra_total_hours"`
+	LegalUsedHours  int32              `json:"legal_used_hours"`
+	ExtraUsedHours  int32              `json:"extra_used_hours"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type LeaveBalanceAdjustment struct {
-	ID                   uuid.UUID          `json:"id"`
-	LeaveBalanceID       uuid.UUID          `json:"leave_balance_id"`
-	EmployeeID           uuid.UUID          `json:"employee_id"`
-	Year                 int32              `json:"year"`
-	LegalDaysDelta       int32              `json:"legal_days_delta"`
-	ExtraDaysDelta       int32              `json:"extra_days_delta"`
-	Reason               string             `json:"reason"`
-	AdjustedByEmployeeID uuid.UUID          `json:"adjusted_by_employee_id"`
-	LegalTotalDaysBefore int32              `json:"legal_total_days_before"`
-	ExtraTotalDaysBefore int32              `json:"extra_total_days_before"`
-	LegalTotalDaysAfter  int32              `json:"legal_total_days_after"`
-	ExtraTotalDaysAfter  int32              `json:"extra_total_days_after"`
-	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	ID                    uuid.UUID          `json:"id"`
+	LeaveBalanceID        uuid.UUID          `json:"leave_balance_id"`
+	EmployeeID            uuid.UUID          `json:"employee_id"`
+	Year                  int32              `json:"year"`
+	LegalHoursDelta       int32              `json:"legal_hours_delta"`
+	ExtraHoursDelta       int32              `json:"extra_hours_delta"`
+	Reason                string             `json:"reason"`
+	AdjustedByEmployeeID  uuid.UUID          `json:"adjusted_by_employee_id"`
+	LegalTotalHoursBefore int32              `json:"legal_total_hours_before"`
+	ExtraTotalHoursBefore int32              `json:"extra_total_hours_before"`
+	LegalTotalHoursAfter  int32              `json:"legal_total_hours_after"`
+	ExtraTotalHoursAfter  int32              `json:"extra_total_hours_after"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+}
+
+type LeavePayoutRequest struct {
+	ID                  uuid.UUID               `json:"id"`
+	EmployeeID          uuid.UUID               `json:"employee_id"`
+	CreatedByEmployeeID uuid.UUID               `json:"created_by_employee_id"`
+	RequestedHours      int32                   `json:"requested_hours"`
+	BalanceYear         int32                   `json:"balance_year"`
+	HourlyRate          float64                 `json:"hourly_rate"`
+	GrossAmount         float64                 `json:"gross_amount"`
+	SalaryMonth         pgtype.Date             `json:"salary_month"`
+	Status              PayoutRequestStatusEnum `json:"status"`
+	RequestNote         *string                 `json:"request_note"`
+	DecisionNote        *string                 `json:"decision_note"`
+	DecidedByEmployeeID *uuid.UUID              `json:"decided_by_employee_id"`
+	PaidByEmployeeID    *uuid.UUID              `json:"paid_by_employee_id"`
+	RequestedAt         pgtype.Timestamptz      `json:"requested_at"`
+	DecidedAt           pgtype.Timestamptz      `json:"decided_at"`
+	PaidAt              pgtype.Timestamptz      `json:"paid_at"`
+	CreatedAt           pgtype.Timestamptz      `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz      `json:"updated_at"`
 }
 
 type LeavePolicy struct {
@@ -1208,6 +1376,28 @@ type TemporaryFile struct {
 	ID         uuid.UUID          `json:"id"`
 	File       string             `json:"file"`
 	UploadedAt pgtype.Timestamptz `json:"uploaded_at"`
+}
+
+type TimeEntry struct {
+	ID                   uuid.UUID             `json:"id"`
+	EmployeeID           uuid.UUID             `json:"employee_id"`
+	ScheduleID           *uuid.UUID            `json:"schedule_id"`
+	EntryDate            pgtype.Date           `json:"entry_date"`
+	Hours                float64               `json:"hours"`
+	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
+	ProjectName          *string               `json:"project_name"`
+	ProjectNumber        *string               `json:"project_number"`
+	ClientName           *string               `json:"client_name"`
+	ActivityCategory     *string               `json:"activity_category"`
+	ActivityDescription  *string               `json:"activity_description"`
+	Status               TimeEntryStatusEnum   `json:"status"`
+	SubmittedAt          pgtype.Timestamptz    `json:"submitted_at"`
+	ApprovedAt           pgtype.Timestamptz    `json:"approved_at"`
+	ApprovedByEmployeeID *uuid.UUID            `json:"approved_by_employee_id"`
+	RejectionReason      *string               `json:"rejection_reason"`
+	Notes                *string               `json:"notes"`
+	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
 }
 
 type UserPermissionOverride struct {

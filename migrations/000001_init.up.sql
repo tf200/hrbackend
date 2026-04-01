@@ -116,6 +116,17 @@ CREATE TABLE permissions (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 
+INSERT INTO permissions (id, name, resource, method, group_key, section_key, display_name, description, sort_order) VALUES
+    (gen_random_uuid(), 'TIME_ENTRY.CREATE', 'time-entries', 'POST', 'time_entries', 'entries', 'Create time entry', 'Create a time entry for the authenticated employee', 0),
+    (gen_random_uuid(), 'TIME_ENTRY.CREATE_ALL', 'time-entries', 'POST', 'time_entries', 'entries', 'Create time entry for any employee', 'Create a time entry for a selected employee', 1),
+    (gen_random_uuid(), 'TIME_ENTRY.VIEW', 'time-entries', 'GET', 'time_entries', 'entries', 'View own time entries', 'View the authenticated employee time entries', 2),
+    (gen_random_uuid(), 'TIME_ENTRY.VIEW_ALL', 'time-entries', 'GET', 'time_entries', 'entries', 'View all time entries', 'View time entries for all employees', 3),
+    (gen_random_uuid(), 'PAYOUT.REQUEST.CREATE', 'payout-requests', 'POST', 'payout_requests', 'requests', 'Create payout request', 'Create a payout request for the authenticated employee', 4),
+    (gen_random_uuid(), 'PAYOUT.REQUEST.VIEW', 'payout-requests', 'GET', 'payout_requests', 'requests', 'View own payout requests', 'View payout requests for the authenticated employee', 5),
+    (gen_random_uuid(), 'PAYOUT.REQUEST.VIEW_ALL', 'payout-requests', 'GET', 'payout_requests', 'requests', 'View all payout requests', 'View payout requests for all employees', 6),
+    (gen_random_uuid(), 'PAYOUT.REQUEST.DECIDE', 'payout-requests', 'POST', 'payout_requests', 'requests', 'Decide payout request', 'Approve or reject payout requests', 7),
+    (gen_random_uuid(), 'PAYOUT.REQUEST.MARK_PAID', 'payout-requests', 'POST', 'payout_requests', 'requests', 'Mark payout request paid', 'Mark approved payout requests as paid', 8);
+
 CREATE TYPE permission_override_effect AS ENUM ('allow', 'deny');
 
 -- Role-to-Permission mapping (template)
@@ -296,6 +307,24 @@ CREATE INDEX idx_employee_profile_manager_employee_id ON employee_profile(manage
 CREATE INDEX employee_profile_id_desc_idx ON employee_profile(id DESC);
 CREATE INDEX idx_employee_profile_is_archived ON employee_profile(is_archived);
 CREATE INDEX idx_employee_profile_out_of_service ON employee_profile(out_of_service);
+
+CREATE TABLE employee_contract_changes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    effective_from DATE NOT NULL,
+    contract_hours FLOAT NOT NULL DEFAULT 0.0,
+    contract_type employee_contract_type_enum NOT NULL DEFAULT 'none',
+    contract_rate DECIMAL(10,2) NULL DEFAULT 0.00,
+    contract_end_date DATE NULL,
+    created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT employee_contract_changes_unique_employee_effective_from UNIQUE (employee_id, effective_from),
+    CONSTRAINT employee_contract_changes_contract_hours_non_negative CHECK (contract_hours >= 0)
+);
+
+CREATE INDEX idx_employee_contract_changes_employee_effective_from_desc
+ON employee_contract_changes(employee_id, effective_from DESC);
 
 ALTER TABLE departments
     ADD CONSTRAINT departments_department_head_employee_id_fkey
@@ -484,6 +513,39 @@ CREATE TABLE schedules (
 );
 
 -- ==========================================
+-- TIME ENTRIES
+-- ==========================================
+
+CREATE TYPE time_entry_status_enum AS ENUM ('draft', 'submitted', 'approved', 'rejected');
+CREATE TYPE time_entry_hour_type_enum AS ENUM ('normal', 'overtime', 'travel', 'leave', 'sick', 'training');
+
+CREATE TABLE time_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
+    entry_date DATE NOT NULL,
+    hours NUMERIC(4, 2) NOT NULL CHECK (hours > 0 AND hours <= 24),
+    hour_type time_entry_hour_type_enum NOT NULL DEFAULT 'normal',
+    project_name TEXT,
+    project_number TEXT,
+    client_name TEXT,
+    activity_category TEXT,
+    activity_description TEXT,
+    status time_entry_status_enum NOT NULL DEFAULT 'draft',
+    submitted_at TIMESTAMPTZ NULL,
+    approved_at TIMESTAMPTZ NULL,
+    approved_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    rejection_reason TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_time_entries_employee_date ON time_entries(employee_id, entry_date DESC);
+CREATE INDEX idx_time_entries_status ON time_entries(status);
+CREATE INDEX idx_time_entries_schedule_id ON time_entries(schedule_id);
+
+-- ==========================================
 -- LATE ARRIVALS
 -- ==========================================
 
@@ -598,6 +660,13 @@ CREATE TYPE leave_request_status_enum AS ENUM (
     'expired'
 );
 
+CREATE TYPE payout_request_status_enum AS ENUM (
+    'pending',
+    'approved',
+    'rejected',
+    'paid'
+);
+
 CREATE TABLE leave_policies (
     leave_type leave_request_type_enum PRIMARY KEY,
     requires_approval BOOLEAN NOT NULL DEFAULT TRUE,
@@ -619,22 +688,22 @@ CREATE TABLE leave_balances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
     year INT NOT NULL,
-    legal_total_days INT NOT NULL DEFAULT 0,
-    extra_total_days INT NOT NULL DEFAULT 0,
-    legal_used_days INT NOT NULL DEFAULT 0,
-    extra_used_days INT NOT NULL DEFAULT 0,
+    legal_total_hours INT NOT NULL DEFAULT 0,
+    extra_total_hours INT NOT NULL DEFAULT 0,
+    legal_used_hours INT NOT NULL DEFAULT 0,
+    extra_used_hours INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT leave_balances_unique_employee_year UNIQUE (employee_id, year),
     CONSTRAINT leave_balances_non_negative CHECK (
-        legal_total_days >= 0
-        AND extra_total_days >= 0
-        AND legal_used_days >= 0
-        AND extra_used_days >= 0
+        legal_total_hours >= 0
+        AND extra_total_hours >= 0
+        AND legal_used_hours >= 0
+        AND extra_used_hours >= 0
     ),
     CONSTRAINT leave_balances_usage_not_exceed_total CHECK (
-        legal_used_days <= legal_total_days
-        AND extra_used_days <= extra_total_days
+        legal_used_hours <= legal_total_hours
+        AND extra_used_hours <= extra_total_hours
     )
 );
 
@@ -645,43 +714,147 @@ CREATE TABLE leave_balance_adjustments (
     leave_balance_id UUID NOT NULL REFERENCES leave_balances(id) ON DELETE CASCADE,
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
     year INT NOT NULL,
-    legal_days_delta INT NOT NULL DEFAULT 0,
-    extra_days_delta INT NOT NULL DEFAULT 0,
+    legal_hours_delta INT NOT NULL DEFAULT 0,
+    extra_hours_delta INT NOT NULL DEFAULT 0,
     reason TEXT NOT NULL,
     adjusted_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
-    legal_total_days_before INT NOT NULL,
-    extra_total_days_before INT NOT NULL,
-    legal_total_days_after INT NOT NULL,
-    extra_total_days_after INT NOT NULL,
+    legal_total_hours_before INT NOT NULL,
+    extra_total_hours_before INT NOT NULL,
+    legal_total_hours_after INT NOT NULL,
+    extra_total_hours_after INT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT leave_balance_adjustments_non_zero_delta CHECK (
-        legal_days_delta <> 0 OR extra_days_delta <> 0
+        legal_hours_delta <> 0 OR extra_hours_delta <> 0
     )
 );
 
 CREATE INDEX idx_leave_balance_adjustments_employee_year_created_at
 ON leave_balance_adjustments(employee_id, year, created_at DESC);
 
+CREATE OR REPLACE FUNCTION calculate_legal_leave_hours(p_employee_id UUID, p_year INT)
+RETURNS INT AS $$
+DECLARE
+    computed_legal_hours INT := 0;
+    has_history BOOLEAN := FALSE;
+    profile_contract_type employee_contract_type_enum;
+    profile_contract_hours FLOAT;
+BEGIN
+    SELECT EXISTS(
+        SELECT 1
+        FROM employee_contract_changes ecc
+        WHERE ecc.employee_id = p_employee_id
+    ) INTO has_history;
+
+    IF has_history THEN
+        SELECT
+            GREATEST(
+                0,
+                ROUND(COALESCE(SUM(
+                    CASE
+                        WHEN segments.contract_type <> 'loondienst' OR segments.contract_hours <= 0 THEN 0
+                        ELSE (
+                            (segments.contract_hours * 4.0) * (
+                                (
+                                    LEAST(segments.segment_end, make_date(p_year, 12, 31)) -
+                                    GREATEST(segments.effective_from, make_date(p_year, 1, 1)) + 1
+                                )::numeric /
+                                (make_date(p_year + 1, 1, 1) - make_date(p_year, 1, 1))::numeric
+                            )
+                        )
+                    END
+                ), 0)::numeric)::INT
+            )
+        INTO computed_legal_hours
+        FROM (
+            SELECT
+                ecc.effective_from,
+                COALESCE(
+                    LEAST(
+                        COALESCE(ecc.contract_end_date, make_date(p_year, 12, 31)),
+                        (
+                            LEAD(ecc.effective_from) OVER (
+                                PARTITION BY ecc.employee_id
+                                ORDER BY ecc.effective_from
+                            ) - INTERVAL '1 day'
+                        )::DATE
+                    ),
+                    COALESCE(ecc.contract_end_date, make_date(p_year, 12, 31))
+                ) AS segment_end,
+                ecc.contract_hours,
+                ecc.contract_type
+            FROM employee_contract_changes ecc
+            WHERE ecc.employee_id = p_employee_id
+        ) AS segments
+        WHERE segments.segment_end >= make_date(p_year, 1, 1)
+          AND segments.effective_from <= make_date(p_year, 12, 31);
+
+        RETURN COALESCE(computed_legal_hours, 0);
+    END IF;
+
+    SELECT
+        ep.contract_type,
+        COALESCE(ep.contract_hours, 0)
+    INTO
+        profile_contract_type,
+        profile_contract_hours
+    FROM employee_profile ep
+    WHERE ep.id = p_employee_id;
+
+    IF profile_contract_type IS NULL OR profile_contract_type <> 'loondienst' THEN
+        RETURN 0;
+    END IF;
+
+    IF profile_contract_hours > 0 THEN
+        RETURN GREATEST(0, ROUND((profile_contract_hours * 4)::numeric)::INT);
+    END IF;
+
+    SELECT
+        GREATEST(
+            0,
+            ROUND(COALESCE(SUM(te.hours) * (4.0 / 52.0), 0)::numeric)::INT
+        )
+    INTO computed_legal_hours
+    FROM time_entries te
+    WHERE te.employee_id = p_employee_id
+      AND te.status = 'approved'::time_entry_status_enum
+      AND te.hour_type IN (
+          'normal'::time_entry_hour_type_enum,
+          'overtime'::time_entry_hour_type_enum,
+          'travel'::time_entry_hour_type_enum,
+          'training'::time_entry_hour_type_enum
+      )
+      AND te.entry_date >= make_date(p_year, 1, 1)
+      AND te.entry_date < make_date(p_year + 1, 1, 1);
+
+    RETURN COALESCE(computed_legal_hours, 0);
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION initialize_leave_balance_on_employee_insert()
 RETURNS TRIGGER AS $$
 DECLARE
-    computed_legal_days INT;
+    computed_legal_hours INT;
     current_year INT;
 BEGIN
     current_year := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
-    computed_legal_days := GREATEST(0, ROUND(COALESCE(NEW.contract_hours, 0)::numeric / 2.0)::INT);
+
+    IF NEW.contract_type <> 'loondienst' OR COALESCE(NEW.contract_hours, 0) <= 0 THEN
+        RETURN NEW;
+    END IF;
+
+    computed_legal_hours := calculate_legal_leave_hours(NEW.id, current_year);
 
     INSERT INTO leave_balances (
         employee_id,
         year,
-        legal_total_days,
-        extra_total_days,
-        legal_used_days,
-        extra_used_days
+        legal_total_hours,
+        extra_total_hours,
+        legal_used_hours,
+        extra_used_hours
     ) VALUES (
         NEW.id,
         current_year,
-        computed_legal_days,
+        computed_legal_hours,
         0,
         0,
         0
@@ -721,6 +894,41 @@ CREATE INDEX idx_leave_requests_status ON leave_requests(status);
 CREATE INDEX idx_leave_requests_leave_type ON leave_requests(leave_type);
 CREATE INDEX idx_leave_requests_requested_at_desc ON leave_requests(requested_at DESC);
 CREATE INDEX idx_leave_requests_employee_status ON leave_requests(employee_id, status);
+
+CREATE TABLE leave_payout_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    requested_hours INT NOT NULL,
+    balance_year INT NOT NULL,
+    hourly_rate DECIMAL(10,2) NOT NULL,
+    gross_amount DECIMAL(12,2) NOT NULL,
+    salary_month DATE NULL,
+    status payout_request_status_enum NOT NULL DEFAULT 'pending',
+    request_note TEXT NULL,
+    decision_note TEXT NULL,
+    decided_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    paid_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    decided_at TIMESTAMPTZ NULL,
+    paid_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT leave_payout_requests_requested_hours_positive CHECK (requested_hours > 0),
+    CONSTRAINT leave_payout_requests_balance_year_range CHECK (balance_year >= 2000 AND balance_year <= 2100),
+    CONSTRAINT leave_payout_requests_hourly_rate_positive CHECK (hourly_rate > 0),
+    CONSTRAINT leave_payout_requests_gross_amount_non_negative CHECK (gross_amount >= 0),
+    CONSTRAINT leave_payout_requests_salary_month_first_day CHECK (
+        salary_month IS NULL OR EXTRACT(DAY FROM salary_month) = 1
+    )
+);
+
+CREATE INDEX idx_leave_payout_requests_employee_requested_at_desc
+ON leave_payout_requests(employee_id, requested_at DESC);
+CREATE INDEX idx_leave_payout_requests_status_requested_at_desc
+ON leave_payout_requests(status, requested_at DESC);
+CREATE INDEX idx_leave_payout_requests_balance_year
+ON leave_payout_requests(balance_year);
 
 CREATE TYPE calendar_event_kind_enum AS ENUM ('appointment', 'reminder');
 CREATE TYPE calendar_event_status_enum AS ENUM ('confirmed', 'cancelled');
@@ -863,4 +1071,3 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-

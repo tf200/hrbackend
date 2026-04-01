@@ -80,6 +80,76 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 	return i, err
 }
 
+const countEmployeeContractChanges = `-- name: CountEmployeeContractChanges :one
+SELECT COUNT(*)::bigint
+FROM employee_contract_changes
+WHERE employee_id = $1
+`
+
+func (q *Queries) CountEmployeeContractChanges(ctx context.Context, employeeID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countEmployeeContractChanges, employeeID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const createEmployeeContractChange = `-- name: CreateEmployeeContractChange :one
+INSERT INTO employee_contract_changes (
+    employee_id,
+    effective_from,
+    contract_hours,
+    contract_type,
+    contract_rate,
+    contract_end_date,
+    created_by_employee_id
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7
+)
+RETURNING id, employee_id, effective_from, contract_hours, contract_type, contract_rate, contract_end_date, created_by_employee_id, created_at, updated_at
+`
+
+type CreateEmployeeContractChangeParams struct {
+	EmployeeID          uuid.UUID                `json:"employee_id"`
+	EffectiveFrom       pgtype.Date              `json:"effective_from"`
+	ContractHours       float64                  `json:"contract_hours"`
+	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
+	ContractRate        *float64                 `json:"contract_rate"`
+	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
+	CreatedByEmployeeID uuid.UUID                `json:"created_by_employee_id"`
+}
+
+func (q *Queries) CreateEmployeeContractChange(ctx context.Context, arg CreateEmployeeContractChangeParams) (EmployeeContractChange, error) {
+	row := q.db.QueryRow(ctx, createEmployeeContractChange,
+		arg.EmployeeID,
+		arg.EffectiveFrom,
+		arg.ContractHours,
+		arg.ContractType,
+		arg.ContractRate,
+		arg.ContractEndDate,
+		arg.CreatedByEmployeeID,
+	)
+	var i EmployeeContractChange
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.EffectiveFrom,
+		&i.ContractHours,
+		&i.ContractType,
+		&i.ContractRate,
+		&i.ContractEndDate,
+		&i.CreatedByEmployeeID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getEmployeeContractDetails = `-- name: GetEmployeeContractDetails :one
 SELECT
     contract_hours,
@@ -106,6 +176,172 @@ func (q *Queries) GetEmployeeContractDetails(ctx context.Context, id uuid.UUID) 
 		&i.ContractHours,
 		&i.ContractStartDate,
 		&i.ContractEndDate,
+		&i.ContractType,
+		&i.ContractRate,
+	)
+	return i, err
+}
+
+const getEmployeeContractSnapshotForContractChange = `-- name: GetEmployeeContractSnapshotForContractChange :one
+SELECT
+    contract_hours,
+    contract_start_date,
+    contract_end_date,
+    contract_type,
+    contract_rate
+FROM employee_profile
+WHERE id = $1
+`
+
+type GetEmployeeContractSnapshotForContractChangeRow struct {
+	ContractHours     *float64                 `json:"contract_hours"`
+	ContractStartDate pgtype.Date              `json:"contract_start_date"`
+	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
+	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
+	ContractRate      *float64                 `json:"contract_rate"`
+}
+
+func (q *Queries) GetEmployeeContractSnapshotForContractChange(ctx context.Context, id uuid.UUID) (GetEmployeeContractSnapshotForContractChangeRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeeContractSnapshotForContractChange, id)
+	var i GetEmployeeContractSnapshotForContractChangeRow
+	err := row.Scan(
+		&i.ContractHours,
+		&i.ContractStartDate,
+		&i.ContractEndDate,
+		&i.ContractType,
+		&i.ContractRate,
+	)
+	return i, err
+}
+
+const listEmployeeContractChanges = `-- name: ListEmployeeContractChanges :many
+SELECT
+    c.id,
+    c.employee_id,
+    c.effective_from,
+    (
+        LEAD(c.effective_from) OVER (
+            PARTITION BY c.employee_id
+            ORDER BY c.effective_from
+        ) - INTERVAL '1 day'
+    )::date AS effective_to,
+    c.contract_hours,
+    c.contract_type,
+    c.contract_rate,
+    c.contract_end_date,
+    c.created_by_employee_id,
+    c.created_at,
+    c.updated_at
+FROM employee_contract_changes c
+WHERE c.employee_id = $1
+ORDER BY c.effective_from DESC, c.created_at DESC
+`
+
+type ListEmployeeContractChangesRow struct {
+	ID                  uuid.UUID                `json:"id"`
+	EmployeeID          uuid.UUID                `json:"employee_id"`
+	EffectiveFrom       pgtype.Date              `json:"effective_from"`
+	EffectiveTo         pgtype.Date              `json:"effective_to"`
+	ContractHours       float64                  `json:"contract_hours"`
+	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
+	ContractRate        *float64                 `json:"contract_rate"`
+	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
+	CreatedByEmployeeID uuid.UUID                `json:"created_by_employee_id"`
+	CreatedAt           pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz       `json:"updated_at"`
+}
+
+func (q *Queries) ListEmployeeContractChanges(ctx context.Context, employeeID uuid.UUID) ([]ListEmployeeContractChangesRow, error) {
+	rows, err := q.db.Query(ctx, listEmployeeContractChanges, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmployeeContractChangesRow{}
+	for rows.Next() {
+		var i ListEmployeeContractChangesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.EmployeeID,
+			&i.EffectiveFrom,
+			&i.EffectiveTo,
+			&i.ContractHours,
+			&i.ContractType,
+			&i.ContractRate,
+			&i.ContractEndDate,
+			&i.CreatedByEmployeeID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const syncEmployeeProfileContractFromLatestChange = `-- name: SyncEmployeeProfileContractFromLatestChange :one
+WITH latest AS (
+    SELECT
+        contract_hours,
+        contract_type,
+        contract_rate,
+        contract_end_date,
+        effective_from
+    FROM employee_contract_changes
+    WHERE employee_id = $1
+    ORDER BY effective_from DESC
+    LIMIT 1
+)
+UPDATE employee_profile ep
+SET
+    contract_hours = latest.contract_hours,
+    contract_type = latest.contract_type,
+    contract_rate = latest.contract_rate,
+    contract_end_date = latest.contract_end_date,
+    contract_start_date = latest.effective_from
+FROM latest
+WHERE ep.id = $1
+RETURNING ep.id, ep.user_id, ep.first_name, ep.last_name, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.position, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.location_id, ep.department_id, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived, ep.contract_hours, ep.contract_end_date, ep.contract_start_date, ep.contract_type, ep.contract_rate
+`
+
+func (q *Queries) SyncEmployeeProfileContractFromLatestChange(ctx context.Context, id uuid.UUID) (EmployeeProfile, error) {
+	row := q.db.QueryRow(ctx, syncEmployeeProfileContractFromLatestChange, id)
+	var i EmployeeProfile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.FirstName,
+		&i.LastName,
+		&i.Bsn,
+		&i.Street,
+		&i.HouseNumber,
+		&i.HouseNumberAddition,
+		&i.PostalCode,
+		&i.City,
+		&i.Position,
+		&i.EmployeeNumber,
+		&i.EmploymentNumber,
+		&i.PrivateEmailAddress,
+		&i.WorkEmailAddress,
+		&i.PrivatePhoneNumber,
+		&i.WorkPhoneNumber,
+		&i.DateOfBirth,
+		&i.HomeTelephoneNumber,
+		&i.CreatedAt,
+		&i.Gender,
+		&i.LocationID,
+		&i.DepartmentID,
+		&i.ManagerEmployeeID,
+		&i.HasBorrowed,
+		&i.OutOfService,
+		&i.IsArchived,
+		&i.ContractHours,
+		&i.ContractEndDate,
+		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
 	)

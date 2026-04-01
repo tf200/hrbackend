@@ -9,16 +9,21 @@ import (
 )
 
 var (
-	ErrEmployeeNotFound      = errors.New("employee not found")
-	ErrEducationNotFound     = errors.New("education not found")
-	ErrExperienceNotFound    = errors.New("experience not found")
-	ErrCertificationNotFound = errors.New("certification not found")
-	ErrInvalidDateOfBirth    = errors.New("invalid date of birth format")
-	ErrInvalidContractDate   = errors.New("invalid contract date format")
-	ErrInvalidAttachmentID   = errors.New("invalid attachment ID")
-	ErrEmployeeCreateFailed  = errors.New("failed to create employee")
-	ErrPasswordHashFailed    = errors.New("failed to hash password")
-	ErrEmailDeliveryFailed   = errors.New("failed to enqueue email delivery")
+	ErrEmployeeNotFound                 = errors.New("employee not found")
+	ErrEducationNotFound                = errors.New("education not found")
+	ErrExperienceNotFound               = errors.New("experience not found")
+	ErrCertificationNotFound            = errors.New("certification not found")
+	ErrInvalidDateOfBirth               = errors.New("invalid date of birth format")
+	ErrInvalidContractDate              = errors.New("invalid contract date format")
+	ErrInvalidAttachmentID              = errors.New("invalid attachment ID")
+	ErrEmployeeCreateFailed             = errors.New("failed to create employee")
+	ErrPasswordHashFailed               = errors.New("failed to hash password")
+	ErrEmailDeliveryFailed              = errors.New("failed to enqueue email delivery")
+	ErrContractChangeInvalid            = errors.New("invalid contract change request")
+	ErrContractChangeNotFound           = errors.New("contract change not found")
+	ErrContractHistoryExists            = errors.New("contract history exists; use contract changes endpoint")
+	ErrContractBaselineMissingStartDate = errors.New("contract_start_date is required to bootstrap contract history")
+	ErrContractChangeLeaveConflict      = errors.New("contract change would invalidate current leave usage")
 )
 
 // Employee is the lean domain struct for list queries.
@@ -152,6 +157,32 @@ type ContractDetails struct {
 	IsSubcontractor   *bool
 }
 
+type EmployeeContractChange struct {
+	ID                  uuid.UUID
+	EmployeeID          uuid.UUID
+	EffectiveFrom       time.Time
+	EffectiveTo         *time.Time
+	ContractHours       float64
+	ContractType        string
+	ContractRate        *float64
+	ContractEndDate     *time.Time
+	CreatedByEmployeeID uuid.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+type LeaveRecalculationImpact struct {
+	Year        int32
+	LegalBefore int32
+	LegalAfter  int32
+	Delta       int32
+}
+
+type CreateEmployeeContractChangeResult struct {
+	Change         EmployeeContractChange
+	Recalculations []LeaveRecalculationImpact
+}
+
 // --- Params ---
 
 type ListEmployeesParams struct {
@@ -232,6 +263,14 @@ type UpdateIsSubcontractorParams struct {
 	IsSubcontractor bool
 }
 
+type CreateEmployeeContractChangeParams struct {
+	EffectiveFrom   time.Time
+	ContractHours   float64
+	ContractType    string
+	ContractRate    *float64
+	ContractEndDate *time.Time
+}
+
 type CreateEducationParams struct {
 	InstitutionName string
 	Degree          string
@@ -293,6 +332,8 @@ type EmployeeRepository interface {
 	GetContractDetails(ctx context.Context, employeeID uuid.UUID) (*ContractDetails, error)
 	AddContractDetails(ctx context.Context, employeeID uuid.UUID, params AddContractDetailsParams) (*EmployeeDetail, error)
 	UpdateIsSubcontractor(ctx context.Context, employeeID uuid.UUID, contractType string) (*EmployeeDetail, error)
+	ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractChange, error)
+	CreateContractChange(ctx context.Context, actorEmployeeID, employeeID uuid.UUID, params CreateEmployeeContractChangeParams) (*CreateEmployeeContractChangeResult, error)
 
 	// Education
 	ListEducation(ctx context.Context, employeeID uuid.UUID) ([]Education, error)
@@ -325,6 +366,8 @@ type EmployeeService interface {
 	GetContractDetails(ctx context.Context, employeeID uuid.UUID) (*ContractDetails, error)
 	AddContractDetails(ctx context.Context, employeeID uuid.UUID, params AddContractDetailsParams) (*EmployeeDetail, error)
 	UpdateIsSubcontractor(ctx context.Context, employeeID uuid.UUID, params UpdateIsSubcontractorParams) (*EmployeeDetail, error)
+	ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractChange, error)
+	CreateContractChange(ctx context.Context, actorEmployeeID, employeeID uuid.UUID, params CreateEmployeeContractChangeParams) (*CreateEmployeeContractChangeResult, error)
 
 	ListEducation(ctx context.Context, employeeID uuid.UUID) ([]Education, error)
 	AddEducation(ctx context.Context, employeeID uuid.UUID, params CreateEducationParams) (*Education, error)

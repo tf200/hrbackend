@@ -17,6 +17,7 @@ DROP FUNCTION IF EXISTS calendar_event_reset_work_approval_on_time_change();
 -- Drop trigger and function for leave balance initialization
 DROP TRIGGER IF EXISTS trigger_initialize_leave_balance_on_employee_insert ON employee_profile;
 DROP FUNCTION IF EXISTS initialize_leave_balance_on_employee_insert();
+DROP FUNCTION IF EXISTS calculate_legal_leave_hours(UUID, INT);
 
 -- Drop trigger and function for default shifts on location
 DROP TRIGGER IF EXISTS trigger_insert_default_shifts ON location;
@@ -37,6 +38,7 @@ DROP TABLE IF EXISTS calendar_event_attendees;
 DROP TABLE IF EXISTS calendar_events;
 
 -- Leave management tables
+DROP TABLE IF EXISTS leave_payout_requests;
 DROP TABLE IF EXISTS leave_requests;
 DROP TABLE IF EXISTS leave_balance_adjustments;
 DROP TABLE IF EXISTS leave_balances;
@@ -47,6 +49,9 @@ DROP TABLE IF EXISTS shift_swap_requests;
 
 -- Late arrivals table
 DROP TABLE IF EXISTS late_arrivals;
+
+-- Time entry table
+DROP TABLE IF EXISTS time_entries;
 
 -- Schedule tables
 DROP TABLE IF EXISTS schedules;
@@ -62,6 +67,7 @@ DROP TABLE IF EXISTS handbook_templates;
 DROP TABLE IF EXISTS employee_experience;
 DROP TABLE IF EXISTS certification;
 DROP TABLE IF EXISTS employee_education;
+DROP TABLE IF EXISTS employee_contract_changes;
 DROP TABLE IF EXISTS employee_profile CASCADE;
 
 -- Department foreign key constraint cleanup (before dropping departments)
@@ -101,6 +107,9 @@ DROP TYPE IF EXISTS attendee_response_enum;
 DROP TYPE IF EXISTS calendar_event_work_approval_status_enum;
 DROP TYPE IF EXISTS calendar_event_status_enum;
 DROP TYPE IF EXISTS calendar_event_kind_enum;
+DROP TYPE IF EXISTS time_entry_hour_type_enum;
+DROP TYPE IF EXISTS time_entry_status_enum;
+DROP TYPE IF EXISTS payout_request_status_enum;
 DROP TYPE IF EXISTS leave_request_status_enum;
 DROP TYPE IF EXISTS leave_request_type_enum;
 DROP TYPE IF EXISTS shift_swap_status_enum;

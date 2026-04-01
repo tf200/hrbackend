@@ -200,6 +200,14 @@ func (s *LeaveService) DecideLeaveRequestByAdmin(ctx context.Context, adminEmplo
 				if requestedDays <= 0 {
 					return fmt.Errorf("%w: invalid leave duration", domain.ErrLeaveRequestInvalidRequest)
 				}
+				hoursPerDay, err := tx.GetLeaveHoursPerDay(ctx, current.EmployeeID)
+				if err != nil {
+					return err
+				}
+				if hoursPerDay <= 0 {
+					return fmt.Errorf("%w: invalid employee day-hour configuration", domain.ErrLeaveRequestInvalidRequest)
+				}
+				requestedHours := requestedDays * hoursPerDay
 
 				year := int32(start.Year())
 				if err := tx.EnsureLeaveBalanceForYear(ctx, current.EmployeeID, year); err != nil {
@@ -211,12 +219,12 @@ func (s *LeaveService) DecideLeaveRequestByAdmin(ctx context.Context, adminEmplo
 					return err
 				}
 
-				if balance.TotalRemaining < requestedDays {
+				if balance.TotalRemaining < requestedHours {
 					return domain.ErrLeaveBalanceInsufficient
 				}
 
-				extraToUse := minInt32(balance.ExtraRemaining, requestedDays)
-				legalToUse := requestedDays - extraToUse
+				extraToUse := minInt32(balance.ExtraRemaining, requestedHours)
+				legalToUse := requestedHours - extraToUse
 				if _, err := tx.ApplyLeaveBalanceDeduction(ctx, balance.ID, extraToUse, legalToUse); err != nil {
 					return err
 				}
@@ -275,7 +283,7 @@ func (s *LeaveService) AdjustLeaveBalance(ctx context.Context, params domain.Adj
 	if params.AdminEmployeeID == uuid.Nil || params.EmployeeID == uuid.Nil {
 		return nil, domain.ErrLeaveRequestInvalidRequest
 	}
-	if params.LegalDaysDelta == 0 && params.ExtraDaysDelta == 0 {
+	if params.LegalHoursDelta == 0 && params.ExtraHoursDelta == 0 {
 		return nil, fmt.Errorf("%w: at least one delta is required", domain.ErrLeaveBalanceInvalidAdjust)
 	}
 	params.Reason = strings.TrimSpace(params.Reason)
@@ -293,32 +301,32 @@ func (s *LeaveService) AdjustLeaveBalance(ctx context.Context, params domain.Adj
 			return err
 		}
 
-		nextLegalTotal := current.LegalTotalDays + params.LegalDaysDelta
-		nextExtraTotal := current.ExtraTotalDays + params.ExtraDaysDelta
+		nextLegalTotal := current.LegalTotalHours + params.LegalHoursDelta
+		nextExtraTotal := current.ExtraTotalHours + params.ExtraHoursDelta
 		if nextLegalTotal < 0 || nextExtraTotal < 0 {
 			return fmt.Errorf("%w: totals cannot be negative", domain.ErrLeaveBalanceInvalidAdjust)
 		}
-		if nextLegalTotal < current.LegalUsedDays || nextExtraTotal < current.ExtraUsedDays {
-			return fmt.Errorf("%w: totals cannot be lower than already used days", domain.ErrLeaveBalanceInvalidAdjust)
+		if nextLegalTotal < current.LegalUsedHours || nextExtraTotal < current.ExtraUsedHours {
+			return fmt.Errorf("%w: totals cannot be lower than already used hours", domain.ErrLeaveBalanceInvalidAdjust)
 		}
 
-		adjusted, err = tx.ApplyLeaveBalanceTotalAdjustment(ctx, current.ID, params.LegalDaysDelta, params.ExtraDaysDelta)
+		adjusted, err = tx.ApplyLeaveBalanceTotalAdjustment(ctx, current.ID, params.LegalHoursDelta, params.ExtraHoursDelta)
 		if err != nil {
 			return err
 		}
 
 		return tx.CreateLeaveBalanceAdjustmentAudit(ctx, domain.CreateLeaveBalanceAdjustmentAuditParams{
-			LeaveBalanceID:       current.ID,
-			EmployeeID:           params.EmployeeID,
-			Year:                 params.Year,
-			LegalDaysDelta:       params.LegalDaysDelta,
-			ExtraDaysDelta:       params.ExtraDaysDelta,
-			Reason:               params.Reason,
-			AdjustedByEmployeeID: params.AdminEmployeeID,
-			LegalTotalDaysBefore: current.LegalTotalDays,
-			ExtraTotalDaysBefore: current.ExtraTotalDays,
-			LegalTotalDaysAfter:  adjusted.LegalTotalDays,
-			ExtraTotalDaysAfter:  adjusted.ExtraTotalDays,
+			LeaveBalanceID:        current.ID,
+			EmployeeID:            params.EmployeeID,
+			Year:                  params.Year,
+			LegalHoursDelta:       params.LegalHoursDelta,
+			ExtraHoursDelta:       params.ExtraHoursDelta,
+			Reason:                params.Reason,
+			AdjustedByEmployeeID:  params.AdminEmployeeID,
+			LegalTotalHoursBefore: current.LegalTotalHours,
+			ExtraTotalHoursBefore: current.ExtraTotalHours,
+			LegalTotalHoursAfter:  adjusted.LegalTotalHours,
+			ExtraTotalHoursAfter:  adjusted.ExtraTotalHours,
 		})
 	})
 	if err != nil {

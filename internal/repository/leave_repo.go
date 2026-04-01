@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -209,10 +210,14 @@ func (r *LeaveRepository) ListLeaveBalances(ctx context.Context, params domain.L
 			row.EmployeeID,
 			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 			row.Year,
-			row.LegalTotalDays,
-			row.ExtraTotalDays,
-			row.LegalUsedDays,
-			row.ExtraUsedDays,
+			row.LegalTotalHours,
+			row.ExtraTotalHours,
+			row.LegalUsedHours,
+			row.ExtraUsedHours,
+			row.ContractHours,
+			stringPtr(string(row.ContractType)),
+			conv.TimePtrFromPgDate(row.ContractStartDate),
+			conv.TimePtrFromPgDate(row.ContractEndDate),
 			row.CreatedAt,
 			row.UpdatedAt,
 		))
@@ -245,10 +250,14 @@ func (r *LeaveRepository) ListMyLeaveBalances(ctx context.Context, params domain
 			row.EmployeeID,
 			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 			row.Year,
-			row.LegalTotalDays,
-			row.ExtraTotalDays,
-			row.LegalUsedDays,
-			row.ExtraUsedDays,
+			row.LegalTotalHours,
+			row.ExtraTotalHours,
+			row.LegalUsedHours,
+			row.ExtraUsedHours,
+			row.ContractHours,
+			stringPtr(string(row.ContractType)),
+			conv.TimePtrFromPgDate(row.ContractStartDate),
+			conv.TimePtrFromPgDate(row.ContractEndDate),
 			row.CreatedAt,
 			row.UpdatedAt,
 		))
@@ -384,21 +393,47 @@ func (r *leaveTxRepo) GetLeaveBalanceForUpdate(ctx context.Context, employeeID u
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalDays,
-		row.ExtraTotalDays,
-		row.LegalUsedDays,
-		row.ExtraUsedDays,
+		row.LegalTotalHours,
+		row.ExtraTotalHours,
+		row.LegalUsedHours,
+		row.ExtraUsedHours,
+		nil,
+		nil,
+		nil,
+		nil,
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
 	return &model, nil
 }
 
-func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(ctx context.Context, balanceID uuid.UUID, extraDays, legalDays int32) (*domain.LeaveBalance, error) {
+func (r *leaveTxRepo) GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error) {
+	row, err := r.queries.GetEmployeeContractForLeave(ctx, employeeID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return 0, domain.ErrLeaveRequestNotFound
+		}
+		return 0, err
+	}
+
+	if row.ContractType != db.EmployeeContractTypeEnumLoondienst {
+		return 8, nil
+	}
+	if row.ContractHours != nil && *row.ContractHours > 0 {
+		computed := int32(math.Round(*row.ContractHours / 5.0))
+		if computed <= 0 {
+			return 8, nil
+		}
+		return computed, nil
+	}
+	return 8, nil
+}
+
+func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(ctx context.Context, balanceID uuid.UUID, extraHours, legalHours int32) (*domain.LeaveBalance, error) {
 	row, err := r.queries.ApplyLeaveBalanceDeduction(ctx, db.ApplyLeaveBalanceDeductionParams{
-		ID:        balanceID,
-		ExtraDays: extraDays,
-		LegalDays: legalDays,
+		ID:         balanceID,
+		ExtraHours: extraHours,
+		LegalHours: legalHours,
 	})
 	if err != nil {
 		return nil, err
@@ -408,21 +443,25 @@ func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(ctx context.Context, balanceID 
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalDays,
-		row.ExtraTotalDays,
-		row.LegalUsedDays,
-		row.ExtraUsedDays,
+		row.LegalTotalHours,
+		row.ExtraTotalHours,
+		row.LegalUsedHours,
+		row.ExtraUsedHours,
+		nil,
+		nil,
+		nil,
+		nil,
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
 	return &model, nil
 }
 
-func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(ctx context.Context, balanceID uuid.UUID, legalDaysDelta, extraDaysDelta int32) (*domain.LeaveBalance, error) {
+func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(ctx context.Context, balanceID uuid.UUID, legalHoursDelta, extraHoursDelta int32) (*domain.LeaveBalance, error) {
 	row, err := r.queries.ApplyLeaveBalanceTotalAdjustment(ctx, db.ApplyLeaveBalanceTotalAdjustmentParams{
-		ID:             balanceID,
-		LegalDaysDelta: legalDaysDelta,
-		ExtraDaysDelta: extraDaysDelta,
+		ID:              balanceID,
+		LegalHoursDelta: legalHoursDelta,
+		ExtraHoursDelta: extraHoursDelta,
 	})
 	if err != nil {
 		return nil, err
@@ -432,10 +471,14 @@ func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(ctx context.Context, bala
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalDays,
-		row.ExtraTotalDays,
-		row.LegalUsedDays,
-		row.ExtraUsedDays,
+		row.LegalTotalHours,
+		row.ExtraTotalHours,
+		row.LegalUsedHours,
+		row.ExtraUsedHours,
+		nil,
+		nil,
+		nil,
+		nil,
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
@@ -444,17 +487,17 @@ func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(ctx context.Context, bala
 
 func (r *leaveTxRepo) CreateLeaveBalanceAdjustmentAudit(ctx context.Context, params domain.CreateLeaveBalanceAdjustmentAuditParams) error {
 	_, err := r.queries.CreateLeaveBalanceAdjustmentAudit(ctx, db.CreateLeaveBalanceAdjustmentAuditParams{
-		LeaveBalanceID:       params.LeaveBalanceID,
-		EmployeeID:           params.EmployeeID,
-		Year:                 params.Year,
-		LegalDaysDelta:       params.LegalDaysDelta,
-		ExtraDaysDelta:       params.ExtraDaysDelta,
-		Reason:               params.Reason,
-		AdjustedByEmployeeID: params.AdjustedByEmployeeID,
-		LegalTotalDaysBefore: params.LegalTotalDaysBefore,
-		ExtraTotalDaysBefore: params.ExtraTotalDaysBefore,
-		LegalTotalDaysAfter:  params.LegalTotalDaysAfter,
-		ExtraTotalDaysAfter:  params.ExtraTotalDaysAfter,
+		LeaveBalanceID:        params.LeaveBalanceID,
+		EmployeeID:            params.EmployeeID,
+		Year:                  params.Year,
+		LegalHoursDelta:       params.LegalHoursDelta,
+		ExtraHoursDelta:       params.ExtraHoursDelta,
+		Reason:                params.Reason,
+		AdjustedByEmployeeID:  params.AdjustedByEmployeeID,
+		LegalTotalHoursBefore: params.LegalTotalHoursBefore,
+		ExtraTotalHoursBefore: params.ExtraTotalHoursBefore,
+		LegalTotalHoursAfter:  params.LegalTotalHoursAfter,
+		ExtraTotalHoursAfter:  params.ExtraTotalHoursAfter,
 	})
 	return err
 }
@@ -524,30 +567,42 @@ func toDomainLeaveBalance(
 	employeeID uuid.UUID,
 	employeeName string,
 	year int32,
-	legalTotalDays int32,
-	extraTotalDays int32,
-	legalUsedDays int32,
-	extraUsedDays int32,
+	legalTotalHours int32,
+	extraTotalHours int32,
+	legalUsedHours int32,
+	extraUsedHours int32,
+	contractHours *float64,
+	contractType *string,
+	contractStartDate *time.Time,
+	contractEndDate *time.Time,
 	createdAt pgtype.Timestamptz,
 	updatedAt pgtype.Timestamptz,
 ) domain.LeaveBalance {
-	legalRemaining := legalTotalDays - legalUsedDays
-	extraRemaining := extraTotalDays - extraUsedDays
+	legalRemaining := legalTotalHours - legalUsedHours
+	extraRemaining := extraTotalHours - extraUsedHours
 	return domain.LeaveBalance{
-		ID:             id,
-		EmployeeID:     employeeID,
-		EmployeeName:   employeeName,
-		Year:           year,
-		LegalTotalDays: legalTotalDays,
-		ExtraTotalDays: extraTotalDays,
-		LegalUsedDays:  legalUsedDays,
-		ExtraUsedDays:  extraUsedDays,
-		LegalRemaining: legalRemaining,
-		ExtraRemaining: extraRemaining,
-		TotalRemaining: legalRemaining + extraRemaining,
-		CreatedAt:      conv.TimeFromPgTimestamptz(createdAt),
-		UpdatedAt:      conv.TimeFromPgTimestamptz(updatedAt),
+		ID:                id,
+		EmployeeID:        employeeID,
+		EmployeeName:      employeeName,
+		Year:              year,
+		LegalTotalHours:   legalTotalHours,
+		ExtraTotalHours:   extraTotalHours,
+		LegalUsedHours:    legalUsedHours,
+		ExtraUsedHours:    extraUsedHours,
+		LegalRemaining:    legalRemaining,
+		ExtraRemaining:    extraRemaining,
+		TotalRemaining:    legalRemaining + extraRemaining,
+		ContractHours:     contractHours,
+		ContractType:      contractType,
+		ContractStartDate: contractStartDate,
+		ContractEndDate:   contractEndDate,
+		CreatedAt:         conv.TimeFromPgTimestamptz(createdAt),
+		UpdatedAt:         conv.TimeFromPgTimestamptz(updatedAt),
 	}
+}
+
+func stringPtr(v string) *string {
+	return &v
 }
 
 func toDBLeaveType(value string) (db.LeaveRequestTypeEnum, bool) {

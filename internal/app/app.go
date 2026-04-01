@@ -135,6 +135,12 @@ func buildRouter(
 	leaveRepo := repository.NewLeaveRepository(store)
 	leaveService := service.NewLeaveService(leaveRepo, logger)
 
+	payoutRepo := repository.NewPayoutRepository(store)
+	payoutService := service.NewPayoutService(payoutRepo)
+
+	timeEntryRepo := repository.NewTimeEntryRepository(store)
+	timeEntryService := service.NewTimeEntryService(timeEntryRepo, logger)
+
 	handbookRepo := repository.NewHandbookRepository(store)
 	handbookService := service.NewHandbookService(handbookRepo, logger)
 
@@ -144,6 +150,8 @@ func buildRouter(
 	scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	shiftSwapHandler := handler.NewShiftSwapHandler(scheduleService)
 	leaveHandler := handler.NewLeaveHandler(leaveService)
+	payoutHandler := handler.NewPayoutHandler(payoutService)
+	timeEntryHandler := handler.NewTimeEntryHandler(timeEntryService)
 	handbookHandler := handler.NewHandbookHandler(handbookService)
 
 	api := router.Group("/api")
@@ -156,6 +164,8 @@ func buildRouter(
 	handler.RegisterScheduleRoutes(api, scheduleHandler, auth, requirePermission)
 	handler.RegisterShiftSwapRoutes(api, shiftSwapHandler, auth, requirePermission)
 	handler.RegisterLeaveRoutes(api, leaveHandler, auth, requirePermission)
+	handler.RegisterPayoutRoutes(api, payoutHandler, auth, requirePermission)
+	handler.RegisterTimeEntryRoutes(api, timeEntryHandler, auth, requirePermission)
 	handler.RegisterHandbookRoutes(api, handbookHandler, auth, requirePermission)
 
 	return router

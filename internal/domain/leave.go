@@ -53,19 +53,24 @@ type LeaveRequestStats struct {
 }
 
 type LeaveBalance struct {
-	ID             uuid.UUID
-	EmployeeID     uuid.UUID
-	EmployeeName   string
-	Year           int32
-	LegalTotalDays int32
-	ExtraTotalDays int32
-	LegalUsedDays  int32
-	ExtraUsedDays  int32
-	LegalRemaining int32
-	ExtraRemaining int32
-	TotalRemaining int32
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID                uuid.UUID
+	EmployeeID        uuid.UUID
+	EmployeeName      string
+	Year              int32
+	LegalTotalHours   int32
+	ExtraTotalHours   int32
+	LegalUsedHours    int32
+	ExtraUsedHours    int32
+	LegalRemaining    int32
+	ExtraRemaining    int32
+	TotalRemaining    int32
+	DerivedDayHours   int32
+	ContractHours     *float64
+	ContractType      *string
+	ContractStartDate *time.Time
+	ContractEndDate   *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type LeaveBalancePage struct {
@@ -131,8 +136,8 @@ type AdjustLeaveBalanceParams struct {
 	AdminEmployeeID uuid.UUID
 	EmployeeID      uuid.UUID
 	Year            int32
-	LegalDaysDelta  int32
-	ExtraDaysDelta  int32
+	LegalHoursDelta int32
+	ExtraHoursDelta int32
 	Reason          string
 }
 
@@ -142,24 +147,25 @@ type LeaveTxRepository interface {
 	UpdateLeaveRequestDecision(ctx context.Context, leaveRequestID uuid.UUID, status string, decisionNote *string, decidedByEmployeeID uuid.UUID) (*LeaveRequest, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
 	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
+	GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error)
 	GetLeaveBalanceForUpdate(ctx context.Context, employeeID uuid.UUID, year int32) (*LeaveBalance, error)
-	ApplyLeaveBalanceDeduction(ctx context.Context, balanceID uuid.UUID, extraDays, legalDays int32) (*LeaveBalance, error)
-	ApplyLeaveBalanceTotalAdjustment(ctx context.Context, balanceID uuid.UUID, legalDaysDelta, extraDaysDelta int32) (*LeaveBalance, error)
+	ApplyLeaveBalanceDeduction(ctx context.Context, balanceID uuid.UUID, extraHours, legalHours int32) (*LeaveBalance, error)
+	ApplyLeaveBalanceTotalAdjustment(ctx context.Context, balanceID uuid.UUID, legalHoursDelta, extraHoursDelta int32) (*LeaveBalance, error)
 	CreateLeaveBalanceAdjustmentAudit(ctx context.Context, params CreateLeaveBalanceAdjustmentAuditParams) error
 }
 
 type CreateLeaveBalanceAdjustmentAuditParams struct {
-	LeaveBalanceID       uuid.UUID
-	EmployeeID           uuid.UUID
-	Year                 int32
-	LegalDaysDelta       int32
-	ExtraDaysDelta       int32
-	Reason               string
-	AdjustedByEmployeeID uuid.UUID
-	LegalTotalDaysBefore int32
-	ExtraTotalDaysBefore int32
-	LegalTotalDaysAfter  int32
-	ExtraTotalDaysAfter  int32
+	LeaveBalanceID        uuid.UUID
+	EmployeeID            uuid.UUID
+	Year                  int32
+	LegalHoursDelta       int32
+	ExtraHoursDelta       int32
+	Reason                string
+	AdjustedByEmployeeID  uuid.UUID
+	LegalTotalHoursBefore int32
+	ExtraTotalHoursBefore int32
+	LegalTotalHoursAfter  int32
+	ExtraTotalHoursAfter  int32
 }
 
 type LeaveRepository interface {

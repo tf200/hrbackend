@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"hrbackend/internal/domain"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -200,6 +202,14 @@ func (r *EmployeeRepository) GetContractDetails(ctx context.Context, employeeID 
 }
 
 func (r *EmployeeRepository) AddContractDetails(ctx context.Context, employeeID uuid.UUID, params domain.AddContractDetailsParams) (*domain.EmployeeDetail, error) {
+	changeCount, err := r.store.CountEmployeeContractChanges(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	if changeCount > 0 {
+		return nil, domain.ErrContractHistoryExists
+	}
+
 	row, err := r.store.AddEmployeeContractDetails(ctx, db.AddEmployeeContractDetailsParams{
 		ID:                employeeID,
 		ContractHours:     params.ContractHours,
@@ -216,6 +226,130 @@ func (r *EmployeeRepository) AddContractDetails(ctx context.Context, employeeID 
 	}
 
 	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
+}
+
+func (r *EmployeeRepository) ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]domain.EmployeeContractChange, error) {
+	if _, err := r.store.GetEmployeeContractSnapshotForContractChange(ctx, employeeID); err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+
+	rows, err := r.store.ListEmployeeContractChanges(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.EmployeeContractChange, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.EmployeeContractChange{
+			ID:                  row.ID,
+			EmployeeID:          row.EmployeeID,
+			EffectiveFrom:       conv.TimeFromPgDate(row.EffectiveFrom),
+			EffectiveTo:         conv.TimePtrFromPgDate(row.EffectiveTo),
+			ContractHours:       row.ContractHours,
+			ContractType:        string(row.ContractType),
+			ContractRate:        row.ContractRate,
+			ContractEndDate:     conv.TimePtrFromPgDate(row.ContractEndDate),
+			CreatedByEmployeeID: row.CreatedByEmployeeID,
+			CreatedAt:           conv.TimeFromPgTimestamptz(row.CreatedAt),
+			UpdatedAt:           conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		})
+	}
+	return items, nil
+}
+
+func (r *EmployeeRepository) CreateContractChange(
+	ctx context.Context,
+	actorEmployeeID, employeeID uuid.UUID,
+	params domain.CreateEmployeeContractChangeParams,
+) (*domain.CreateEmployeeContractChangeResult, error) {
+	var result *domain.CreateEmployeeContractChangeResult
+
+	err := r.store.ExecTx(ctx, func(q *db.Queries) error {
+		snapshot, err := q.GetEmployeeContractSnapshotForContractChange(ctx, employeeID)
+		if err != nil {
+			if isDBNotFound(err) {
+				return domain.ErrEmployeeNotFound
+			}
+			return err
+		}
+
+		changeCount, err := q.CountEmployeeContractChanges(ctx, employeeID)
+		if err != nil {
+			return err
+		}
+
+		if changeCount == 0 {
+			if !snapshot.ContractStartDate.Valid {
+				return domain.ErrContractBaselineMissingStartDate
+			}
+
+			baselineDate := conv.TimeFromPgDate(snapshot.ContractStartDate).UTC()
+			effectiveDate := dateOnly(params.EffectiveFrom)
+			if !effectiveDate.Equal(dateOnly(baselineDate)) {
+				_, err = q.CreateEmployeeContractChange(ctx, db.CreateEmployeeContractChangeParams{
+					EmployeeID:          employeeID,
+					EffectiveFrom:       conv.PgDateFromTime(baselineDate),
+					ContractHours:       valueOrZero(snapshot.ContractHours),
+					ContractType:        snapshot.ContractType,
+					ContractRate:        snapshot.ContractRate,
+					ContractEndDate:     snapshot.ContractEndDate,
+					CreatedByEmployeeID: actorEmployeeID,
+				})
+				if err != nil {
+					return mapContractChangeDBError(err)
+				}
+			}
+		}
+
+		created, err := q.CreateEmployeeContractChange(ctx, db.CreateEmployeeContractChangeParams{
+			EmployeeID:          employeeID,
+			EffectiveFrom:       conv.PgDateFromTime(dateOnly(params.EffectiveFrom)),
+			ContractHours:       params.ContractHours,
+			ContractType:        contractTypeFromString(params.ContractType),
+			ContractRate:        params.ContractRate,
+			ContractEndDate:     pgDateFromPtr(params.ContractEndDate),
+			CreatedByEmployeeID: actorEmployeeID,
+		})
+		if err != nil {
+			return mapContractChangeDBError(err)
+		}
+
+		if _, err := q.SyncEmployeeProfileContractFromLatestChange(ctx, employeeID); err != nil {
+			return err
+		}
+
+		recalculations, err := recomputeLegalLeaveBalancesFromYear(ctx, q, actorEmployeeID, employeeID, int32(created.EffectiveFrom.Time.Year()), created.ID, conv.TimeFromPgDate(created.EffectiveFrom))
+		if err != nil {
+			return err
+		}
+
+		result = &domain.CreateEmployeeContractChangeResult{
+			Change: domain.EmployeeContractChange{
+				ID:                  created.ID,
+				EmployeeID:          created.EmployeeID,
+				EffectiveFrom:       conv.TimeFromPgDate(created.EffectiveFrom),
+				EffectiveTo:         nil,
+				ContractHours:       created.ContractHours,
+				ContractType:        string(created.ContractType),
+				ContractRate:        created.ContractRate,
+				ContractEndDate:     conv.TimePtrFromPgDate(created.ContractEndDate),
+				CreatedByEmployeeID: created.CreatedByEmployeeID,
+				CreatedAt:           conv.TimeFromPgTimestamptz(created.CreatedAt),
+				UpdatedAt:           conv.TimeFromPgTimestamptz(created.UpdatedAt),
+			},
+			Recalculations: recalculations,
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (r *EmployeeRepository) UpdateIsSubcontractor(ctx context.Context, employeeID uuid.UUID, contractType string) (*domain.EmployeeDetail, error) {
@@ -644,6 +778,117 @@ func nullContractTypeFromPtr(value *string) db.NullEmployeeContractTypeEnum {
 	}
 
 	return db.NullEmployeeContractTypeEnum{EmployeeContractTypeEnum: contractTypeFromString(*value), Valid: true}
+}
+
+func valueOrZero(value *float64) float64 {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
+func dateOnly(value time.Time) time.Time {
+	return time.Date(value.UTC().Year(), value.UTC().Month(), value.UTC().Day(), 0, 0, 0, 0, time.UTC)
+}
+
+func recomputeLegalLeaveBalancesFromYear(
+	ctx context.Context,
+	q *db.Queries,
+	actorEmployeeID uuid.UUID,
+	employeeID uuid.UUID,
+	startYear int32,
+	contractChangeID uuid.UUID,
+	effectiveFrom time.Time,
+) ([]domain.LeaveRecalculationImpact, error) {
+	currentYear := int32(time.Now().UTC().Year())
+	if startYear > currentYear {
+		return []domain.LeaveRecalculationImpact{}, nil
+	}
+
+	reasons := make([]domain.LeaveRecalculationImpact, 0, currentYear-startYear+1)
+
+	for year := startYear; year <= currentYear; year++ {
+		if err := q.EnsureLeaveBalanceForYear(ctx, db.EnsureLeaveBalanceForYearParams{
+			EmployeeID: employeeID,
+			Year:       year,
+		}); err != nil {
+			return nil, err
+		}
+
+		balance, err := q.LockLeaveBalanceByEmployeeYear(ctx, db.LockLeaveBalanceByEmployeeYearParams{
+			EmployeeID: employeeID,
+			Year:       year,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		legalTotalAfter, err := q.ComputeLegalLeaveTotalForYear(ctx, db.ComputeLegalLeaveTotalForYearParams{
+			EmployeeID: employeeID,
+			Year:       year,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if balance.LegalUsedHours > legalTotalAfter {
+			return nil, fmt.Errorf("%w: year %d", domain.ErrContractChangeLeaveConflict, year)
+		}
+
+		reasons = append(reasons, domain.LeaveRecalculationImpact{
+			Year:        year,
+			LegalBefore: balance.LegalTotalHours,
+			LegalAfter:  legalTotalAfter,
+			Delta:       legalTotalAfter - balance.LegalTotalHours,
+		})
+
+		legalDelta := legalTotalAfter - balance.LegalTotalHours
+		if legalDelta == 0 {
+			continue
+		}
+
+		updated, err := q.ApplyLeaveBalanceTotalAdjustment(ctx, db.ApplyLeaveBalanceTotalAdjustmentParams{
+			ID:              balance.ID,
+			LegalHoursDelta: legalDelta,
+			ExtraHoursDelta: 0,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		reason := fmt.Sprintf(
+			"contract change %s effective %s",
+			contractChangeID.String(),
+			effectiveFrom.UTC().Format("2006-01-02"),
+		)
+		if _, err := q.CreateLeaveBalanceAdjustmentAudit(ctx, db.CreateLeaveBalanceAdjustmentAuditParams{
+			LeaveBalanceID:        updated.ID,
+			EmployeeID:            employeeID,
+			Year:                  year,
+			LegalHoursDelta:       legalDelta,
+			ExtraHoursDelta:       0,
+			Reason:                reason,
+			AdjustedByEmployeeID:  actorEmployeeID,
+			LegalTotalHoursBefore: balance.LegalTotalHours,
+			ExtraTotalHoursBefore: balance.ExtraTotalHours,
+			LegalTotalHoursAfter:  updated.LegalTotalHours,
+			ExtraTotalHoursAfter:  updated.ExtraTotalHours,
+		}); err != nil {
+			return nil, err
+		}
+	}
+
+	return reasons, nil
+}
+
+func mapContractChangeDBError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23505" {
+			return fmt.Errorf("%w: duplicate effective_from for employee", domain.ErrContractChangeInvalid)
+		}
+	}
+	return err
 }
 
 var _ domain.EmployeeRepository = (*EmployeeRepository)(nil)

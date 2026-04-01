@@ -282,9 +282,9 @@ func (h *LeaveHandler) ListLeaveBalances(ctx *gin.Context) {
 		return
 	}
 
-	results := make([]leaveBalanceResponse, len(page.Items))
+	results := make([]managerLeaveBalanceResponse, len(page.Items))
 	for i, item := range page.Items {
-		results[i] = toLeaveBalanceResponse(item)
+		results[i] = toManagerLeaveBalanceResponse(item)
 	}
 
 	response := httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount)
