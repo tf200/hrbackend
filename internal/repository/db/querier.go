@@ -159,9 +159,11 @@ type Querier interface {
 	ListMyPayoutRequestsPaginated(ctx context.Context, arg ListMyPayoutRequestsPaginatedParams) ([]ListMyPayoutRequestsPaginatedRow, error)
 	ListMyShiftSwapRequests(ctx context.Context, requesterEmployeeID uuid.UUID) ([]ListMyShiftSwapRequestsRow, error)
 	ListMyTimeEntriesPaginated(ctx context.Context, arg ListMyTimeEntriesPaginatedParams) ([]ListMyTimeEntriesPaginatedRow, error)
+	ListNationalHolidaysInRange(ctx context.Context, arg ListNationalHolidaysInRangeParams) ([]ListNationalHolidaysInRangeRow, error)
 	ListOrganisations(ctx context.Context) ([]ListOrganisationsRow, error)
 	ListOrganisationsPaginated(ctx context.Context, arg ListOrganisationsPaginatedParams) ([]ListOrganisationsPaginatedRow, error)
 	ListPayoutRequestsPaginated(ctx context.Context, arg ListPayoutRequestsPaginatedParams) ([]ListPayoutRequestsPaginatedRow, error)
+	ListPayrollPreviewTimeEntries(ctx context.Context, arg ListPayrollPreviewTimeEntriesParams) ([]ListPayrollPreviewTimeEntriesRow, error)
 	// Returns every role ordered by id with count of permissions and employees.
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)

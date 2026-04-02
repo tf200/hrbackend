@@ -88,6 +88,56 @@ type PayoutBalanceSnapshot struct {
 	ExtraRemaining int32
 }
 
+type PayrollPreviewParams struct {
+	EmployeeID  uuid.UUID
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+}
+
+type PayrollPreview struct {
+	EmployeeID           uuid.UUID
+	EmployeeName         string
+	PeriodStart          time.Time
+	PeriodEnd            time.Time
+	TotalWorkedMinutes   int32
+	BaseGrossAmount      float64
+	IrregularGrossAmount float64
+	GrossAmount          float64
+	LineItems            []PayrollPreviewLineItem
+}
+
+type PayrollPreviewLineItem struct {
+	TimeEntryID           uuid.UUID
+	WorkDate              time.Time
+	HourType              string
+	StartTime             string
+	EndTime               string
+	IrregularHoursProfile string
+	AppliedRatePercent    float64
+	MinutesWorked         int32
+	BaseAmount            float64
+	PremiumAmount         float64
+}
+
+type PayrollPreviewTimeEntry struct {
+	ID                    uuid.UUID
+	EmployeeID            uuid.UUID
+	EmployeeName          string
+	EntryDate             time.Time
+	StartTime             string
+	EndTime               string
+	BreakMinutes          int32
+	HourType              string
+	ContractType          string
+	ContractRate          *float64
+	IrregularHoursProfile string
+}
+
+type NationalHoliday struct {
+	Date time.Time
+	Name string
+}
+
 type PayoutTxRepository interface {
 	GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (*PayoutContract, error)
 	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
@@ -114,6 +164,9 @@ type PayoutRepository interface {
 	WithTx(ctx context.Context, fn func(tx PayoutTxRepository) error) error
 	ListMyPayoutRequests(ctx context.Context, params ListMyPayoutRequestsParams) (*PayoutRequestPage, error)
 	ListPayoutRequests(ctx context.Context, params ListPayoutRequestsParams) (*PayoutRequestPage, error)
+	GetPayrollPreviewEmployee(ctx context.Context, employeeID uuid.UUID) (*EmployeeDetail, error)
+	ListPayrollPreviewTimeEntries(ctx context.Context, params PayrollPreviewParams) ([]PayrollPreviewTimeEntry, error)
+	ListNationalHolidays(ctx context.Context, countryCode string, startDate, endDate time.Time) ([]NationalHoliday, error)
 }
 
 type PayoutService interface {
@@ -122,4 +175,6 @@ type PayoutService interface {
 	MarkPayoutRequestPaidByAdmin(ctx context.Context, adminEmployeeID, payoutRequestID uuid.UUID) (*PayoutRequest, error)
 	ListMyPayoutRequests(ctx context.Context, params ListMyPayoutRequestsParams) (*PayoutRequestPage, error)
 	ListPayoutRequests(ctx context.Context, params ListPayoutRequestsParams) (*PayoutRequestPage, error)
+	PreviewPayroll(ctx context.Context, params PayrollPreviewParams) (*PayrollPreview, error)
+	PreviewMyPayroll(ctx context.Context, actorEmployeeID uuid.UUID, periodStart, periodEnd time.Time) (*PayrollPreview, error)
 }

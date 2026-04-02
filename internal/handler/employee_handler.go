@@ -42,6 +42,10 @@ func (h *EmployeeHandler) CreateEmployee(ctx *gin.Context) {
 
 	employee, err := h.service.CreateEmployee(ctx.Request.Context(), toCreateEmployeeParams(req))
 	if err != nil {
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create employee", ""))
 		return
 	}
@@ -130,6 +134,10 @@ func (h *EmployeeHandler) UpdateEmployee(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update employee", ""))
 		return
 	}
@@ -209,6 +217,10 @@ func (h *EmployeeHandler) AddContractDetails(ctx *gin.Context) {
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 			return
 		}
 		if errors.Is(err, domain.ErrContractHistoryExists) {

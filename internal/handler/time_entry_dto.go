@@ -15,7 +15,8 @@ const timeEntryDateLayout = "2006-01-02"
 type createTimeEntryRequest struct {
 	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
 	EntryDate           string     `json:"entry_date" binding:"required,datetime=2006-01-02"`
-	Hours               float64    `json:"hours" binding:"required"`
+	StartTime           string     `json:"start_time" binding:"required"`
+	EndTime             string     `json:"end_time" binding:"required"`
 	BreakMinutes        int32      `json:"break_minutes"`
 	HourType            string     `json:"hour_type" binding:"required,oneof=normal overtime travel leave sick training"`
 	ProjectName         *string    `json:"project_name"`
@@ -30,7 +31,8 @@ type createTimeEntryByAdminRequest struct {
 	EmployeeID          uuid.UUID  `json:"employee_id" binding:"required"`
 	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
 	EntryDate           string     `json:"entry_date" binding:"required,datetime=2006-01-02"`
-	Hours               float64    `json:"hours" binding:"required"`
+	StartTime           string     `json:"start_time" binding:"required"`
+	EndTime             string     `json:"end_time" binding:"required"`
 	BreakMinutes        int32      `json:"break_minutes"`
 	HourType            string     `json:"hour_type" binding:"required,oneof=normal overtime travel leave sick training"`
 	ProjectName         *string    `json:"project_name"`
@@ -63,7 +65,8 @@ type timeEntryResponse struct {
 	EmployeeName         string     `json:"employee_name"`
 	ScheduleID           *uuid.UUID `json:"schedule_id,omitempty"`
 	EntryDate            time.Time  `json:"entry_date"`
-	Hours                float64    `json:"hours"`
+	StartTime            string     `json:"start_time"`
+	EndTime              string     `json:"end_time"`
 	BreakMinutes         int32      `json:"break_minutes"`
 	HourType             string     `json:"hour_type"`
 	ProjectName          *string    `json:"project_name,omitempty"`
@@ -91,7 +94,8 @@ func toCreateTimeEntryParams(req createTimeEntryRequest) (domain.CreateTimeEntry
 	return domain.CreateTimeEntryParams{
 		ScheduleID:          req.ScheduleID,
 		EntryDate:           entryDate.UTC(),
-		Hours:               req.Hours,
+		StartTime:           strings.TrimSpace(req.StartTime),
+		EndTime:             strings.TrimSpace(req.EndTime),
 		BreakMinutes:        req.BreakMinutes,
 		HourType:            strings.TrimSpace(req.HourType),
 		ProjectName:         req.ProjectName,
@@ -107,7 +111,8 @@ func toCreateTimeEntryByAdminParams(req createTimeEntryByAdminRequest) (domain.C
 	base, err := toCreateTimeEntryParams(createTimeEntryRequest{
 		ScheduleID:          req.ScheduleID,
 		EntryDate:           req.EntryDate,
-		Hours:               req.Hours,
+		StartTime:           req.StartTime,
+		EndTime:             req.EndTime,
 		BreakMinutes:        req.BreakMinutes,
 		HourType:            req.HourType,
 		ProjectName:         req.ProjectName,
@@ -156,7 +161,8 @@ func toTimeEntryResponse(item *domain.TimeEntry) timeEntryResponse {
 		EmployeeName:         item.EmployeeName,
 		ScheduleID:           item.ScheduleID,
 		EntryDate:            item.EntryDate,
-		Hours:                item.Hours,
+		StartTime:            item.StartTime,
+		EndTime:              item.EndTime,
 		BreakMinutes:         item.BreakMinutes,
 		HourType:             item.HourType,
 		ProjectName:          item.ProjectName,

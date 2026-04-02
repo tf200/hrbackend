@@ -117,6 +117,69 @@ func (r *PayoutRepository) ListPayoutRequests(ctx context.Context, params domain
 	return page, nil
 }
 
+func (r *PayoutRepository) GetPayrollPreviewEmployee(ctx context.Context, employeeID uuid.UUID) (*domain.EmployeeDetail, error) {
+	row, err := r.store.GetEmployeeProfileByID(ctx, employeeID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+
+	return toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row), nil
+}
+
+func (r *PayoutRepository) ListPayrollPreviewTimeEntries(ctx context.Context, params domain.PayrollPreviewParams) ([]domain.PayrollPreviewTimeEntry, error) {
+	rows, err := r.store.ListPayrollPreviewTimeEntries(ctx, db.ListPayrollPreviewTimeEntriesParams{
+		EmployeeID:  params.EmployeeID,
+		PeriodStart: conv.PgDateFromTime(params.PeriodStart),
+		PeriodEnd:   conv.PgDateFromTime(params.PeriodEnd),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.PayrollPreviewTimeEntry, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.PayrollPreviewTimeEntry{
+			ID:                    row.ID,
+			EmployeeID:            row.EmployeeID,
+			EmployeeName:          fullName(row.EmployeeFirstName, row.EmployeeLastName),
+			EntryDate:             conv.TimeFromPgDate(row.EntryDate),
+			StartTime:             conv.StringFromPgTime(row.StartTime),
+			EndTime:               conv.StringFromPgTime(row.EndTime),
+			BreakMinutes:          row.BreakMinutes,
+			HourType:              string(row.HourType),
+			ContractType:          string(row.ContractType),
+			ContractRate:          row.ContractRate,
+			IrregularHoursProfile: string(row.IrregularHoursProfile),
+		})
+	}
+
+	return items, nil
+}
+
+func (r *PayoutRepository) ListNationalHolidays(ctx context.Context, countryCode string, startDate, endDate time.Time) ([]domain.NationalHoliday, error) {
+	rows, err := r.store.ListNationalHolidaysInRange(ctx, db.ListNationalHolidaysInRangeParams{
+		CountryCode: strings.TrimSpace(strings.ToUpper(countryCode)),
+		StartDate:   conv.PgDateFromTime(startDate),
+		EndDate:     conv.PgDateFromTime(endDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.NationalHoliday, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.NationalHoliday{
+			Date: conv.TimeFromPgDate(row.HolidayDate),
+			Name: row.Name,
+		})
+	}
+
+	return items, nil
+}
+
 type payoutTxRepo struct {
 	queries *db.Queries
 }

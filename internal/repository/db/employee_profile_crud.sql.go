@@ -77,42 +77,44 @@ INSERT INTO employee_profile (
     contract_end_date,
     contract_start_date,
     contract_type,
-    contract_rate
+    contract_rate,
+    irregular_hours_profile
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-    $21, $22, $23, $24, $25, $26, $27
-) RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate
+    $21, $22, $23, $24, $25, $26, $27, $28
+) RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate, irregular_hours_profile
 `
 
 type CreateEmployeeProfileParams struct {
-	UserID              uuid.UUID                `json:"user_id"`
-	FirstName           string                   `json:"first_name"`
-	LastName            string                   `json:"last_name"`
-	Bsn                 string                   `json:"bsn"`
-	Street              string                   `json:"street"`
-	HouseNumber         string                   `json:"house_number"`
-	HouseNumberAddition *string                  `json:"house_number_addition"`
-	PostalCode          string                   `json:"postal_code"`
-	City                string                   `json:"city"`
-	Position            *string                  `json:"position"`
-	DepartmentID        *uuid.UUID               `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID               `json:"manager_employee_id"`
-	EmployeeNumber      *string                  `json:"employee_number"`
-	EmploymentNumber    *string                  `json:"employment_number"`
-	PrivateEmailAddress *string                  `json:"private_email_address"`
-	WorkEmailAddress    *string                  `json:"work_email_address"`
-	WorkPhoneNumber     *string                  `json:"work_phone_number"`
-	PrivatePhoneNumber  *string                  `json:"private_phone_number"`
-	DateOfBirth         pgtype.Date              `json:"date_of_birth"`
-	HomeTelephoneNumber *string                  `json:"home_telephone_number"`
-	Gender              GenderEnum               `json:"gender"`
-	LocationID          *uuid.UUID               `json:"location_id"`
-	ContractHours       *float64                 `json:"contract_hours"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	ContractStartDate   pgtype.Date              `json:"contract_start_date"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate        *float64                 `json:"contract_rate"`
+	UserID                uuid.UUID                 `json:"user_id"`
+	FirstName             string                    `json:"first_name"`
+	LastName              string                    `json:"last_name"`
+	Bsn                   string                    `json:"bsn"`
+	Street                string                    `json:"street"`
+	HouseNumber           string                    `json:"house_number"`
+	HouseNumberAddition   *string                   `json:"house_number_addition"`
+	PostalCode            string                    `json:"postal_code"`
+	City                  string                    `json:"city"`
+	Position              *string                   `json:"position"`
+	DepartmentID          *uuid.UUID                `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID                `json:"manager_employee_id"`
+	EmployeeNumber        *string                   `json:"employee_number"`
+	EmploymentNumber      *string                   `json:"employment_number"`
+	PrivateEmailAddress   *string                   `json:"private_email_address"`
+	WorkEmailAddress      *string                   `json:"work_email_address"`
+	WorkPhoneNumber       *string                   `json:"work_phone_number"`
+	PrivatePhoneNumber    *string                   `json:"private_phone_number"`
+	DateOfBirth           pgtype.Date               `json:"date_of_birth"`
+	HomeTelephoneNumber   *string                   `json:"home_telephone_number"`
+	Gender                GenderEnum                `json:"gender"`
+	LocationID            *uuid.UUID                `json:"location_id"`
+	ContractHours         *float64                  `json:"contract_hours"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
 }
 
 func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeProfileParams) (EmployeeProfile, error) {
@@ -144,6 +146,7 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		arg.ContractStartDate,
 		arg.ContractType,
 		arg.ContractRate,
+		arg.IrregularHoursProfile,
 	)
 	var i EmployeeProfile
 	err := row.Scan(
@@ -179,13 +182,14 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }
 
 const getEmployeeProfileByID = `-- name: GetEmployeeProfileByID :one
 SELECT
-    ep.id, ep.user_id, ep.first_name, ep.last_name, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.position, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.location_id, ep.department_id, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived, ep.contract_hours, ep.contract_end_date, ep.contract_start_date, ep.contract_type, ep.contract_rate,
+    ep.id, ep.user_id, ep.first_name, ep.last_name, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.position, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.location_id, ep.department_id, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived, ep.contract_hours, ep.contract_end_date, ep.contract_start_date, ep.contract_type, ep.contract_rate, ep.irregular_hours_profile,
     cu.profile_picture as profile_picture,
     d.name AS department_name,
     mgr.first_name AS manager_first_name,
@@ -198,42 +202,43 @@ WHERE ep.id = $1
 `
 
 type GetEmployeeProfileByIDRow struct {
-	ID                  uuid.UUID                `json:"id"`
-	UserID              uuid.UUID                `json:"user_id"`
-	FirstName           string                   `json:"first_name"`
-	LastName            string                   `json:"last_name"`
-	Bsn                 string                   `json:"bsn"`
-	Street              string                   `json:"street"`
-	HouseNumber         string                   `json:"house_number"`
-	HouseNumberAddition *string                  `json:"house_number_addition"`
-	PostalCode          string                   `json:"postal_code"`
-	City                string                   `json:"city"`
-	Position            *string                  `json:"position"`
-	EmployeeNumber      *string                  `json:"employee_number"`
-	EmploymentNumber    *string                  `json:"employment_number"`
-	PrivateEmailAddress *string                  `json:"private_email_address"`
-	WorkEmailAddress    *string                  `json:"work_email_address"`
-	PrivatePhoneNumber  *string                  `json:"private_phone_number"`
-	WorkPhoneNumber     *string                  `json:"work_phone_number"`
-	DateOfBirth         pgtype.Date              `json:"date_of_birth"`
-	HomeTelephoneNumber *string                  `json:"home_telephone_number"`
-	CreatedAt           pgtype.Timestamptz       `json:"created_at"`
-	Gender              GenderEnum               `json:"gender"`
-	LocationID          *uuid.UUID               `json:"location_id"`
-	DepartmentID        *uuid.UUID               `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID               `json:"manager_employee_id"`
-	HasBorrowed         bool                     `json:"has_borrowed"`
-	OutOfService        *bool                    `json:"out_of_service"`
-	IsArchived          bool                     `json:"is_archived"`
-	ContractHours       *float64                 `json:"contract_hours"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	ContractStartDate   pgtype.Date              `json:"contract_start_date"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate        *float64                 `json:"contract_rate"`
-	ProfilePicture      *string                  `json:"profile_picture"`
-	DepartmentName      *string                  `json:"department_name"`
-	ManagerFirstName    *string                  `json:"manager_first_name"`
-	ManagerLastName     *string                  `json:"manager_last_name"`
+	ID                    uuid.UUID                 `json:"id"`
+	UserID                uuid.UUID                 `json:"user_id"`
+	FirstName             string                    `json:"first_name"`
+	LastName              string                    `json:"last_name"`
+	Bsn                   string                    `json:"bsn"`
+	Street                string                    `json:"street"`
+	HouseNumber           string                    `json:"house_number"`
+	HouseNumberAddition   *string                   `json:"house_number_addition"`
+	PostalCode            string                    `json:"postal_code"`
+	City                  string                    `json:"city"`
+	Position              *string                   `json:"position"`
+	EmployeeNumber        *string                   `json:"employee_number"`
+	EmploymentNumber      *string                   `json:"employment_number"`
+	PrivateEmailAddress   *string                   `json:"private_email_address"`
+	WorkEmailAddress      *string                   `json:"work_email_address"`
+	PrivatePhoneNumber    *string                   `json:"private_phone_number"`
+	WorkPhoneNumber       *string                   `json:"work_phone_number"`
+	DateOfBirth           pgtype.Date               `json:"date_of_birth"`
+	HomeTelephoneNumber   *string                   `json:"home_telephone_number"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	Gender                GenderEnum                `json:"gender"`
+	LocationID            *uuid.UUID                `json:"location_id"`
+	DepartmentID          *uuid.UUID                `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID                `json:"manager_employee_id"`
+	HasBorrowed           bool                      `json:"has_borrowed"`
+	OutOfService          *bool                     `json:"out_of_service"`
+	IsArchived            bool                      `json:"is_archived"`
+	ContractHours         *float64                  `json:"contract_hours"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	ProfilePicture        *string                   `json:"profile_picture"`
+	DepartmentName        *string                   `json:"department_name"`
+	ManagerFirstName      *string                   `json:"manager_first_name"`
+	ManagerLastName       *string                   `json:"manager_last_name"`
 }
 
 func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByIDRow, error) {
@@ -272,6 +277,7 @@ func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (Get
 		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 		&i.ProfilePicture,
 		&i.DepartmentName,
 		&i.ManagerFirstName,
@@ -466,33 +472,35 @@ SET
     home_telephone_number = COALESCE($13, home_telephone_number),
     gender = COALESCE($14, gender),
     location_id = COALESCE($15, location_id),
-    has_borrowed = COALESCE($16, has_borrowed),
-    out_of_service = COALESCE($17, out_of_service),
-    is_archived = COALESCE($18, is_archived)
-WHERE id = $19
-RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate
+    irregular_hours_profile = COALESCE($16, irregular_hours_profile),
+    has_borrowed = COALESCE($17, has_borrowed),
+    out_of_service = COALESCE($18, out_of_service),
+    is_archived = COALESCE($19, is_archived)
+WHERE id = $20
+RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate, irregular_hours_profile
 `
 
 type UpdateEmployeeProfileParams struct {
-	FirstName           *string        `json:"first_name"`
-	LastName            *string        `json:"last_name"`
-	Position            *string        `json:"position"`
-	DepartmentID        *uuid.UUID     `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID     `json:"manager_employee_id"`
-	EmployeeNumber      *string        `json:"employee_number"`
-	EmploymentNumber    *string        `json:"employment_number"`
-	PrivateEmailAddress *string        `json:"private_email_address"`
-	WorkEmailAddress    *string        `json:"work_email_address"`
-	PrivatePhoneNumber  *string        `json:"private_phone_number"`
-	WorkPhoneNumber     *string        `json:"work_phone_number"`
-	DateOfBirth         pgtype.Date    `json:"date_of_birth"`
-	HomeTelephoneNumber *string        `json:"home_telephone_number"`
-	Gender              NullGenderEnum `json:"gender"`
-	LocationID          *uuid.UUID     `json:"location_id"`
-	HasBorrowed         *bool          `json:"has_borrowed"`
-	OutOfService        *bool          `json:"out_of_service"`
-	IsArchived          *bool          `json:"is_archived"`
-	ID                  uuid.UUID      `json:"id"`
+	FirstName             *string                       `json:"first_name"`
+	LastName              *string                       `json:"last_name"`
+	Position              *string                       `json:"position"`
+	DepartmentID          *uuid.UUID                    `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID                    `json:"manager_employee_id"`
+	EmployeeNumber        *string                       `json:"employee_number"`
+	EmploymentNumber      *string                       `json:"employment_number"`
+	PrivateEmailAddress   *string                       `json:"private_email_address"`
+	WorkEmailAddress      *string                       `json:"work_email_address"`
+	PrivatePhoneNumber    *string                       `json:"private_phone_number"`
+	WorkPhoneNumber       *string                       `json:"work_phone_number"`
+	DateOfBirth           pgtype.Date                   `json:"date_of_birth"`
+	HomeTelephoneNumber   *string                       `json:"home_telephone_number"`
+	Gender                NullGenderEnum                `json:"gender"`
+	LocationID            *uuid.UUID                    `json:"location_id"`
+	IrregularHoursProfile NullIrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	HasBorrowed           *bool                         `json:"has_borrowed"`
+	OutOfService          *bool                         `json:"out_of_service"`
+	IsArchived            *bool                         `json:"is_archived"`
+	ID                    uuid.UUID                     `json:"id"`
 }
 
 func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeProfileParams) (EmployeeProfile, error) {
@@ -512,6 +520,7 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		arg.HomeTelephoneNumber,
 		arg.Gender,
 		arg.LocationID,
+		arg.IrregularHoursProfile,
 		arg.HasBorrowed,
 		arg.OutOfService,
 		arg.IsArchived,
@@ -551,6 +560,7 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }

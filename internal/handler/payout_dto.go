@@ -35,6 +35,17 @@ type listPayoutRequestsRequest struct {
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 
+type previewPayrollRequest struct {
+	EmployeeID  uuid.UUID `form:"employee_id" binding:"required"`
+	PeriodStart string    `form:"period_start" binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string    `form:"period_end" binding:"required,datetime=2006-01-02"`
+}
+
+type previewMyPayrollRequest struct {
+	PeriodStart string `form:"period_start" binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string `form:"period_end" binding:"required,datetime=2006-01-02"`
+}
+
 type payoutRequestResponse struct {
 	ID                  uuid.UUID  `json:"id"`
 	EmployeeID          uuid.UUID  `json:"employee_id"`
@@ -55,6 +66,31 @@ type payoutRequestResponse struct {
 	PaidAt              *time.Time `json:"paid_at,omitempty"`
 	CreatedAt           time.Time  `json:"created_at"`
 	UpdatedAt           time.Time  `json:"updated_at"`
+}
+
+type payrollPreviewResponse struct {
+	EmployeeID           uuid.UUID                    `json:"employee_id"`
+	EmployeeName         string                       `json:"employee_name"`
+	PeriodStart          string                       `json:"period_start"`
+	PeriodEnd            string                       `json:"period_end"`
+	TotalWorkedMinutes   int32                        `json:"total_worked_minutes"`
+	BaseGrossAmount      float64                      `json:"base_gross_amount"`
+	IrregularGrossAmount float64                      `json:"irregular_gross_amount"`
+	GrossAmount          float64                      `json:"gross_amount"`
+	LineItems            []payrollPreviewLineResponse `json:"line_items"`
+}
+
+type payrollPreviewLineResponse struct {
+	TimeEntryID           uuid.UUID `json:"time_entry_id"`
+	WorkDate              string    `json:"work_date"`
+	HourType              string    `json:"hour_type"`
+	StartTime             string    `json:"start_time"`
+	EndTime               string    `json:"end_time"`
+	IrregularHoursProfile string    `json:"irregular_hours_profile"`
+	AppliedRatePercent    float64   `json:"applied_rate_percent"`
+	MinutesWorked         int32     `json:"minutes_worked"`
+	BaseAmount            float64   `json:"base_amount"`
+	PremiumAmount         float64   `json:"premium_amount"`
 }
 
 func toCreatePayoutRequestParams(employeeID uuid.UUID, req createPayoutRequestRequest) domain.CreatePayoutRequestParams {
@@ -97,6 +133,35 @@ func toListPayoutRequestsParams(req listPayoutRequestsRequest) domain.ListPayout
 	}
 }
 
+func toPreviewPayrollParams(req previewPayrollRequest) (domain.PayrollPreviewParams, error) {
+	periodStart, err := time.Parse(timeEntryDateLayout, req.PeriodStart)
+	if err != nil {
+		return domain.PayrollPreviewParams{}, err
+	}
+	periodEnd, err := time.Parse(timeEntryDateLayout, req.PeriodEnd)
+	if err != nil {
+		return domain.PayrollPreviewParams{}, err
+	}
+
+	return domain.PayrollPreviewParams{
+		EmployeeID:  req.EmployeeID,
+		PeriodStart: periodStart.UTC(),
+		PeriodEnd:   periodEnd.UTC(),
+	}, nil
+}
+
+func toPreviewMyPayrollDates(req previewMyPayrollRequest) (time.Time, time.Time, error) {
+	periodStart, err := time.Parse(timeEntryDateLayout, req.PeriodStart)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	periodEnd, err := time.Parse(timeEntryDateLayout, req.PeriodEnd)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	return periodStart.UTC(), periodEnd.UTC(), nil
+}
+
 func toPayoutRequestResponse(item domain.PayoutRequest) payoutRequestResponse {
 	return payoutRequestResponse{
 		ID:                  item.ID,
@@ -127,6 +192,36 @@ func toPayoutRequestResponses(items []domain.PayoutRequest) []payoutRequestRespo
 		results[i] = toPayoutRequestResponse(item)
 	}
 	return results
+}
+
+func toPayrollPreviewResponse(item *domain.PayrollPreview) payrollPreviewResponse {
+	lines := make([]payrollPreviewLineResponse, len(item.LineItems))
+	for i, line := range item.LineItems {
+		lines[i] = payrollPreviewLineResponse{
+			TimeEntryID:           line.TimeEntryID,
+			WorkDate:              line.WorkDate.UTC().Format(timeEntryDateLayout),
+			HourType:              line.HourType,
+			StartTime:             line.StartTime,
+			EndTime:               line.EndTime,
+			IrregularHoursProfile: line.IrregularHoursProfile,
+			AppliedRatePercent:    line.AppliedRatePercent,
+			MinutesWorked:         line.MinutesWorked,
+			BaseAmount:            line.BaseAmount,
+			PremiumAmount:         line.PremiumAmount,
+		}
+	}
+
+	return payrollPreviewResponse{
+		EmployeeID:           item.EmployeeID,
+		EmployeeName:         item.EmployeeName,
+		PeriodStart:          item.PeriodStart.UTC().Format(timeEntryDateLayout),
+		PeriodEnd:            item.PeriodEnd.UTC().Format(timeEntryDateLayout),
+		TotalWorkedMinutes:   item.TotalWorkedMinutes,
+		BaseGrossAmount:      item.BaseGrossAmount,
+		IrregularGrossAmount: item.IrregularGrossAmount,
+		GrossAmount:          item.GrossAmount,
+		LineItems:            lines,
+	}
 }
 
 func parsePayoutSalaryMonth(value *string) (*time.Time, error) {

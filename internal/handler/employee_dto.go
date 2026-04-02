@@ -10,53 +10,55 @@ import (
 )
 
 type createEmployeeRequest struct {
-	EmployeeNumber      *string    `json:"employee_number"`
-	EmploymentNumber    *string    `json:"employment_number"`
-	LocationID          *uuid.UUID `json:"location_id"`
-	FirstName           string     `json:"first_name" binding:"required"`
-	LastName            string     `json:"last_name" binding:"required"`
-	Bsn                 string     `json:"bsn" binding:"required"`
-	Street              string     `json:"street" binding:"required"`
-	HouseNumber         string     `json:"house_number" binding:"required"`
-	HouseNumberAddition *string    `json:"house_number_addition"`
-	PostalCode          string     `json:"postal_code" binding:"required"`
-	City                string     `json:"city" binding:"required"`
-	Position            *string    `json:"position"`
-	DepartmentID        *uuid.UUID `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID `json:"manager_employee_id"`
-	PrivateEmailAddress *string    `json:"private_email_address"`
-	WorkEmailAddress    string     `json:"work_email_address" binding:"required,email"`
-	WorkPhoneNumber     *string    `json:"work_phone_number"`
-	PrivatePhoneNumber  *string    `json:"private_phone_number"`
-	DateOfBirth         *string    `json:"date_of_birth"`
-	HomeTelephoneNumber *string    `json:"home_telephone_number"`
-	Gender              string     `json:"gender" binding:"required,oneof=male female not_specified"`
-	ContractHours       *float64   `json:"contract_hours"`
-	ContractStartDate   *string    `json:"contract_start_date"`
-	ContractEndDate     *string    `json:"contract_end_date"`
-	ContractType        string     `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
-	ContractRate        *float64   `json:"contract_rate"`
-	RoleID              uuid.UUID  `json:"role_id" binding:"required"`
+	EmployeeNumber        *string    `json:"employee_number"`
+	EmploymentNumber      *string    `json:"employment_number"`
+	LocationID            *uuid.UUID `json:"location_id"`
+	FirstName             string     `json:"first_name" binding:"required"`
+	LastName              string     `json:"last_name" binding:"required"`
+	Bsn                   string     `json:"bsn" binding:"required"`
+	Street                string     `json:"street" binding:"required"`
+	HouseNumber           string     `json:"house_number" binding:"required"`
+	HouseNumberAddition   *string    `json:"house_number_addition"`
+	PostalCode            string     `json:"postal_code" binding:"required"`
+	City                  string     `json:"city" binding:"required"`
+	Position              *string    `json:"position"`
+	DepartmentID          *uuid.UUID `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID `json:"manager_employee_id"`
+	PrivateEmailAddress   *string    `json:"private_email_address"`
+	WorkEmailAddress      string     `json:"work_email_address" binding:"required,email"`
+	WorkPhoneNumber       *string    `json:"work_phone_number"`
+	PrivatePhoneNumber    *string    `json:"private_phone_number"`
+	DateOfBirth           *string    `json:"date_of_birth"`
+	HomeTelephoneNumber   *string    `json:"home_telephone_number"`
+	Gender                string     `json:"gender" binding:"required,oneof=male female not_specified"`
+	ContractHours         *float64   `json:"contract_hours"`
+	ContractStartDate     *string    `json:"contract_start_date"`
+	ContractEndDate       *string    `json:"contract_end_date"`
+	ContractType          string     `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
+	ContractRate          *float64   `json:"contract_rate"`
+	IrregularHoursProfile string     `json:"irregular_hours_profile" binding:"required,oneof=none roster non_roster"`
+	RoleID                uuid.UUID  `json:"role_id" binding:"required"`
 }
 
 type updateEmployeeRequest struct {
-	FirstName           *string    `json:"first_name"`
-	LastName            *string    `json:"last_name"`
-	Position            *string    `json:"position"`
-	DepartmentID        *uuid.UUID `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID `json:"manager_employee_id"`
-	EmployeeNumber      *string    `json:"employee_number"`
-	EmploymentNumber    *string    `json:"employment_number"`
-	PrivateEmailAddress *string    `json:"private_email_address"`
-	PrivatePhoneNumber  *string    `json:"private_phone_number"`
-	WorkPhoneNumber     *string    `json:"work_phone_number"`
-	DateOfBirth         *string    `json:"date_of_birth"`
-	HomeTelephoneNumber *string    `json:"home_telephone_number"`
-	Gender              *string    `json:"gender"`
-	LocationID          *uuid.UUID `json:"location_id"`
-	HasBorrowed         *bool      `json:"has_borrowed"`
-	OutOfService        *bool      `json:"out_of_service"`
-	IsArchived          *bool      `json:"is_archived"`
+	FirstName             *string    `json:"first_name"`
+	LastName              *string    `json:"last_name"`
+	Position              *string    `json:"position"`
+	DepartmentID          *uuid.UUID `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID `json:"manager_employee_id"`
+	EmployeeNumber        *string    `json:"employee_number"`
+	EmploymentNumber      *string    `json:"employment_number"`
+	PrivateEmailAddress   *string    `json:"private_email_address"`
+	PrivatePhoneNumber    *string    `json:"private_phone_number"`
+	WorkPhoneNumber       *string    `json:"work_phone_number"`
+	DateOfBirth           *string    `json:"date_of_birth"`
+	HomeTelephoneNumber   *string    `json:"home_telephone_number"`
+	Gender                *string    `json:"gender"`
+	LocationID            *uuid.UUID `json:"location_id"`
+	IrregularHoursProfile *string    `json:"irregular_hours_profile" binding:"omitempty,oneof=none roster non_roster"`
+	HasBorrowed           *bool      `json:"has_borrowed"`
+	OutOfService          *bool      `json:"out_of_service"`
+	IsArchived            *bool      `json:"is_archived"`
 }
 
 type listEmployeesRequest struct {
@@ -77,18 +79,20 @@ type updateIsSubcontractorRequest struct {
 }
 
 type addContractDetailsRequest struct {
-	ContractHours     *float64 `json:"contract_hours" binding:"required"`
-	ContractStartDate *string  `json:"contract_start_date" binding:"required"`
-	ContractEndDate   *string  `json:"contract_end_date" binding:"required"`
-	ContractRate      *float64 `json:"contract_rate"`
+	ContractHours         *float64 `json:"contract_hours" binding:"required"`
+	ContractStartDate     *string  `json:"contract_start_date" binding:"required"`
+	ContractEndDate       *string  `json:"contract_end_date" binding:"required"`
+	ContractRate          *float64 `json:"contract_rate"`
+	IrregularHoursProfile string   `json:"irregular_hours_profile" binding:"required,oneof=none roster non_roster"`
 }
 
 type createContractChangeRequest struct {
-	EffectiveFrom   string   `json:"effective_from" binding:"required,datetime=2006-01-02"`
-	ContractHours   float64  `json:"contract_hours" binding:"required"`
-	ContractType    string   `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
-	ContractRate    *float64 `json:"contract_rate"`
-	ContractEndDate *string  `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
+	EffectiveFrom         string   `json:"effective_from" binding:"required,datetime=2006-01-02"`
+	ContractHours         float64  `json:"contract_hours" binding:"required"`
+	ContractType          string   `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
+	ContractRate          *float64 `json:"contract_rate"`
+	IrregularHoursProfile string   `json:"irregular_hours_profile" binding:"required,oneof=none roster non_roster"`
+	ContractEndDate       *string  `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
 }
 
 type createEducationRequest struct {
@@ -140,42 +144,43 @@ type searchEmployeesRequest struct {
 }
 
 type employeeDetailResponse struct {
-	ID                  uuid.UUID  `json:"id"`
-	UserID              uuid.UUID  `json:"user_id"`
-	FirstName           string     `json:"first_name"`
-	LastName            string     `json:"last_name"`
-	Bsn                 string     `json:"bsn"`
-	Street              string     `json:"street"`
-	HouseNumber         string     `json:"house_number"`
-	HouseNumberAddition *string    `json:"house_number_addition"`
-	PostalCode          string     `json:"postal_code"`
-	City                string     `json:"city"`
-	Position            *string    `json:"position"`
-	EmployeeNumber      *string    `json:"employee_number"`
-	EmploymentNumber    *string    `json:"employment_number"`
-	PrivateEmailAddress *string    `json:"private_email_address"`
-	WorkEmailAddress    *string    `json:"work_email_address"`
-	PrivatePhoneNumber  *string    `json:"private_phone_number"`
-	WorkPhoneNumber     *string    `json:"work_phone_number"`
-	DateOfBirth         *time.Time `json:"date_of_birth"`
-	HomeTelephoneNumber *string    `json:"home_telephone_number"`
-	CreatedAt           time.Time  `json:"created_at"`
-	Gender              string     `json:"gender"`
-	LocationID          *uuid.UUID `json:"location_id"`
-	DepartmentID        *uuid.UUID `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID `json:"manager_employee_id"`
-	HasBorrowed         bool       `json:"has_borrowed"`
-	OutOfService        *bool      `json:"out_of_service"`
-	IsArchived          bool       `json:"is_archived"`
-	ContractHours       *float64   `json:"contract_hours"`
-	ContractEndDate     *time.Time `json:"contract_end_date"`
-	ContractStartDate   *time.Time `json:"contract_start_date"`
-	ContractType        string     `json:"contract_type"`
-	ContractRate        *float64   `json:"contract_rate"`
-	ProfilePicture      *string    `json:"profile_picture"`
-	DepartmentName      *string    `json:"department_name"`
-	ManagerFirstName    *string    `json:"manager_first_name"`
-	ManagerLastName     *string    `json:"manager_last_name"`
+	ID                    uuid.UUID  `json:"id"`
+	UserID                uuid.UUID  `json:"user_id"`
+	FirstName             string     `json:"first_name"`
+	LastName              string     `json:"last_name"`
+	Bsn                   string     `json:"bsn"`
+	Street                string     `json:"street"`
+	HouseNumber           string     `json:"house_number"`
+	HouseNumberAddition   *string    `json:"house_number_addition"`
+	PostalCode            string     `json:"postal_code"`
+	City                  string     `json:"city"`
+	Position              *string    `json:"position"`
+	EmployeeNumber        *string    `json:"employee_number"`
+	EmploymentNumber      *string    `json:"employment_number"`
+	PrivateEmailAddress   *string    `json:"private_email_address"`
+	WorkEmailAddress      *string    `json:"work_email_address"`
+	PrivatePhoneNumber    *string    `json:"private_phone_number"`
+	WorkPhoneNumber       *string    `json:"work_phone_number"`
+	DateOfBirth           *time.Time `json:"date_of_birth"`
+	HomeTelephoneNumber   *string    `json:"home_telephone_number"`
+	CreatedAt             time.Time  `json:"created_at"`
+	Gender                string     `json:"gender"`
+	LocationID            *uuid.UUID `json:"location_id"`
+	DepartmentID          *uuid.UUID `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID `json:"manager_employee_id"`
+	HasBorrowed           bool       `json:"has_borrowed"`
+	OutOfService          *bool      `json:"out_of_service"`
+	IsArchived            bool       `json:"is_archived"`
+	ContractHours         *float64   `json:"contract_hours"`
+	ContractEndDate       *time.Time `json:"contract_end_date"`
+	ContractStartDate     *time.Time `json:"contract_start_date"`
+	ContractType          string     `json:"contract_type"`
+	ContractRate          *float64   `json:"contract_rate"`
+	IrregularHoursProfile string     `json:"irregular_hours_profile"`
+	ProfilePicture        *string    `json:"profile_picture"`
+	DepartmentName        *string    `json:"department_name"`
+	ManagerFirstName      *string    `json:"manager_first_name"`
+	ManagerLastName       *string    `json:"manager_last_name"`
 }
 
 type employeeListItemResponse struct {
@@ -221,26 +226,28 @@ type setProfilePictureResponse struct {
 }
 
 type contractDetailsResponse struct {
-	ContractHours     *float64  `json:"contract_hours"`
-	ContractStartDate time.Time `json:"contract_start_date"`
-	ContractEndDate   time.Time `json:"contract_end_date"`
-	ContractType      string    `json:"contract_type"`
-	ContractRate      *float64  `json:"contract_rate"`
-	IsSubcontractor   *bool     `json:"is_subcontractor"`
+	ContractHours         *float64  `json:"contract_hours"`
+	ContractStartDate     time.Time `json:"contract_start_date"`
+	ContractEndDate       time.Time `json:"contract_end_date"`
+	ContractType          string    `json:"contract_type"`
+	ContractRate          *float64  `json:"contract_rate"`
+	IrregularHoursProfile string    `json:"irregular_hours_profile"`
+	IsSubcontractor       *bool     `json:"is_subcontractor"`
 }
 
 type contractChangeResponse struct {
-	ID                  uuid.UUID  `json:"id"`
-	EmployeeID          uuid.UUID  `json:"employee_id"`
-	EffectiveFrom       time.Time  `json:"effective_from"`
-	EffectiveTo         *time.Time `json:"effective_to,omitempty"`
-	ContractHours       float64    `json:"contract_hours"`
-	ContractType        string     `json:"contract_type"`
-	ContractRate        *float64   `json:"contract_rate,omitempty"`
-	ContractEndDate     *time.Time `json:"contract_end_date,omitempty"`
-	CreatedByEmployeeID uuid.UUID  `json:"created_by_employee_id"`
-	CreatedAt           time.Time  `json:"created_at"`
-	UpdatedAt           time.Time  `json:"updated_at"`
+	ID                    uuid.UUID  `json:"id"`
+	EmployeeID            uuid.UUID  `json:"employee_id"`
+	EffectiveFrom         time.Time  `json:"effective_from"`
+	EffectiveTo           *time.Time `json:"effective_to,omitempty"`
+	ContractHours         float64    `json:"contract_hours"`
+	ContractType          string     `json:"contract_type"`
+	ContractRate          *float64   `json:"contract_rate,omitempty"`
+	IrregularHoursProfile string     `json:"irregular_hours_profile"`
+	ContractEndDate       *time.Time `json:"contract_end_date,omitempty"`
+	CreatedByEmployeeID   uuid.UUID  `json:"created_by_employee_id"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
 }
 
 type leaveRecalculationImpactResponse struct {
@@ -314,35 +321,36 @@ func toCreateEmployeeParams(req createEmployeeRequest) domain.CreateEmployeePara
 	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
 
 	return domain.CreateEmployeeParams{
-		FirstName:           req.FirstName,
-		LastName:            req.LastName,
-		Bsn:                 req.Bsn,
-		Street:              req.Street,
-		HouseNumber:         req.HouseNumber,
-		HouseNumberAddition: req.HouseNumberAddition,
-		PostalCode:          req.PostalCode,
-		City:                req.City,
-		Position:            req.Position,
-		DepartmentID:        req.DepartmentID,
-		ManagerEmployeeID:   req.ManagerEmployeeID,
-		EmployeeNumber:      req.EmployeeNumber,
-		EmploymentNumber:    req.EmploymentNumber,
-		PrivateEmailAddress: req.PrivateEmailAddress,
-		WorkEmailAddress:    &req.WorkEmailAddress,
-		WorkPhoneNumber:     req.WorkPhoneNumber,
-		PrivatePhoneNumber:  req.PrivatePhoneNumber,
-		DateOfBirth:         dateOfBirth,
-		HomeTelephoneNumber: req.HomeTelephoneNumber,
-		Gender:              req.Gender,
-		LocationID:          req.LocationID,
-		ContractHours:       req.ContractHours,
-		ContractType:        req.ContractType,
-		ContractStartDate:   contractStartDate,
-		ContractEndDate:     contractEndDate,
-		ContractRate:        req.ContractRate,
-		RoleID:              req.RoleID,
-		UserEmail:           req.WorkEmailAddress,
-		UserPassword:        "",
+		FirstName:             req.FirstName,
+		LastName:              req.LastName,
+		Bsn:                   req.Bsn,
+		Street:                req.Street,
+		HouseNumber:           req.HouseNumber,
+		HouseNumberAddition:   req.HouseNumberAddition,
+		PostalCode:            req.PostalCode,
+		City:                  req.City,
+		Position:              req.Position,
+		DepartmentID:          req.DepartmentID,
+		ManagerEmployeeID:     req.ManagerEmployeeID,
+		EmployeeNumber:        req.EmployeeNumber,
+		EmploymentNumber:      req.EmploymentNumber,
+		PrivateEmailAddress:   req.PrivateEmailAddress,
+		WorkEmailAddress:      &req.WorkEmailAddress,
+		WorkPhoneNumber:       req.WorkPhoneNumber,
+		PrivatePhoneNumber:    req.PrivatePhoneNumber,
+		DateOfBirth:           dateOfBirth,
+		HomeTelephoneNumber:   req.HomeTelephoneNumber,
+		Gender:                req.Gender,
+		LocationID:            req.LocationID,
+		ContractHours:         req.ContractHours,
+		ContractType:          req.ContractType,
+		ContractStartDate:     contractStartDate,
+		ContractEndDate:       contractEndDate,
+		ContractRate:          req.ContractRate,
+		IrregularHoursProfile: req.IrregularHoursProfile,
+		RoleID:                req.RoleID,
+		UserEmail:             req.WorkEmailAddress,
+		UserPassword:          "",
 	}
 }
 
@@ -350,23 +358,24 @@ func toUpdateEmployeeParams(req updateEmployeeRequest) domain.UpdateEmployeePara
 	dateOfBirth, _ := parseDatePtr(req.DateOfBirth)
 
 	return domain.UpdateEmployeeParams{
-		FirstName:           req.FirstName,
-		LastName:            req.LastName,
-		Position:            req.Position,
-		DepartmentID:        req.DepartmentID,
-		ManagerEmployeeID:   req.ManagerEmployeeID,
-		EmployeeNumber:      req.EmployeeNumber,
-		EmploymentNumber:    req.EmploymentNumber,
-		PrivateEmailAddress: req.PrivateEmailAddress,
-		PrivatePhoneNumber:  req.PrivatePhoneNumber,
-		WorkPhoneNumber:     req.WorkPhoneNumber,
-		DateOfBirth:         dateOfBirth,
-		HomeTelephoneNumber: req.HomeTelephoneNumber,
-		Gender:              req.Gender,
-		LocationID:          req.LocationID,
-		HasBorrowed:         req.HasBorrowed,
-		OutOfService:        req.OutOfService,
-		IsArchived:          req.IsArchived,
+		FirstName:             req.FirstName,
+		LastName:              req.LastName,
+		Position:              req.Position,
+		DepartmentID:          req.DepartmentID,
+		ManagerEmployeeID:     req.ManagerEmployeeID,
+		EmployeeNumber:        req.EmployeeNumber,
+		EmploymentNumber:      req.EmploymentNumber,
+		PrivateEmailAddress:   req.PrivateEmailAddress,
+		PrivatePhoneNumber:    req.PrivatePhoneNumber,
+		WorkPhoneNumber:       req.WorkPhoneNumber,
+		DateOfBirth:           dateOfBirth,
+		HomeTelephoneNumber:   req.HomeTelephoneNumber,
+		Gender:                req.Gender,
+		LocationID:            req.LocationID,
+		IrregularHoursProfile: req.IrregularHoursProfile,
+		HasBorrowed:           req.HasBorrowed,
+		OutOfService:          req.OutOfService,
+		IsArchived:            req.IsArchived,
 	}
 }
 
@@ -459,10 +468,11 @@ func toAddContractDetailsParams(req addContractDetailsRequest) domain.AddContrac
 	contractEndDate, _ := parseDate(*req.ContractEndDate)
 
 	return domain.AddContractDetailsParams{
-		ContractHours:     req.ContractHours,
-		ContractStartDate: contractStartDate,
-		ContractEndDate:   contractEndDate,
-		ContractRate:      req.ContractRate,
+		ContractHours:         req.ContractHours,
+		ContractStartDate:     contractStartDate,
+		ContractEndDate:       contractEndDate,
+		ContractRate:          req.ContractRate,
+		IrregularHoursProfile: req.IrregularHoursProfile,
 	}
 }
 
@@ -477,52 +487,54 @@ func toCreateContractChangeParams(req createContractChangeRequest) (domain.Creat
 	}
 
 	return domain.CreateEmployeeContractChangeParams{
-		EffectiveFrom:   effectiveFrom,
-		ContractHours:   req.ContractHours,
-		ContractType:    req.ContractType,
-		ContractRate:    req.ContractRate,
-		ContractEndDate: contractEndDate,
+		EffectiveFrom:         effectiveFrom,
+		ContractHours:         req.ContractHours,
+		ContractType:          req.ContractType,
+		ContractRate:          req.ContractRate,
+		IrregularHoursProfile: req.IrregularHoursProfile,
+		ContractEndDate:       contractEndDate,
 	}, nil
 }
 
 func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse {
 	return employeeDetailResponse{
-		ID:                  emp.ID,
-		UserID:              emp.UserID,
-		FirstName:           emp.FirstName,
-		LastName:            emp.LastName,
-		Bsn:                 emp.Bsn,
-		Street:              emp.Street,
-		HouseNumber:         emp.HouseNumber,
-		HouseNumberAddition: emp.HouseNumberAddition,
-		PostalCode:          emp.PostalCode,
-		City:                emp.City,
-		Position:            emp.Position,
-		EmployeeNumber:      emp.EmployeeNumber,
-		EmploymentNumber:    emp.EmploymentNumber,
-		PrivateEmailAddress: emp.PrivateEmailAddress,
-		WorkEmailAddress:    emp.WorkEmailAddress,
-		PrivatePhoneNumber:  emp.PrivatePhoneNumber,
-		WorkPhoneNumber:     emp.WorkPhoneNumber,
-		DateOfBirth:         emp.DateOfBirth,
-		HomeTelephoneNumber: emp.HomeTelephoneNumber,
-		CreatedAt:           emp.CreatedAt,
-		Gender:              emp.Gender,
-		LocationID:          emp.LocationID,
-		DepartmentID:        emp.DepartmentID,
-		ManagerEmployeeID:   emp.ManagerEmployeeID,
-		HasBorrowed:         emp.HasBorrowed,
-		OutOfService:        emp.OutOfService,
-		IsArchived:          emp.IsArchived,
-		ContractHours:       emp.ContractHours,
-		ContractEndDate:     emp.ContractEndDate,
-		ContractStartDate:   emp.ContractStartDate,
-		ContractType:        emp.ContractType,
-		ContractRate:        emp.ContractRate,
-		ProfilePicture:      emp.ProfilePicture,
-		DepartmentName:      emp.DepartmentName,
-		ManagerFirstName:    emp.ManagerFirstName,
-		ManagerLastName:     emp.ManagerLastName,
+		ID:                    emp.ID,
+		UserID:                emp.UserID,
+		FirstName:             emp.FirstName,
+		LastName:              emp.LastName,
+		Bsn:                   emp.Bsn,
+		Street:                emp.Street,
+		HouseNumber:           emp.HouseNumber,
+		HouseNumberAddition:   emp.HouseNumberAddition,
+		PostalCode:            emp.PostalCode,
+		City:                  emp.City,
+		Position:              emp.Position,
+		EmployeeNumber:        emp.EmployeeNumber,
+		EmploymentNumber:      emp.EmploymentNumber,
+		PrivateEmailAddress:   emp.PrivateEmailAddress,
+		WorkEmailAddress:      emp.WorkEmailAddress,
+		PrivatePhoneNumber:    emp.PrivatePhoneNumber,
+		WorkPhoneNumber:       emp.WorkPhoneNumber,
+		DateOfBirth:           emp.DateOfBirth,
+		HomeTelephoneNumber:   emp.HomeTelephoneNumber,
+		CreatedAt:             emp.CreatedAt,
+		Gender:                emp.Gender,
+		LocationID:            emp.LocationID,
+		DepartmentID:          emp.DepartmentID,
+		ManagerEmployeeID:     emp.ManagerEmployeeID,
+		HasBorrowed:           emp.HasBorrowed,
+		OutOfService:          emp.OutOfService,
+		IsArchived:            emp.IsArchived,
+		ContractHours:         emp.ContractHours,
+		ContractEndDate:       emp.ContractEndDate,
+		ContractStartDate:     emp.ContractStartDate,
+		ContractType:          emp.ContractType,
+		ContractRate:          emp.ContractRate,
+		IrregularHoursProfile: emp.IrregularHoursProfile,
+		ProfilePicture:        emp.ProfilePicture,
+		DepartmentName:        emp.DepartmentName,
+		ManagerFirstName:      emp.ManagerFirstName,
+		ManagerLastName:       emp.ManagerLastName,
 	}
 }
 
@@ -573,28 +585,30 @@ func toEmployeeCountsResponse(counts *domain.EmployeeCounts) employeeCountsRespo
 
 func toContractDetailsResponse(details *domain.ContractDetails) contractDetailsResponse {
 	return contractDetailsResponse{
-		ContractHours:     details.ContractHours,
-		ContractStartDate: details.ContractStartDate,
-		ContractEndDate:   details.ContractEndDate,
-		ContractType:      details.ContractType,
-		ContractRate:      details.ContractRate,
-		IsSubcontractor:   details.IsSubcontractor,
+		ContractHours:         details.ContractHours,
+		ContractStartDate:     details.ContractStartDate,
+		ContractEndDate:       details.ContractEndDate,
+		ContractType:          details.ContractType,
+		ContractRate:          details.ContractRate,
+		IrregularHoursProfile: details.IrregularHoursProfile,
+		IsSubcontractor:       details.IsSubcontractor,
 	}
 }
 
 func toContractChangeResponse(item domain.EmployeeContractChange) contractChangeResponse {
 	return contractChangeResponse{
-		ID:                  item.ID,
-		EmployeeID:          item.EmployeeID,
-		EffectiveFrom:       item.EffectiveFrom,
-		EffectiveTo:         item.EffectiveTo,
-		ContractHours:       item.ContractHours,
-		ContractType:        item.ContractType,
-		ContractRate:        item.ContractRate,
-		ContractEndDate:     item.ContractEndDate,
-		CreatedByEmployeeID: item.CreatedByEmployeeID,
-		CreatedAt:           item.CreatedAt,
-		UpdatedAt:           item.UpdatedAt,
+		ID:                    item.ID,
+		EmployeeID:            item.EmployeeID,
+		EffectiveFrom:         item.EffectiveFrom,
+		EffectiveTo:           item.EffectiveTo,
+		ContractHours:         item.ContractHours,
+		ContractType:          item.ContractType,
+		ContractRate:          item.ContractRate,
+		IrregularHoursProfile: item.IrregularHoursProfile,
+		ContractEndDate:       item.ContractEndDate,
+		CreatedByEmployeeID:   item.CreatedByEmployeeID,
+		CreatedAt:             item.CreatedAt,
+		UpdatedAt:             item.UpdatedAt,
 	}
 }
 

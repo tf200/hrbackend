@@ -27,7 +27,8 @@ WITH updated_time_entry AS (
         employee_id,
         schedule_id,
         entry_date,
-        hours,
+        start_time,
+        end_time,
         break_minutes,
         hour_type,
         project_name,
@@ -49,7 +50,8 @@ SELECT
     te.employee_id,
     te.schedule_id,
     te.entry_date,
-    te.hours,
+    te.start_time,
+    te.end_time,
     te.break_minutes,
     te.hour_type,
     te.project_name,
@@ -84,7 +86,8 @@ type ApproveTimeEntryRow struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -114,7 +117,8 @@ func (q *Queries) ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryPara
 		&i.EmployeeID,
 		&i.ScheduleID,
 		&i.EntryDate,
-		&i.Hours,
+		&i.StartTime,
+		&i.EndTime,
 		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,
@@ -144,7 +148,8 @@ WITH inserted_time_entry AS (
         employee_id,
         schedule_id,
         entry_date,
-        hours,
+        start_time,
+        end_time,
         break_minutes,
         hour_type,
         project_name,
@@ -165,14 +170,16 @@ WITH inserted_time_entry AS (
         $9,
         $10,
         $11,
-        $12
+        $12,
+        $13
     )
     RETURNING
         id,
         employee_id,
         schedule_id,
         entry_date,
-        hours,
+        start_time,
+        end_time,
         break_minutes,
         hour_type,
         project_name,
@@ -194,7 +201,8 @@ SELECT
     te.employee_id,
     te.schedule_id,
     te.entry_date,
-    te.hours,
+    te.start_time,
+    te.end_time,
     te.break_minutes,
     te.hour_type,
     te.project_name,
@@ -223,7 +231,8 @@ type CreateTimeEntryParams struct {
 	EmployeeID          uuid.UUID             `json:"employee_id"`
 	ScheduleID          *uuid.UUID            `json:"schedule_id"`
 	EntryDate           pgtype.Date           `json:"entry_date"`
-	Hours               float64               `json:"hours"`
+	StartTime           pgtype.Time           `json:"start_time"`
+	EndTime             pgtype.Time           `json:"end_time"`
 	BreakMinutes        int32                 `json:"break_minutes"`
 	HourType            TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName         *string               `json:"project_name"`
@@ -239,7 +248,8 @@ type CreateTimeEntryRow struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -266,7 +276,8 @@ func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams
 		arg.EmployeeID,
 		arg.ScheduleID,
 		arg.EntryDate,
-		arg.Hours,
+		arg.StartTime,
+		arg.EndTime,
 		arg.BreakMinutes,
 		arg.HourType,
 		arg.ProjectName,
@@ -282,7 +293,8 @@ func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams
 		&i.EmployeeID,
 		&i.ScheduleID,
 		&i.EntryDate,
-		&i.Hours,
+		&i.StartTime,
+		&i.EndTime,
 		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,
@@ -312,7 +324,8 @@ SELECT
     te.employee_id,
     te.schedule_id,
     te.entry_date,
-    te.hours,
+    te.start_time,
+    te.end_time,
     te.break_minutes,
     te.hour_type,
     te.project_name,
@@ -344,7 +357,8 @@ type GetTimeEntryByIDRow struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -374,7 +388,8 @@ func (q *Queries) GetTimeEntryByID(ctx context.Context, id uuid.UUID) (GetTimeEn
 		&i.EmployeeID,
 		&i.ScheduleID,
 		&i.EntryDate,
-		&i.Hours,
+		&i.StartTime,
+		&i.EndTime,
 		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,
@@ -404,7 +419,8 @@ SELECT
     te.employee_id,
     te.schedule_id,
     te.entry_date,
-    te.hours,
+    te.start_time,
+    te.end_time,
     te.break_minutes,
     te.hour_type,
     te.project_name,
@@ -449,7 +465,8 @@ type ListMyTimeEntriesPaginatedRow struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -491,7 +508,8 @@ func (q *Queries) ListMyTimeEntriesPaginated(ctx context.Context, arg ListMyTime
 			&i.EmployeeID,
 			&i.ScheduleID,
 			&i.EntryDate,
-			&i.Hours,
+			&i.StartTime,
+			&i.EndTime,
 			&i.BreakMinutes,
 			&i.HourType,
 			&i.ProjectName,
@@ -529,7 +547,8 @@ SELECT
     te.employee_id,
     te.schedule_id,
     te.entry_date,
-    te.hours,
+    te.start_time,
+    te.end_time,
     te.break_minutes,
     te.hour_type,
     te.project_name,
@@ -586,7 +605,8 @@ type ListTimeEntriesPaginatedRow struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -629,7 +649,8 @@ func (q *Queries) ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntr
 			&i.EmployeeID,
 			&i.ScheduleID,
 			&i.EntryDate,
-			&i.Hours,
+			&i.StartTime,
+			&i.EndTime,
 			&i.BreakMinutes,
 			&i.HourType,
 			&i.ProjectName,
@@ -662,7 +683,7 @@ func (q *Queries) ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntr
 }
 
 const lockTimeEntryByID = `-- name: LockTimeEntryByID :one
-SELECT id, employee_id, schedule_id, entry_date, hours, break_minutes, hour_type, project_name, project_number, client_name, activity_category, activity_description, status, submitted_at, approved_at, approved_by_employee_id, rejection_reason, notes, created_at, updated_at
+SELECT id, employee_id, schedule_id, entry_date, start_time, end_time, break_minutes, hour_type, project_name, project_number, client_name, activity_category, activity_description, status, submitted_at, approved_at, approved_by_employee_id, rejection_reason, notes, created_at, updated_at, paid_period_id
 FROM time_entries
 WHERE id = $1
 FOR UPDATE
@@ -676,7 +697,8 @@ func (q *Queries) LockTimeEntryByID(ctx context.Context, id uuid.UUID) (TimeEntr
 		&i.EmployeeID,
 		&i.ScheduleID,
 		&i.EntryDate,
-		&i.Hours,
+		&i.StartTime,
+		&i.EndTime,
 		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,
@@ -692,6 +714,7 @@ func (q *Queries) LockTimeEntryByID(ctx context.Context, id uuid.UUID) (TimeEntr
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaidPeriodID,
 	)
 	return i, err
 }
@@ -711,7 +734,8 @@ WITH updated_time_entry AS (
         employee_id,
         schedule_id,
         entry_date,
-        hours,
+        start_time,
+        end_time,
         break_minutes,
         hour_type,
         project_name,
@@ -733,7 +757,8 @@ SELECT
     te.employee_id,
     te.schedule_id,
     te.entry_date,
-    te.hours,
+    te.start_time,
+    te.end_time,
     te.break_minutes,
     te.hour_type,
     te.project_name,
@@ -768,7 +793,8 @@ type RejectTimeEntryRow struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -798,7 +824,8 @@ func (q *Queries) RejectTimeEntry(ctx context.Context, arg RejectTimeEntryParams
 		&i.EmployeeID,
 		&i.ScheduleID,
 		&i.EntryDate,
-		&i.Hours,
+		&i.StartTime,
+		&i.EndTime,
 		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,

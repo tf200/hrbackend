@@ -98,32 +98,33 @@ func (r *EmployeeRepository) CreateEmployee(ctx context.Context, params domain.C
 			IsActive: true,
 		},
 		CreateEmployeeParams: db.CreateEmployeeProfileParams{
-			FirstName:           params.FirstName,
-			LastName:            params.LastName,
-			Bsn:                 params.Bsn,
-			Street:              params.Street,
-			HouseNumber:         params.HouseNumber,
-			HouseNumberAddition: params.HouseNumberAddition,
-			PostalCode:          params.PostalCode,
-			City:                params.City,
-			Position:            params.Position,
-			DepartmentID:        params.DepartmentID,
-			ManagerEmployeeID:   params.ManagerEmployeeID,
-			EmployeeNumber:      params.EmployeeNumber,
-			EmploymentNumber:    params.EmploymentNumber,
-			PrivateEmailAddress: params.PrivateEmailAddress,
-			WorkEmailAddress:    params.WorkEmailAddress,
-			WorkPhoneNumber:     params.WorkPhoneNumber,
-			PrivatePhoneNumber:  params.PrivatePhoneNumber,
-			DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
-			HomeTelephoneNumber: params.HomeTelephoneNumber,
-			Gender:              genderEnumFromString(params.Gender),
-			LocationID:          params.LocationID,
-			ContractHours:       params.ContractHours,
-			ContractEndDate:     pgDateFromPtr(params.ContractEndDate),
-			ContractStartDate:   pgDateFromPtr(params.ContractStartDate),
-			ContractType:        contractTypeFromString(params.ContractType),
-			ContractRate:        params.ContractRate,
+			FirstName:             params.FirstName,
+			LastName:              params.LastName,
+			Bsn:                   params.Bsn,
+			Street:                params.Street,
+			HouseNumber:           params.HouseNumber,
+			HouseNumberAddition:   params.HouseNumberAddition,
+			PostalCode:            params.PostalCode,
+			City:                  params.City,
+			Position:              params.Position,
+			DepartmentID:          params.DepartmentID,
+			ManagerEmployeeID:     params.ManagerEmployeeID,
+			EmployeeNumber:        params.EmployeeNumber,
+			EmploymentNumber:      params.EmploymentNumber,
+			PrivateEmailAddress:   params.PrivateEmailAddress,
+			WorkEmailAddress:      params.WorkEmailAddress,
+			WorkPhoneNumber:       params.WorkPhoneNumber,
+			PrivatePhoneNumber:    params.PrivatePhoneNumber,
+			DateOfBirth:           pgDateFromPtr(params.DateOfBirth),
+			HomeTelephoneNumber:   params.HomeTelephoneNumber,
+			Gender:                genderEnumFromString(params.Gender),
+			LocationID:            params.LocationID,
+			ContractHours:         params.ContractHours,
+			ContractEndDate:       pgDateFromPtr(params.ContractEndDate),
+			ContractStartDate:     pgDateFromPtr(params.ContractStartDate),
+			ContractType:          contractTypeFromString(params.ContractType),
+			ContractRate:          params.ContractRate,
+			IrregularHoursProfile: irregularHoursProfileFromString(params.IrregularHoursProfile),
 		},
 		RoleID: params.RoleID,
 	})
@@ -136,25 +137,26 @@ func (r *EmployeeRepository) CreateEmployee(ctx context.Context, params domain.C
 
 func (r *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, params domain.UpdateEmployeeParams) (*domain.EmployeeDetail, error) {
 	row, err := r.store.UpdateEmployeeProfile(ctx, db.UpdateEmployeeProfileParams{
-		FirstName:           params.FirstName,
-		LastName:            params.LastName,
-		Position:            params.Position,
-		DepartmentID:        params.DepartmentID,
-		ManagerEmployeeID:   params.ManagerEmployeeID,
-		EmployeeNumber:      params.EmployeeNumber,
-		EmploymentNumber:    params.EmploymentNumber,
-		PrivateEmailAddress: params.PrivateEmailAddress,
-		WorkEmailAddress:    nil,
-		PrivatePhoneNumber:  params.PrivatePhoneNumber,
-		WorkPhoneNumber:     params.WorkPhoneNumber,
-		DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
-		HomeTelephoneNumber: params.HomeTelephoneNumber,
-		Gender:              nullGenderEnumFromPtr(params.Gender),
-		LocationID:          params.LocationID,
-		HasBorrowed:         params.HasBorrowed,
-		OutOfService:        params.OutOfService,
-		IsArchived:          params.IsArchived,
-		ID:                  id,
+		FirstName:             params.FirstName,
+		LastName:              params.LastName,
+		Position:              params.Position,
+		DepartmentID:          params.DepartmentID,
+		ManagerEmployeeID:     params.ManagerEmployeeID,
+		EmployeeNumber:        params.EmployeeNumber,
+		EmploymentNumber:      params.EmploymentNumber,
+		PrivateEmailAddress:   params.PrivateEmailAddress,
+		WorkEmailAddress:      nil,
+		PrivatePhoneNumber:    params.PrivatePhoneNumber,
+		WorkPhoneNumber:       params.WorkPhoneNumber,
+		DateOfBirth:           pgDateFromPtr(params.DateOfBirth),
+		HomeTelephoneNumber:   params.HomeTelephoneNumber,
+		Gender:                nullGenderEnumFromPtr(params.Gender),
+		LocationID:            params.LocationID,
+		IrregularHoursProfile: nullIrregularHoursProfileFromPtr(params.IrregularHoursProfile),
+		HasBorrowed:           params.HasBorrowed,
+		OutOfService:          params.OutOfService,
+		IsArchived:            params.IsArchived,
+		ID:                    id,
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -217,6 +219,10 @@ func (r *EmployeeRepository) AddContractDetails(ctx context.Context, employeeID 
 		ContractEndDate:   conv.PgDateFromTime(params.ContractEndDate),
 		ContractType:      db.NullEmployeeContractTypeEnum{},
 		ContractRate:      params.ContractRate,
+		IrregularHoursProfile: db.NullIrregularHoursProfileEnum{
+			IrregularHoursProfileEnum: irregularHoursProfileFromString(params.IrregularHoursProfile),
+			Valid:                     true,
+		},
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -244,17 +250,18 @@ func (r *EmployeeRepository) ListContractChanges(ctx context.Context, employeeID
 	items := make([]domain.EmployeeContractChange, 0, len(rows))
 	for _, row := range rows {
 		items = append(items, domain.EmployeeContractChange{
-			ID:                  row.ID,
-			EmployeeID:          row.EmployeeID,
-			EffectiveFrom:       conv.TimeFromPgDate(row.EffectiveFrom),
-			EffectiveTo:         conv.TimePtrFromPgDate(row.EffectiveTo),
-			ContractHours:       row.ContractHours,
-			ContractType:        string(row.ContractType),
-			ContractRate:        row.ContractRate,
-			ContractEndDate:     conv.TimePtrFromPgDate(row.ContractEndDate),
-			CreatedByEmployeeID: row.CreatedByEmployeeID,
-			CreatedAt:           conv.TimeFromPgTimestamptz(row.CreatedAt),
-			UpdatedAt:           conv.TimeFromPgTimestamptz(row.UpdatedAt),
+			ID:                    row.ID,
+			EmployeeID:            row.EmployeeID,
+			EffectiveFrom:         conv.TimeFromPgDate(row.EffectiveFrom),
+			EffectiveTo:           conv.TimePtrFromPgDate(row.EffectiveTo),
+			ContractHours:         row.ContractHours,
+			ContractType:          string(row.ContractType),
+			ContractRate:          row.ContractRate,
+			IrregularHoursProfile: string(row.IrregularHoursProfile),
+			ContractEndDate:       conv.TimePtrFromPgDate(row.ContractEndDate),
+			CreatedByEmployeeID:   row.CreatedByEmployeeID,
+			CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
+			UpdatedAt:             conv.TimeFromPgTimestamptz(row.UpdatedAt),
 		})
 	}
 	return items, nil
@@ -290,13 +297,14 @@ func (r *EmployeeRepository) CreateContractChange(
 			effectiveDate := dateOnly(params.EffectiveFrom)
 			if !effectiveDate.Equal(dateOnly(baselineDate)) {
 				_, err = q.CreateEmployeeContractChange(ctx, db.CreateEmployeeContractChangeParams{
-					EmployeeID:          employeeID,
-					EffectiveFrom:       conv.PgDateFromTime(baselineDate),
-					ContractHours:       valueOrZero(snapshot.ContractHours),
-					ContractType:        snapshot.ContractType,
-					ContractRate:        snapshot.ContractRate,
-					ContractEndDate:     snapshot.ContractEndDate,
-					CreatedByEmployeeID: actorEmployeeID,
+					EmployeeID:            employeeID,
+					EffectiveFrom:         conv.PgDateFromTime(baselineDate),
+					ContractHours:         valueOrZero(snapshot.ContractHours),
+					ContractType:          snapshot.ContractType,
+					ContractRate:          snapshot.ContractRate,
+					IrregularHoursProfile: snapshot.IrregularHoursProfile,
+					ContractEndDate:       snapshot.ContractEndDate,
+					CreatedByEmployeeID:   actorEmployeeID,
 				})
 				if err != nil {
 					return mapContractChangeDBError(err)
@@ -305,13 +313,14 @@ func (r *EmployeeRepository) CreateContractChange(
 		}
 
 		created, err := q.CreateEmployeeContractChange(ctx, db.CreateEmployeeContractChangeParams{
-			EmployeeID:          employeeID,
-			EffectiveFrom:       conv.PgDateFromTime(dateOnly(params.EffectiveFrom)),
-			ContractHours:       params.ContractHours,
-			ContractType:        contractTypeFromString(params.ContractType),
-			ContractRate:        params.ContractRate,
-			ContractEndDate:     pgDateFromPtr(params.ContractEndDate),
-			CreatedByEmployeeID: actorEmployeeID,
+			EmployeeID:            employeeID,
+			EffectiveFrom:         conv.PgDateFromTime(dateOnly(params.EffectiveFrom)),
+			ContractHours:         params.ContractHours,
+			ContractType:          contractTypeFromString(params.ContractType),
+			ContractRate:          params.ContractRate,
+			IrregularHoursProfile: irregularHoursProfileFromString(params.IrregularHoursProfile),
+			ContractEndDate:       pgDateFromPtr(params.ContractEndDate),
+			CreatedByEmployeeID:   actorEmployeeID,
 		})
 		if err != nil {
 			return mapContractChangeDBError(err)
@@ -328,17 +337,18 @@ func (r *EmployeeRepository) CreateContractChange(
 
 		result = &domain.CreateEmployeeContractChangeResult{
 			Change: domain.EmployeeContractChange{
-				ID:                  created.ID,
-				EmployeeID:          created.EmployeeID,
-				EffectiveFrom:       conv.TimeFromPgDate(created.EffectiveFrom),
-				EffectiveTo:         nil,
-				ContractHours:       created.ContractHours,
-				ContractType:        string(created.ContractType),
-				ContractRate:        created.ContractRate,
-				ContractEndDate:     conv.TimePtrFromPgDate(created.ContractEndDate),
-				CreatedByEmployeeID: created.CreatedByEmployeeID,
-				CreatedAt:           conv.TimeFromPgTimestamptz(created.CreatedAt),
-				UpdatedAt:           conv.TimeFromPgTimestamptz(created.UpdatedAt),
+				ID:                    created.ID,
+				EmployeeID:            created.EmployeeID,
+				EffectiveFrom:         conv.TimeFromPgDate(created.EffectiveFrom),
+				EffectiveTo:           nil,
+				ContractHours:         created.ContractHours,
+				ContractType:          string(created.ContractType),
+				ContractRate:          created.ContractRate,
+				IrregularHoursProfile: string(created.IrregularHoursProfile),
+				ContractEndDate:       conv.TimePtrFromPgDate(created.ContractEndDate),
+				CreatedByEmployeeID:   created.CreatedByEmployeeID,
+				CreatedAt:             conv.TimeFromPgTimestamptz(created.CreatedAt),
+				UpdatedAt:             conv.TimeFromPgTimestamptz(created.UpdatedAt),
 			},
 			Recalculations: recalculations,
 		}
@@ -570,79 +580,81 @@ func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
 
 func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row db.GetEmployeeProfileByIDRow) *domain.EmployeeDetail {
 	return &domain.EmployeeDetail{
-		ID:                  row.ID,
-		UserID:              row.UserID,
-		FirstName:           row.FirstName,
-		LastName:            row.LastName,
-		Bsn:                 row.Bsn,
-		Street:              row.Street,
-		HouseNumber:         row.HouseNumber,
-		HouseNumberAddition: row.HouseNumberAddition,
-		PostalCode:          row.PostalCode,
-		City:                row.City,
-		Position:            row.Position,
-		EmployeeNumber:      row.EmployeeNumber,
-		EmploymentNumber:    row.EmploymentNumber,
-		PrivateEmailAddress: row.PrivateEmailAddress,
-		WorkEmailAddress:    row.WorkEmailAddress,
-		PrivatePhoneNumber:  row.PrivatePhoneNumber,
-		WorkPhoneNumber:     row.WorkPhoneNumber,
-		DateOfBirth:         conv.TimePtrFromPgDate(row.DateOfBirth),
-		HomeTelephoneNumber: row.HomeTelephoneNumber,
-		CreatedAt:           conv.TimeFromPgTimestamptz(row.CreatedAt),
-		Gender:              string(row.Gender),
-		LocationID:          row.LocationID,
-		DepartmentID:        row.DepartmentID,
-		ManagerEmployeeID:   row.ManagerEmployeeID,
-		HasBorrowed:         row.HasBorrowed,
-		OutOfService:        row.OutOfService,
-		IsArchived:          row.IsArchived,
-		ContractHours:       row.ContractHours,
-		ContractEndDate:     conv.TimePtrFromPgDate(row.ContractEndDate),
-		ContractStartDate:   conv.TimePtrFromPgDate(row.ContractStartDate),
-		ContractType:        string(row.ContractType),
-		ContractRate:        row.ContractRate,
-		ProfilePicture:      row.ProfilePicture,
-		DepartmentName:      row.DepartmentName,
-		ManagerFirstName:    row.ManagerFirstName,
-		ManagerLastName:     row.ManagerLastName,
+		ID:                    row.ID,
+		UserID:                row.UserID,
+		FirstName:             row.FirstName,
+		LastName:              row.LastName,
+		Bsn:                   row.Bsn,
+		Street:                row.Street,
+		HouseNumber:           row.HouseNumber,
+		HouseNumberAddition:   row.HouseNumberAddition,
+		PostalCode:            row.PostalCode,
+		City:                  row.City,
+		Position:              row.Position,
+		EmployeeNumber:        row.EmployeeNumber,
+		EmploymentNumber:      row.EmploymentNumber,
+		PrivateEmailAddress:   row.PrivateEmailAddress,
+		WorkEmailAddress:      row.WorkEmailAddress,
+		PrivatePhoneNumber:    row.PrivatePhoneNumber,
+		WorkPhoneNumber:       row.WorkPhoneNumber,
+		DateOfBirth:           conv.TimePtrFromPgDate(row.DateOfBirth),
+		HomeTelephoneNumber:   row.HomeTelephoneNumber,
+		CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
+		Gender:                string(row.Gender),
+		LocationID:            row.LocationID,
+		DepartmentID:          row.DepartmentID,
+		ManagerEmployeeID:     row.ManagerEmployeeID,
+		HasBorrowed:           row.HasBorrowed,
+		OutOfService:          row.OutOfService,
+		IsArchived:            row.IsArchived,
+		ContractHours:         row.ContractHours,
+		ContractEndDate:       conv.TimePtrFromPgDate(row.ContractEndDate),
+		ContractStartDate:     conv.TimePtrFromPgDate(row.ContractStartDate),
+		ContractType:          string(row.ContractType),
+		ContractRate:          row.ContractRate,
+		IrregularHoursProfile: string(row.IrregularHoursProfile),
+		ProfilePicture:        row.ProfilePicture,
+		DepartmentName:        row.DepartmentName,
+		ManagerFirstName:      row.ManagerFirstName,
+		ManagerLastName:       row.ManagerLastName,
 	}
 }
 
 func toDomainEmployeeDetailFromEmployeeProfile(row db.EmployeeProfile) *domain.EmployeeDetail {
 	return &domain.EmployeeDetail{
-		ID:                  row.ID,
-		UserID:              row.UserID,
-		FirstName:           row.FirstName,
-		LastName:            row.LastName,
-		Bsn:                 row.Bsn,
-		Street:              row.Street,
-		HouseNumber:         row.HouseNumber,
-		HouseNumberAddition: row.HouseNumberAddition,
-		PostalCode:          row.PostalCode,
-		City:                row.City,
-		Position:            row.Position,
-		EmployeeNumber:      row.EmployeeNumber,
-		EmploymentNumber:    row.EmploymentNumber,
-		PrivateEmailAddress: row.PrivateEmailAddress,
-		WorkEmailAddress:    row.WorkEmailAddress,
-		PrivatePhoneNumber:  row.PrivatePhoneNumber,
-		WorkPhoneNumber:     row.WorkPhoneNumber,
-		DateOfBirth:         conv.TimePtrFromPgDate(row.DateOfBirth),
-		HomeTelephoneNumber: row.HomeTelephoneNumber,
-		CreatedAt:           conv.TimeFromPgTimestamptz(row.CreatedAt),
-		Gender:              string(row.Gender),
-		LocationID:          row.LocationID,
-		DepartmentID:        row.DepartmentID,
-		ManagerEmployeeID:   row.ManagerEmployeeID,
-		HasBorrowed:         row.HasBorrowed,
-		OutOfService:        row.OutOfService,
-		IsArchived:          row.IsArchived,
-		ContractHours:       row.ContractHours,
-		ContractEndDate:     conv.TimePtrFromPgDate(row.ContractEndDate),
-		ContractStartDate:   conv.TimePtrFromPgDate(row.ContractStartDate),
-		ContractType:        string(row.ContractType),
-		ContractRate:        row.ContractRate,
+		ID:                    row.ID,
+		UserID:                row.UserID,
+		FirstName:             row.FirstName,
+		LastName:              row.LastName,
+		Bsn:                   row.Bsn,
+		Street:                row.Street,
+		HouseNumber:           row.HouseNumber,
+		HouseNumberAddition:   row.HouseNumberAddition,
+		PostalCode:            row.PostalCode,
+		City:                  row.City,
+		Position:              row.Position,
+		EmployeeNumber:        row.EmployeeNumber,
+		EmploymentNumber:      row.EmploymentNumber,
+		PrivateEmailAddress:   row.PrivateEmailAddress,
+		WorkEmailAddress:      row.WorkEmailAddress,
+		PrivatePhoneNumber:    row.PrivatePhoneNumber,
+		WorkPhoneNumber:       row.WorkPhoneNumber,
+		DateOfBirth:           conv.TimePtrFromPgDate(row.DateOfBirth),
+		HomeTelephoneNumber:   row.HomeTelephoneNumber,
+		CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
+		Gender:                string(row.Gender),
+		LocationID:            row.LocationID,
+		DepartmentID:          row.DepartmentID,
+		ManagerEmployeeID:     row.ManagerEmployeeID,
+		HasBorrowed:           row.HasBorrowed,
+		OutOfService:          row.OutOfService,
+		IsArchived:            row.IsArchived,
+		ContractHours:         row.ContractHours,
+		ContractEndDate:       conv.TimePtrFromPgDate(row.ContractEndDate),
+		ContractStartDate:     conv.TimePtrFromPgDate(row.ContractStartDate),
+		ContractType:          string(row.ContractType),
+		ContractRate:          row.ContractRate,
+		IrregularHoursProfile: string(row.IrregularHoursProfile),
 	}
 }
 
@@ -688,12 +700,13 @@ func toDomainContractDetails(row db.GetEmployeeContractDetailsRow) *domain.Contr
 	isSubcontractor := row.ContractType == db.EmployeeContractTypeEnumZZP
 
 	return &domain.ContractDetails{
-		ContractHours:     row.ContractHours,
-		ContractStartDate: conv.TimeFromPgDate(row.ContractStartDate),
-		ContractEndDate:   conv.TimeFromPgDate(row.ContractEndDate),
-		ContractType:      string(row.ContractType),
-		ContractRate:      row.ContractRate,
-		IsSubcontractor:   &isSubcontractor,
+		ContractHours:         row.ContractHours,
+		ContractStartDate:     conv.TimeFromPgDate(row.ContractStartDate),
+		ContractEndDate:       conv.TimeFromPgDate(row.ContractEndDate),
+		ContractType:          string(row.ContractType),
+		ContractRate:          row.ContractRate,
+		IrregularHoursProfile: string(row.IrregularHoursProfile),
+		IsSubcontractor:       &isSubcontractor,
 	}
 }
 
@@ -778,6 +791,26 @@ func nullContractTypeFromPtr(value *string) db.NullEmployeeContractTypeEnum {
 	}
 
 	return db.NullEmployeeContractTypeEnum{EmployeeContractTypeEnum: contractTypeFromString(*value), Valid: true}
+}
+
+func irregularHoursProfileFromString(value string) db.IrregularHoursProfileEnum {
+	switch db.IrregularHoursProfileEnum(value) {
+	case db.IrregularHoursProfileEnumNone, db.IrregularHoursProfileEnumRoster, db.IrregularHoursProfileEnumNonRoster:
+		return db.IrregularHoursProfileEnum(value)
+	default:
+		return db.IrregularHoursProfileEnumNone
+	}
+}
+
+func nullIrregularHoursProfileFromPtr(value *string) db.NullIrregularHoursProfileEnum {
+	if value == nil {
+		return db.NullIrregularHoursProfileEnum{}
+	}
+
+	return db.NullIrregularHoursProfileEnum{
+		IrregularHoursProfileEnum: irregularHoursProfileFromString(*value),
+		Valid:                     true,
+	}
 }
 
 func valueOrZero(value *float64) float64 {

@@ -41,12 +41,21 @@ func (r *TimeEntryRepository) CreateTimeEntry(ctx context.Context, params domain
 			return nil, domain.ErrTimeEntryInvalidRequest
 		}
 	}
+	startTime, err := conv.PgTimeFromString(params.StartTime)
+	if err != nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+	endTime, err := conv.PgTimeFromString(params.EndTime)
+	if err != nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
 
 	row, err := r.store.CreateTimeEntry(ctx, db.CreateTimeEntryParams{
 		EmployeeID:          params.EmployeeID,
 		ScheduleID:          params.ScheduleID,
 		EntryDate:           conv.PgDateFromTime(params.EntryDate),
-		Hours:               params.Hours,
+		StartTime:           startTime,
+		EndTime:             endTime,
 		BreakMinutes:        params.BreakMinutes,
 		HourType:            toDBTimeEntryHourType(params.HourType),
 		ProjectName:         params.ProjectName,
@@ -101,7 +110,8 @@ func (r *TimeEntryRepository) ListTimeEntries(ctx context.Context, params domain
 			row.EmployeeID,
 			row.ScheduleID,
 			row.EntryDate,
-			row.Hours,
+			row.StartTime,
+			row.EndTime,
 			row.BreakMinutes,
 			string(row.HourType),
 			row.ProjectName,
@@ -151,7 +161,8 @@ func (r *TimeEntryRepository) ListMyTimeEntries(ctx context.Context, params doma
 			row.EmployeeID,
 			row.ScheduleID,
 			row.EntryDate,
-			row.Hours,
+			row.StartTime,
+			row.EndTime,
 			row.BreakMinutes,
 			string(row.HourType),
 			row.ProjectName,
@@ -183,7 +194,8 @@ func toDomainTimeEntryFromCreateRow(row db.CreateTimeEntryRow) domain.TimeEntry 
 		row.EmployeeID,
 		row.ScheduleID,
 		row.EntryDate,
-		row.Hours,
+		row.StartTime,
+		row.EndTime,
 		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,
@@ -212,7 +224,8 @@ func toDomainTimeEntryFromGetRow(row db.GetTimeEntryByIDRow) domain.TimeEntry {
 		row.EmployeeID,
 		row.ScheduleID,
 		row.EntryDate,
-		row.Hours,
+		row.StartTime,
+		row.EndTime,
 		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,
@@ -240,7 +253,8 @@ func buildDomainTimeEntry(
 	employeeID uuid.UUID,
 	scheduleID *uuid.UUID,
 	entryDate pgtype.Date,
-	hours float64,
+	startTime pgtype.Time,
+	endTime pgtype.Time,
 	breakMinutes int32,
 	hourType string,
 	projectName *string,
@@ -267,7 +281,8 @@ func buildDomainTimeEntry(
 		EmployeeName:         fullName(employeeFirstName, employeeLastName),
 		ScheduleID:           scheduleID,
 		EntryDate:            conv.TimeFromPgDate(entryDate),
-		Hours:                hours,
+		StartTime:            conv.StringFromPgTime(startTime),
+		EndTime:              conv.StringFromPgTime(endTime),
 		BreakMinutes:         breakMinutes,
 		HourType:             hourType,
 		ProjectName:          projectName,
@@ -410,7 +425,8 @@ func toDomainTimeEntryFromDBTimeEntry(row db.TimeEntry) domain.TimeEntry {
 		row.EmployeeID,
 		row.ScheduleID,
 		row.EntryDate,
-		row.Hours,
+		row.StartTime,
+		row.EndTime,
 		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,
@@ -439,7 +455,8 @@ func toDomainTimeEntryFromApproveRow(row db.ApproveTimeEntryRow) domain.TimeEntr
 		row.EmployeeID,
 		row.ScheduleID,
 		row.EntryDate,
-		row.Hours,
+		row.StartTime,
+		row.EndTime,
 		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,
@@ -468,7 +485,8 @@ func toDomainTimeEntryFromRejectRow(row db.RejectTimeEntryRow) domain.TimeEntry 
 		row.EmployeeID,
 		row.ScheduleID,
 		row.EntryDate,
-		row.Hours,
+		row.StartTime,
+		row.EndTime,
 		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,

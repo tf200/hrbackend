@@ -489,6 +489,49 @@ func (ns NullHandbookTemplateStatusEnum) Value() (driver.Value, error) {
 	return string(ns.HandbookTemplateStatusEnum), nil
 }
 
+type IrregularHoursProfileEnum string
+
+const (
+	IrregularHoursProfileEnumNone      IrregularHoursProfileEnum = "none"
+	IrregularHoursProfileEnumRoster    IrregularHoursProfileEnum = "roster"
+	IrregularHoursProfileEnumNonRoster IrregularHoursProfileEnum = "non_roster"
+)
+
+func (e *IrregularHoursProfileEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IrregularHoursProfileEnum(s)
+	case string:
+		*e = IrregularHoursProfileEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IrregularHoursProfileEnum: %T", src)
+	}
+	return nil
+}
+
+type NullIrregularHoursProfileEnum struct {
+	IrregularHoursProfileEnum IrregularHoursProfileEnum `json:"irregular_hours_profile_enum"`
+	Valid                     bool                      `json:"valid"` // Valid is true if IrregularHoursProfileEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIrregularHoursProfileEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.IrregularHoursProfileEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IrregularHoursProfileEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIrregularHoursProfileEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IrregularHoursProfileEnum), nil
+}
+
 type LeaveRequestStatusEnum string
 
 const (
@@ -662,6 +705,48 @@ func (ns NullNotificationTypeEnum) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.NotificationTypeEnum), nil
+}
+
+type PayPeriodStatusEnum string
+
+const (
+	PayPeriodStatusEnumDraft PayPeriodStatusEnum = "draft"
+	PayPeriodStatusEnumPaid  PayPeriodStatusEnum = "paid"
+)
+
+func (e *PayPeriodStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PayPeriodStatusEnum(s)
+	case string:
+		*e = PayPeriodStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PayPeriodStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullPayPeriodStatusEnum struct {
+	PayPeriodStatusEnum PayPeriodStatusEnum `json:"pay_period_status_enum"`
+	Valid               bool                `json:"valid"` // Valid is true if PayPeriodStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPayPeriodStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.PayPeriodStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PayPeriodStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPayPeriodStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PayPeriodStatusEnum), nil
 }
 
 type PayoutRequestStatusEnum string
@@ -1032,16 +1117,17 @@ type Department struct {
 }
 
 type EmployeeContractChange struct {
-	ID                  uuid.UUID                `json:"id"`
-	EmployeeID          uuid.UUID                `json:"employee_id"`
-	EffectiveFrom       pgtype.Date              `json:"effective_from"`
-	ContractHours       float64                  `json:"contract_hours"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate        *float64                 `json:"contract_rate"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	CreatedByEmployeeID uuid.UUID                `json:"created_by_employee_id"`
-	CreatedAt           pgtype.Timestamptz       `json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz       `json:"updated_at"`
+	ID                    uuid.UUID                 `json:"id"`
+	EmployeeID            uuid.UUID                 `json:"employee_id"`
+	EffectiveFrom         pgtype.Date               `json:"effective_from"`
+	ContractHours         float64                   `json:"contract_hours"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	CreatedByEmployeeID   uuid.UUID                 `json:"created_by_employee_id"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz        `json:"updated_at"`
 }
 
 type EmployeeEducation struct {
@@ -1101,38 +1187,39 @@ type EmployeeHandbookStepProgress struct {
 }
 
 type EmployeeProfile struct {
-	ID                  uuid.UUID                `json:"id"`
-	UserID              uuid.UUID                `json:"user_id"`
-	FirstName           string                   `json:"first_name"`
-	LastName            string                   `json:"last_name"`
-	Bsn                 string                   `json:"bsn"`
-	Street              string                   `json:"street"`
-	HouseNumber         string                   `json:"house_number"`
-	HouseNumberAddition *string                  `json:"house_number_addition"`
-	PostalCode          string                   `json:"postal_code"`
-	City                string                   `json:"city"`
-	Position            *string                  `json:"position"`
-	EmployeeNumber      *string                  `json:"employee_number"`
-	EmploymentNumber    *string                  `json:"employment_number"`
-	PrivateEmailAddress *string                  `json:"private_email_address"`
-	WorkEmailAddress    *string                  `json:"work_email_address"`
-	PrivatePhoneNumber  *string                  `json:"private_phone_number"`
-	WorkPhoneNumber     *string                  `json:"work_phone_number"`
-	DateOfBirth         pgtype.Date              `json:"date_of_birth"`
-	HomeTelephoneNumber *string                  `json:"home_telephone_number"`
-	CreatedAt           pgtype.Timestamptz       `json:"created_at"`
-	Gender              GenderEnum               `json:"gender"`
-	LocationID          *uuid.UUID               `json:"location_id"`
-	DepartmentID        *uuid.UUID               `json:"department_id"`
-	ManagerEmployeeID   *uuid.UUID               `json:"manager_employee_id"`
-	HasBorrowed         bool                     `json:"has_borrowed"`
-	OutOfService        *bool                    `json:"out_of_service"`
-	IsArchived          bool                     `json:"is_archived"`
-	ContractHours       *float64                 `json:"contract_hours"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	ContractStartDate   pgtype.Date              `json:"contract_start_date"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate        *float64                 `json:"contract_rate"`
+	ID                    uuid.UUID                 `json:"id"`
+	UserID                uuid.UUID                 `json:"user_id"`
+	FirstName             string                    `json:"first_name"`
+	LastName              string                    `json:"last_name"`
+	Bsn                   string                    `json:"bsn"`
+	Street                string                    `json:"street"`
+	HouseNumber           string                    `json:"house_number"`
+	HouseNumberAddition   *string                   `json:"house_number_addition"`
+	PostalCode            string                    `json:"postal_code"`
+	City                  string                    `json:"city"`
+	Position              *string                   `json:"position"`
+	EmployeeNumber        *string                   `json:"employee_number"`
+	EmploymentNumber      *string                   `json:"employment_number"`
+	PrivateEmailAddress   *string                   `json:"private_email_address"`
+	WorkEmailAddress      *string                   `json:"work_email_address"`
+	PrivatePhoneNumber    *string                   `json:"private_phone_number"`
+	WorkPhoneNumber       *string                   `json:"work_phone_number"`
+	DateOfBirth           pgtype.Date               `json:"date_of_birth"`
+	HomeTelephoneNumber   *string                   `json:"home_telephone_number"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	Gender                GenderEnum                `json:"gender"`
+	LocationID            *uuid.UUID                `json:"location_id"`
+	DepartmentID          *uuid.UUID                `json:"department_id"`
+	ManagerEmployeeID     *uuid.UUID                `json:"manager_employee_id"`
+	HasBorrowed           bool                      `json:"has_borrowed"`
+	OutOfService          *bool                     `json:"out_of_service"`
+	IsArchived            bool                      `json:"is_archived"`
+	ContractHours         *float64                  `json:"contract_hours"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
 }
 
 type HandbookStep struct {
@@ -1277,6 +1364,16 @@ type LocationShift struct {
 	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
 }
 
+type NationalHoliday struct {
+	ID          uuid.UUID          `json:"id"`
+	CountryCode string             `json:"country_code"`
+	HolidayDate pgtype.Date        `json:"holiday_date"`
+	Name        string             `json:"name"`
+	IsNational  bool               `json:"is_national"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Notification struct {
 	ID        uuid.UUID            `json:"id"`
 	UserID    uuid.UUID            `json:"user_id"`
@@ -1302,6 +1399,37 @@ type Organisation struct {
 	BtwNumber           *string            `json:"btw_number"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PayPeriod struct {
+	ID                   uuid.UUID           `json:"id"`
+	EmployeeID           uuid.UUID           `json:"employee_id"`
+	PeriodStart          pgtype.Date         `json:"period_start"`
+	PeriodEnd            pgtype.Date         `json:"period_end"`
+	Status               PayPeriodStatusEnum `json:"status"`
+	BaseGrossAmount      float64             `json:"base_gross_amount"`
+	IrregularGrossAmount float64             `json:"irregular_gross_amount"`
+	GrossAmount          float64             `json:"gross_amount"`
+	PaidAt               pgtype.Timestamptz  `json:"paid_at"`
+	CreatedByEmployeeID  *uuid.UUID          `json:"created_by_employee_id"`
+	CreatedAt            pgtype.Timestamptz  `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz  `json:"updated_at"`
+}
+
+type PayPeriodLineItem struct {
+	ID                    uuid.UUID                 `json:"id"`
+	PayPeriodID           uuid.UUID                 `json:"pay_period_id"`
+	TimeEntryID           *uuid.UUID                `json:"time_entry_id"`
+	WorkDate              pgtype.Date               `json:"work_date"`
+	LineType              string                    `json:"line_type"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	AppliedRatePercent    float64                   `json:"applied_rate_percent"`
+	MinutesWorked         int32                     `json:"minutes_worked"`
+	BaseAmount            float64                   `json:"base_amount"`
+	PremiumAmount         float64                   `json:"premium_amount"`
+	Metadata              []byte                    `json:"metadata"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz        `json:"updated_at"`
 }
 
 type Permission struct {
@@ -1383,7 +1511,8 @@ type TimeEntry struct {
 	EmployeeID           uuid.UUID             `json:"employee_id"`
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
-	Hours                float64               `json:"hours"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
 	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
@@ -1399,6 +1528,7 @@ type TimeEntry struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 }
 
 type UserPermissionOverride struct {

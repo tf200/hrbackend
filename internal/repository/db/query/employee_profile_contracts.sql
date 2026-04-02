@@ -5,7 +5,8 @@ SET
     contract_start_date = COALESCE(sqlc.narg('contract_start_date'), contract_start_date),
     contract_end_date = COALESCE(sqlc.narg('contract_end_date'), contract_end_date),
     contract_type = COALESCE(sqlc.narg('contract_type'), contract_type),
-    contract_rate = COALESCE(sqlc.narg('contract_rate'), contract_rate)
+    contract_rate = COALESCE(sqlc.narg('contract_rate'), contract_rate),
+    irregular_hours_profile = COALESCE(sqlc.narg('irregular_hours_profile'), irregular_hours_profile)
 WHERE id = $1
 RETURNING *;
 
@@ -15,7 +16,8 @@ SELECT
     contract_start_date,
     contract_end_date,
     contract_type,
-    contract_rate
+    contract_rate,
+    irregular_hours_profile
 FROM employee_profile
 WHERE id = $1;
 
@@ -37,7 +39,8 @@ SELECT
     contract_start_date,
     contract_end_date,
     contract_type,
-    contract_rate
+    contract_rate,
+    irregular_hours_profile
 FROM employee_profile
 WHERE id = $1;
 
@@ -48,6 +51,7 @@ INSERT INTO employee_contract_changes (
     contract_hours,
     contract_type,
     contract_rate,
+    irregular_hours_profile,
     contract_end_date,
     created_by_employee_id
 ) VALUES (
@@ -56,6 +60,7 @@ INSERT INTO employee_contract_changes (
     sqlc.arg('contract_hours'),
     sqlc.arg('contract_type'),
     sqlc.narg('contract_rate'),
+    sqlc.arg('irregular_hours_profile'),
     sqlc.narg('contract_end_date'),
     sqlc.arg('created_by_employee_id')
 )
@@ -75,6 +80,7 @@ SELECT
     c.contract_hours,
     c.contract_type,
     c.contract_rate,
+    c.irregular_hours_profile,
     c.contract_end_date,
     c.created_by_employee_id,
     c.created_at,
@@ -89,6 +95,7 @@ WITH latest AS (
         contract_hours,
         contract_type,
         contract_rate,
+        irregular_hours_profile,
         contract_end_date,
         effective_from
     FROM employee_contract_changes
@@ -101,6 +108,7 @@ SET
     contract_hours = latest.contract_hours,
     contract_type = latest.contract_type,
     contract_rate = latest.contract_rate,
+    irregular_hours_profile = latest.irregular_hours_profile,
     contract_end_date = latest.contract_end_date,
     contract_start_date = latest.effective_from
 FROM latest

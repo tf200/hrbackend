@@ -19,18 +19,20 @@ SET
     contract_start_date = COALESCE($3, contract_start_date),
     contract_end_date = COALESCE($4, contract_end_date),
     contract_type = COALESCE($5, contract_type),
-    contract_rate = COALESCE($6, contract_rate)
+    contract_rate = COALESCE($6, contract_rate),
+    irregular_hours_profile = COALESCE($7, irregular_hours_profile)
 WHERE id = $1
-RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate
+RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate, irregular_hours_profile
 `
 
 type AddEmployeeContractDetailsParams struct {
-	ID                uuid.UUID                    `json:"id"`
-	ContractHours     *float64                     `json:"contract_hours"`
-	ContractStartDate pgtype.Date                  `json:"contract_start_date"`
-	ContractEndDate   pgtype.Date                  `json:"contract_end_date"`
-	ContractType      NullEmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate      *float64                     `json:"contract_rate"`
+	ID                    uuid.UUID                     `json:"id"`
+	ContractHours         *float64                      `json:"contract_hours"`
+	ContractStartDate     pgtype.Date                   `json:"contract_start_date"`
+	ContractEndDate       pgtype.Date                   `json:"contract_end_date"`
+	ContractType          NullEmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                      `json:"contract_rate"`
+	IrregularHoursProfile NullIrregularHoursProfileEnum `json:"irregular_hours_profile"`
 }
 
 func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmployeeContractDetailsParams) (EmployeeProfile, error) {
@@ -41,6 +43,7 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 		arg.ContractEndDate,
 		arg.ContractType,
 		arg.ContractRate,
+		arg.IrregularHoursProfile,
 	)
 	var i EmployeeProfile
 	err := row.Scan(
@@ -76,6 +79,7 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }
@@ -100,6 +104,7 @@ INSERT INTO employee_contract_changes (
     contract_hours,
     contract_type,
     contract_rate,
+    irregular_hours_profile,
     contract_end_date,
     created_by_employee_id
 ) VALUES (
@@ -109,19 +114,21 @@ INSERT INTO employee_contract_changes (
     $4,
     $5,
     $6,
-    $7
+    $7,
+    $8
 )
-RETURNING id, employee_id, effective_from, contract_hours, contract_type, contract_rate, contract_end_date, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, effective_from, contract_hours, contract_type, contract_rate, irregular_hours_profile, contract_end_date, created_by_employee_id, created_at, updated_at
 `
 
 type CreateEmployeeContractChangeParams struct {
-	EmployeeID          uuid.UUID                `json:"employee_id"`
-	EffectiveFrom       pgtype.Date              `json:"effective_from"`
-	ContractHours       float64                  `json:"contract_hours"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate        *float64                 `json:"contract_rate"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	CreatedByEmployeeID uuid.UUID                `json:"created_by_employee_id"`
+	EmployeeID            uuid.UUID                 `json:"employee_id"`
+	EffectiveFrom         pgtype.Date               `json:"effective_from"`
+	ContractHours         float64                   `json:"contract_hours"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	CreatedByEmployeeID   uuid.UUID                 `json:"created_by_employee_id"`
 }
 
 func (q *Queries) CreateEmployeeContractChange(ctx context.Context, arg CreateEmployeeContractChangeParams) (EmployeeContractChange, error) {
@@ -131,6 +138,7 @@ func (q *Queries) CreateEmployeeContractChange(ctx context.Context, arg CreateEm
 		arg.ContractHours,
 		arg.ContractType,
 		arg.ContractRate,
+		arg.IrregularHoursProfile,
 		arg.ContractEndDate,
 		arg.CreatedByEmployeeID,
 	)
@@ -142,6 +150,7 @@ func (q *Queries) CreateEmployeeContractChange(ctx context.Context, arg CreateEm
 		&i.ContractHours,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 		&i.ContractEndDate,
 		&i.CreatedByEmployeeID,
 		&i.CreatedAt,
@@ -156,17 +165,19 @@ SELECT
     contract_start_date,
     contract_end_date,
     contract_type,
-    contract_rate
+    contract_rate,
+    irregular_hours_profile
 FROM employee_profile
 WHERE id = $1
 `
 
 type GetEmployeeContractDetailsRow struct {
-	ContractHours     *float64                 `json:"contract_hours"`
-	ContractStartDate pgtype.Date              `json:"contract_start_date"`
-	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
-	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate      *float64                 `json:"contract_rate"`
+	ContractHours         *float64                  `json:"contract_hours"`
+	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
 }
 
 func (q *Queries) GetEmployeeContractDetails(ctx context.Context, id uuid.UUID) (GetEmployeeContractDetailsRow, error) {
@@ -178,6 +189,7 @@ func (q *Queries) GetEmployeeContractDetails(ctx context.Context, id uuid.UUID) 
 		&i.ContractEndDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }
@@ -188,17 +200,19 @@ SELECT
     contract_start_date,
     contract_end_date,
     contract_type,
-    contract_rate
+    contract_rate,
+    irregular_hours_profile
 FROM employee_profile
 WHERE id = $1
 `
 
 type GetEmployeeContractSnapshotForContractChangeRow struct {
-	ContractHours     *float64                 `json:"contract_hours"`
-	ContractStartDate pgtype.Date              `json:"contract_start_date"`
-	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
-	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate      *float64                 `json:"contract_rate"`
+	ContractHours         *float64                  `json:"contract_hours"`
+	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
 }
 
 func (q *Queries) GetEmployeeContractSnapshotForContractChange(ctx context.Context, id uuid.UUID) (GetEmployeeContractSnapshotForContractChangeRow, error) {
@@ -210,6 +224,7 @@ func (q *Queries) GetEmployeeContractSnapshotForContractChange(ctx context.Conte
 		&i.ContractEndDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }
@@ -228,6 +243,7 @@ SELECT
     c.contract_hours,
     c.contract_type,
     c.contract_rate,
+    c.irregular_hours_profile,
     c.contract_end_date,
     c.created_by_employee_id,
     c.created_at,
@@ -238,17 +254,18 @@ ORDER BY c.effective_from DESC, c.created_at DESC
 `
 
 type ListEmployeeContractChangesRow struct {
-	ID                  uuid.UUID                `json:"id"`
-	EmployeeID          uuid.UUID                `json:"employee_id"`
-	EffectiveFrom       pgtype.Date              `json:"effective_from"`
-	EffectiveTo         pgtype.Date              `json:"effective_to"`
-	ContractHours       float64                  `json:"contract_hours"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate        *float64                 `json:"contract_rate"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	CreatedByEmployeeID uuid.UUID                `json:"created_by_employee_id"`
-	CreatedAt           pgtype.Timestamptz       `json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz       `json:"updated_at"`
+	ID                    uuid.UUID                 `json:"id"`
+	EmployeeID            uuid.UUID                 `json:"employee_id"`
+	EffectiveFrom         pgtype.Date               `json:"effective_from"`
+	EffectiveTo           pgtype.Date               `json:"effective_to"`
+	ContractHours         float64                   `json:"contract_hours"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
+	ContractRate          *float64                  `json:"contract_rate"`
+	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
+	CreatedByEmployeeID   uuid.UUID                 `json:"created_by_employee_id"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz        `json:"updated_at"`
 }
 
 func (q *Queries) ListEmployeeContractChanges(ctx context.Context, employeeID uuid.UUID) ([]ListEmployeeContractChangesRow, error) {
@@ -268,6 +285,7 @@ func (q *Queries) ListEmployeeContractChanges(ctx context.Context, employeeID uu
 			&i.ContractHours,
 			&i.ContractType,
 			&i.ContractRate,
+			&i.IrregularHoursProfile,
 			&i.ContractEndDate,
 			&i.CreatedByEmployeeID,
 			&i.CreatedAt,
@@ -289,6 +307,7 @@ WITH latest AS (
         contract_hours,
         contract_type,
         contract_rate,
+        irregular_hours_profile,
         contract_end_date,
         effective_from
     FROM employee_contract_changes
@@ -301,11 +320,12 @@ SET
     contract_hours = latest.contract_hours,
     contract_type = latest.contract_type,
     contract_rate = latest.contract_rate,
+    irregular_hours_profile = latest.irregular_hours_profile,
     contract_end_date = latest.contract_end_date,
     contract_start_date = latest.effective_from
 FROM latest
 WHERE ep.id = $1
-RETURNING ep.id, ep.user_id, ep.first_name, ep.last_name, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.position, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.location_id, ep.department_id, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived, ep.contract_hours, ep.contract_end_date, ep.contract_start_date, ep.contract_type, ep.contract_rate
+RETURNING ep.id, ep.user_id, ep.first_name, ep.last_name, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.position, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.location_id, ep.department_id, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived, ep.contract_hours, ep.contract_end_date, ep.contract_start_date, ep.contract_type, ep.contract_rate, ep.irregular_hours_profile
 `
 
 func (q *Queries) SyncEmployeeProfileContractFromLatestChange(ctx context.Context, id uuid.UUID) (EmployeeProfile, error) {
@@ -344,6 +364,7 @@ func (q *Queries) SyncEmployeeProfileContractFromLatestChange(ctx context.Contex
 		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }
@@ -353,7 +374,7 @@ UPDATE employee_profile
 SET
     contract_type = $2
 WHERE id = $1
-RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate
+RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate, irregular_hours_profile
 `
 
 type UpdateEmployeeIsSubcontractorParams struct {
@@ -397,6 +418,7 @@ func (q *Queries) UpdateEmployeeIsSubcontractor(ctx context.Context, arg UpdateE
 		&i.ContractStartDate,
 		&i.ContractType,
 		&i.ContractRate,
+		&i.IrregularHoursProfile,
 	)
 	return i, err
 }

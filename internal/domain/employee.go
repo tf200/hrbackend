@@ -26,6 +26,12 @@ var (
 	ErrContractChangeLeaveConflict      = errors.New("contract change would invalidate current leave usage")
 )
 
+const (
+	IrregularHoursProfileNone      = "none"
+	IrregularHoursProfileRoster    = "roster"
+	IrregularHoursProfileNonRoster = "non_roster"
+)
+
 // Employee is the lean domain struct for list queries.
 type Employee struct {
 	ID              uuid.UUID
@@ -40,42 +46,43 @@ type Employee struct {
 
 // EmployeeDetail is the rich domain struct for get-by-id queries (with joins).
 type EmployeeDetail struct {
-	ID                  uuid.UUID
-	UserID              uuid.UUID
-	FirstName           string
-	LastName            string
-	Bsn                 string
-	Street              string
-	HouseNumber         string
-	HouseNumberAddition *string
-	PostalCode          string
-	City                string
-	Position            *string
-	EmployeeNumber      *string
-	EmploymentNumber    *string
-	PrivateEmailAddress *string
-	WorkEmailAddress    *string
-	PrivatePhoneNumber  *string
-	WorkPhoneNumber     *string
-	DateOfBirth         *time.Time
-	HomeTelephoneNumber *string
-	CreatedAt           time.Time
-	Gender              string
-	LocationID          *uuid.UUID
-	DepartmentID        *uuid.UUID
-	ManagerEmployeeID   *uuid.UUID
-	HasBorrowed         bool
-	OutOfService        *bool
-	IsArchived          bool
-	ContractHours       *float64
-	ContractEndDate     *time.Time
-	ContractStartDate   *time.Time
-	ContractType        string
-	ContractRate        *float64
-	ProfilePicture      *string
-	DepartmentName      *string
-	ManagerFirstName    *string
-	ManagerLastName     *string
+	ID                    uuid.UUID
+	UserID                uuid.UUID
+	FirstName             string
+	LastName              string
+	Bsn                   string
+	Street                string
+	HouseNumber           string
+	HouseNumberAddition   *string
+	PostalCode            string
+	City                  string
+	Position              *string
+	EmployeeNumber        *string
+	EmploymentNumber      *string
+	PrivateEmailAddress   *string
+	WorkEmailAddress      *string
+	PrivatePhoneNumber    *string
+	WorkPhoneNumber       *string
+	DateOfBirth           *time.Time
+	HomeTelephoneNumber   *string
+	CreatedAt             time.Time
+	Gender                string
+	LocationID            *uuid.UUID
+	DepartmentID          *uuid.UUID
+	ManagerEmployeeID     *uuid.UUID
+	HasBorrowed           bool
+	OutOfService          *bool
+	IsArchived            bool
+	ContractHours         *float64
+	ContractEndDate       *time.Time
+	ContractStartDate     *time.Time
+	ContractType          string
+	ContractRate          *float64
+	IrregularHoursProfile string
+	ProfilePicture        *string
+	DepartmentName        *string
+	ManagerFirstName      *string
+	ManagerLastName       *string
 }
 
 // EmployeeProfile is the domain struct for the current user's profile (with permissions).
@@ -149,26 +156,28 @@ type Certification struct {
 
 // ContractDetails domain struct.
 type ContractDetails struct {
-	ContractHours     *float64
-	ContractStartDate time.Time
-	ContractEndDate   time.Time
-	ContractType      string
-	ContractRate      *float64
-	IsSubcontractor   *bool
+	ContractHours         *float64
+	ContractStartDate     time.Time
+	ContractEndDate       time.Time
+	ContractType          string
+	ContractRate          *float64
+	IrregularHoursProfile string
+	IsSubcontractor       *bool
 }
 
 type EmployeeContractChange struct {
-	ID                  uuid.UUID
-	EmployeeID          uuid.UUID
-	EffectiveFrom       time.Time
-	EffectiveTo         *time.Time
-	ContractHours       float64
-	ContractType        string
-	ContractRate        *float64
-	ContractEndDate     *time.Time
-	CreatedByEmployeeID uuid.UUID
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                    uuid.UUID
+	EmployeeID            uuid.UUID
+	EffectiveFrom         time.Time
+	EffectiveTo           *time.Time
+	ContractHours         float64
+	ContractType          string
+	ContractRate          *float64
+	IrregularHoursProfile string
+	ContractEndDate       *time.Time
+	CreatedByEmployeeID   uuid.UUID
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 type LeaveRecalculationImpact struct {
@@ -201,62 +210,65 @@ type EmployeePage struct {
 }
 
 type CreateEmployeeParams struct {
-	FirstName           string
-	LastName            string
-	Bsn                 string
-	Street              string
-	HouseNumber         string
-	HouseNumberAddition *string
-	PostalCode          string
-	City                string
-	Position            *string
-	DepartmentID        *uuid.UUID
-	ManagerEmployeeID   *uuid.UUID
-	EmployeeNumber      *string
-	EmploymentNumber    *string
-	PrivateEmailAddress *string
-	WorkEmailAddress    *string
-	WorkPhoneNumber     *string
-	PrivatePhoneNumber  *string
-	DateOfBirth         *time.Time
-	HomeTelephoneNumber *string
-	Gender              string
-	LocationID          *uuid.UUID
-	ContractHours       *float64
-	ContractType        string
-	ContractStartDate   *time.Time
-	ContractEndDate     *time.Time
-	ContractRate        *float64
-	RoleID              uuid.UUID
-	UserEmail           string
-	UserPassword        string
+	FirstName             string
+	LastName              string
+	Bsn                   string
+	Street                string
+	HouseNumber           string
+	HouseNumberAddition   *string
+	PostalCode            string
+	City                  string
+	Position              *string
+	DepartmentID          *uuid.UUID
+	ManagerEmployeeID     *uuid.UUID
+	EmployeeNumber        *string
+	EmploymentNumber      *string
+	PrivateEmailAddress   *string
+	WorkEmailAddress      *string
+	WorkPhoneNumber       *string
+	PrivatePhoneNumber    *string
+	DateOfBirth           *time.Time
+	HomeTelephoneNumber   *string
+	Gender                string
+	LocationID            *uuid.UUID
+	ContractHours         *float64
+	ContractType          string
+	ContractStartDate     *time.Time
+	ContractEndDate       *time.Time
+	ContractRate          *float64
+	IrregularHoursProfile string
+	RoleID                uuid.UUID
+	UserEmail             string
+	UserPassword          string
 }
 
 type UpdateEmployeeParams struct {
-	FirstName           *string
-	LastName            *string
-	Position            *string
-	DepartmentID        *uuid.UUID
-	ManagerEmployeeID   *uuid.UUID
-	EmployeeNumber      *string
-	EmploymentNumber    *string
-	PrivateEmailAddress *string
-	PrivatePhoneNumber  *string
-	WorkPhoneNumber     *string
-	DateOfBirth         *time.Time
-	HomeTelephoneNumber *string
-	Gender              *string
-	LocationID          *uuid.UUID
-	HasBorrowed         *bool
-	OutOfService        *bool
-	IsArchived          *bool
+	FirstName             *string
+	LastName              *string
+	Position              *string
+	DepartmentID          *uuid.UUID
+	ManagerEmployeeID     *uuid.UUID
+	EmployeeNumber        *string
+	EmploymentNumber      *string
+	PrivateEmailAddress   *string
+	PrivatePhoneNumber    *string
+	WorkPhoneNumber       *string
+	DateOfBirth           *time.Time
+	HomeTelephoneNumber   *string
+	Gender                *string
+	LocationID            *uuid.UUID
+	IrregularHoursProfile *string
+	HasBorrowed           *bool
+	OutOfService          *bool
+	IsArchived            *bool
 }
 
 type AddContractDetailsParams struct {
-	ContractHours     *float64
-	ContractStartDate time.Time
-	ContractEndDate   time.Time
-	ContractRate      *float64
+	ContractHours         *float64
+	ContractStartDate     time.Time
+	ContractEndDate       time.Time
+	ContractRate          *float64
+	IrregularHoursProfile string
 }
 
 type UpdateIsSubcontractorParams struct {
@@ -264,11 +276,12 @@ type UpdateIsSubcontractorParams struct {
 }
 
 type CreateEmployeeContractChangeParams struct {
-	EffectiveFrom   time.Time
-	ContractHours   float64
-	ContractType    string
-	ContractRate    *float64
-	ContractEndDate *time.Time
+	EffectiveFrom         time.Time
+	ContractHours         float64
+	ContractType          string
+	ContractRate          *float64
+	IrregularHoursProfile string
+	ContractEndDate       *time.Time
 }
 
 type CreateEducationParams struct {

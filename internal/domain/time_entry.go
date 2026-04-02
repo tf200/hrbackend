@@ -35,7 +35,8 @@ type TimeEntry struct {
 	EmployeeName         string
 	ScheduleID           *uuid.UUID
 	EntryDate            time.Time
-	Hours                float64
+	StartTime            string
+	EndTime              string
 	BreakMinutes         int32
 	HourType             string
 	ProjectName          *string
@@ -63,7 +64,8 @@ type CreateTimeEntryParams struct {
 	EmployeeID          uuid.UUID
 	ScheduleID          *uuid.UUID
 	EntryDate           time.Time
-	Hours               float64
+	StartTime           string
+	EndTime             string
 	BreakMinutes        int32
 	HourType            string
 	ProjectName         *string

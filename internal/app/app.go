@@ -146,7 +146,7 @@ func buildRouter(
 	leaveService := service.NewLeaveService(leaveRepo, logger)
 
 	payoutRepo := repository.NewPayoutRepository(store)
-	payoutService := service.NewPayoutService(payoutRepo)
+	payoutService := service.NewPayoutService(payoutRepo, logger)
 
 	timeEntryRepo := repository.NewTimeEntryRepository(store)
 	timeEntryService := service.NewTimeEntryService(timeEntryRepo, logger)

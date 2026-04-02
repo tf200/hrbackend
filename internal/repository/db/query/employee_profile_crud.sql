@@ -26,11 +26,12 @@ INSERT INTO employee_profile (
     contract_end_date,
     contract_start_date,
     contract_type,
-    contract_rate
+    contract_rate,
+    irregular_hours_profile
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-    $21, $22, $23, $24, $25, $26, $27
+    $21, $22, $23, $24, $25, $26, $27, $28
 ) RETURNING *;
 
 -- name: ListEmployeeProfile :many
@@ -162,6 +163,7 @@ SET
     home_telephone_number = COALESCE(sqlc.narg('home_telephone_number'), home_telephone_number),
     gender = COALESCE(sqlc.narg('gender'), gender),
     location_id = COALESCE(sqlc.narg('location_id'), location_id),
+    irregular_hours_profile = COALESCE(sqlc.narg('irregular_hours_profile'), irregular_hours_profile),
     has_borrowed = COALESCE(sqlc.narg('has_borrowed'), has_borrowed),
     out_of_service = COALESCE(sqlc.narg('out_of_service'), out_of_service),
     is_archived = COALESCE(sqlc.narg('is_archived'), is_archived)

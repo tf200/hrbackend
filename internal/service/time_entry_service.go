@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"hrbackend/internal/domain"
 
@@ -174,19 +175,38 @@ func normalizeCreateTimeEntryParams(params domain.CreateTimeEntryParams) (domain
 	if params.EntryDate.IsZero() {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
-	if params.Hours <= 0 || params.Hours > 24 {
+	startTime := strings.TrimSpace(params.StartTime)
+	endTime := strings.TrimSpace(params.EndTime)
+	if startTime == "" || endTime == "" {
+		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	startParsed, err := time.Parse("15:04", startTime)
+	if err != nil {
+		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	endParsed, err := time.Parse("15:04", endTime)
+	if err != nil {
+		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	durationMinutes := int32(endParsed.Sub(startParsed).Minutes())
+	if durationMinutes <= 0 {
+		durationMinutes += 24 * 60
+	}
+	if durationMinutes <= 0 {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
 	if params.BreakMinutes < 0 {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
-	if float64(params.BreakMinutes) >= params.Hours*60 {
+	if params.BreakMinutes >= durationMinutes {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
 	normalizedHourType := strings.ToLower(strings.TrimSpace(params.HourType))
 	if !isValidTimeEntryHourType(normalizedHourType) {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
+	params.StartTime = startParsed.Format("15:04")
+	params.EndTime = endParsed.Format("15:04")
 	params.HourType = normalizedHourType
 	return params, nil
 }

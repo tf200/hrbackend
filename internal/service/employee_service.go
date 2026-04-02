@@ -48,6 +48,9 @@ func (s *EmployeeService) ListEmployees(ctx context.Context, params domain.ListE
 }
 
 func (s *EmployeeService) CreateEmployee(ctx context.Context, params domain.CreateEmployeeParams) (*domain.EmployeeDetail, error) {
+	if !isValidIrregularHoursProfile(params.IrregularHoursProfile) {
+		return nil, domain.ErrContractChangeInvalid
+	}
 	hashedPassword, err := password.HashPassword(params.UserPassword)
 	if err != nil {
 		s.logError(ctx, "CreateEmployee", err)
@@ -67,6 +70,9 @@ func (s *EmployeeService) CreateEmployee(ctx context.Context, params domain.Crea
 }
 
 func (s *EmployeeService) UpdateEmployee(ctx context.Context, id uuid.UUID, params domain.UpdateEmployeeParams) (*domain.EmployeeDetail, error) {
+	if params.IrregularHoursProfile != nil && !isValidIrregularHoursProfile(*params.IrregularHoursProfile) {
+		return nil, domain.ErrContractChangeInvalid
+	}
 	emp, err := s.repo.UpdateEmployee(ctx, id, params)
 	if err != nil {
 		s.logError(ctx, "UpdateEmployee", err, zap.String("employee_id", id.String()))
@@ -103,6 +109,9 @@ func (s *EmployeeService) GetContractDetails(ctx context.Context, employeeID uui
 }
 
 func (s *EmployeeService) AddContractDetails(ctx context.Context, employeeID uuid.UUID, params domain.AddContractDetailsParams) (*domain.EmployeeDetail, error) {
+	if !isValidIrregularHoursProfile(params.IrregularHoursProfile) {
+		return nil, domain.ErrContractChangeInvalid
+	}
 	emp, err := s.repo.AddContractDetails(ctx, employeeID, params)
 	if err != nil {
 		s.logError(ctx, "AddContractDetails", err, zap.String("employee_id", employeeID.String()))
@@ -135,6 +144,9 @@ func (s *EmployeeService) CreateContractChange(ctx context.Context, actorEmploye
 	}
 	if params.ContractType != "loondienst" && params.ContractType != "ZZP" && params.ContractType != "none" {
 		return nil, fmt.Errorf("%w: invalid contract_type", domain.ErrContractChangeInvalid)
+	}
+	if !isValidIrregularHoursProfile(params.IrregularHoursProfile) {
+		return nil, fmt.Errorf("%w: invalid irregular_hours_profile", domain.ErrContractChangeInvalid)
 	}
 
 	result, err := s.repo.CreateContractChange(ctx, actorEmployeeID, employeeID, params)
@@ -272,5 +284,14 @@ func (s *EmployeeService) DeleteCertification(ctx context.Context, id uuid.UUID)
 func (s *EmployeeService) logError(ctx context.Context, method string, err error, fields ...zap.Field) {
 	if s.logger != nil {
 		s.logger.LogError(ctx, "EmployeeService."+method, err.Error(), err, fields...)
+	}
+}
+
+func isValidIrregularHoursProfile(value string) bool {
+	switch value {
+	case domain.IrregularHoursProfileNone, domain.IrregularHoursProfileRoster, domain.IrregularHoursProfileNonRoster:
+		return true
+	default:
+		return false
 	}
 }

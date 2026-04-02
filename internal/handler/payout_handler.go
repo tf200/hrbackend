@@ -82,6 +82,56 @@ func (h *PayoutHandler) ListPayoutRequests(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payout requests retrieved successfully"))
 }
 
+func (h *PayoutHandler) PreviewPayroll(ctx *gin.Context) {
+	var req previewPayrollRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPreviewPayrollParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	preview, err := h.service.PreviewPayroll(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"))
+}
+
+func (h *PayoutHandler) PreviewMyPayroll(ctx *gin.Context) {
+	var req previewMyPayrollRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	periodStart, periodEnd, err := toPreviewMyPayrollDates(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	preview, err := h.service.PreviewMyPayroll(ctx.Request.Context(), employeeID, periodStart, periodEnd)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"))
+}
+
 func (h *PayoutHandler) DecidePayoutRequestByAdmin(ctx *gin.Context) {
 	payoutRequestID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -142,6 +192,8 @@ func mapPayoutErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, domain.ErrPayoutRequestInvalidRequest):
 		return http.StatusBadRequest
+	case errors.Is(err, domain.ErrEmployeeNotFound):
+		return http.StatusNotFound
 	case errors.Is(err, domain.ErrPayoutRequestForbidden):
 		return http.StatusForbidden
 	case errors.Is(err, domain.ErrPayoutRequestNotFound):
