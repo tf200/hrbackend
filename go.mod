@@ -4,6 +4,7 @@ go 1.26.1
 
 require (
 	github.com/getbrevo/brevo-go v1.1.3
+	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.12.0
 	github.com/goccy/go-json v0.10.6
 	github.com/golang-jwt/jwt v3.2.2+incompatible

@@ -18,6 +18,7 @@ import (
 	pkgjwt "hrbackend/pkg/jwt"
 	pkglogger "hrbackend/pkg/logger"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -103,6 +104,12 @@ func buildRouter(
 
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(cors.New(cors.Config{
+		AllowCredentials: true,
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+	}))
 	router.Use(middleware.NewRequestContextMiddleware(logger).Handle())
 	router.Use(middleware.NewRequestLoggingMiddleware(logger, cfg.Environment).Handle())
 
@@ -129,6 +136,9 @@ func buildRouter(
 	organizationRepo := repository.NewOrganizationRepository(store)
 	organizationService := service.NewOrganizationService(organizationRepo, logger)
 
+	departmentRepo := repository.NewDepartmentRepository(store)
+	departmentService := service.NewDepartmentService(departmentRepo, logger)
+
 	scheduleRepo := repository.NewScheduleRepository(store)
 	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, logger)
 
@@ -147,6 +157,7 @@ func buildRouter(
 	authHandler := handler.NewAuthHandler(authService)
 	employeeHandler := handler.NewEmployeeHandler(employeeService)
 	organizationHandler := handler.NewOrganizationHandler(organizationService)
+	departmentHandler := handler.NewDepartmentHandler(departmentService)
 	scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	shiftSwapHandler := handler.NewShiftSwapHandler(scheduleService)
 	leaveHandler := handler.NewLeaveHandler(leaveService)
@@ -161,6 +172,7 @@ func buildRouter(
 	handler.RegisterAuthRoutes(api, authHandler, auth)
 	handler.RegisterEmployeeRoutes(api, employeeHandler, auth, requirePermission)
 	handler.RegisterOrganizationRoutes(api, organizationHandler, auth, requirePermission)
+	handler.RegisterDepartmentRoutes(api, departmentHandler, auth, requirePermission)
 	handler.RegisterScheduleRoutes(api, scheduleHandler, auth, requirePermission)
 	handler.RegisterShiftSwapRoutes(api, shiftSwapHandler, auth, requirePermission)
 	handler.RegisterLeaveRoutes(api, leaveHandler, auth, requirePermission)
