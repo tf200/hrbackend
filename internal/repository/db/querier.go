@@ -22,6 +22,7 @@ type Querier interface {
 	ApplyLeaveBalanceDeduction(ctx context.Context, arg ApplyLeaveBalanceDeductionParams) (LeaveBalance, error)
 	ApplyLeaveBalanceTotalAdjustment(ctx context.Context, arg ApplyLeaveBalanceTotalAdjustmentParams) (LeaveBalance, error)
 	ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutRequestParams) (LeavePayoutRequest, error)
+	ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryParams) (ApproveTimeEntryRow, error)
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	CheckAllShiftsExist(ctx context.Context, arg CheckAllShiftsExistParams) (bool, error)
 	// ---------- 6. CHECK UTILITIES ----------
@@ -173,12 +174,14 @@ type Querier interface {
 	LockPayoutRequestByID(ctx context.Context, id uuid.UUID) (LeavePayoutRequest, error)
 	LockSchedulesByIDsForSwap(ctx context.Context, dollar_1 []uuid.UUID) ([]LockSchedulesByIDsForSwapRow, error)
 	LockShiftSwapRequestForAdminDecision(ctx context.Context, id uuid.UUID) (ShiftSwapRequest, error)
+	LockTimeEntryByID(ctx context.Context, id uuid.UUID) (TimeEntry, error)
 	MarkEmployeeHandbookCompleted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	MarkEmployeeHandbookStarted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	MarkPayoutRequestPaid(ctx context.Context, arg MarkPayoutRequestPaidParams) (LeavePayoutRequest, error)
 	MarkShiftSwapConfirmed(ctx context.Context, arg MarkShiftSwapConfirmedParams) (ShiftSwapRequest, error)
 	PublishHandbookTemplate(ctx context.Context, arg PublishHandbookTemplateParams) (HandbookTemplate, error)
 	RejectPayoutRequest(ctx context.Context, arg RejectPayoutRequestParams) (LeavePayoutRequest, error)
+	RejectTimeEntry(ctx context.Context, arg RejectTimeEntryParams) (RejectTimeEntryRow, error)
 	// Removes *all* permissions from the given role.
 	RemovePermissionsFromRole(ctx context.Context, roleID uuid.UUID) error
 	SearchEmployeesByNameOrEmail(ctx context.Context, search *string) ([]SearchEmployeesByNameOrEmailRow, error)

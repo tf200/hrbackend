@@ -76,6 +76,34 @@ func (h *TimeEntryHandler) CreateTimeEntryByAdmin(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, httpapi.OK(toTimeEntryResponse(item), "Time entry created successfully"))
 }
 
+func (h *TimeEntryHandler) DecideTimeEntryByAdmin(ctx *gin.Context) {
+	timeEntryID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid time entry id", ""))
+		return
+	}
+
+	var req decideTimeEntryByAdminRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	item, err := h.service.DecideTimeEntryByAdmin(ctx.Request.Context(), adminEmployeeID, timeEntryID, toDecideTimeEntryParams(req))
+	if err != nil {
+		ctx.JSON(mapTimeEntryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toTimeEntryResponse(item), "Time entry decided successfully"))
+}
+
 func (h *TimeEntryHandler) GetTimeEntryByID(ctx *gin.Context) {
 	timeEntryID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -162,6 +190,8 @@ func mapTimeEntryErrorStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, domain.ErrTimeEntryForbidden):
 		return http.StatusForbidden
+	case errors.Is(err, domain.ErrTimeEntryStateInvalid):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}

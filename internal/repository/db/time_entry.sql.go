@@ -12,39 +12,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createTimeEntry = `-- name: CreateTimeEntry :one
-WITH inserted_time_entry AS (
-    INSERT INTO time_entries (
-        employee_id,
-        schedule_id,
-        entry_date,
-        hours,
-        hour_type,
-        project_name,
-        project_number,
-        client_name,
-        activity_category,
-        activity_description,
-        notes
-    ) VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        $11
-    )
+const approveTimeEntry = `-- name: ApproveTimeEntry :one
+WITH updated_time_entry AS (
+    UPDATE time_entries
+    SET
+        status = 'approved'::time_entry_status_enum,
+        approved_at = NOW(),
+        approved_by_employee_id = $1,
+        rejection_reason = NULL,
+        updated_at = NOW()
+    WHERE time_entries.id = $2
     RETURNING
         id,
         employee_id,
         schedule_id,
         entry_date,
         hours,
+        break_minutes,
         hour_type,
         project_name,
         project_number,
@@ -66,6 +50,152 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
+    te.hour_type,
+    te.project_name,
+    te.project_number,
+    te.client_name,
+    te.activity_category,
+    te.activity_description,
+    te.status,
+    te.submitted_at,
+    te.approved_at,
+    te.approved_by_employee_id,
+    te.rejection_reason,
+    te.notes,
+    te.created_at,
+    te.updated_at,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    ap.first_name AS approved_by_first_name,
+    ap.last_name AS approved_by_last_name
+FROM updated_time_entry te
+JOIN employee_profile ep ON ep.id = te.employee_id
+LEFT JOIN employee_profile ap ON ap.id = te.approved_by_employee_id
+`
+
+type ApproveTimeEntryParams struct {
+	ApprovedByEmployeeID *uuid.UUID `json:"approved_by_employee_id"`
+	ID                   uuid.UUID  `json:"id"`
+}
+
+type ApproveTimeEntryRow struct {
+	ID                   uuid.UUID             `json:"id"`
+	EmployeeID           uuid.UUID             `json:"employee_id"`
+	ScheduleID           *uuid.UUID            `json:"schedule_id"`
+	EntryDate            pgtype.Date           `json:"entry_date"`
+	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
+	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
+	ProjectName          *string               `json:"project_name"`
+	ProjectNumber        *string               `json:"project_number"`
+	ClientName           *string               `json:"client_name"`
+	ActivityCategory     *string               `json:"activity_category"`
+	ActivityDescription  *string               `json:"activity_description"`
+	Status               TimeEntryStatusEnum   `json:"status"`
+	SubmittedAt          pgtype.Timestamptz    `json:"submitted_at"`
+	ApprovedAt           pgtype.Timestamptz    `json:"approved_at"`
+	ApprovedByEmployeeID *uuid.UUID            `json:"approved_by_employee_id"`
+	RejectionReason      *string               `json:"rejection_reason"`
+	Notes                *string               `json:"notes"`
+	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	EmployeeFirstName    string                `json:"employee_first_name"`
+	EmployeeLastName     string                `json:"employee_last_name"`
+	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
+	ApprovedByLastName   *string               `json:"approved_by_last_name"`
+}
+
+func (q *Queries) ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryParams) (ApproveTimeEntryRow, error) {
+	row := q.db.QueryRow(ctx, approveTimeEntry, arg.ApprovedByEmployeeID, arg.ID)
+	var i ApproveTimeEntryRow
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ScheduleID,
+		&i.EntryDate,
+		&i.Hours,
+		&i.BreakMinutes,
+		&i.HourType,
+		&i.ProjectName,
+		&i.ProjectNumber,
+		&i.ClientName,
+		&i.ActivityCategory,
+		&i.ActivityDescription,
+		&i.Status,
+		&i.SubmittedAt,
+		&i.ApprovedAt,
+		&i.ApprovedByEmployeeID,
+		&i.RejectionReason,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EmployeeFirstName,
+		&i.EmployeeLastName,
+		&i.ApprovedByFirstName,
+		&i.ApprovedByLastName,
+	)
+	return i, err
+}
+
+const createTimeEntry = `-- name: CreateTimeEntry :one
+WITH inserted_time_entry AS (
+    INSERT INTO time_entries (
+        employee_id,
+        schedule_id,
+        entry_date,
+        hours,
+        break_minutes,
+        hour_type,
+        project_name,
+        project_number,
+        client_name,
+        activity_category,
+        activity_description,
+        notes
+    ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12
+    )
+    RETURNING
+        id,
+        employee_id,
+        schedule_id,
+        entry_date,
+        hours,
+        break_minutes,
+        hour_type,
+        project_name,
+        project_number,
+        client_name,
+        activity_category,
+        activity_description,
+        status,
+        submitted_at,
+        approved_at,
+        approved_by_employee_id,
+        rejection_reason,
+        notes,
+        created_at,
+        updated_at
+)
+SELECT
+    te.id,
+    te.employee_id,
+    te.schedule_id,
+    te.entry_date,
+    te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -94,6 +224,7 @@ type CreateTimeEntryParams struct {
 	ScheduleID          *uuid.UUID            `json:"schedule_id"`
 	EntryDate           pgtype.Date           `json:"entry_date"`
 	Hours               float64               `json:"hours"`
+	BreakMinutes        int32                 `json:"break_minutes"`
 	HourType            TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName         *string               `json:"project_name"`
 	ProjectNumber       *string               `json:"project_number"`
@@ -109,6 +240,7 @@ type CreateTimeEntryRow struct {
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
 	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
 	ProjectNumber        *string               `json:"project_number"`
@@ -135,6 +267,7 @@ func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams
 		arg.ScheduleID,
 		arg.EntryDate,
 		arg.Hours,
+		arg.BreakMinutes,
 		arg.HourType,
 		arg.ProjectName,
 		arg.ProjectNumber,
@@ -150,6 +283,7 @@ func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams
 		&i.ScheduleID,
 		&i.EntryDate,
 		&i.Hours,
+		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,
 		&i.ProjectNumber,
@@ -179,6 +313,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -210,6 +345,7 @@ type GetTimeEntryByIDRow struct {
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
 	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
 	ProjectNumber        *string               `json:"project_number"`
@@ -239,6 +375,7 @@ func (q *Queries) GetTimeEntryByID(ctx context.Context, id uuid.UUID) (GetTimeEn
 		&i.ScheduleID,
 		&i.EntryDate,
 		&i.Hours,
+		&i.BreakMinutes,
 		&i.HourType,
 		&i.ProjectName,
 		&i.ProjectNumber,
@@ -268,6 +405,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -312,6 +450,7 @@ type ListMyTimeEntriesPaginatedRow struct {
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
 	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
 	ProjectNumber        *string               `json:"project_number"`
@@ -353,6 +492,7 @@ func (q *Queries) ListMyTimeEntriesPaginated(ctx context.Context, arg ListMyTime
 			&i.ScheduleID,
 			&i.EntryDate,
 			&i.Hours,
+			&i.BreakMinutes,
 			&i.HourType,
 			&i.ProjectName,
 			&i.ProjectNumber,
@@ -390,6 +530,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -446,6 +587,7 @@ type ListTimeEntriesPaginatedRow struct {
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
 	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
 	ProjectNumber        *string               `json:"project_number"`
@@ -488,6 +630,7 @@ func (q *Queries) ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntr
 			&i.ScheduleID,
 			&i.EntryDate,
 			&i.Hours,
+			&i.BreakMinutes,
 			&i.HourType,
 			&i.ProjectName,
 			&i.ProjectNumber,
@@ -516,4 +659,165 @@ func (q *Queries) ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntr
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockTimeEntryByID = `-- name: LockTimeEntryByID :one
+SELECT id, employee_id, schedule_id, entry_date, hours, break_minutes, hour_type, project_name, project_number, client_name, activity_category, activity_description, status, submitted_at, approved_at, approved_by_employee_id, rejection_reason, notes, created_at, updated_at
+FROM time_entries
+WHERE id = $1
+FOR UPDATE
+`
+
+func (q *Queries) LockTimeEntryByID(ctx context.Context, id uuid.UUID) (TimeEntry, error) {
+	row := q.db.QueryRow(ctx, lockTimeEntryByID, id)
+	var i TimeEntry
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ScheduleID,
+		&i.EntryDate,
+		&i.Hours,
+		&i.BreakMinutes,
+		&i.HourType,
+		&i.ProjectName,
+		&i.ProjectNumber,
+		&i.ClientName,
+		&i.ActivityCategory,
+		&i.ActivityDescription,
+		&i.Status,
+		&i.SubmittedAt,
+		&i.ApprovedAt,
+		&i.ApprovedByEmployeeID,
+		&i.RejectionReason,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const rejectTimeEntry = `-- name: RejectTimeEntry :one
+WITH updated_time_entry AS (
+    UPDATE time_entries
+    SET
+        status = 'rejected'::time_entry_status_enum,
+        rejection_reason = $1::text,
+        approved_at = NULL,
+        approved_by_employee_id = NULL,
+        updated_at = NOW()
+    WHERE time_entries.id = $2
+    RETURNING
+        id,
+        employee_id,
+        schedule_id,
+        entry_date,
+        hours,
+        break_minutes,
+        hour_type,
+        project_name,
+        project_number,
+        client_name,
+        activity_category,
+        activity_description,
+        status,
+        submitted_at,
+        approved_at,
+        approved_by_employee_id,
+        rejection_reason,
+        notes,
+        created_at,
+        updated_at
+)
+SELECT
+    te.id,
+    te.employee_id,
+    te.schedule_id,
+    te.entry_date,
+    te.hours,
+    te.break_minutes,
+    te.hour_type,
+    te.project_name,
+    te.project_number,
+    te.client_name,
+    te.activity_category,
+    te.activity_description,
+    te.status,
+    te.submitted_at,
+    te.approved_at,
+    te.approved_by_employee_id,
+    te.rejection_reason,
+    te.notes,
+    te.created_at,
+    te.updated_at,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    ap.first_name AS approved_by_first_name,
+    ap.last_name AS approved_by_last_name
+FROM updated_time_entry te
+JOIN employee_profile ep ON ep.id = te.employee_id
+LEFT JOIN employee_profile ap ON ap.id = te.approved_by_employee_id
+`
+
+type RejectTimeEntryParams struct {
+	RejectionReason *string   `json:"rejection_reason"`
+	ID              uuid.UUID `json:"id"`
+}
+
+type RejectTimeEntryRow struct {
+	ID                   uuid.UUID             `json:"id"`
+	EmployeeID           uuid.UUID             `json:"employee_id"`
+	ScheduleID           *uuid.UUID            `json:"schedule_id"`
+	EntryDate            pgtype.Date           `json:"entry_date"`
+	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
+	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
+	ProjectName          *string               `json:"project_name"`
+	ProjectNumber        *string               `json:"project_number"`
+	ClientName           *string               `json:"client_name"`
+	ActivityCategory     *string               `json:"activity_category"`
+	ActivityDescription  *string               `json:"activity_description"`
+	Status               TimeEntryStatusEnum   `json:"status"`
+	SubmittedAt          pgtype.Timestamptz    `json:"submitted_at"`
+	ApprovedAt           pgtype.Timestamptz    `json:"approved_at"`
+	ApprovedByEmployeeID *uuid.UUID            `json:"approved_by_employee_id"`
+	RejectionReason      *string               `json:"rejection_reason"`
+	Notes                *string               `json:"notes"`
+	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	EmployeeFirstName    string                `json:"employee_first_name"`
+	EmployeeLastName     string                `json:"employee_last_name"`
+	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
+	ApprovedByLastName   *string               `json:"approved_by_last_name"`
+}
+
+func (q *Queries) RejectTimeEntry(ctx context.Context, arg RejectTimeEntryParams) (RejectTimeEntryRow, error) {
+	row := q.db.QueryRow(ctx, rejectTimeEntry, arg.RejectionReason, arg.ID)
+	var i RejectTimeEntryRow
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ScheduleID,
+		&i.EntryDate,
+		&i.Hours,
+		&i.BreakMinutes,
+		&i.HourType,
+		&i.ProjectName,
+		&i.ProjectNumber,
+		&i.ClientName,
+		&i.ActivityCategory,
+		&i.ActivityDescription,
+		&i.Status,
+		&i.SubmittedAt,
+		&i.ApprovedAt,
+		&i.ApprovedByEmployeeID,
+		&i.RejectionReason,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EmployeeFirstName,
+		&i.EmployeeLastName,
+		&i.ApprovedByFirstName,
+		&i.ApprovedByLastName,
+	)
+	return i, err
 }

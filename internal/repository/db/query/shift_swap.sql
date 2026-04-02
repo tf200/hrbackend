@@ -74,9 +74,11 @@ SELECT
     rec.first_name AS recipient_first_name,
     rec.last_name AS recipient_last_name,
     ssr.requester_schedule_id,
+    COALESCE(req_s.shift_name_snapshot, req_ls.shift_name, 'Custom Shift') AS requester_schedule_shift_name,
     req_s.start_datetime AS requester_schedule_start_datetime,
     req_s.end_datetime AS requester_schedule_end_datetime,
     ssr.recipient_schedule_id,
+    COALESCE(rec_s.shift_name_snapshot, rec_ls.shift_name, 'Custom Shift') AS recipient_schedule_shift_name,
     rec_s.start_datetime AS recipient_schedule_start_datetime,
     rec_s.end_datetime AS recipient_schedule_end_datetime,
     (
@@ -102,6 +104,8 @@ JOIN employee_profile req ON req.id = ssr.requester_employee_id
 JOIN employee_profile rec ON rec.id = ssr.recipient_employee_id
 JOIN schedules req_s ON req_s.id = ssr.requester_schedule_id
 JOIN schedules rec_s ON rec_s.id = ssr.recipient_schedule_id
+LEFT JOIN location_shift req_ls ON req_ls.id = req_s.location_shift_id
+LEFT JOIN location_shift rec_ls ON rec_ls.id = rec_s.location_shift_id
 LEFT JOIN employee_profile admin_ep ON admin_ep.id = ssr.admin_employee_id
 WHERE ssr.id = $1
 LIMIT 1;
@@ -160,9 +164,11 @@ SELECT
     rec.first_name AS recipient_first_name,
     rec.last_name AS recipient_last_name,
     ssr.requester_schedule_id,
+    COALESCE(req_s.shift_name_snapshot, req_ls.shift_name, 'Custom Shift') AS requester_schedule_shift_name,
     req_s.start_datetime AS requester_schedule_start_datetime,
     req_s.end_datetime AS requester_schedule_end_datetime,
     ssr.recipient_schedule_id,
+    COALESCE(rec_s.shift_name_snapshot, rec_ls.shift_name, 'Custom Shift') AS recipient_schedule_shift_name,
     rec_s.start_datetime AS recipient_schedule_start_datetime,
     rec_s.end_datetime AS recipient_schedule_end_datetime,
     (
@@ -188,6 +194,8 @@ JOIN employee_profile req ON req.id = ssr.requester_employee_id
 JOIN employee_profile rec ON rec.id = ssr.recipient_employee_id
 JOIN schedules req_s ON req_s.id = ssr.requester_schedule_id
 JOIN schedules rec_s ON rec_s.id = ssr.recipient_schedule_id
+LEFT JOIN location_shift req_ls ON req_ls.id = req_s.location_shift_id
+LEFT JOIN location_shift rec_ls ON rec_ls.id = rec_s.location_shift_id
 LEFT JOIN employee_profile admin_ep ON admin_ep.id = ssr.admin_employee_id
 WHERE ssr.requester_employee_id = $1
    OR ssr.recipient_employee_id = $1
@@ -203,9 +211,11 @@ SELECT
     rec.first_name AS recipient_first_name,
     rec.last_name AS recipient_last_name,
     ssr.requester_schedule_id,
+    COALESCE(req_s.shift_name_snapshot, req_ls.shift_name, 'Custom Shift') AS requester_schedule_shift_name,
     req_s.start_datetime AS requester_schedule_start_datetime,
     req_s.end_datetime AS requester_schedule_end_datetime,
     ssr.recipient_schedule_id,
+    COALESCE(rec_s.shift_name_snapshot, rec_ls.shift_name, 'Custom Shift') AS recipient_schedule_shift_name,
     rec_s.start_datetime AS recipient_schedule_start_datetime,
     rec_s.end_datetime AS recipient_schedule_end_datetime,
     (
@@ -232,6 +242,8 @@ JOIN employee_profile req ON req.id = ssr.requester_employee_id
 JOIN employee_profile rec ON rec.id = ssr.recipient_employee_id
 JOIN schedules req_s ON req_s.id = ssr.requester_schedule_id
 JOIN schedules rec_s ON rec_s.id = ssr.recipient_schedule_id
+LEFT JOIN location_shift req_ls ON req_ls.id = req_s.location_shift_id
+LEFT JOIN location_shift rec_ls ON rec_ls.id = rec_s.location_shift_id
 LEFT JOIN employee_profile admin_ep ON admin_ep.id = ssr.admin_employee_id
 WHERE (
     sqlc.narg('status')::shift_swap_status_enum IS NULL
@@ -251,6 +263,51 @@ WHERE (
     sqlc.narg('employee_id')::uuid IS NULL
     OR ssr.requester_employee_id = sqlc.narg('employee_id')::uuid
     OR ssr.recipient_employee_id = sqlc.narg('employee_id')::uuid
+  )
+  AND (
+    sqlc.narg('filter')::text IS NULL
+    OR (
+      sqlc.narg('filter')::text = 'open'
+      AND (
+        (
+          CASE
+          WHEN ssr.status IN ('pending_recipient', 'pending_admin')
+           AND ssr.expires_at IS NOT NULL
+           AND ssr.expires_at <= NOW()
+          THEN 'expired'::shift_swap_status_enum
+          ELSE ssr.status
+          END
+        )::shift_swap_status_enum IN ('pending_recipient', 'pending_admin')
+      )
+    )
+    OR (
+      sqlc.narg('filter')::text = 'to_approve'
+      AND (
+        (
+          CASE
+          WHEN ssr.status IN ('pending_recipient', 'pending_admin')
+           AND ssr.expires_at IS NOT NULL
+           AND ssr.expires_at <= NOW()
+          THEN 'expired'::shift_swap_status_enum
+          ELSE ssr.status
+          END
+        )::shift_swap_status_enum = 'pending_admin'
+      )
+    )
+    OR (
+      sqlc.narg('filter')::text = 'history'
+      AND (
+        (
+          CASE
+          WHEN ssr.status IN ('pending_recipient', 'pending_admin')
+           AND ssr.expires_at IS NOT NULL
+           AND ssr.expires_at <= NOW()
+          THEN 'expired'::shift_swap_status_enum
+          ELSE ssr.status
+          END
+        )::shift_swap_status_enum IN ('recipient_rejected', 'admin_rejected', 'confirmed', 'cancelled', 'expired')
+      )
+    )
   )
 ORDER BY ssr.requested_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');

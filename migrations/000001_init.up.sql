@@ -670,6 +670,7 @@ CREATE TABLE time_entries (
     schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
     entry_date DATE NOT NULL,
     hours NUMERIC(4, 2) NOT NULL CHECK (hours > 0 AND hours <= 24),
+    break_minutes INTEGER NOT NULL DEFAULT 0 CHECK (break_minutes >= 0),
     hour_type time_entry_hour_type_enum NOT NULL DEFAULT 'normal',
     project_name TEXT,
     project_number TEXT,

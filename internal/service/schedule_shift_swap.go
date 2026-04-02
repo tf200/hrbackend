@@ -253,12 +253,26 @@ func (s *ScheduleService) ListShiftSwapRequests(ctx context.Context, params doma
 			return nil, domain.ErrShiftSwapInvalidRequest
 		}
 	}
+	if params.Filter != nil {
+		if !isValidShiftSwapFilter(*params.Filter) {
+			return nil, domain.ErrShiftSwapInvalidRequest
+		}
+	}
 	return s.repository.ListShiftSwapRequests(ctx, params)
 }
 
 func isValidShiftSwapStatus(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "pending_recipient", "recipient_rejected", "pending_admin", "admin_rejected", "confirmed", "cancelled", "expired":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidShiftSwapFilter(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "open", "to_approve", "history":
 		return true
 	default:
 		return false

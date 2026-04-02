@@ -268,6 +268,7 @@ type ListShiftSwapRequestsParams struct {
 	Limit      int32
 	Offset     int32
 	Status     *string
+	Filter     *string
 	EmployeeID *uuid.UUID
 }
 
@@ -275,6 +276,7 @@ type ShiftSwapScheduleSnapshot struct {
 	ID            uuid.UUID
 	EmployeeID    uuid.UUID
 	EmployeeName  string
+	ShiftName     string
 	StartDatetime time.Time
 	EndDatetime   time.Time
 }

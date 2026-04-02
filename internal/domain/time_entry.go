@@ -12,6 +12,7 @@ var (
 	ErrTimeEntryNotFound       = errors.New("time entry not found")
 	ErrTimeEntryForbidden      = errors.New("time entry is not accessible by the actor")
 	ErrTimeEntryInvalidRequest = errors.New("invalid time entry")
+	ErrTimeEntryStateInvalid   = errors.New("time entry is not in a valid state for this operation")
 )
 
 const (
@@ -35,6 +36,7 @@ type TimeEntry struct {
 	ScheduleID           *uuid.UUID
 	EntryDate            time.Time
 	Hours                float64
+	BreakMinutes         int32
 	HourType             string
 	ProjectName          *string
 	ProjectNumber        *string
@@ -62,6 +64,7 @@ type CreateTimeEntryParams struct {
 	ScheduleID          *uuid.UUID
 	EntryDate           time.Time
 	Hours               float64
+	BreakMinutes        int32
 	HourType            string
 	ProjectName         *string
 	ProjectNumber       *string
@@ -86,7 +89,19 @@ type ListMyTimeEntriesParams struct {
 	Status     *string
 }
 
+type DecideTimeEntryParams struct {
+	Decision        string
+	RejectionReason *string
+}
+
+type TimeEntryTxRepository interface {
+	GetTimeEntryForUpdate(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
+	ApproveTimeEntry(ctx context.Context, timeEntryID, approvedByEmployeeID uuid.UUID) (*TimeEntry, error)
+	RejectTimeEntry(ctx context.Context, timeEntryID uuid.UUID, rejectionReason *string) (*TimeEntry, error)
+}
+
 type TimeEntryRepository interface {
+	WithTx(ctx context.Context, fn func(tx TimeEntryTxRepository) error) error
 	CreateTimeEntry(ctx context.Context, params CreateTimeEntryParams) (*TimeEntry, error)
 	GetTimeEntryByID(ctx context.Context, id uuid.UUID) (*TimeEntry, error)
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)
@@ -96,6 +111,7 @@ type TimeEntryRepository interface {
 type TimeEntryService interface {
 	CreateTimeEntry(ctx context.Context, actorEmployeeID uuid.UUID, params CreateTimeEntryParams) (*TimeEntry, error)
 	CreateTimeEntryByAdmin(ctx context.Context, adminEmployeeID uuid.UUID, params CreateTimeEntryParams) (*TimeEntry, error)
+	DecideTimeEntryByAdmin(ctx context.Context, adminEmployeeID, timeEntryID uuid.UUID, params DecideTimeEntryParams) (*TimeEntry, error)
 	GetTimeEntryByID(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
 	GetMyTimeEntryByID(ctx context.Context, actorEmployeeID, timeEntryID uuid.UUID) (*TimeEntry, error)
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)

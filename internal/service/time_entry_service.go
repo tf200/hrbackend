@@ -43,6 +43,46 @@ func (s *TimeEntryService) CreateTimeEntryByAdmin(ctx context.Context, adminEmpl
 	return s.createTimeEntry(ctx, params, "TimeEntryService.CreateTimeEntryByAdmin")
 }
 
+func (s *TimeEntryService) DecideTimeEntryByAdmin(ctx context.Context, adminEmployeeID, timeEntryID uuid.UUID, params domain.DecideTimeEntryParams) (*domain.TimeEntry, error) {
+	if adminEmployeeID == uuid.Nil || timeEntryID == uuid.Nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	decision := strings.ToLower(strings.TrimSpace(params.Decision))
+	if decision != "approve" && decision != "reject" {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	rejectionReason := trimTimeEntryStringPtr(params.RejectionReason)
+	if decision == "reject" && rejectionReason == nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	var updated *domain.TimeEntry
+	err := s.repository.WithTx(ctx, func(tx domain.TimeEntryTxRepository) error {
+		current, err := tx.GetTimeEntryForUpdate(ctx, timeEntryID)
+		if err != nil {
+			return err
+		}
+		if current.Status != domain.TimeEntryStatusSubmitted {
+			return domain.ErrTimeEntryStateInvalid
+		}
+
+		if decision == "approve" {
+			updated, err = tx.ApproveTimeEntry(ctx, timeEntryID, adminEmployeeID)
+			return err
+		}
+
+		updated, err = tx.RejectTimeEntry(ctx, timeEntryID, rejectionReason)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
 func (s *TimeEntryService) createTimeEntry(ctx context.Context, params domain.CreateTimeEntryParams, operation string) (*domain.TimeEntry, error) {
 	normalizedParams, err := normalizeCreateTimeEntryParams(params)
 	if err != nil {
@@ -137,6 +177,12 @@ func normalizeCreateTimeEntryParams(params domain.CreateTimeEntryParams) (domain
 	if params.Hours <= 0 || params.Hours > 24 {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
+	if params.BreakMinutes < 0 {
+		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	if float64(params.BreakMinutes) >= params.Hours*60 {
+		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
+	}
 	normalizedHourType := strings.ToLower(strings.TrimSpace(params.HourType))
 	if !isValidTimeEntryHourType(normalizedHourType) {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
@@ -207,4 +253,15 @@ func (s *TimeEntryService) logError(ctx context.Context, operation, message stri
 		return
 	}
 	s.logger.LogError(ctx, operation, message, err, fields...)
+}
+
+func trimTimeEntryStringPtr(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }

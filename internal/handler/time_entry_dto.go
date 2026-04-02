@@ -16,6 +16,7 @@ type createTimeEntryRequest struct {
 	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
 	EntryDate           string     `json:"entry_date" binding:"required,datetime=2006-01-02"`
 	Hours               float64    `json:"hours" binding:"required"`
+	BreakMinutes        int32      `json:"break_minutes"`
 	HourType            string     `json:"hour_type" binding:"required,oneof=normal overtime travel leave sick training"`
 	ProjectName         *string    `json:"project_name"`
 	ProjectNumber       *string    `json:"project_number"`
@@ -30,6 +31,7 @@ type createTimeEntryByAdminRequest struct {
 	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
 	EntryDate           string     `json:"entry_date" binding:"required,datetime=2006-01-02"`
 	Hours               float64    `json:"hours" binding:"required"`
+	BreakMinutes        int32      `json:"break_minutes"`
 	HourType            string     `json:"hour_type" binding:"required,oneof=normal overtime travel leave sick training"`
 	ProjectName         *string    `json:"project_name"`
 	ProjectNumber       *string    `json:"project_number"`
@@ -39,11 +41,15 @@ type createTimeEntryByAdminRequest struct {
 	Notes               *string    `json:"notes"`
 }
 
+type decideTimeEntryByAdminRequest struct {
+	Decision        string  `json:"decision" binding:"required,oneof=approve reject"`
+	RejectionReason *string `json:"rejection_reason"`
+}
+
 type listTimeEntriesRequest struct {
 	httpapi.PageRequest
-	EmployeeID     *uuid.UUID `form:"employee_id"`
-	EmployeeSearch *string    `form:"employee_search" binding:"omitempty,max=120"`
-	Status         *string    `form:"status" binding:"omitempty,oneof=draft submitted approved rejected"`
+	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
+	Status         *string `form:"status" binding:"omitempty,oneof=draft submitted approved rejected"`
 }
 
 type listMyTimeEntriesRequest struct {
@@ -58,6 +64,7 @@ type timeEntryResponse struct {
 	ScheduleID           *uuid.UUID `json:"schedule_id,omitempty"`
 	EntryDate            time.Time  `json:"entry_date"`
 	Hours                float64    `json:"hours"`
+	BreakMinutes         int32      `json:"break_minutes"`
 	HourType             string     `json:"hour_type"`
 	ProjectName          *string    `json:"project_name,omitempty"`
 	ProjectNumber        *string    `json:"project_number,omitempty"`
@@ -85,6 +92,7 @@ func toCreateTimeEntryParams(req createTimeEntryRequest) (domain.CreateTimeEntry
 		ScheduleID:          req.ScheduleID,
 		EntryDate:           entryDate.UTC(),
 		Hours:               req.Hours,
+		BreakMinutes:        req.BreakMinutes,
 		HourType:            strings.TrimSpace(req.HourType),
 		ProjectName:         req.ProjectName,
 		ProjectNumber:       req.ProjectNumber,
@@ -100,6 +108,7 @@ func toCreateTimeEntryByAdminParams(req createTimeEntryByAdminRequest) (domain.C
 		ScheduleID:          req.ScheduleID,
 		EntryDate:           req.EntryDate,
 		Hours:               req.Hours,
+		BreakMinutes:        req.BreakMinutes,
 		HourType:            req.HourType,
 		ProjectName:         req.ProjectName,
 		ProjectNumber:       req.ProjectNumber,
@@ -115,11 +124,17 @@ func toCreateTimeEntryByAdminParams(req createTimeEntryByAdminRequest) (domain.C
 	return base, nil
 }
 
+func toDecideTimeEntryParams(req decideTimeEntryByAdminRequest) domain.DecideTimeEntryParams {
+	return domain.DecideTimeEntryParams{
+		Decision:        strings.TrimSpace(req.Decision),
+		RejectionReason: trimStringPtr(req.RejectionReason),
+	}
+}
+
 func toListTimeEntriesParams(req listTimeEntriesRequest) domain.ListTimeEntriesParams {
 	return domain.ListTimeEntriesParams{
 		Limit:          req.PageSize,
 		Offset:         (req.Page - 1) * req.PageSize,
-		EmployeeID:     req.EmployeeID,
 		EmployeeSearch: req.EmployeeSearch,
 		Status:         req.Status,
 	}
@@ -142,6 +157,7 @@ func toTimeEntryResponse(item *domain.TimeEntry) timeEntryResponse {
 		ScheduleID:           item.ScheduleID,
 		EntryDate:            item.EntryDate,
 		Hours:                item.Hours,
+		BreakMinutes:         item.BreakMinutes,
 		HourType:             item.HourType,
 		ProjectName:          item.ProjectName,
 		ProjectNumber:        item.ProjectNumber,
@@ -166,4 +182,15 @@ func toTimeEntryResponses(items []domain.TimeEntry) []timeEntryResponse {
 		results[i] = toTimeEntryResponse(&item)
 	}
 	return results
+}
+
+func trimStringPtr(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }

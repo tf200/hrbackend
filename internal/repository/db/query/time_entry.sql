@@ -5,6 +5,7 @@ WITH inserted_time_entry AS (
         schedule_id,
         entry_date,
         hours,
+        break_minutes,
         hour_type,
         project_name,
         project_number,
@@ -17,6 +18,7 @@ WITH inserted_time_entry AS (
         sqlc.narg(schedule_id),
         sqlc.arg(entry_date),
         sqlc.arg(hours),
+        sqlc.arg(break_minutes),
         sqlc.arg(hour_type),
         sqlc.narg(project_name),
         sqlc.narg(project_number),
@@ -31,6 +33,7 @@ WITH inserted_time_entry AS (
         schedule_id,
         entry_date,
         hours,
+        break_minutes,
         hour_type,
         project_name,
         project_number,
@@ -52,6 +55,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -74,6 +78,134 @@ FROM inserted_time_entry te
 JOIN employee_profile ep ON ep.id = te.employee_id
 LEFT JOIN employee_profile ap ON ap.id = te.approved_by_employee_id;
 
+-- name: LockTimeEntryByID :one
+SELECT *
+FROM time_entries
+WHERE id = $1
+FOR UPDATE;
+
+-- name: ApproveTimeEntry :one
+WITH updated_time_entry AS (
+    UPDATE time_entries
+    SET
+        status = 'approved'::time_entry_status_enum,
+        approved_at = NOW(),
+        approved_by_employee_id = sqlc.arg('approved_by_employee_id'),
+        rejection_reason = NULL,
+        updated_at = NOW()
+    WHERE time_entries.id = sqlc.arg('id')
+    RETURNING
+        id,
+        employee_id,
+        schedule_id,
+        entry_date,
+        hours,
+        break_minutes,
+        hour_type,
+        project_name,
+        project_number,
+        client_name,
+        activity_category,
+        activity_description,
+        status,
+        submitted_at,
+        approved_at,
+        approved_by_employee_id,
+        rejection_reason,
+        notes,
+        created_at,
+        updated_at
+)
+SELECT
+    te.id,
+    te.employee_id,
+    te.schedule_id,
+    te.entry_date,
+    te.hours,
+    te.break_minutes,
+    te.hour_type,
+    te.project_name,
+    te.project_number,
+    te.client_name,
+    te.activity_category,
+    te.activity_description,
+    te.status,
+    te.submitted_at,
+    te.approved_at,
+    te.approved_by_employee_id,
+    te.rejection_reason,
+    te.notes,
+    te.created_at,
+    te.updated_at,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    ap.first_name AS approved_by_first_name,
+    ap.last_name AS approved_by_last_name
+FROM updated_time_entry te
+JOIN employee_profile ep ON ep.id = te.employee_id
+LEFT JOIN employee_profile ap ON ap.id = te.approved_by_employee_id;
+
+-- name: RejectTimeEntry :one
+WITH updated_time_entry AS (
+    UPDATE time_entries
+    SET
+        status = 'rejected'::time_entry_status_enum,
+        rejection_reason = sqlc.narg('rejection_reason')::text,
+        approved_at = NULL,
+        approved_by_employee_id = NULL,
+        updated_at = NOW()
+    WHERE time_entries.id = sqlc.arg('id')
+    RETURNING
+        id,
+        employee_id,
+        schedule_id,
+        entry_date,
+        hours,
+        break_minutes,
+        hour_type,
+        project_name,
+        project_number,
+        client_name,
+        activity_category,
+        activity_description,
+        status,
+        submitted_at,
+        approved_at,
+        approved_by_employee_id,
+        rejection_reason,
+        notes,
+        created_at,
+        updated_at
+)
+SELECT
+    te.id,
+    te.employee_id,
+    te.schedule_id,
+    te.entry_date,
+    te.hours,
+    te.break_minutes,
+    te.hour_type,
+    te.project_name,
+    te.project_number,
+    te.client_name,
+    te.activity_category,
+    te.activity_description,
+    te.status,
+    te.submitted_at,
+    te.approved_at,
+    te.approved_by_employee_id,
+    te.rejection_reason,
+    te.notes,
+    te.created_at,
+    te.updated_at,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    ap.first_name AS approved_by_first_name,
+    ap.last_name AS approved_by_last_name
+FROM updated_time_entry te
+JOIN employee_profile ep ON ep.id = te.employee_id
+LEFT JOIN employee_profile ap ON ap.id = te.approved_by_employee_id;
+
 -- name: GetTimeEntryByID :one
 SELECT
     te.id,
@@ -81,6 +213,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -112,6 +245,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,
@@ -160,6 +294,7 @@ SELECT
     te.schedule_id,
     te.entry_date,
     te.hours,
+    te.break_minutes,
     te.hour_type,
     te.project_name,
     te.project_number,

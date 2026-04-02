@@ -29,6 +29,7 @@ type adminDecisionShiftSwapRequest struct {
 type listShiftSwapRequestsRequest struct {
 	httpapi.PageRequest
 	Status     *string    `form:"status" binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`
+	Filter     *string    `form:"filter" binding:"omitempty,oneof=open to_approve history"`
 	EmployeeID *uuid.UUID `form:"employee_id"`
 }
 
@@ -48,6 +49,7 @@ type shiftSwapScheduleSnapshot struct {
 	ID            uuid.UUID `json:"id"`
 	EmployeeID    uuid.UUID `json:"employee_id"`
 	EmployeeName  string    `json:"employee_name"`
+	ShiftName     string    `json:"shift_name"`
 	StartDatetime time.Time `json:"start_datetime"`
 	EndDatetime   time.Time `json:"end_datetime"`
 }
@@ -100,6 +102,7 @@ func toListShiftSwapParams(req listShiftSwapRequestsRequest) domain.ListShiftSwa
 		Limit:      req.PageSize,
 		Offset:     (req.Page - 1) * req.PageSize,
 		Status:     req.Status,
+		Filter:     req.Filter,
 		EmployeeID: req.EmployeeID,
 	}
 }
@@ -119,16 +122,27 @@ func toCreateShiftSwapResponse(item *domain.CreateShiftSwapResponse) createShift
 }
 
 func toShiftSwapResponse(item domain.ShiftSwapResponse) shiftSwapResponse {
+	requesterEmployeeName := item.RequesterEmployeeName
+	if requesterEmployeeName == "" {
+		requesterEmployeeName = item.RequesterSchedule.EmployeeName
+	}
+
+	recipientEmployeeName := item.RecipientEmployeeName
+	if recipientEmployeeName == "" {
+		recipientEmployeeName = item.RecipientSchedule.EmployeeName
+	}
+
 	return shiftSwapResponse{
 		ID:                    item.ID,
 		RequesterEmployeeID:   item.RequesterEmployeeID,
-		RequesterEmployeeName: item.RequesterEmployeeName,
+		RequesterEmployeeName: requesterEmployeeName,
 		RecipientEmployeeID:   item.RecipientEmployeeID,
-		RecipientEmployeeName: item.RecipientEmployeeName,
+		RecipientEmployeeName: recipientEmployeeName,
 		RequesterSchedule: shiftSwapScheduleSnapshot{
 			ID:            item.RequesterSchedule.ID,
 			EmployeeID:    item.RequesterSchedule.EmployeeID,
 			EmployeeName:  item.RequesterSchedule.EmployeeName,
+			ShiftName:     item.RequesterSchedule.ShiftName,
 			StartDatetime: item.RequesterSchedule.StartDatetime,
 			EndDatetime:   item.RequesterSchedule.EndDatetime,
 		},
@@ -136,6 +150,7 @@ func toShiftSwapResponse(item domain.ShiftSwapResponse) shiftSwapResponse {
 			ID:            item.RecipientSchedule.ID,
 			EmployeeID:    item.RecipientSchedule.EmployeeID,
 			EmployeeName:  item.RecipientSchedule.EmployeeName,
+			ShiftName:     item.RecipientSchedule.ShiftName,
 			StartDatetime: item.RecipientSchedule.StartDatetime,
 			EndDatetime:   item.RecipientSchedule.EndDatetime,
 		},

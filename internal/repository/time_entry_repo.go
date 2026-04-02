@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"hrbackend/internal/domain"
@@ -9,6 +10,7 @@ import (
 	"hrbackend/pkg/conv"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -20,12 +22,32 @@ func NewTimeEntryRepository(store *db.Store) domain.TimeEntryRepository {
 	return &TimeEntryRepository{store: store}
 }
 
+func (r *TimeEntryRepository) WithTx(ctx context.Context, fn func(tx domain.TimeEntryTxRepository) error) error {
+	return r.store.ExecTx(ctx, func(q *db.Queries) error {
+		return fn(&timeEntryTxRepo{queries: q})
+	})
+}
+
 func (r *TimeEntryRepository) CreateTimeEntry(ctx context.Context, params domain.CreateTimeEntryParams) (*domain.TimeEntry, error) {
+	if params.ScheduleID != nil {
+		schedule, err := r.store.GetScheduleById(ctx, *params.ScheduleID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, domain.ErrTimeEntryInvalidRequest
+			}
+			return nil, err
+		}
+		if schedule.EmployeeID != params.EmployeeID {
+			return nil, domain.ErrTimeEntryInvalidRequest
+		}
+	}
+
 	row, err := r.store.CreateTimeEntry(ctx, db.CreateTimeEntryParams{
 		EmployeeID:          params.EmployeeID,
 		ScheduleID:          params.ScheduleID,
 		EntryDate:           conv.PgDateFromTime(params.EntryDate),
 		Hours:               params.Hours,
+		BreakMinutes:        params.BreakMinutes,
 		HourType:            toDBTimeEntryHourType(params.HourType),
 		ProjectName:         params.ProjectName,
 		ProjectNumber:       params.ProjectNumber,
@@ -57,7 +79,6 @@ func (r *TimeEntryRepository) GetTimeEntryByID(ctx context.Context, id uuid.UUID
 
 func (r *TimeEntryRepository) ListTimeEntries(ctx context.Context, params domain.ListTimeEntriesParams) (*domain.TimeEntryPage, error) {
 	rows, err := r.store.ListTimeEntriesPaginated(ctx, db.ListTimeEntriesPaginatedParams{
-		EmployeeID:     params.EmployeeID,
 		Status:         toDBNullTimeEntryStatus(params.Status),
 		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
 		Limit:          params.Limit,
@@ -81,6 +102,7 @@ func (r *TimeEntryRepository) ListTimeEntries(ctx context.Context, params domain
 			row.ScheduleID,
 			row.EntryDate,
 			row.Hours,
+			row.BreakMinutes,
 			string(row.HourType),
 			row.ProjectName,
 			row.ProjectNumber,
@@ -130,6 +152,7 @@ func (r *TimeEntryRepository) ListMyTimeEntries(ctx context.Context, params doma
 			row.ScheduleID,
 			row.EntryDate,
 			row.Hours,
+			row.BreakMinutes,
 			string(row.HourType),
 			row.ProjectName,
 			row.ProjectNumber,
@@ -161,6 +184,7 @@ func toDomainTimeEntryFromCreateRow(row db.CreateTimeEntryRow) domain.TimeEntry 
 		row.ScheduleID,
 		row.EntryDate,
 		row.Hours,
+		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,
 		row.ProjectNumber,
@@ -189,6 +213,7 @@ func toDomainTimeEntryFromGetRow(row db.GetTimeEntryByIDRow) domain.TimeEntry {
 		row.ScheduleID,
 		row.EntryDate,
 		row.Hours,
+		row.BreakMinutes,
 		string(row.HourType),
 		row.ProjectName,
 		row.ProjectNumber,
@@ -216,6 +241,7 @@ func buildDomainTimeEntry(
 	scheduleID *uuid.UUID,
 	entryDate pgtype.Date,
 	hours float64,
+	breakMinutes int32,
 	hourType string,
 	projectName *string,
 	projectNumber *string,
@@ -242,6 +268,7 @@ func buildDomainTimeEntry(
 		ScheduleID:           scheduleID,
 		EntryDate:            conv.TimeFromPgDate(entryDate),
 		Hours:                hours,
+		BreakMinutes:         breakMinutes,
 		HourType:             hourType,
 		ProjectName:          projectName,
 		ProjectNumber:        projectNumber,
@@ -326,4 +353,140 @@ func toDBNullTimeEntryStatus(value *string) db.NullTimeEntryStatusEnum {
 		TimeEntryStatusEnum: toDBTimeEntryStatus(*value),
 		Valid:               true,
 	}
+}
+
+type timeEntryTxRepo struct {
+	queries *db.Queries
+}
+
+func (r *timeEntryTxRepo) GetTimeEntryForUpdate(ctx context.Context, timeEntryID uuid.UUID) (*domain.TimeEntry, error) {
+	row, err := r.queries.LockTimeEntryByID(ctx, timeEntryID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrTimeEntryNotFound
+		}
+		return nil, err
+	}
+
+	model := toDomainTimeEntryFromDBTimeEntry(row)
+	return &model, nil
+}
+
+func (r *timeEntryTxRepo) ApproveTimeEntry(ctx context.Context, timeEntryID, approvedByEmployeeID uuid.UUID) (*domain.TimeEntry, error) {
+	row, err := r.queries.ApproveTimeEntry(ctx, db.ApproveTimeEntryParams{
+		ID:                   timeEntryID,
+		ApprovedByEmployeeID: &approvedByEmployeeID,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrTimeEntryNotFound
+		}
+		return nil, err
+	}
+
+	model := toDomainTimeEntryFromApproveRow(row)
+	return &model, nil
+}
+
+func (r *timeEntryTxRepo) RejectTimeEntry(ctx context.Context, timeEntryID uuid.UUID, rejectionReason *string) (*domain.TimeEntry, error) {
+	row, err := r.queries.RejectTimeEntry(ctx, db.RejectTimeEntryParams{
+		ID:              timeEntryID,
+		RejectionReason: rejectionReason,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrTimeEntryNotFound
+		}
+		return nil, err
+	}
+
+	model := toDomainTimeEntryFromRejectRow(row)
+	return &model, nil
+}
+
+func toDomainTimeEntryFromDBTimeEntry(row db.TimeEntry) domain.TimeEntry {
+	return buildDomainTimeEntry(
+		row.ID,
+		row.EmployeeID,
+		row.ScheduleID,
+		row.EntryDate,
+		row.Hours,
+		row.BreakMinutes,
+		string(row.HourType),
+		row.ProjectName,
+		row.ProjectNumber,
+		row.ClientName,
+		row.ActivityCategory,
+		row.ActivityDescription,
+		string(row.Status),
+		row.SubmittedAt,
+		row.ApprovedAt,
+		row.ApprovedByEmployeeID,
+		row.RejectionReason,
+		row.Notes,
+		row.CreatedAt,
+		row.UpdatedAt,
+		"",
+		"",
+		nil,
+		nil,
+	)
+}
+
+func toDomainTimeEntryFromApproveRow(row db.ApproveTimeEntryRow) domain.TimeEntry {
+	return buildDomainTimeEntry(
+		row.ID,
+		row.EmployeeID,
+		row.ScheduleID,
+		row.EntryDate,
+		row.Hours,
+		row.BreakMinutes,
+		string(row.HourType),
+		row.ProjectName,
+		row.ProjectNumber,
+		row.ClientName,
+		row.ActivityCategory,
+		row.ActivityDescription,
+		string(row.Status),
+		row.SubmittedAt,
+		row.ApprovedAt,
+		row.ApprovedByEmployeeID,
+		row.RejectionReason,
+		row.Notes,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.EmployeeFirstName,
+		row.EmployeeLastName,
+		row.ApprovedByFirstName,
+		row.ApprovedByLastName,
+	)
+}
+
+func toDomainTimeEntryFromRejectRow(row db.RejectTimeEntryRow) domain.TimeEntry {
+	return buildDomainTimeEntry(
+		row.ID,
+		row.EmployeeID,
+		row.ScheduleID,
+		row.EntryDate,
+		row.Hours,
+		row.BreakMinutes,
+		string(row.HourType),
+		row.ProjectName,
+		row.ProjectNumber,
+		row.ClientName,
+		row.ActivityCategory,
+		row.ActivityDescription,
+		string(row.Status),
+		row.SubmittedAt,
+		row.ApprovedAt,
+		row.ApprovedByEmployeeID,
+		row.RejectionReason,
+		row.Notes,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.EmployeeFirstName,
+		row.EmployeeLastName,
+		row.ApprovedByFirstName,
+		row.ApprovedByLastName,
+	)
 }

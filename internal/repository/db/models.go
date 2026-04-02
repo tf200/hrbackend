@@ -1384,6 +1384,7 @@ type TimeEntry struct {
 	ScheduleID           *uuid.UUID            `json:"schedule_id"`
 	EntryDate            pgtype.Date           `json:"entry_date"`
 	Hours                float64               `json:"hours"`
+	BreakMinutes         int32                 `json:"break_minutes"`
 	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
 	ProjectName          *string               `json:"project_name"`
 	ProjectNumber        *string               `json:"project_number"`

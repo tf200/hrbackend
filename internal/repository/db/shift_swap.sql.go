@@ -182,9 +182,11 @@ SELECT
     rec.first_name AS recipient_first_name,
     rec.last_name AS recipient_last_name,
     ssr.requester_schedule_id,
+    COALESCE(req_s.shift_name_snapshot, req_ls.shift_name, 'Custom Shift') AS requester_schedule_shift_name,
     req_s.start_datetime AS requester_schedule_start_datetime,
     req_s.end_datetime AS requester_schedule_end_datetime,
     ssr.recipient_schedule_id,
+    COALESCE(rec_s.shift_name_snapshot, rec_ls.shift_name, 'Custom Shift') AS recipient_schedule_shift_name,
     rec_s.start_datetime AS recipient_schedule_start_datetime,
     rec_s.end_datetime AS recipient_schedule_end_datetime,
     (
@@ -210,6 +212,8 @@ JOIN employee_profile req ON req.id = ssr.requester_employee_id
 JOIN employee_profile rec ON rec.id = ssr.recipient_employee_id
 JOIN schedules req_s ON req_s.id = ssr.requester_schedule_id
 JOIN schedules rec_s ON rec_s.id = ssr.recipient_schedule_id
+LEFT JOIN location_shift req_ls ON req_ls.id = req_s.location_shift_id
+LEFT JOIN location_shift rec_ls ON rec_ls.id = rec_s.location_shift_id
 LEFT JOIN employee_profile admin_ep ON admin_ep.id = ssr.admin_employee_id
 WHERE ssr.id = $1
 LIMIT 1
@@ -224,9 +228,11 @@ type GetShiftSwapRequestDetailsByIDRow struct {
 	RecipientFirstName             string              `json:"recipient_first_name"`
 	RecipientLastName              string              `json:"recipient_last_name"`
 	RequesterScheduleID            uuid.UUID           `json:"requester_schedule_id"`
+	RequesterScheduleShiftName     string              `json:"requester_schedule_shift_name"`
 	RequesterScheduleStartDatetime pgtype.Timestamptz  `json:"requester_schedule_start_datetime"`
 	RequesterScheduleEndDatetime   pgtype.Timestamptz  `json:"requester_schedule_end_datetime"`
 	RecipientScheduleID            uuid.UUID           `json:"recipient_schedule_id"`
+	RecipientScheduleShiftName     string              `json:"recipient_schedule_shift_name"`
 	RecipientScheduleStartDatetime pgtype.Timestamptz  `json:"recipient_schedule_start_datetime"`
 	RecipientScheduleEndDatetime   pgtype.Timestamptz  `json:"recipient_schedule_end_datetime"`
 	Status                         ShiftSwapStatusEnum `json:"status"`
@@ -253,9 +259,11 @@ func (q *Queries) GetShiftSwapRequestDetailsByID(ctx context.Context, id uuid.UU
 		&i.RecipientFirstName,
 		&i.RecipientLastName,
 		&i.RequesterScheduleID,
+		&i.RequesterScheduleShiftName,
 		&i.RequesterScheduleStartDatetime,
 		&i.RequesterScheduleEndDatetime,
 		&i.RecipientScheduleID,
+		&i.RecipientScheduleShiftName,
 		&i.RecipientScheduleStartDatetime,
 		&i.RecipientScheduleEndDatetime,
 		&i.Status,
@@ -282,9 +290,11 @@ SELECT
     rec.first_name AS recipient_first_name,
     rec.last_name AS recipient_last_name,
     ssr.requester_schedule_id,
+    COALESCE(req_s.shift_name_snapshot, req_ls.shift_name, 'Custom Shift') AS requester_schedule_shift_name,
     req_s.start_datetime AS requester_schedule_start_datetime,
     req_s.end_datetime AS requester_schedule_end_datetime,
     ssr.recipient_schedule_id,
+    COALESCE(rec_s.shift_name_snapshot, rec_ls.shift_name, 'Custom Shift') AS recipient_schedule_shift_name,
     rec_s.start_datetime AS recipient_schedule_start_datetime,
     rec_s.end_datetime AS recipient_schedule_end_datetime,
     (
@@ -310,6 +320,8 @@ JOIN employee_profile req ON req.id = ssr.requester_employee_id
 JOIN employee_profile rec ON rec.id = ssr.recipient_employee_id
 JOIN schedules req_s ON req_s.id = ssr.requester_schedule_id
 JOIN schedules rec_s ON rec_s.id = ssr.recipient_schedule_id
+LEFT JOIN location_shift req_ls ON req_ls.id = req_s.location_shift_id
+LEFT JOIN location_shift rec_ls ON rec_ls.id = rec_s.location_shift_id
 LEFT JOIN employee_profile admin_ep ON admin_ep.id = ssr.admin_employee_id
 WHERE ssr.requester_employee_id = $1
    OR ssr.recipient_employee_id = $1
@@ -325,9 +337,11 @@ type ListMyShiftSwapRequestsRow struct {
 	RecipientFirstName             string              `json:"recipient_first_name"`
 	RecipientLastName              string              `json:"recipient_last_name"`
 	RequesterScheduleID            uuid.UUID           `json:"requester_schedule_id"`
+	RequesterScheduleShiftName     string              `json:"requester_schedule_shift_name"`
 	RequesterScheduleStartDatetime pgtype.Timestamptz  `json:"requester_schedule_start_datetime"`
 	RequesterScheduleEndDatetime   pgtype.Timestamptz  `json:"requester_schedule_end_datetime"`
 	RecipientScheduleID            uuid.UUID           `json:"recipient_schedule_id"`
+	RecipientScheduleShiftName     string              `json:"recipient_schedule_shift_name"`
 	RecipientScheduleStartDatetime pgtype.Timestamptz  `json:"recipient_schedule_start_datetime"`
 	RecipientScheduleEndDatetime   pgtype.Timestamptz  `json:"recipient_schedule_end_datetime"`
 	Status                         ShiftSwapStatusEnum `json:"status"`
@@ -360,9 +374,11 @@ func (q *Queries) ListMyShiftSwapRequests(ctx context.Context, requesterEmployee
 			&i.RecipientFirstName,
 			&i.RecipientLastName,
 			&i.RequesterScheduleID,
+			&i.RequesterScheduleShiftName,
 			&i.RequesterScheduleStartDatetime,
 			&i.RequesterScheduleEndDatetime,
 			&i.RecipientScheduleID,
+			&i.RecipientScheduleShiftName,
 			&i.RecipientScheduleStartDatetime,
 			&i.RecipientScheduleEndDatetime,
 			&i.Status,
@@ -396,9 +412,11 @@ SELECT
     rec.first_name AS recipient_first_name,
     rec.last_name AS recipient_last_name,
     ssr.requester_schedule_id,
+    COALESCE(req_s.shift_name_snapshot, req_ls.shift_name, 'Custom Shift') AS requester_schedule_shift_name,
     req_s.start_datetime AS requester_schedule_start_datetime,
     req_s.end_datetime AS requester_schedule_end_datetime,
     ssr.recipient_schedule_id,
+    COALESCE(rec_s.shift_name_snapshot, rec_ls.shift_name, 'Custom Shift') AS recipient_schedule_shift_name,
     rec_s.start_datetime AS recipient_schedule_start_datetime,
     rec_s.end_datetime AS recipient_schedule_end_datetime,
     (
@@ -425,6 +443,8 @@ JOIN employee_profile req ON req.id = ssr.requester_employee_id
 JOIN employee_profile rec ON rec.id = ssr.recipient_employee_id
 JOIN schedules req_s ON req_s.id = ssr.requester_schedule_id
 JOIN schedules rec_s ON rec_s.id = ssr.recipient_schedule_id
+LEFT JOIN location_shift req_ls ON req_ls.id = req_s.location_shift_id
+LEFT JOIN location_shift rec_ls ON rec_ls.id = rec_s.location_shift_id
 LEFT JOIN employee_profile admin_ep ON admin_ep.id = ssr.admin_employee_id
 WHERE (
     $1::shift_swap_status_enum IS NULL
@@ -445,13 +465,59 @@ WHERE (
     OR ssr.requester_employee_id = $2::uuid
     OR ssr.recipient_employee_id = $2::uuid
   )
+  AND (
+    $3::text IS NULL
+    OR (
+      $3::text = 'open'
+      AND (
+        (
+          CASE
+          WHEN ssr.status IN ('pending_recipient', 'pending_admin')
+           AND ssr.expires_at IS NOT NULL
+           AND ssr.expires_at <= NOW()
+          THEN 'expired'::shift_swap_status_enum
+          ELSE ssr.status
+          END
+        )::shift_swap_status_enum IN ('pending_recipient', 'pending_admin')
+      )
+    )
+    OR (
+      $3::text = 'to_approve'
+      AND (
+        (
+          CASE
+          WHEN ssr.status IN ('pending_recipient', 'pending_admin')
+           AND ssr.expires_at IS NOT NULL
+           AND ssr.expires_at <= NOW()
+          THEN 'expired'::shift_swap_status_enum
+          ELSE ssr.status
+          END
+        )::shift_swap_status_enum = 'pending_admin'
+      )
+    )
+    OR (
+      $3::text = 'history'
+      AND (
+        (
+          CASE
+          WHEN ssr.status IN ('pending_recipient', 'pending_admin')
+           AND ssr.expires_at IS NOT NULL
+           AND ssr.expires_at <= NOW()
+          THEN 'expired'::shift_swap_status_enum
+          ELSE ssr.status
+          END
+        )::shift_swap_status_enum IN ('recipient_rejected', 'admin_rejected', 'confirmed', 'cancelled', 'expired')
+      )
+    )
+  )
 ORDER BY ssr.requested_at DESC
-LIMIT $4 OFFSET $3
+LIMIT $5 OFFSET $4
 `
 
 type ListShiftSwapRequestsPaginatedParams struct {
 	Status     NullShiftSwapStatusEnum `json:"status"`
 	EmployeeID *uuid.UUID              `json:"employee_id"`
+	Filter     *string                 `json:"filter"`
 	Offset     int32                   `json:"offset"`
 	Limit      int32                   `json:"limit"`
 }
@@ -465,9 +531,11 @@ type ListShiftSwapRequestsPaginatedRow struct {
 	RecipientFirstName             string              `json:"recipient_first_name"`
 	RecipientLastName              string              `json:"recipient_last_name"`
 	RequesterScheduleID            uuid.UUID           `json:"requester_schedule_id"`
+	RequesterScheduleShiftName     string              `json:"requester_schedule_shift_name"`
 	RequesterScheduleStartDatetime pgtype.Timestamptz  `json:"requester_schedule_start_datetime"`
 	RequesterScheduleEndDatetime   pgtype.Timestamptz  `json:"requester_schedule_end_datetime"`
 	RecipientScheduleID            uuid.UUID           `json:"recipient_schedule_id"`
+	RecipientScheduleShiftName     string              `json:"recipient_schedule_shift_name"`
 	RecipientScheduleStartDatetime pgtype.Timestamptz  `json:"recipient_schedule_start_datetime"`
 	RecipientScheduleEndDatetime   pgtype.Timestamptz  `json:"recipient_schedule_end_datetime"`
 	Status                         ShiftSwapStatusEnum `json:"status"`
@@ -487,6 +555,7 @@ func (q *Queries) ListShiftSwapRequestsPaginated(ctx context.Context, arg ListSh
 	rows, err := q.db.Query(ctx, listShiftSwapRequestsPaginated,
 		arg.Status,
 		arg.EmployeeID,
+		arg.Filter,
 		arg.Offset,
 		arg.Limit,
 	)
@@ -506,9 +575,11 @@ func (q *Queries) ListShiftSwapRequestsPaginated(ctx context.Context, arg ListSh
 			&i.RecipientFirstName,
 			&i.RecipientLastName,
 			&i.RequesterScheduleID,
+			&i.RequesterScheduleShiftName,
 			&i.RequesterScheduleStartDatetime,
 			&i.RequesterScheduleEndDatetime,
 			&i.RecipientScheduleID,
+			&i.RecipientScheduleShiftName,
 			&i.RecipientScheduleStartDatetime,
 			&i.RecipientScheduleEndDatetime,
 			&i.Status,
