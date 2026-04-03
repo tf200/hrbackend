@@ -35,7 +35,11 @@ func (store *Store) ExecTx(ctx context.Context, fn TxFn) error {
 	employeeID := employeeIDFromContext(ctx)
 
 	if employeeID != uuid.Nil {
-		_, err = tx.Exec(ctx, "SELECT set_config('myapp.current_employee_id', $1, true)", employeeID.String())
+		_, err = tx.Exec(
+			ctx,
+			"SELECT set_config('myapp.current_employee_id', $1, true)",
+			employeeID.String(),
+		)
 		if err != nil {
 			if rbErr := tx.Rollback(ctx); rbErr != nil {
 				return rbErr
@@ -67,7 +71,10 @@ type CreateEmployeeWithAccountTxResult struct {
 	Employee EmployeeProfile
 }
 
-func (store *Store) CreateEmployeeWithAccountTx(ctx context.Context, arg CreateEmployeeWithAccountTxParams) (CreateEmployeeWithAccountTxResult, error) {
+func (store *Store) CreateEmployeeWithAccountTx(
+	ctx context.Context,
+	arg CreateEmployeeWithAccountTxParams,
+) (CreateEmployeeWithAccountTxResult, error) {
 	var result CreateEmployeeWithAccountTxResult
 
 	err := store.ExecTx(ctx, func(q *Queries) error {
@@ -85,7 +92,10 @@ func (store *Store) CreateEmployeeWithAccountTx(ctx context.Context, arg CreateE
 
 		// Auto-assign the active employee handbook for the employee's department (if configured).
 		if arg.CreateEmployeeParams.DepartmentID != nil {
-			template, tmplErr := q.GetActiveHandbookTemplateByDepartment(ctx, *arg.CreateEmployeeParams.DepartmentID)
+			template, tmplErr := q.GetActiveHandbookTemplateByDepartment(
+				ctx,
+				*arg.CreateEmployeeParams.DepartmentID,
+			)
 			if tmplErr != nil {
 				if !errors.Is(tmplErr, pgx.ErrNoRows) {
 					return tmplErr
@@ -96,26 +106,32 @@ func (store *Store) CreateEmployeeWithAccountTx(ctx context.Context, arg CreateE
 				if assignedBy != uuid.Nil {
 					assignedByPtr = &assignedBy
 				}
-				assigned, err := q.CreateEmployeeHandbookFromTemplate(ctx, CreateEmployeeHandbookFromTemplateParams{
-					EmployeeID:           result.Employee.ID,
-					TemplateID:           template.ID,
-					AssignedByEmployeeID: assignedByPtr,
-				})
+				assigned, err := q.CreateEmployeeHandbookFromTemplate(
+					ctx,
+					CreateEmployeeHandbookFromTemplateParams{
+						EmployeeID:           result.Employee.ID,
+						TemplateID:           template.ID,
+						AssignedByEmployeeID: assignedByPtr,
+					},
+				)
 				if err != nil {
 					return err
 				}
 
-				_, err = q.CreateEmployeeHandbookAssignmentHistory(ctx, CreateEmployeeHandbookAssignmentHistoryParams{
-					EmployeeHandbookID: &assigned.ID,
-					EmployeeID:         result.Employee.ID,
-					TemplateID:         template.ID,
-					TemplateVersion:    assigned.TemplateVersion,
-					Event:              HandbookAssignmentEventEnumAssigned,
-					ActorEmployeeID:    assignedByPtr,
-					Metadata: mustMarshalAssignmentMetadata(map[string]any{
-						"source": "employee_creation",
-					}),
-				})
+				_, err = q.CreateEmployeeHandbookAssignmentHistory(
+					ctx,
+					CreateEmployeeHandbookAssignmentHistoryParams{
+						EmployeeHandbookID: &assigned.ID,
+						EmployeeID:         result.Employee.ID,
+						TemplateID:         template.ID,
+						TemplateVersion:    assigned.TemplateVersion,
+						Event:              HandbookAssignmentEventEnumAssigned,
+						ActorEmployeeID:    assignedByPtr,
+						Metadata: mustMarshalAssignmentMetadata(map[string]any{
+							"source": "employee_creation",
+						}),
+					},
+				)
 				if err != nil {
 					return err
 				}

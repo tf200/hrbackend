@@ -40,26 +40,90 @@ func RegisterHandbookRoutes(
 
 	handbook.GET("/me", requirePermission("HANDBOOK.SELF.VIEW"), handler.GetMyActiveHandbook)
 	handbook.POST("/me/start", requirePermission("HANDBOOK.SELF.UPDATE"), handler.StartMyHandbook)
-	handbook.POST("/me/steps/:step_id/complete", requirePermission("HANDBOOK.SELF.UPDATE"), handler.CompleteMyHandbookStep)
+	handbook.POST(
+		"/me/steps/:step_id/complete",
+		requirePermission("HANDBOOK.SELF.UPDATE"),
+		handler.CompleteMyHandbookStep,
+	)
 
-	handbook.POST("/templates", requirePermission("HANDBOOK.TEMPLATE.CREATE"), handler.CreateHandbookTemplate)
-	handbook.POST("/templates/clone", requirePermission("HANDBOOK.TEMPLATE.CREATE"), handler.CloneHandbookTemplate)
-	handbook.PATCH("/templates/:template_id", requirePermission("HANDBOOK.TEMPLATE.UPDATE"), handler.UpdateHandbookTemplate)
-	handbook.POST("/templates/publish", requirePermission("HANDBOOK.TEMPLATE.PUBLISH"), handler.PublishHandbookTemplate)
-	handbook.GET("/departments/:department_id/templates", requirePermission("HANDBOOK.TEMPLATE.VIEW"), handler.ListHandbookTemplatesByDepartment)
+	handbook.POST(
+		"/templates",
+		requirePermission("HANDBOOK.TEMPLATE.CREATE"),
+		handler.CreateHandbookTemplate,
+	)
+	handbook.POST(
+		"/templates/clone",
+		requirePermission("HANDBOOK.TEMPLATE.CREATE"),
+		handler.CloneHandbookTemplate,
+	)
+	handbook.PATCH(
+		"/templates/:template_id",
+		requirePermission("HANDBOOK.TEMPLATE.UPDATE"),
+		handler.UpdateHandbookTemplate,
+	)
+	handbook.POST(
+		"/templates/publish",
+		requirePermission("HANDBOOK.TEMPLATE.PUBLISH"),
+		handler.PublishHandbookTemplate,
+	)
+	handbook.GET(
+		"/departments/:department_id/templates",
+		requirePermission("HANDBOOK.TEMPLATE.VIEW"),
+		handler.ListHandbookTemplatesByDepartment,
+	)
 
 	handbook.POST("/steps", requirePermission("HANDBOOK.STEP.CREATE"), handler.CreateHandbookStep)
-	handbook.PATCH("/steps/:step_id", requirePermission("HANDBOOK.STEP.UPDATE"), handler.UpdateHandbookStep)
-	handbook.DELETE("/steps/:step_id", requirePermission("HANDBOOK.STEP.DELETE"), handler.DeleteHandbookStep)
-	handbook.GET("/templates/:template_id/steps", requirePermission("HANDBOOK.STEP.VIEW"), handler.ListHandbookStepsByTemplate)
-	handbook.POST("/templates/:template_id/steps/reorder", requirePermission("HANDBOOK.STEP.UPDATE"), handler.ReorderHandbookSteps)
-	handbook.GET("/employees/:employee_id/history", requirePermission("HANDBOOK.ASSIGN"), handler.ListEmployeeHandbookHistory)
+	handbook.PATCH(
+		"/steps/:step_id",
+		requirePermission("HANDBOOK.STEP.UPDATE"),
+		handler.UpdateHandbookStep,
+	)
+	handbook.DELETE(
+		"/steps/:step_id",
+		requirePermission("HANDBOOK.STEP.DELETE"),
+		handler.DeleteHandbookStep,
+	)
+	handbook.GET(
+		"/templates/:template_id/steps",
+		requirePermission("HANDBOOK.STEP.VIEW"),
+		handler.ListHandbookStepsByTemplate,
+	)
+	handbook.POST(
+		"/templates/:template_id/steps/reorder",
+		requirePermission("HANDBOOK.STEP.UPDATE"),
+		handler.ReorderHandbookSteps,
+	)
+	handbook.GET(
+		"/employees/:employee_id/history",
+		requirePermission("HANDBOOK.ASSIGN"),
+		handler.ListEmployeeHandbookHistory,
+	)
 
-	handbook.GET("/assignments", requirePermission("HANDBOOK.ASSIGN"), handler.ListEmployeeHandbookAssignments)
-	handbook.GET("/assignments/eligible-employees", requirePermission("HANDBOOK.ASSIGN"), handler.ListEligibleEmployees)
-	handbook.GET("/assignments/:handbook_id", requirePermission("HANDBOOK.ASSIGN"), handler.GetEmployeeHandbookDetails)
-	handbook.POST("/assignments", requirePermission("HANDBOOK.ASSIGN"), handler.AssignHandbookTemplateToEmployee)
-	handbook.POST("/assignments/:handbook_id/waive", requirePermission("HANDBOOK.ASSIGN"), handler.WaiveEmployeeHandbook)
+	handbook.GET(
+		"/assignments",
+		requirePermission("HANDBOOK.ASSIGN"),
+		handler.ListEmployeeHandbookAssignments,
+	)
+	handbook.GET(
+		"/assignments/eligible-employees",
+		requirePermission("HANDBOOK.ASSIGN"),
+		handler.ListEligibleEmployees,
+	)
+	handbook.GET(
+		"/assignments/:handbook_id",
+		requirePermission("HANDBOOK.ASSIGN"),
+		handler.GetEmployeeHandbookDetails,
+	)
+	handbook.POST(
+		"/assignments",
+		requirePermission("HANDBOOK.ASSIGN"),
+		handler.AssignHandbookTemplateToEmployee,
+	)
+	handbook.POST(
+		"/assignments/:handbook_id/waive",
+		requirePermission("HANDBOOK.ASSIGN"),
+		handler.WaiveEmployeeHandbook,
+	)
 }
 
 type HandbookHandler struct {
@@ -82,7 +146,10 @@ func (h *HandbookHandler) GetMyActiveHandbook(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusOK, httpapi.OK(toMyActiveHandbookResponse(res), "Active handbook retrieved"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toMyActiveHandbookResponse(res), "Active handbook retrieved"),
+	)
 }
 
 func (h *HandbookHandler) StartMyHandbook(ctx *gin.Context) {
@@ -118,7 +185,12 @@ func (h *HandbookHandler) CompleteMyHandbookStep(ctx *gin.Context) {
 		return
 	}
 
-	res, err := h.service.CompleteMyHandbookStep(ctx.Request.Context(), employeeID, stepID, req.Response)
+	res, err := h.service.CompleteMyHandbookStep(
+		ctx.Request.Context(),
+		employeeID,
+		stepID,
+		req.Response,
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -139,10 +211,17 @@ func (h *HandbookHandler) CreateHandbookTemplate(ctx *gin.Context) {
 		return
 	}
 
-	res, err := h.service.CreateTemplateForDepartment(ctx.Request.Context(), employeeID, toCreateTemplateForDepartmentParams(req))
+	res, err := h.service.CreateTemplateForDepartment(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateTemplateForDepartmentParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrDraftTemplateAlreadyExists) {
-			ctx.JSON(http.StatusConflict, httpapi.Fail(err.Error(), errCodeHandbookDraftAlreadyExists))
+			ctx.JSON(
+				http.StatusConflict,
+				httpapi.Fail(err.Error(), errCodeHandbookDraftAlreadyExists),
+			)
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(err.Error(), ""))
@@ -164,10 +243,17 @@ func (h *HandbookHandler) CloneHandbookTemplate(ctx *gin.Context) {
 		return
 	}
 
-	res, err := h.service.CloneTemplateToDraft(ctx.Request.Context(), employeeID, toCloneTemplateToDraftParams(req))
+	res, err := h.service.CloneTemplateToDraft(
+		ctx.Request.Context(),
+		employeeID,
+		toCloneTemplateToDraftParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrDraftTemplateAlreadyExists) {
-			ctx.JSON(http.StatusConflict, httpapi.Fail(err.Error(), errCodeHandbookDraftAlreadyExists))
+			ctx.JSON(
+				http.StatusConflict,
+				httpapi.Fail(err.Error(), errCodeHandbookDraftAlreadyExists),
+			)
 			return
 		}
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
@@ -189,7 +275,13 @@ func (h *HandbookHandler) UpdateHandbookTemplate(ctx *gin.Context) {
 		return
 	}
 	if req.Title == nil && req.Description == nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("at least one field is required: title or description", errCodeInvalidRequest))
+		ctx.JSON(
+			http.StatusBadRequest,
+			httpapi.Fail(
+				"at least one field is required: title or description",
+				errCodeInvalidRequest,
+			),
+		)
 		return
 	}
 
@@ -204,11 +296,17 @@ func (h *HandbookHandler) UpdateHandbookTemplate(ctx *gin.Context) {
 		if string(*req.Title) != "null" {
 			var title string
 			if err := json.Unmarshal(*req.Title, &title); err != nil {
-				ctx.JSON(http.StatusBadRequest, httpapi.Fail("title must be a string", errCodeInvalidRequest))
+				ctx.JSON(
+					http.StatusBadRequest,
+					httpapi.Fail("title must be a string", errCodeInvalidRequest),
+				)
 				return
 			}
 			if strings.TrimSpace(title) == "" {
-				ctx.JSON(http.StatusBadRequest, httpapi.Fail("title cannot be empty", errCodeInvalidRequest))
+				ctx.JSON(
+					http.StatusBadRequest,
+					httpapi.Fail("title cannot be empty", errCodeInvalidRequest),
+				)
 				return
 			}
 			titleVal = &title
@@ -223,7 +321,10 @@ func (h *HandbookHandler) UpdateHandbookTemplate(ctx *gin.Context) {
 		if string(*req.Description) != "null" {
 			var description string
 			if err := json.Unmarshal(*req.Description, &description); err != nil {
-				ctx.JSON(http.StatusBadRequest, httpapi.Fail("description must be a string or null", errCodeInvalidRequest))
+				ctx.JSON(
+					http.StatusBadRequest,
+					httpapi.Fail("description must be a string or null", errCodeInvalidRequest),
+				)
 				return
 			}
 			descVal = &description
@@ -240,9 +341,15 @@ func (h *HandbookHandler) UpdateHandbookTemplate(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrTemplateNotFound):
-			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotFound))
+			ctx.JSON(
+				http.StatusNotFound,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotFound),
+			)
 		case errors.Is(err, domain.ErrTemplateNotDraft):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft),
+			)
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail(err.Error(), ""))
 		}
@@ -265,15 +372,28 @@ func (h *HandbookHandler) PublishHandbookTemplate(ctx *gin.Context) {
 		return
 	}
 
-	res, err := h.service.PublishTemplate(ctx.Request.Context(), employeeID, toPublishTemplateParams(req))
+	res, err := h.service.PublishTemplate(
+		ctx.Request.Context(),
+		employeeID,
+		toPublishTemplateParams(req),
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrTemplateNotFound):
-			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotFound))
+			ctx.JSON(
+				http.StatusNotFound,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotFound),
+			)
 		case errors.Is(err, domain.ErrTemplateNotDraft):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft),
+			)
 		case errors.Is(err, domain.ErrTemplateHasNoSteps):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookTemplateNoSteps))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNoSteps),
+			)
 		default:
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		}
@@ -285,7 +405,10 @@ func (h *HandbookHandler) PublishHandbookTemplate(ctx *gin.Context) {
 func (h *HandbookHandler) ListHandbookTemplatesByDepartment(ctx *gin.Context) {
 	deptID, err := uuid.Parse(ctx.Param("department_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid department_id", errCodeInvalidRequest))
+		ctx.JSON(
+			http.StatusBadRequest,
+			httpapi.Fail("invalid department_id", errCodeInvalidRequest),
+		)
 		return
 	}
 	res, err := h.service.ListTemplatesByDepartment(ctx.Request.Context(), deptID)
@@ -311,11 +434,20 @@ func (h *HandbookHandler) CreateHandbookStep(ctx *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrTemplateNotDraft):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft),
+			)
 		case strings.Contains(strings.ToLower(err.Error()), "invalid url"):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookLinkURLInvalid))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookLinkURLInvalid),
+			)
 		case strings.Contains(strings.ToLower(err.Error()), "invalid step content"):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookQuizContentInvalid))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookQuizContentInvalid),
+			)
 		default:
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		}
@@ -343,7 +475,10 @@ func (h *HandbookHandler) UpdateHandbookStep(ctx *gin.Context) {
 		if string(*req.Title) != "null" {
 			var v string
 			if err := json.Unmarshal(*req.Title, &v); err != nil {
-				ctx.JSON(http.StatusBadRequest, httpapi.Fail("title must be a string", errCodeInvalidRequest))
+				ctx.JSON(
+					http.StatusBadRequest,
+					httpapi.Fail("title must be a string", errCodeInvalidRequest),
+				)
 				return
 			}
 			updateReq.Title = &v
@@ -354,7 +489,10 @@ func (h *HandbookHandler) UpdateHandbookStep(ctx *gin.Context) {
 		if string(*req.Body) != "null" {
 			var v string
 			if err := json.Unmarshal(*req.Body, &v); err != nil {
-				ctx.JSON(http.StatusBadRequest, httpapi.Fail("body must be a string or null", errCodeInvalidRequest))
+				ctx.JSON(
+					http.StatusBadRequest,
+					httpapi.Fail("body must be a string or null", errCodeInvalidRequest),
+				)
 				return
 			}
 			updateReq.Body = &v
@@ -370,7 +508,10 @@ func (h *HandbookHandler) UpdateHandbookStep(ctx *gin.Context) {
 		updateReq.SetIsRequired = true
 		var v bool
 		if err := json.Unmarshal(*req.IsRequired, &v); err != nil {
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail("is_required must be a boolean", errCodeInvalidRequest))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail("is_required must be a boolean", errCodeInvalidRequest),
+			)
 			return
 		}
 		updateReq.IsRequired = &v
@@ -382,7 +523,10 @@ func (h *HandbookHandler) UpdateHandbookStep(ctx *gin.Context) {
 		case errors.Is(err, domain.ErrStepNotFound):
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), errCodeHandbookStepNotFound))
 		case errors.Is(err, domain.ErrTemplateNotDraft):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft),
+			)
 		default:
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		}
@@ -403,7 +547,10 @@ func (h *HandbookHandler) DeleteHandbookStep(ctx *gin.Context) {
 		case errors.Is(err, domain.ErrStepNotFound):
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), errCodeHandbookStepNotFound))
 		case errors.Is(err, domain.ErrTemplateNotDraft):
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookTemplateNotDraft),
+			)
 		default:
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		}
@@ -432,7 +579,10 @@ func (h *HandbookHandler) ReorderHandbookSteps(ctx *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidStepReorder) {
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeHandbookStepReorderMismatch))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeHandbookStepReorderMismatch),
+			)
 			return
 		}
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
@@ -476,12 +626,19 @@ func (h *HandbookHandler) AssignHandbookTemplateToEmployee(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request body", errCodeInvalidRequest))
 		return
 	}
-	res, err := h.service.AssignTemplateToEmployee(ctx.Request.Context(), actor, toAssignHandbookTemplateParams(req))
+	res, err := h.service.AssignTemplateToEmployee(
+		ctx.Request.Context(),
+		actor,
+		toAssignHandbookTemplateParams(req),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusCreated, httpapi.OK(toEmployeeHandbookAssignmentResponse(res), "Handbook assigned"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toEmployeeHandbookAssignmentResponse(res), "Handbook assigned"),
+	)
 }
 
 func (h *HandbookHandler) ListEmployeeHandbookHistory(ctx *gin.Context) {
@@ -508,7 +665,10 @@ func (h *HandbookHandler) ListEmployeeHandbookAssignments(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeInvalidRequest))
 		return
 	}
-	res, err := h.service.ListEmployeeHandbookAssignments(ctx.Request.Context(), toListEmployeeHandbookAssignmentsParams(req))
+	res, err := h.service.ListEmployeeHandbookAssignments(
+		ctx.Request.Context(),
+		toListEmployeeHandbookAssignmentsParams(req),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -532,7 +692,11 @@ func (h *HandbookHandler) ListEligibleEmployees(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeInvalidRequest))
 		return
 	}
-	res, err := h.service.ListEligibleEmployees(ctx.Request.Context(), actor, toListEligibleEmployeesParams(req))
+	res, err := h.service.ListEligibleEmployees(
+		ctx.Request.Context(),
+		actor,
+		toListEligibleEmployeesParams(req),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -554,13 +718,19 @@ func (h *HandbookHandler) GetEmployeeHandbookDetails(ctx *gin.Context) {
 	res, err := h.service.GetEmployeeHandbookDetails(ctx.Request.Context(), handbookID)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeHandbookNotFound) {
-			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), errCodeEmployeeHandbookNotFound))
+			ctx.JSON(
+				http.StatusNotFound,
+				httpapi.Fail(err.Error(), errCodeEmployeeHandbookNotFound),
+			)
 			return
 		}
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeHandbookDetailsResponse(res), "Employee handbook details retrieved"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeHandbookDetailsResponse(res), "Employee handbook details retrieved"),
+	)
 }
 
 func (h *HandbookHandler) WaiveEmployeeHandbook(ctx *gin.Context) {
@@ -579,17 +749,27 @@ func (h *HandbookHandler) WaiveEmployeeHandbook(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request body", errCodeInvalidRequest))
 		return
 	}
-	res, err := h.service.WaiveEmployeeHandbook(ctx.Request.Context(), actor, domain.WaiveEmployeeHandbookParams{
-		EmployeeHandbookID: handbookID,
-		Reason:             req.Reason,
-	})
+	res, err := h.service.WaiveEmployeeHandbook(
+		ctx.Request.Context(),
+		actor,
+		domain.WaiveEmployeeHandbookParams{
+			EmployeeHandbookID: handbookID,
+			Reason:             req.Reason,
+		},
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeHandbookNotActive) {
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), errCodeEmployeeHandbookNotActive))
+			ctx.JSON(
+				http.StatusBadRequest,
+				httpapi.Fail(err.Error(), errCodeEmployeeHandbookNotActive),
+			)
 			return
 		}
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusOK, httpapi.OK(toWaivedEmployeeHandbookResponse(res), "Employee handbook waived"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toWaivedEmployeeHandbookResponse(res), "Employee handbook waived"),
+	)
 }

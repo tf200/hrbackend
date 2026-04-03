@@ -17,19 +17,19 @@ type createShiftSwapRequest struct {
 }
 
 type respondShiftSwapRequest struct {
-	Decision string  `json:"decision" binding:"required,oneof=accept reject"`
+	Decision string  `json:"decision"       binding:"required,oneof=accept reject"`
 	Note     *string `json:"note,omitempty"`
 }
 
 type adminDecisionShiftSwapRequest struct {
-	Decision string  `json:"decision" binding:"required,oneof=approve reject"`
+	Decision string  `json:"decision"       binding:"required,oneof=approve reject"`
 	Note     *string `json:"note,omitempty"`
 }
 
 type listShiftSwapRequestsRequest struct {
 	httpapi.PageRequest
-	Status     *string    `form:"status" binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`
-	Filter     *string    `form:"filter" binding:"omitempty,oneof=open to_approve history"`
+	Status     *string    `form:"status"      binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`
+	Filter     *string    `form:"filter"      binding:"omitempty,oneof=open to_approve history"`
 	EmployeeID *uuid.UUID `form:"employee_id"`
 }
 
@@ -90,7 +90,9 @@ func toRespondShiftSwapParams(req respondShiftSwapRequest) domain.RespondShiftSw
 	}
 }
 
-func toAdminDecisionShiftSwapParams(req adminDecisionShiftSwapRequest) domain.AdminDecisionShiftSwapRequest {
+func toAdminDecisionShiftSwapParams(
+	req adminDecisionShiftSwapRequest,
+) domain.AdminDecisionShiftSwapRequest {
 	return domain.AdminDecisionShiftSwapRequest{
 		Decision: req.Decision,
 		Note:     req.Note,

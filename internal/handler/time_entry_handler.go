@@ -45,7 +45,10 @@ func (h *TimeEntryHandler) CreateTimeEntry(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toTimeEntryResponse(item), "Time entry created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toTimeEntryResponse(item), "Time entry created successfully"),
+	)
 }
 
 func (h *TimeEntryHandler) CreateTimeEntryByAdmin(ctx *gin.Context) {
@@ -73,7 +76,10 @@ func (h *TimeEntryHandler) CreateTimeEntryByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toTimeEntryResponse(item), "Time entry created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toTimeEntryResponse(item), "Time entry created successfully"),
+	)
 }
 
 func (h *TimeEntryHandler) DecideTimeEntryByAdmin(ctx *gin.Context) {
@@ -95,13 +101,21 @@ func (h *TimeEntryHandler) DecideTimeEntryByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.DecideTimeEntryByAdmin(ctx.Request.Context(), adminEmployeeID, timeEntryID, toDecideTimeEntryParams(req))
+	item, err := h.service.DecideTimeEntryByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		timeEntryID,
+		toDecideTimeEntryParams(req),
+	)
 	if err != nil {
 		ctx.JSON(mapTimeEntryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toTimeEntryResponse(item), "Time entry decided successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toTimeEntryResponse(item), "Time entry decided successfully"),
+	)
 }
 
 func (h *TimeEntryHandler) GetTimeEntryByID(ctx *gin.Context) {
@@ -117,7 +131,10 @@ func (h *TimeEntryHandler) GetTimeEntryByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toTimeEntryResponse(item), "Time entry retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toTimeEntryResponse(item), "Time entry retrieved successfully"),
+	)
 }
 
 func (h *TimeEntryHandler) GetMyTimeEntryByID(ctx *gin.Context) {
@@ -139,7 +156,10 @@ func (h *TimeEntryHandler) GetMyTimeEntryByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toTimeEntryResponse(item), "Time entry retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toTimeEntryResponse(item), "Time entry retrieved successfully"),
+	)
 }
 
 func (h *TimeEntryHandler) ListTimeEntries(ctx *gin.Context) {
@@ -155,7 +175,12 @@ func (h *TimeEntryHandler) ListTimeEntries(ctx *gin.Context) {
 		return
 	}
 
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, toTimeEntryResponses(page.Items), page.TotalCount)
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toTimeEntryResponses(page.Items),
+		page.TotalCount,
+	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Time entries retrieved successfully"))
 }
 
@@ -172,13 +197,21 @@ func (h *TimeEntryHandler) ListMyTimeEntries(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListMyTimeEntries(ctx.Request.Context(), toListMyTimeEntriesParams(employeeID, req))
+	page, err := h.service.ListMyTimeEntries(
+		ctx.Request.Context(),
+		toListMyTimeEntriesParams(employeeID, req),
+	)
 	if err != nil {
 		ctx.JSON(mapTimeEntryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, toTimeEntryResponses(page.Items), page.TotalCount)
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toTimeEntryResponses(page.Items),
+		page.TotalCount,
+	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Time entries retrieved successfully"))
 }
 

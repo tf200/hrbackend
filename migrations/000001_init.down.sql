@@ -50,11 +50,17 @@ DROP TABLE IF EXISTS shift_swap_requests;
 -- Late arrivals table
 DROP TABLE IF EXISTS late_arrivals;
 
+-- Payroll tables
+DROP TABLE IF EXISTS pay_period_line_items;
+
 -- Time entry table
 DROP TABLE IF EXISTS time_entries;
 
+DROP TABLE IF EXISTS pay_periods;
+
 -- Schedule tables
 DROP TABLE IF EXISTS schedules;
+DROP TABLE IF EXISTS national_holidays;
 
 -- Handbook tables (onboarding)
 DROP TABLE IF EXISTS employee_handbook_step_progress;
@@ -112,6 +118,7 @@ DROP TYPE IF EXISTS time_entry_status_enum;
 DROP TYPE IF EXISTS payout_request_status_enum;
 DROP TYPE IF EXISTS leave_request_status_enum;
 DROP TYPE IF EXISTS leave_request_type_enum;
+DROP TYPE IF EXISTS pay_period_status_enum;
 DROP TYPE IF EXISTS shift_swap_status_enum;
 DROP TYPE IF EXISTS handbook_assignment_event_enum;
 DROP TYPE IF EXISTS handbook_step_status_enum;
@@ -123,3 +130,4 @@ DROP TYPE IF EXISTS gender_enum;
 DROP TYPE IF EXISTS permission_override_effect;
 DROP TYPE IF EXISTS notification_type_enum;
 DROP TYPE IF EXISTS location_type_enum;
+DROP TYPE IF EXISTS irregular_hours_profile_enum;

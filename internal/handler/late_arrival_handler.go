@@ -18,10 +18,30 @@ func RegisterLateArrivalRoutes(
 	auth gin.HandlerFunc,
 	requirePermission func(string) gin.HandlerFunc,
 ) {
-	rg.POST("/late-arrivals", auth, requirePermission("LATE_ARRIVAL.CREATE"), handler.CreateLateArrival)
-	rg.POST("/late-arrivals/admin", auth, requirePermission("LATE_ARRIVAL.CREATE_ALL"), handler.CreateLateArrivalByAdmin)
-	rg.GET("/late-arrivals/my", auth, requirePermission("LATE_ARRIVAL.VIEW"), handler.ListMyLateArrivals)
-	rg.GET("/late-arrivals", auth, requirePermission("LATE_ARRIVAL.VIEW_ALL"), handler.ListLateArrivals)
+	rg.POST(
+		"/late-arrivals",
+		auth,
+		requirePermission("LATE_ARRIVAL.CREATE"),
+		handler.CreateLateArrival,
+	)
+	rg.POST(
+		"/late-arrivals/admin",
+		auth,
+		requirePermission("LATE_ARRIVAL.CREATE_ALL"),
+		handler.CreateLateArrivalByAdmin,
+	)
+	rg.GET(
+		"/late-arrivals/my",
+		auth,
+		requirePermission("LATE_ARRIVAL.VIEW"),
+		handler.ListMyLateArrivals,
+	)
+	rg.GET(
+		"/late-arrivals",
+		auth,
+		requirePermission("LATE_ARRIVAL.VIEW_ALL"),
+		handler.ListLateArrivals,
+	)
 }
 
 type LateArrivalHandler struct {
@@ -57,7 +77,10 @@ func (h *LateArrivalHandler) CreateLateArrival(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toCreateLateArrivalResponse(item), "Late arrival created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toCreateLateArrivalResponse(item), "Late arrival created successfully"),
+	)
 }
 
 func (h *LateArrivalHandler) CreateLateArrivalByAdmin(ctx *gin.Context) {
@@ -85,7 +108,10 @@ func (h *LateArrivalHandler) CreateLateArrivalByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toCreateLateArrivalResponse(item), "Late arrival created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toCreateLateArrivalResponse(item), "Late arrival created successfully"),
+	)
 }
 
 func (h *LateArrivalHandler) ListMyLateArrivals(ctx *gin.Context) {

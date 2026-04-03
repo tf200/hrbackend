@@ -18,11 +18,36 @@ func RegisterShiftSwapRoutes(
 	auth gin.HandlerFunc,
 	requirePermission func(string) gin.HandlerFunc,
 ) {
-	rg.POST("/shift-swaps", auth, requirePermission("SCHEDULE_SWAP.REQUEST"), handler.CreateShiftSwapRequest)
-	rg.POST("/shift-swaps/:id/respond", auth, requirePermission("SCHEDULE_SWAP.RESPOND"), handler.RespondShiftSwapRequest)
-	rg.POST("/shift-swaps/:id/admin-decision", auth, requirePermission("SCHEDULE_SWAP.APPROVE"), handler.AdminDecisionShiftSwapRequest)
-	rg.GET("/shift-swaps", auth, requirePermission("SCHEDULE_SWAP.APPROVE"), handler.ListShiftSwapRequests)
-	rg.GET("/shift-swaps/my", auth, requirePermission("SCHEDULE_SWAP.VIEW"), handler.ListMyShiftSwapRequests)
+	rg.POST(
+		"/shift-swaps",
+		auth,
+		requirePermission("SCHEDULE_SWAP.REQUEST"),
+		handler.CreateShiftSwapRequest,
+	)
+	rg.POST(
+		"/shift-swaps/:id/respond",
+		auth,
+		requirePermission("SCHEDULE_SWAP.RESPOND"),
+		handler.RespondShiftSwapRequest,
+	)
+	rg.POST(
+		"/shift-swaps/:id/admin-decision",
+		auth,
+		requirePermission("SCHEDULE_SWAP.APPROVE"),
+		handler.AdminDecisionShiftSwapRequest,
+	)
+	rg.GET(
+		"/shift-swaps",
+		auth,
+		requirePermission("SCHEDULE_SWAP.APPROVE"),
+		handler.ListShiftSwapRequests,
+	)
+	rg.GET(
+		"/shift-swaps/my",
+		auth,
+		requirePermission("SCHEDULE_SWAP.VIEW"),
+		handler.ListMyShiftSwapRequests,
+	)
 }
 
 type ShiftSwapHandler struct {
@@ -46,18 +71,25 @@ func (h *ShiftSwapHandler) CreateShiftSwapRequest(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.CreateShiftSwapRequest(ctx.Request.Context(), employeeID, &domain.CreateShiftSwapRequest{
-		RecipientEmployeeID: req.RecipientEmployeeID,
-		RequesterScheduleID: req.RequesterScheduleID,
-		RecipientScheduleID: req.RecipientScheduleID,
-		ExpiresAt:           req.ExpiresAt,
-	})
+	item, err := h.service.CreateShiftSwapRequest(
+		ctx.Request.Context(),
+		employeeID,
+		&domain.CreateShiftSwapRequest{
+			RecipientEmployeeID: req.RecipientEmployeeID,
+			RequesterScheduleID: req.RequesterScheduleID,
+			RecipientScheduleID: req.RecipientScheduleID,
+			ExpiresAt:           req.ExpiresAt,
+		},
+	)
 	if err != nil {
 		ctx.JSON(mapShiftSwapErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toCreateShiftSwapResponse(item), "Shift swap request created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toCreateShiftSwapResponse(item), "Shift swap request created successfully"),
+	)
 }
 
 func (h *ShiftSwapHandler) RespondShiftSwapRequest(ctx *gin.Context) {
@@ -79,16 +111,24 @@ func (h *ShiftSwapHandler) RespondShiftSwapRequest(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.RespondToShiftSwapRequest(ctx.Request.Context(), employeeID, swapID, &domain.RespondShiftSwapRequest{
-		Decision: req.Decision,
-		Note:     req.Note,
-	})
+	item, err := h.service.RespondToShiftSwapRequest(
+		ctx.Request.Context(),
+		employeeID,
+		swapID,
+		&domain.RespondShiftSwapRequest{
+			Decision: req.Decision,
+			Note:     req.Note,
+		},
+	)
 	if err != nil {
 		ctx.JSON(mapShiftSwapErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toShiftSwapResponse(*item), "Shift swap request response recorded successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toShiftSwapResponse(*item), "Shift swap request response recorded successfully"),
+	)
 }
 
 func (h *ShiftSwapHandler) AdminDecisionShiftSwapRequest(ctx *gin.Context) {
@@ -110,16 +150,27 @@ func (h *ShiftSwapHandler) AdminDecisionShiftSwapRequest(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.AdminDecisionShiftSwapRequest(ctx.Request.Context(), employeeID, swapID, &domain.AdminDecisionShiftSwapRequest{
-		Decision: req.Decision,
-		Note:     req.Note,
-	})
+	item, err := h.service.AdminDecisionShiftSwapRequest(
+		ctx.Request.Context(),
+		employeeID,
+		swapID,
+		&domain.AdminDecisionShiftSwapRequest{
+			Decision: req.Decision,
+			Note:     req.Note,
+		},
+	)
 	if err != nil {
 		ctx.JSON(mapShiftSwapErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toShiftSwapResponse(*item), "Shift swap request admin decision recorded successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toShiftSwapResponse(*item),
+			"Shift swap request admin decision recorded successfully",
+		),
+	)
 }
 
 func (h *ShiftSwapHandler) ListMyShiftSwapRequests(ctx *gin.Context) {

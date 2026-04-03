@@ -15,15 +15,28 @@ func NewNoop() *NoopClient {
 	return &NoopClient{}
 }
 
-func (n *NoopClient) Upload(ctx context.Context, file multipart.File, filename string, contentType string) (string, int64, error) {
+func (n *NoopClient) Upload(
+	ctx context.Context,
+	file multipart.File,
+	filename string,
+	contentType string,
+) (string, int64, error) {
 	return "", 0, ErrBucketDisabled
 }
 
-func (n *NoopClient) GeneratePresignedURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (n *NoopClient) GeneratePresignedURL(
+	ctx context.Context,
+	objectKey string,
+	expiry time.Duration,
+) (string, error) {
 	return "", ErrBucketDisabled
 }
 
-func (n *NoopClient) GeneratePresignedUploadURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (n *NoopClient) GeneratePresignedUploadURL(
+	ctx context.Context,
+	objectKey string,
+	expiry time.Duration,
+) (string, error) {
 	return "", ErrBucketDisabled
 }
 
@@ -31,7 +44,10 @@ func (n *NoopClient) GetFileInfo(ctx context.Context, objectKey string) (int64, 
 	return 0, ErrBucketDisabled
 }
 
-func (n *NoopClient) GetFileInfos(ctx context.Context, objectKeys []string) (map[string]int64, error) {
+func (n *NoopClient) GetFileInfos(
+	ctx context.Context,
+	objectKeys []string,
+) (map[string]int64, error) {
 	return nil, ErrBucketDisabled
 }
 

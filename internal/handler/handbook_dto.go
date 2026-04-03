@@ -17,7 +17,7 @@ type completeMyHandbookStepRequest struct {
 
 type createHandbookTemplateRequest struct {
 	DepartmentID uuid.UUID `json:"department_id" binding:"required"`
-	Title        string    `json:"title" binding:"required"`
+	Title        string    `json:"title"         binding:"required"`
 	Description  *string   `json:"description"`
 }
 
@@ -36,9 +36,9 @@ type publishHandbookTemplateRequest struct {
 
 type createHandbookStepRequest struct {
 	TemplateID uuid.UUID       `json:"template_id" binding:"required"`
-	SortOrder  int32           `json:"sort_order" binding:"required"`
-	Kind       string          `json:"kind" binding:"required,oneof=content ack link quiz rich_text"`
-	Title      string          `json:"title" binding:"required"`
+	SortOrder  int32           `json:"sort_order"  binding:"required"`
+	Kind       string          `json:"kind"        binding:"required,oneof=content ack link quiz rich_text"`
+	Title      string          `json:"title"       binding:"required"`
 	Body       *string         `json:"body"`
 	Content    json.RawMessage `json:"content"`
 	IsRequired *bool           `json:"is_required"`
@@ -223,7 +223,9 @@ type employeeHandbookDetailsResponse struct {
 	Steps              []myHandbookStepResponse `json:"steps"`
 }
 
-func toCreateTemplateForDepartmentParams(req createHandbookTemplateRequest) domain.CreateTemplateForDepartmentParams {
+func toCreateTemplateForDepartmentParams(
+	req createHandbookTemplateRequest,
+) domain.CreateTemplateForDepartmentParams {
 	return domain.CreateTemplateForDepartmentParams{
 		DepartmentID: req.DepartmentID,
 		Title:        req.Title,
@@ -231,7 +233,9 @@ func toCreateTemplateForDepartmentParams(req createHandbookTemplateRequest) doma
 	}
 }
 
-func toCloneTemplateToDraftParams(req cloneHandbookTemplateRequest) domain.CloneTemplateToDraftParams {
+func toCloneTemplateToDraftParams(
+	req cloneHandbookTemplateRequest,
+) domain.CloneTemplateToDraftParams {
 	return domain.CloneTemplateToDraftParams{SourceTemplateID: req.SourceTemplateID}
 }
 
@@ -251,14 +255,18 @@ func toCreateHandbookStepParams(req createHandbookStepRequest) domain.CreateStep
 	}
 }
 
-func toAssignHandbookTemplateParams(req assignHandbookTemplateRequest) domain.AssignTemplateToEmployeeParams {
+func toAssignHandbookTemplateParams(
+	req assignHandbookTemplateRequest,
+) domain.AssignTemplateToEmployeeParams {
 	return domain.AssignTemplateToEmployeeParams{
 		EmployeeID: req.EmployeeID,
 		TemplateID: req.TemplateID,
 	}
 }
 
-func toListEmployeeHandbookAssignmentsParams(req listEmployeeHandbookAssignmentsRequest) domain.ListEmployeeHandbookAssignmentsParams {
+func toListEmployeeHandbookAssignmentsParams(
+	req listEmployeeHandbookAssignmentsRequest,
+) domain.ListEmployeeHandbookAssignmentsParams {
 	params := req.Params()
 	return domain.ListEmployeeHandbookAssignmentsParams{
 		Limit:        params.Limit,
@@ -269,7 +277,9 @@ func toListEmployeeHandbookAssignmentsParams(req listEmployeeHandbookAssignments
 	}
 }
 
-func toListEligibleEmployeesParams(req listEligibleEmployeesRequest) domain.ListEligibleEmployeesParams {
+func toListEligibleEmployeesParams(
+	req listEligibleEmployeesRequest,
+) domain.ListEligibleEmployeesParams {
 	params := req.Params()
 	return domain.ListEligibleEmployeesParams{
 		Limit:        params.Limit,
@@ -358,7 +368,9 @@ func toStartedHandbookResponse(item *domain.StartedHandbook) startedHandbookResp
 	}
 }
 
-func toCompletedHandbookStepResponse(item *domain.CompletedHandbookStep) completedHandbookStepResponse {
+func toCompletedHandbookStepResponse(
+	item *domain.CompletedHandbookStep,
+) completedHandbookStepResponse {
 	return completedHandbookStepResponse{
 		HandbookID:     item.HandbookID,
 		StepID:         item.StepID,
@@ -368,7 +380,9 @@ func toCompletedHandbookStepResponse(item *domain.CompletedHandbookStep) complet
 	}
 }
 
-func toEmployeeHandbookAssignmentResponse(item *domain.EmployeeHandbookAssignment) employeeHandbookAssignmentResponse {
+func toEmployeeHandbookAssignmentResponse(
+	item *domain.EmployeeHandbookAssignment,
+) employeeHandbookAssignmentResponse {
 	return employeeHandbookAssignmentResponse{
 		EmployeeHandbookID: item.EmployeeHandbookID,
 		EmployeeID:         item.EmployeeID,
@@ -382,7 +396,9 @@ func toEmployeeHandbookAssignmentResponse(item *domain.EmployeeHandbookAssignmen
 	}
 }
 
-func toWaivedEmployeeHandbookResponse(item *domain.WaivedEmployeeHandbook) waivedEmployeeHandbookResponse {
+func toWaivedEmployeeHandbookResponse(
+	item *domain.WaivedEmployeeHandbook,
+) waivedEmployeeHandbookResponse {
 	return waivedEmployeeHandbookResponse{
 		EmployeeHandbookID: item.EmployeeHandbookID,
 		EmployeeID:         item.EmployeeID,
@@ -391,7 +407,9 @@ func toWaivedEmployeeHandbookResponse(item *domain.WaivedEmployeeHandbook) waive
 	}
 }
 
-func toHandbookAssignmentHistoryEntryResponse(item domain.HandbookAssignmentHistoryEntry) handbookAssignmentHistoryEntryResponse {
+func toHandbookAssignmentHistoryEntryResponse(
+	item domain.HandbookAssignmentHistoryEntry,
+) handbookAssignmentHistoryEntryResponse {
 	return handbookAssignmentHistoryEntryResponse{
 		ID:                 item.ID,
 		EmployeeHandbookID: item.EmployeeHandbookID,
@@ -405,7 +423,9 @@ func toHandbookAssignmentHistoryEntryResponse(item domain.HandbookAssignmentHist
 	}
 }
 
-func toEmployeeHandbookAssignmentSummaryResponse(item domain.EmployeeHandbookAssignmentSummary) employeeHandbookAssignmentSummaryResponse {
+func toEmployeeHandbookAssignmentSummaryResponse(
+	item domain.EmployeeHandbookAssignmentSummary,
+) employeeHandbookAssignmentSummaryResponse {
 	return employeeHandbookAssignmentSummaryResponse{
 		EmployeeID:             item.EmployeeID,
 		FirstName:              item.FirstName,
@@ -436,7 +456,9 @@ func toEligibleEmployeeResponse(item domain.EligibleEmployee) eligibleEmployeeRe
 	}
 }
 
-func toEmployeeHandbookDetailsResponse(item *domain.EmployeeHandbookDetails) employeeHandbookDetailsResponse {
+func toEmployeeHandbookDetailsResponse(
+	item *domain.EmployeeHandbookDetails,
+) employeeHandbookDetailsResponse {
 	steps := make([]myHandbookStepResponse, 0, len(item.Steps))
 	for _, step := range item.Steps {
 		steps = append(steps, toMyHandbookStepResponse(step))

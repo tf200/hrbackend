@@ -22,7 +22,11 @@ type documentSection struct {
 	Lines []string
 }
 
-func buildSectionsPDF(title string, headerLines []string, sections []documentSection) ([]byte, error) {
+func buildSectionsPDF(
+	title string,
+	headerLines []string,
+	sections []documentSection,
+) ([]byte, error) {
 	cfg := config.NewBuilder().
 		WithLeftMargin(12).
 		WithRightMargin(12).
@@ -38,10 +42,16 @@ func buildSectionsPDF(title string, headerLines []string, sections []documentSec
 		Align: align.Center,
 	}))
 
-	m.AddAutoRow(text.NewCol(12, fmt.Sprintf("Generated at: %s", time.Now().Format("2006-01-02 15:04")), props.Text{
-		Size:  9,
-		Align: align.Right,
-	}))
+	m.AddAutoRow(
+		text.NewCol(
+			12,
+			fmt.Sprintf("Generated at: %s", time.Now().Format("2006-01-02 15:04")),
+			props.Text{
+				Size:  9,
+				Align: align.Right,
+			},
+		),
+	)
 
 	for _, line := range headerLines {
 		clean := strings.TrimSpace(line)

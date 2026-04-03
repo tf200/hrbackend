@@ -24,7 +24,13 @@ func isoWeekStartDate(year int, week int, loc *time.Location) (time.Time, error)
 	return week1Start.AddDate(0, 0, (week-1)*7), nil
 }
 
-func (s *ScheduleService) ensureWeekEmpty(ctx context.Context, locationID uuid.UUID, week int32, year int32, locationTZ *time.Location) error {
+func (s *ScheduleService) ensureWeekEmpty(
+	ctx context.Context,
+	locationID uuid.UUID,
+	week int32,
+	year int32,
+	locationTZ *time.Location,
+) error {
 	weekStart, err := isoWeekStartDate(int(year), int(week), locationTZ)
 	if err != nil {
 		return err
@@ -40,7 +46,9 @@ func (s *ScheduleService) ensureWeekEmpty(ctx context.Context, locationID uuid.U
 	return nil
 }
 
-func (s *ScheduleService) validateAutoGenerateRequest(req *domain.AutoGenerateSchedulesRequest) error {
+func (s *ScheduleService) validateAutoGenerateRequest(
+	req *domain.AutoGenerateSchedulesRequest,
+) error {
 	if req.LocationID == uuid.Nil {
 		return fmt.Errorf("location_id is required")
 	}
@@ -56,7 +64,10 @@ func (s *ScheduleService) validateAutoGenerateRequest(req *domain.AutoGenerateSc
 	return nil
 }
 
-func (s *ScheduleService) loadAutoGenerateInputs(ctx context.Context, req *domain.AutoGenerateSchedulesRequest) ([]domain.ScheduleEmployeeContractHours, []domain.ScheduleLocationShift, string, *time.Location, error) {
+func (s *ScheduleService) loadAutoGenerateInputs(
+	ctx context.Context,
+	req *domain.AutoGenerateSchedulesRequest,
+) ([]domain.ScheduleEmployeeContractHours, []domain.ScheduleLocationShift, string, *time.Location, error) {
 	employees, err := s.repository.ListEmployeesWithContractHours(ctx, req.EmployeeIDs)
 	if err != nil {
 		s.logError(ctx, "AutoGenerateSchedules", "failed to fetch employee contract hours", err)
@@ -82,7 +93,13 @@ func (s *ScheduleService) loadAutoGenerateInputs(ctx context.Context, req *domai
 	}
 	locationTZ, err := time.LoadLocation(location.Timezone)
 	if err != nil {
-		s.logError(ctx, "AutoGenerateSchedules", "invalid location timezone", err, zap.String("timezone", location.Timezone))
+		s.logError(
+			ctx,
+			"AutoGenerateSchedules",
+			"invalid location timezone",
+			err,
+			zap.String("timezone", location.Timezone),
+		)
 		return nil, nil, "", nil, fmt.Errorf("invalid location timezone: %w", err)
 	}
 

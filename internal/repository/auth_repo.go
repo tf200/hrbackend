@@ -20,7 +20,10 @@ func NewAuthRepository(queries db.Querier) domain.AuthRepository {
 	return &AuthRepository{queries: queries}
 }
 
-func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*domain.AuthUser, error) {
+func (r *AuthRepository) GetUserByEmail(
+	ctx context.Context,
+	email string,
+) (*domain.AuthUser, error) {
 	row, err := r.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -44,7 +47,11 @@ func (r *AuthRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*domain
 	return toDomainAuthUserFromIDRow(row), nil
 }
 
-func (r *AuthRepository) CreateTemp2FaSecret(ctx context.Context, userID uuid.UUID, secret *string) (int64, error) {
+func (r *AuthRepository) CreateTemp2FaSecret(
+	ctx context.Context,
+	userID uuid.UUID,
+	secret *string,
+) (int64, error) {
 	params := db.CreateTemp2FaSecretParams{
 		ID:                  userID,
 		TwoFactorSecretTemp: secret,
@@ -52,7 +59,12 @@ func (r *AuthRepository) CreateTemp2FaSecret(ctx context.Context, userID uuid.UU
 	return r.queries.CreateTemp2FaSecret(ctx, params)
 }
 
-func (r *AuthRepository) Enable2Fa(ctx context.Context, userID uuid.UUID, secret *string, recoveryCodes []string) (int64, error) {
+func (r *AuthRepository) Enable2Fa(
+	ctx context.Context,
+	userID uuid.UUID,
+	secret *string,
+	recoveryCodes []string,
+) (int64, error) {
 	params := db.Enable2FaParams{
 		ID:              userID,
 		TwoFactorSecret: secret,
@@ -61,7 +73,11 @@ func (r *AuthRepository) Enable2Fa(ctx context.Context, userID uuid.UUID, secret
 	return r.queries.Enable2Fa(ctx, params)
 }
 
-func (r *AuthRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error {
+func (r *AuthRepository) UpdatePassword(
+	ctx context.Context,
+	userID uuid.UUID,
+	password string,
+) error {
 	params := db.UpdatePasswordParams{
 		ID:       userID,
 		Password: password,
@@ -69,7 +85,10 @@ func (r *AuthRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, p
 	return r.queries.UpdatePassword(ctx, params)
 }
 
-func (r *AuthRepository) CreateSession(ctx context.Context, params domain.CreateSessionParams) (*domain.AuthSession, error) {
+func (r *AuthRepository) CreateSession(
+	ctx context.Context,
+	params domain.CreateSessionParams,
+) (*domain.AuthSession, error) {
 	row, err := r.queries.CreateSession(ctx, db.CreateSessionParams{
 		ID:           params.ID,
 		RefreshToken: params.RefreshToken,
@@ -87,7 +106,10 @@ func (r *AuthRepository) CreateSession(ctx context.Context, params domain.Create
 	return toDomainAuthSession(row), nil
 }
 
-func (r *AuthRepository) GetSessionByID(ctx context.Context, id uuid.UUID) (*domain.AuthSession, error) {
+func (r *AuthRepository) GetSessionByID(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.AuthSession, error) {
 	row, err := r.queries.GetSessionByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

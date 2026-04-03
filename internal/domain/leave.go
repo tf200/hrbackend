@@ -143,15 +143,40 @@ type AdjustLeaveBalanceParams struct {
 
 type LeaveTxRepository interface {
 	GetLeaveRequestForUpdate(ctx context.Context, leaveRequestID uuid.UUID) (*LeaveRequest, error)
-	UpdateLeaveRequestEditableFields(ctx context.Context, leaveRequestID uuid.UUID, params UpdateLeaveRequestParams) (*LeaveRequest, error)
-	UpdateLeaveRequestDecision(ctx context.Context, leaveRequestID uuid.UUID, status string, decisionNote *string, decidedByEmployeeID uuid.UUID) (*LeaveRequest, error)
+	UpdateLeaveRequestEditableFields(
+		ctx context.Context,
+		leaveRequestID uuid.UUID,
+		params UpdateLeaveRequestParams,
+	) (*LeaveRequest, error)
+	UpdateLeaveRequestDecision(
+		ctx context.Context,
+		leaveRequestID uuid.UUID,
+		status string,
+		decisionNote *string,
+		decidedByEmployeeID uuid.UUID,
+	) (*LeaveRequest, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
 	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
 	GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error)
-	GetLeaveBalanceForUpdate(ctx context.Context, employeeID uuid.UUID, year int32) (*LeaveBalance, error)
-	ApplyLeaveBalanceDeduction(ctx context.Context, balanceID uuid.UUID, extraHours, legalHours int32) (*LeaveBalance, error)
-	ApplyLeaveBalanceTotalAdjustment(ctx context.Context, balanceID uuid.UUID, legalHoursDelta, extraHoursDelta int32) (*LeaveBalance, error)
-	CreateLeaveBalanceAdjustmentAudit(ctx context.Context, params CreateLeaveBalanceAdjustmentAuditParams) error
+	GetLeaveBalanceForUpdate(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		year int32,
+	) (*LeaveBalance, error)
+	ApplyLeaveBalanceDeduction(
+		ctx context.Context,
+		balanceID uuid.UUID,
+		extraHours, legalHours int32,
+	) (*LeaveBalance, error)
+	ApplyLeaveBalanceTotalAdjustment(
+		ctx context.Context,
+		balanceID uuid.UUID,
+		legalHoursDelta, extraHoursDelta int32,
+	) (*LeaveBalance, error)
+	CreateLeaveBalanceAdjustmentAudit(
+		ctx context.Context,
+		params CreateLeaveBalanceAdjustmentAuditParams,
+	) error
 }
 
 type CreateLeaveBalanceAdjustmentAuditParams struct {
@@ -172,25 +197,70 @@ type LeaveRepository interface {
 	WithTx(ctx context.Context, fn func(tx LeaveTxRepository) error) error
 	CreateLeaveRequest(ctx context.Context, params CreateLeaveRequestParams) (*LeaveRequest, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
-	ListMyLeaveRequests(ctx context.Context, params ListMyLeaveRequestsParams) (*LeaveRequestPage, error)
-	ListLeaveRequests(ctx context.Context, params ListLeaveRequestsParams) (*LeaveRequestPage, error)
+	ListMyLeaveRequests(
+		ctx context.Context,
+		params ListMyLeaveRequestsParams,
+	) (*LeaveRequestPage, error)
+	ListLeaveRequests(
+		ctx context.Context,
+		params ListLeaveRequestsParams,
+	) (*LeaveRequestPage, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (*LeaveRequestStats, error)
 	GetLeaveRequestStats(ctx context.Context) (*LeaveRequestStats, error)
-	ListLeaveBalances(ctx context.Context, params ListLeaveBalancesParams) (*LeaveBalancePage, error)
-	ListMyLeaveBalances(ctx context.Context, params ListMyLeaveBalancesParams) (*LeaveBalancePage, error)
+	ListLeaveBalances(
+		ctx context.Context,
+		params ListLeaveBalancesParams,
+	) (*LeaveBalancePage, error)
+	ListMyLeaveBalances(
+		ctx context.Context,
+		params ListMyLeaveBalancesParams,
+	) (*LeaveBalancePage, error)
 }
 
 type LeaveService interface {
-	CreateLeaveRequest(ctx context.Context, actorEmployeeID uuid.UUID, params CreateLeaveRequestParams) (*LeaveRequest, error)
-	CreateLeaveRequestByAdmin(ctx context.Context, adminEmployeeID uuid.UUID, params CreateLeaveRequestParams) (*LeaveRequest, error)
-	UpdateLeaveRequest(ctx context.Context, actorEmployeeID, leaveRequestID uuid.UUID, params UpdateLeaveRequestParams) (*LeaveRequest, error)
-	UpdateLeaveRequestByAdmin(ctx context.Context, adminEmployeeID, leaveRequestID uuid.UUID, params UpdateLeaveRequestParams, adminUpdateNote string) (*LeaveRequest, error)
-	DecideLeaveRequestByAdmin(ctx context.Context, adminEmployeeID, leaveRequestID uuid.UUID, params DecideLeaveRequestParams) (*LeaveRequest, error)
-	ListMyLeaveRequests(ctx context.Context, params ListMyLeaveRequestsParams) (*LeaveRequestPage, error)
-	ListLeaveRequests(ctx context.Context, params ListLeaveRequestsParams) (*LeaveRequestPage, error)
+	CreateLeaveRequest(
+		ctx context.Context,
+		actorEmployeeID uuid.UUID,
+		params CreateLeaveRequestParams,
+	) (*LeaveRequest, error)
+	CreateLeaveRequestByAdmin(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		params CreateLeaveRequestParams,
+	) (*LeaveRequest, error)
+	UpdateLeaveRequest(
+		ctx context.Context,
+		actorEmployeeID, leaveRequestID uuid.UUID,
+		params UpdateLeaveRequestParams,
+	) (*LeaveRequest, error)
+	UpdateLeaveRequestByAdmin(
+		ctx context.Context,
+		adminEmployeeID, leaveRequestID uuid.UUID,
+		params UpdateLeaveRequestParams,
+		adminUpdateNote string,
+	) (*LeaveRequest, error)
+	DecideLeaveRequestByAdmin(
+		ctx context.Context,
+		adminEmployeeID, leaveRequestID uuid.UUID,
+		params DecideLeaveRequestParams,
+	) (*LeaveRequest, error)
+	ListMyLeaveRequests(
+		ctx context.Context,
+		params ListMyLeaveRequestsParams,
+	) (*LeaveRequestPage, error)
+	ListLeaveRequests(
+		ctx context.Context,
+		params ListLeaveRequestsParams,
+	) (*LeaveRequestPage, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (*LeaveRequestStats, error)
 	GetLeaveRequestStats(ctx context.Context) (*LeaveRequestStats, error)
-	ListLeaveBalances(ctx context.Context, params ListLeaveBalancesParams) (*LeaveBalancePage, error)
-	ListMyLeaveBalances(ctx context.Context, params ListMyLeaveBalancesParams) (*LeaveBalancePage, error)
+	ListLeaveBalances(
+		ctx context.Context,
+		params ListLeaveBalancesParams,
+	) (*LeaveBalancePage, error)
+	ListMyLeaveBalances(
+		ctx context.Context,
+		params ListMyLeaveBalancesParams,
+	) (*LeaveBalancePage, error)
 	AdjustLeaveBalance(ctx context.Context, params AdjustLeaveBalanceParams) (*LeaveBalance, error)
 }

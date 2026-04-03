@@ -15,7 +15,7 @@ type listDepartmentsRequest struct {
 }
 
 type createDepartmentRequest struct {
-	Name                     string     `json:"name" binding:"required"`
+	Name                     string     `json:"name"                        binding:"required"`
 	Description              *string    `json:"description"`
 	DepartmentHeadEmployeeID *uuid.UUID `json:"department_head_employee_id"`
 }

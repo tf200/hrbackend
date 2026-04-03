@@ -37,12 +37,19 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Login(ctx.Request.Context(), toLoginParams(req), ctx.ClientIP(), ctx.Request.UserAgent())
+	result, err := h.service.Login(
+		ctx.Request.Context(),
+		toLoginParams(req),
+		ctx.ClientIP(),
+		ctx.Request.UserAgent(),
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrTooManyAttempts):
 			ctx.JSON(http.StatusTooManyRequests, httpapi.Fail(err.Error(), ""))
-		case errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrUserNotFound), errors.Is(err, domain.ErrUnauthorized):
+		case errors.Is(err, domain.ErrInvalidCredentials),
+			errors.Is(err, domain.ErrUserNotFound),
+			errors.Is(err, domain.ErrUnauthorized):
 			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to login", ""))
@@ -65,7 +72,10 @@ func (h *AuthHandler) RefreshToken(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, domain.ErrSessionNotFound):
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
-		case errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrUnauthorized), errors.Is(err, domain.ErrInvalidToken), errors.Is(err, domain.ErrExpiredToken):
+		case errors.Is(err, domain.ErrInvalidCredentials),
+			errors.Is(err, domain.ErrUnauthorized),
+			errors.Is(err, domain.ErrInvalidToken),
+			errors.Is(err, domain.ErrExpiredToken):
 			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to refresh token", ""))
@@ -73,7 +83,10 @@ func (h *AuthHandler) RefreshToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toRefreshTokenResponse(result), "access token refreshed successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toRefreshTokenResponse(result), "access token refreshed successfully"),
+	)
 }
 
 func (h *AuthHandler) Logout(ctx *gin.Context) {
@@ -105,12 +118,21 @@ func (h *AuthHandler) Verify2FA(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Verify2FA(ctx.Request.Context(), req.Code, req.TempToken, ctx.ClientIP(), ctx.Request.UserAgent())
+	result, err := h.service.Verify2FA(
+		ctx.Request.Context(),
+		req.Code,
+		req.TempToken,
+		ctx.ClientIP(),
+		ctx.Request.UserAgent(),
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrTooManyAttempts):
 			ctx.JSON(http.StatusTooManyRequests, httpapi.Fail(err.Error(), ""))
-		case errors.Is(err, domain.ErrInvalidTwoFACode), errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrSessionNotFound), errors.Is(err, domain.ErrUnauthorized):
+		case errors.Is(err, domain.ErrInvalidTwoFACode),
+			errors.Is(err, domain.ErrInvalidCredentials),
+			errors.Is(err, domain.ErrSessionNotFound),
+			errors.Is(err, domain.ErrUnauthorized):
 			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to verify 2FA", ""))
@@ -139,7 +161,9 @@ func (h *AuthHandler) Setup2FA(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
-		case errors.Is(err, domain.ErrTwoFaAlreadyEnabled), errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrUnauthorized):
+		case errors.Is(err, domain.ErrTwoFaAlreadyEnabled),
+			errors.Is(err, domain.ErrInvalidCredentials),
+			errors.Is(err, domain.ErrUnauthorized):
 			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to setup 2FA", ""))
@@ -168,7 +192,8 @@ func (h *AuthHandler) Enable2FA(ctx *gin.Context) {
 		switch {
 		case errors.Is(err, domain.ErrUserNotFound):
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
-		case errors.Is(err, domain.ErrTwoFaAlreadyEnabled), errors.Is(err, domain.ErrInvalidTwoFACode):
+		case errors.Is(err, domain.ErrTwoFaAlreadyEnabled),
+			errors.Is(err, domain.ErrInvalidTwoFACode):
 			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to enable 2FA", ""))
@@ -192,10 +217,17 @@ func (h *AuthHandler) ChangePassword(ctx *gin.Context) {
 		return
 	}
 
-	err := h.service.ChangePassword(ctx.Request.Context(), payload.UserID, req.OldPassword, req.NewPassword)
+	err := h.service.ChangePassword(
+		ctx.Request.Context(),
+		payload.UserID,
+		req.OldPassword,
+		req.NewPassword,
+	)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrUserNotFound), errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrUnauthorized):
+		case errors.Is(err, domain.ErrUserNotFound),
+			errors.Is(err, domain.ErrInvalidCredentials),
+			errors.Is(err, domain.ErrUnauthorized):
 			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 		default:
 			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to change password", ""))

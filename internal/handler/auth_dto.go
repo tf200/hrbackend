@@ -7,15 +7,15 @@ import (
 )
 
 type loginRequest struct {
-	Email    string `json:"email" binding:"required,email" example:"testemail@gmail.com"`
-	Password string `json:"password" binding:"required" example:"t2aha000"`
+	Email    string `json:"email"    binding:"required,email" example:"testemail@gmail.com"`
+	Password string `json:"password" binding:"required"       example:"t2aha000"`
 }
 
 type loginResponse struct {
-	RefreshToken  string `json:"refresh" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-	AccessToken   string `json:"access" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken  string `json:"refresh"      example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	AccessToken   string `json:"access"       example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	RequiresTwoFA bool   `json:"requires_2fa" example:"false"`
-	TempToken     string `json:"temp_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	TempToken     string `json:"temp_token"   example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }
 
 type refreshTokenRequest struct {
@@ -32,7 +32,7 @@ type logoutResponse struct {
 
 type verify2FARequest struct {
 	Code      string `json:"validation_code" binding:"required"`
-	TempToken string `json:"temp_token" binding:"required"`
+	TempToken string `json:"temp_token"      binding:"required"`
 }
 
 type setup2FARequest struct {
@@ -41,7 +41,7 @@ type setup2FARequest struct {
 
 type setup2FAResponse struct {
 	QRCode string `json:"qr_code_base64" example:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."`
-	Secret string `json:"secret" example:"JBSWY3DPEHPK3PXP"`
+	Secret string `json:"secret"         example:"JBSWY3DPEHPK3PXP"`
 }
 
 type enable2FARequest struct {

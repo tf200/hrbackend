@@ -15,12 +15,12 @@ type listOrganizationsRequest struct {
 }
 
 type createOrganizationRequest struct {
-	Name                string  `json:"name" binding:"required"`
-	Street              string  `json:"street" binding:"required"`
-	HouseNumber         string  `json:"house_number" binding:"required"`
+	Name                string  `json:"name"                  binding:"required"`
+	Street              string  `json:"street"                binding:"required"`
+	HouseNumber         string  `json:"house_number"          binding:"required"`
 	HouseNumberAddition *string `json:"house_number_addition"`
-	PostalCode          string  `json:"postal_code" binding:"required"`
-	City                string  `json:"city" binding:"required"`
+	PostalCode          string  `json:"postal_code"           binding:"required"`
+	City                string  `json:"city"                  binding:"required"`
 	Email               *string `json:"email"`
 	KvkNumber           *string `json:"kvk_number"`
 	BtwNumber           *string `json:"btw_number"`
@@ -58,12 +58,12 @@ type deleteOrganizationResponse struct {
 }
 
 type createOrganizationLocationRequest struct {
-	Name                string  `json:"name" binding:"required"`
-	Street              string  `json:"street" binding:"required"`
-	HouseNumber         string  `json:"house_number" binding:"required"`
+	Name                string  `json:"name"                  binding:"required"`
+	Street              string  `json:"street"                binding:"required"`
+	HouseNumber         string  `json:"house_number"          binding:"required"`
 	HouseNumberAddition *string `json:"house_number_addition"`
-	PostalCode          string  `json:"postal_code" binding:"required"`
-	City                string  `json:"city" binding:"required"`
+	PostalCode          string  `json:"postal_code"           binding:"required"`
+	City                string  `json:"city"                  binding:"required"`
 }
 
 type createOrganizationLocationResponse struct {
@@ -102,9 +102,9 @@ type deleteLocationResponse struct {
 }
 
 type createShiftRequest struct {
-	ShiftName string `json:"shift" binding:"required"`
+	ShiftName string `json:"shift"      binding:"required"`
 	StartTime string `json:"start_time" binding:"required"`
-	EndTime   string `json:"end_time" binding:"required"`
+	EndTime   string `json:"end_time"   binding:"required"`
 }
 
 type updateShiftRequest = createShiftRequest
@@ -271,7 +271,9 @@ func toDeleteOrganizationResponse(id uuid.UUID) deleteOrganizationResponse {
 	return deleteOrganizationResponse{ID: id}
 }
 
-func toCreateOrganizationLocationParams(req createOrganizationLocationRequest) domain.CreateOrganizationLocationParams {
+func toCreateOrganizationLocationParams(
+	req createOrganizationLocationRequest,
+) domain.CreateOrganizationLocationParams {
 	return domain.CreateOrganizationLocationParams{
 		Name:                req.Name,
 		Street:              req.Street,
@@ -282,7 +284,9 @@ func toCreateOrganizationLocationParams(req createOrganizationLocationRequest) d
 	}
 }
 
-func toCreateOrganizationLocationResponse(location *domain.OrganizationLocation) createOrganizationLocationResponse {
+func toCreateOrganizationLocationResponse(
+	location *domain.OrganizationLocation,
+) createOrganizationLocationResponse {
 	return createOrganizationLocationResponse{
 		ID:                  location.ID,
 		Name:                location.Name,
@@ -357,7 +361,9 @@ func toUpdateShiftResponse(shift *domain.OrganizationLocationShift) updateShiftR
 	return toCreateShiftResponse(shift)
 }
 
-func toGetOrganizationCountsResponse(counts *domain.OrganizationCounts) getOrganizationCountsResponse {
+func toGetOrganizationCountsResponse(
+	counts *domain.OrganizationCounts,
+) getOrganizationCountsResponse {
 	return getOrganizationCountsResponse{
 		OrganizationID:   counts.OrganizationID,
 		OrganizationName: counts.OrganizationName,
@@ -366,7 +372,9 @@ func toGetOrganizationCountsResponse(counts *domain.OrganizationCounts) getOrgan
 	}
 }
 
-func toGetGlobalOrganizationCountsResponse(counts *domain.GlobalOrganizationCounts) getGlobalOrganizationCountsResponse {
+func toGetGlobalOrganizationCountsResponse(
+	counts *domain.GlobalOrganizationCounts,
+) getGlobalOrganizationCountsResponse {
 	return getGlobalOrganizationCountsResponse{
 		TotalLocations: counts.TotalLocations,
 		TotalEmployees: counts.TotalEmployees,
@@ -389,7 +397,10 @@ func toListOrganizationsResponse(organization domain.Organization) listOrganizat
 	}
 }
 
-func toListOrganizationLocationsParams(organizationID uuid.UUID, req listOrganizationLocationsRequest) domain.ListOrganizationLocationsParams {
+func toListOrganizationLocationsParams(
+	organizationID uuid.UUID,
+	req listOrganizationLocationsRequest,
+) domain.ListOrganizationLocationsParams {
 	search := ""
 	if req.Search != nil {
 		search = *req.Search
@@ -416,7 +427,9 @@ func toListAllLocationsParams(req listLocationsRequest) domain.ListAllLocationsP
 	}
 }
 
-func toListOrganizationLocationsResponse(location domain.OrganizationLocation) listOrganizationLocationsResponse {
+func toListOrganizationLocationsResponse(
+	location domain.OrganizationLocation,
+) listOrganizationLocationsResponse {
 	return listOrganizationLocationsResponse{
 		ID:                  location.ID,
 		Name:                location.Name,
@@ -435,7 +448,9 @@ func toListLocationsResponse(location domain.OrganizationLocation) listLocations
 	return toListOrganizationLocationsResponse(location)
 }
 
-func toListOrganizationLocationShiftDTOs(shifts []domain.OrganizationLocationShift) []listOrganizationLocationShiftDTO {
+func toListOrganizationLocationShiftDTOs(
+	shifts []domain.OrganizationLocationShift,
+) []listOrganizationLocationShiftDTO {
 	result := make([]listOrganizationLocationShiftDTO, len(shifts))
 	for i, shift := range shifts {
 		result[i] = listOrganizationLocationShiftDTO{

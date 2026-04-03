@@ -55,7 +55,12 @@ func New(ctx context.Context, cfg Config) (*ObjectStorageClient, error) {
 	}, nil
 }
 
-func (o *ObjectStorageClient) Upload(ctx context.Context, file multipart.File, filename string, contentType string) (string, int64, error) {
+func (o *ObjectStorageClient) Upload(
+	ctx context.Context,
+	file multipart.File,
+	filename string,
+	contentType string,
+) (string, int64, error) {
 	uploadInfo, err := o.client.PutObject(ctx, o.bucket, filename, file, -1, minio.PutObjectOptions{
 		ContentType: contentType,
 	})
@@ -66,7 +71,11 @@ func (o *ObjectStorageClient) Upload(ctx context.Context, file multipart.File, f
 	return uploadInfo.Key, uploadInfo.Size, nil
 }
 
-func (o *ObjectStorageClient) GeneratePresignedURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (o *ObjectStorageClient) GeneratePresignedURL(
+	ctx context.Context,
+	objectKey string,
+	expiry time.Duration,
+) (string, error) {
 	presignedURL, err := o.client.PresignedGetObject(ctx, o.bucket, objectKey, expiry, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
@@ -75,7 +84,11 @@ func (o *ObjectStorageClient) GeneratePresignedURL(ctx context.Context, objectKe
 	return presignedURL.String(), nil
 }
 
-func (o *ObjectStorageClient) GeneratePresignedUploadURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (o *ObjectStorageClient) GeneratePresignedUploadURL(
+	ctx context.Context,
+	objectKey string,
+	expiry time.Duration,
+) (string, error) {
 	presignedURL, err := o.client.PresignedPutObject(ctx, o.bucket, objectKey, expiry)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned upload URL: %w", err)
@@ -93,7 +106,10 @@ func (o *ObjectStorageClient) GetFileInfo(ctx context.Context, objectKey string)
 	return objInfo.Size, nil
 }
 
-func (o *ObjectStorageClient) GetFileInfos(ctx context.Context, objectKeys []string) (map[string]int64, error) {
+func (o *ObjectStorageClient) GetFileInfos(
+	ctx context.Context,
+	objectKeys []string,
+) (map[string]int64, error) {
 	results := make(map[string]int64, len(objectKeys))
 	if len(objectKeys) == 0 {
 		return results, nil
@@ -126,7 +142,12 @@ func (o *ObjectStorageClient) GetFileInfos(ctx context.Context, objectKeys []str
 }
 
 func (o *ObjectStorageClient) Delete(ctx context.Context, objectKey string) error {
-	if err := o.client.RemoveObject(ctx, o.bucket, objectKey, minio.RemoveObjectOptions{}); err != nil {
+	if err := o.client.RemoveObject(
+		ctx,
+		o.bucket,
+		objectKey,
+		minio.RemoveObjectOptions{},
+	); err != nil {
 		return fmt.Errorf("failed to delete object: %w", err)
 	}
 

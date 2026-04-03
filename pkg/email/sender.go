@@ -123,7 +123,11 @@ type ProcessRegistrationForm struct {
 //go:embed templates/process_registration_form.html
 var processRegistrationFormTemplateFS embed.FS
 
-func (b *BrevoConf) SendProcessRegistrationForm(ctx context.Context, to []string, data ProcessRegistrationForm) error {
+func (b *BrevoConf) SendProcessRegistrationForm(
+	ctx context.Context,
+	to []string,
+	data ProcessRegistrationForm,
+) error {
 	if len(to) == 0 {
 		return errors.New("no recipient addresses provided")
 	}
@@ -134,7 +138,10 @@ func (b *BrevoConf) SendProcessRegistrationForm(ctx context.Context, to []string
 		return errors.New("invalid API key")
 	}
 
-	tmpl, err := template.ParseFS(processRegistrationFormTemplateFS, "templates/process_registration_form.html")
+	tmpl, err := template.ParseFS(
+		processRegistrationFormTemplateFS,
+		"templates/process_registration_form.html",
+	)
 	if err != nil {
 		return fmt.Errorf("failed to parse HTML template: %w", err)
 	}
@@ -299,7 +306,13 @@ func (b *BrevoConf) SendIncident(ctx context.Context, to []string, data Incident
 	return nil
 }
 
-func (b *BrevoConf) SendIncidentWithAttachment(ctx context.Context, to []string, data Incident, attachmentName string, attachmentBytes []byte) error {
+func (b *BrevoConf) SendIncidentWithAttachment(
+	ctx context.Context,
+	to []string,
+	data Incident,
+	attachmentName string,
+	attachmentBytes []byte,
+) error {
 	if len(to) == 0 {
 		return errors.New("no recipient addresses provided")
 	}
@@ -373,7 +386,11 @@ func (b *BrevoConf) SendIncidentWithAttachment(ctx context.Context, to []string,
 //go:embed templates/accepted_registration_form.html
 var acceptedRegistrationFormTemplateFS embed.FS
 
-func (b *BrevoConf) SendAcceptedRegistrationForm(ctx context.Context, to []string, data AcceptedRegitrationForm) error {
+func (b *BrevoConf) SendAcceptedRegistrationForm(
+	ctx context.Context,
+	to []string,
+	data AcceptedRegitrationForm,
+) error {
 	if len(to) == 0 {
 		return errors.New("no recipient addresses provided")
 	}
@@ -384,7 +401,10 @@ func (b *BrevoConf) SendAcceptedRegistrationForm(ctx context.Context, to []strin
 		return errors.New("invalid API key")
 	}
 
-	tmpl, err := template.ParseFS(acceptedRegistrationFormTemplateFS, "templates/accepted_registration_form.html")
+	tmpl, err := template.ParseFS(
+		acceptedRegistrationFormTemplateFS,
+		"templates/accepted_registration_form.html",
+	)
 	if err != nil {
 		return fmt.Errorf("failed to parse HTML template: %w", err)
 	}
@@ -432,7 +452,11 @@ func (b *BrevoConf) SendAcceptedRegistrationForm(ctx context.Context, to []strin
 //go:embed templates/client_contract_reminder.html
 var clientContractReminderTemplateFS embed.FS
 
-func (b *BrevoConf) SendClientContractReminder(ctx context.Context, to []string, data ClientContractReminder) error {
+func (b *BrevoConf) SendClientContractReminder(
+	ctx context.Context,
+	to []string,
+	data ClientContractReminder,
+) error {
 	if len(to) == 0 {
 		return errors.New("no recipient addresses provided")
 	}
@@ -443,7 +467,10 @@ func (b *BrevoConf) SendClientContractReminder(ctx context.Context, to []string,
 		return errors.New("invalid API key")
 	}
 
-	tmpl, err := template.ParseFS(clientContractReminderTemplateFS, "templates/client_contract_reminder.html")
+	tmpl, err := template.ParseFS(
+		clientContractReminderTemplateFS,
+		"templates/client_contract_reminder.html",
+	)
 	if err != nil {
 		return fmt.Errorf("failed to parse HTML template: %w", err)
 	}

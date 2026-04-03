@@ -90,15 +90,35 @@ type ListLateArrivalsParams struct {
 }
 
 type LateArrivalRepository interface {
-	ListAssignedSchedulesForEmployeeOnDate(ctx context.Context, employeeID uuid.UUID, arrivalDate time.Time) ([]AssignedScheduleForDate, error)
-	CreateLateArrival(ctx context.Context, params LateArrivalCreateParams, scheduleID uuid.UUID) (*LateArrival, error)
-	ListMyLateArrivals(ctx context.Context, params ListMyLateArrivalsParams) (*LateArrivalPage, error)
+	ListAssignedSchedulesForEmployeeOnDate(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		arrivalDate time.Time,
+	) ([]AssignedScheduleForDate, error)
+	CreateLateArrival(
+		ctx context.Context,
+		params LateArrivalCreateParams,
+		scheduleID uuid.UUID,
+	) (*LateArrival, error)
+	ListMyLateArrivals(
+		ctx context.Context,
+		params ListMyLateArrivalsParams,
+	) (*LateArrivalPage, error)
 	ListLateArrivals(ctx context.Context, params ListLateArrivalsParams) (*LateArrivalPage, error)
 }
 
 type LateArrivalService interface {
-	CreateLateArrival(ctx context.Context, params LateArrivalCreateParams) (*CreateLateArrivalResult, error)
-	CreateLateArrivalByAdmin(ctx context.Context, params LateArrivalCreateParams) (*CreateLateArrivalResult, error)
-	ListMyLateArrivals(ctx context.Context, params ListMyLateArrivalsParams) (*LateArrivalPage, error)
+	CreateLateArrival(
+		ctx context.Context,
+		params LateArrivalCreateParams,
+	) (*CreateLateArrivalResult, error)
+	CreateLateArrivalByAdmin(
+		ctx context.Context,
+		params LateArrivalCreateParams,
+	) (*CreateLateArrivalResult, error)
+	ListMyLateArrivals(
+		ctx context.Context,
+		params ListMyLateArrivalsParams,
+	) (*LateArrivalPage, error)
 	ListLateArrivals(ctx context.Context, params ListLateArrivalsParams) (*LateArrivalPage, error)
 }

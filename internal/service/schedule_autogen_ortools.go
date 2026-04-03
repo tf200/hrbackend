@@ -34,7 +34,10 @@ type autoGenShift struct {
 	DurationMinutes int64
 }
 
-func (s *ScheduleService) AutoGenerateSchedules(ctx context.Context, req *domain.AutoGenerateSchedulesRequest) (*domain.AutoGenerateSchedulesResponse, error) {
+func (s *ScheduleService) AutoGenerateSchedules(
+	ctx context.Context,
+	req *domain.AutoGenerateSchedulesRequest,
+) (*domain.AutoGenerateSchedulesResponse, error) {
 	if err := s.validateAutoGenerateRequest(req); err != nil {
 		return nil, err
 	}
@@ -44,10 +47,28 @@ func (s *ScheduleService) AutoGenerateSchedules(ctx context.Context, req *domain
 		return nil, err
 	}
 
-	return s.generateSchedulesWithORTools(ctx, req.LocationID, timezone, locationTZ, employees, locationShifts, req.Week, req.Year)
+	return s.generateSchedulesWithORTools(
+		ctx,
+		req.LocationID,
+		timezone,
+		locationTZ,
+		employees,
+		locationShifts,
+		req.Week,
+		req.Year,
+	)
 }
 
-func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, locationID uuid.UUID, timezone string, locationTZ *time.Location, employees []domain.ScheduleEmployeeContractHours, locationShifts []domain.ScheduleLocationShift, week int32, year int32) (*domain.AutoGenerateSchedulesResponse, error) {
+func (s *ScheduleService) generateSchedulesWithORTools(
+	ctx context.Context,
+	locationID uuid.UUID,
+	timezone string,
+	locationTZ *time.Location,
+	employees []domain.ScheduleEmployeeContractHours,
+	locationShifts []domain.ScheduleLocationShift,
+	week int32,
+	year int32,
+) (*domain.AutoGenerateSchedulesResponse, error) {
 	const (
 		minStaffPerShift = int64(1)
 		maxStaffPerShift = int64(2)
@@ -133,7 +154,10 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 	for dIdx := 0; dIdx < dCount; dIdx++ {
 		dateStr := weekStart.AddDate(0, 0, dIdx).Format("2006-01-02")
 		for _, sh := range inputsShifts {
-			emptySlots = append(emptySlots, domain.SchedulePlanSlot{Date: dateStr, ShiftID: sh.ID, EmployeeIDs: []uuid.UUID{}})
+			emptySlots = append(
+				emptySlots,
+				domain.SchedulePlanSlot{Date: dateStr, ShiftID: sh.ID, EmployeeIDs: []uuid.UUID{}},
+			)
 		}
 	}
 
@@ -155,7 +179,12 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 			ShiftTemplates: shiftTemplates,
 			Slots:          emptySlots,
 			Summary:        []domain.ScheduleEmployeeSummary{},
-			Warnings:       []domain.SchedulePlanWarning{{Code: "INFEASIBLE", Message: "Not enough employees to staff all shifts (1 shift/day per employee)."}},
+			Warnings: []domain.SchedulePlanWarning{
+				{
+					Code:    "INFEASIBLE",
+					Message: "Not enough employees to staff all shifts (1 shift/day per employee).",
+				},
+			},
 		}, nil
 	}
 
@@ -168,7 +197,8 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 		for dIdx := 0; dIdx < dCount; dIdx++ {
 			assign[eIdx][dIdx] = make([]cpmodel.BoolVar, sCount)
 			for shIdx := 0; shIdx < sCount; shIdx++ {
-				assign[eIdx][dIdx][shIdx] = model.NewBoolVar().WithName(fmt.Sprintf("a_%d_%d_%d", eIdx, dIdx, shIdx))
+				assign[eIdx][dIdx][shIdx] = model.NewBoolVar().
+					WithName(fmt.Sprintf("a_%d_%d_%d", eIdx, dIdx, shIdx))
 			}
 		}
 	}
@@ -206,7 +236,13 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 					startAbs := int64((dIdx+1)*1440 + inputsShifts[shB].StartMinutes)
 					rest := startAbs - endAbs
 					if rest < minRestMinutes {
-						model.AddLinearConstraint(cpmodel.NewLinearExpr().Add(assign[eIdx][dIdx][shA]).Add(assign[eIdx][dIdx+1][shB]), 0, 1)
+						model.AddLinearConstraint(
+							cpmodel.NewLinearExpr().
+								Add(assign[eIdx][dIdx][shA]).
+								Add(assign[eIdx][dIdx+1][shB]),
+							0,
+							1,
+						)
 					}
 				}
 			}
@@ -226,7 +262,10 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 		}
 		model.AddEquality(total, totalExpr)
 		overtime := model.NewIntVar(0, maxTotalMinutes).WithName(fmt.Sprintf("ot_%d", eIdx))
-		model.AddGreaterOrEqual(cpmodel.NewLinearExpr().Add(overtime), cpmodel.NewLinearExpr().Add(total).AddConstant(-emp.TargetMinutes))
+		model.AddGreaterOrEqual(
+			cpmodel.NewLinearExpr().Add(overtime),
+			cpmodel.NewLinearExpr().Add(total).AddConstant(-emp.TargetMinutes),
+		)
 		objective.AddTerm(overtime, overtimeWeight)
 		objective.AddTerm(total, 1)
 	}
@@ -236,7 +275,10 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 	if err != nil {
 		return nil, err
 	}
-	params := &sppb.SatParameters{MaxTimeInSeconds: proto.Float64(maxSolveSeconds), NumSearchWorkers: proto.Int32(int32(runtime.NumCPU()))}
+	params := &sppb.SatParameters{
+		MaxTimeInSeconds: proto.Float64(maxSolveSeconds),
+		NumSearchWorkers: proto.Int32(int32(runtime.NumCPU())),
+	}
 	res, err := cpmodel.SolveCpModelWithParameters(modelProto, params)
 	if err != nil {
 		return nil, err
@@ -251,19 +293,27 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 	}
 	if statusStr == "infeasible" {
 		return &domain.AutoGenerateSchedulesResponse{
-			Status:         "infeasible",
-			PlanID:         uuid.New(),
-			LocationID:     locationID,
-			Timezone:       timezone,
-			Week:           week,
-			Year:           year,
-			WeekStartDate:  weekStartStr,
-			Constraints:    domain.SchedulePlanConstraints{MaxStaffPerShift: int32(maxStaffPerShift), AllowEmptyShift: true},
+			Status:        "infeasible",
+			PlanID:        uuid.New(),
+			LocationID:    locationID,
+			Timezone:      timezone,
+			Week:          week,
+			Year:          year,
+			WeekStartDate: weekStartStr,
+			Constraints: domain.SchedulePlanConstraints{
+				MaxStaffPerShift: int32(maxStaffPerShift),
+				AllowEmptyShift:  true,
+			},
 			Employees:      planEmployees,
 			ShiftTemplates: shiftTemplates,
 			Slots:          emptySlots,
 			Summary:        []domain.ScheduleEmployeeSummary{},
-			Warnings:       []domain.SchedulePlanWarning{{Code: "INFEASIBLE", Message: "Solver could not find a feasible schedule within the time limit."}},
+			Warnings: []domain.SchedulePlanWarning{
+				{
+					Code:    "INFEASIBLE",
+					Message: "Solver could not find a feasible schedule within the time limit.",
+				},
+			},
 		}, nil
 	}
 
@@ -284,7 +334,10 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 					shiftCountsByEmp[emp.ID][sh.ID]++
 				}
 			}
-			slots = append(slots, domain.SchedulePlanSlot{Date: dateStr, ShiftID: sh.ID, EmployeeIDs: employeeIDs})
+			slots = append(
+				slots,
+				domain.SchedulePlanSlot{Date: dateStr, ShiftID: sh.ID, EmployeeIDs: employeeIDs},
+			)
 		}
 	}
 
@@ -305,14 +358,17 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 	}
 
 	return &domain.AutoGenerateSchedulesResponse{
-		Status:         statusStr,
-		PlanID:         uuid.New(),
-		LocationID:     locationID,
-		Timezone:       timezone,
-		Week:           week,
-		Year:           year,
-		WeekStartDate:  weekStartStr,
-		Constraints:    domain.SchedulePlanConstraints{MaxStaffPerShift: int32(maxStaffPerShift), AllowEmptyShift: true},
+		Status:        statusStr,
+		PlanID:        uuid.New(),
+		LocationID:    locationID,
+		Timezone:      timezone,
+		Week:          week,
+		Year:          year,
+		WeekStartDate: weekStartStr,
+		Constraints: domain.SchedulePlanConstraints{
+			MaxStaffPerShift: int32(maxStaffPerShift),
+			AllowEmptyShift:  true,
+		},
 		Employees:      planEmployees,
 		ShiftTemplates: shiftTemplates,
 		Slots:          slots,
@@ -320,7 +376,11 @@ func (s *ScheduleService) generateSchedulesWithORTools(ctx context.Context, loca
 	}, nil
 }
 
-func (s *ScheduleService) SaveGeneratedSchedules(ctx context.Context, creatorID uuid.UUID, req *domain.SaveGeneratedSchedulesRequest) error {
+func (s *ScheduleService) SaveGeneratedSchedules(
+	ctx context.Context,
+	creatorID uuid.UUID,
+	req *domain.SaveGeneratedSchedulesRequest,
+) error {
 	if len(req.Slots) == 0 {
 		return nil
 	}
@@ -339,12 +399,24 @@ func (s *ScheduleService) SaveGeneratedSchedules(ctx context.Context, creatorID 
 
 	location, err := s.repository.GetLocationByID(ctx, req.LocationID)
 	if err != nil {
-		s.logError(ctx, "SaveGeneratedSchedules", "failed to fetch location", err, zap.String("location_id", req.LocationID.String()))
+		s.logError(
+			ctx,
+			"SaveGeneratedSchedules",
+			"failed to fetch location",
+			err,
+			zap.String("location_id", req.LocationID.String()),
+		)
 		return err
 	}
 	locationTZ, err := time.LoadLocation(location.Timezone)
 	if err != nil {
-		s.logError(ctx, "SaveGeneratedSchedules", "invalid location timezone", err, zap.String("timezone", location.Timezone))
+		s.logError(
+			ctx,
+			"SaveGeneratedSchedules",
+			"invalid location timezone",
+			err,
+			zap.String("timezone", location.Timezone),
+		)
 		return fmt.Errorf("invalid location timezone: %w", err)
 	}
 	if err := s.ensureWeekEmpty(ctx, req.LocationID, req.Week, req.Year, locationTZ); err != nil {

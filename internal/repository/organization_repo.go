@@ -18,7 +18,10 @@ func NewOrganizationRepository(queries db.Querier) domain.OrganizationRepository
 	return &OrganizationRepository{queries: queries}
 }
 
-func (r *OrganizationRepository) CreateOrganization(ctx context.Context, params domain.CreateOrganizationParams) (*domain.Organization, error) {
+func (r *OrganizationRepository) CreateOrganization(
+	ctx context.Context,
+	params domain.CreateOrganizationParams,
+) (*domain.Organization, error) {
 	organization, err := r.queries.CreateOrganisation(ctx, db.CreateOrganisationParams{
 		Name:                params.Name,
 		Street:              params.Street,
@@ -38,7 +41,11 @@ func (r *OrganizationRepository) CreateOrganization(ctx context.Context, params 
 	return toDomainOrganizationFromOrganisation(organization), nil
 }
 
-func (r *OrganizationRepository) UpdateOrganization(ctx context.Context, organizationID uuid.UUID, params domain.UpdateOrganizationParams) (*domain.Organization, error) {
+func (r *OrganizationRepository) UpdateOrganization(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	params domain.UpdateOrganizationParams,
+) (*domain.Organization, error) {
 	organization, err := r.queries.UpdateOrganisation(ctx, db.UpdateOrganisationParams{
 		ID:                  organizationID,
 		Name:                params.Name,
@@ -59,12 +66,19 @@ func (r *OrganizationRepository) UpdateOrganization(ctx context.Context, organiz
 	return toDomainOrganizationFromOrganisation(organization), nil
 }
 
-func (r *OrganizationRepository) DeleteOrganization(ctx context.Context, organizationID uuid.UUID) error {
+func (r *OrganizationRepository) DeleteOrganization(
+	ctx context.Context,
+	organizationID uuid.UUID,
+) error {
 	_, err := r.queries.DeleteOrganisation(ctx, organizationID)
 	return err
 }
 
-func (r *OrganizationRepository) CreateOrganizationLocation(ctx context.Context, organizationID uuid.UUID, params domain.CreateOrganizationLocationParams) (*domain.OrganizationLocation, error) {
+func (r *OrganizationRepository) CreateOrganizationLocation(
+	ctx context.Context,
+	organizationID uuid.UUID,
+	params domain.CreateOrganizationLocationParams,
+) (*domain.OrganizationLocation, error) {
 	location, err := r.queries.CreateLocation(ctx, db.CreateLocationParams{
 		OrganisationID:      organizationID,
 		Name:                params.Name,
@@ -82,7 +96,10 @@ func (r *OrganizationRepository) CreateOrganizationLocation(ctx context.Context,
 	return &result, nil
 }
 
-func (r *OrganizationRepository) GetLocationByID(ctx context.Context, locationID uuid.UUID) (*domain.OrganizationLocation, error) {
+func (r *OrganizationRepository) GetLocationByID(
+	ctx context.Context,
+	locationID uuid.UUID,
+) (*domain.OrganizationLocation, error) {
 	location, err := r.queries.GetLocation(ctx, locationID)
 	if err != nil {
 		return nil, err
@@ -92,7 +109,11 @@ func (r *OrganizationRepository) GetLocationByID(ctx context.Context, locationID
 	return &result, nil
 }
 
-func (r *OrganizationRepository) UpdateLocation(ctx context.Context, locationID uuid.UUID, params domain.UpdateOrganizationLocationParams) (*domain.OrganizationLocation, error) {
+func (r *OrganizationRepository) UpdateLocation(
+	ctx context.Context,
+	locationID uuid.UUID,
+	params domain.UpdateOrganizationLocationParams,
+) (*domain.OrganizationLocation, error) {
 	location, err := r.queries.UpdateLocation(ctx, db.UpdateLocationParams{
 		ID:                  locationID,
 		Name:                params.Name,
@@ -115,7 +136,10 @@ func (r *OrganizationRepository) DeleteLocation(ctx context.Context, locationID 
 	return err
 }
 
-func (r *OrganizationRepository) CreateShift(ctx context.Context, params domain.CreateShiftParams) (*domain.OrganizationLocationShift, error) {
+func (r *OrganizationRepository) CreateShift(
+	ctx context.Context,
+	params domain.CreateShiftParams,
+) (*domain.OrganizationLocationShift, error) {
 	startTime, err := conv.PgTimeFromString(params.StartTime)
 	if err != nil {
 		return nil, err
@@ -149,7 +173,11 @@ func (r *OrganizationRepository) CreateShift(ctx context.Context, params domain.
 	return &result, nil
 }
 
-func (r *OrganizationRepository) UpdateShift(ctx context.Context, shiftID uuid.UUID, params domain.UpdateShiftParams) (*domain.OrganizationLocationShift, error) {
+func (r *OrganizationRepository) UpdateShift(
+	ctx context.Context,
+	shiftID uuid.UUID,
+	params domain.UpdateShiftParams,
+) (*domain.OrganizationLocationShift, error) {
 	startTime, err := conv.PgTimeFromString(params.StartTime)
 	if err != nil {
 		return nil, err
@@ -186,7 +214,10 @@ func (r *OrganizationRepository) DeleteShift(ctx context.Context, shiftID uuid.U
 	return r.queries.DeleteShift(ctx, shiftID)
 }
 
-func (r *OrganizationRepository) GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]domain.OrganizationLocationShift, error) {
+func (r *OrganizationRepository) GetShiftsByLocationID(
+	ctx context.Context,
+	locationID uuid.UUID,
+) ([]domain.OrganizationLocationShift, error) {
 	shifts, err := r.queries.GetShiftsByLocationID(ctx, locationID)
 	if err != nil {
 		return nil, err
@@ -207,7 +238,10 @@ func (r *OrganizationRepository) GetShiftsByLocationID(ctx context.Context, loca
 	return result, nil
 }
 
-func (r *OrganizationRepository) GetOrganizationCounts(ctx context.Context, organizationID uuid.UUID) (*domain.OrganizationCounts, error) {
+func (r *OrganizationRepository) GetOrganizationCounts(
+	ctx context.Context,
+	organizationID uuid.UUID,
+) (*domain.OrganizationCounts, error) {
 	counts, err := r.queries.GetOrganisationCounts(ctx, organizationID)
 	if err != nil {
 		return nil, err
@@ -221,7 +255,9 @@ func (r *OrganizationRepository) GetOrganizationCounts(ctx context.Context, orga
 	}, nil
 }
 
-func (r *OrganizationRepository) GetGlobalOrganizationCounts(ctx context.Context) (*domain.GlobalOrganizationCounts, error) {
+func (r *OrganizationRepository) GetGlobalOrganizationCounts(
+	ctx context.Context,
+) (*domain.GlobalOrganizationCounts, error) {
 	counts, err := r.queries.GetGlobalOrganisationCounts(ctx)
 	if err != nil {
 		return nil, err
@@ -233,7 +269,10 @@ func (r *OrganizationRepository) GetGlobalOrganizationCounts(ctx context.Context
 	}, nil
 }
 
-func (r *OrganizationRepository) GetOrganizationByID(ctx context.Context, organizationID uuid.UUID) (*domain.Organization, error) {
+func (r *OrganizationRepository) GetOrganizationByID(
+	ctx context.Context,
+	organizationID uuid.UUID,
+) (*domain.Organization, error) {
 	organization, err := r.queries.GetOrganisation(ctx, organizationID)
 	if err != nil {
 		return nil, err
@@ -242,7 +281,10 @@ func (r *OrganizationRepository) GetOrganizationByID(ctx context.Context, organi
 	return toDomainOrganizationDetail(organization), nil
 }
 
-func (r *OrganizationRepository) ListOrganizations(ctx context.Context, params domain.ListOrganizationsParams) (*domain.OrganizationPage, error) {
+func (r *OrganizationRepository) ListOrganizations(
+	ctx context.Context,
+	params domain.ListOrganizationsParams,
+) (*domain.OrganizationPage, error) {
 	rows, err := r.queries.ListOrganisationsPaginated(ctx, db.ListOrganisationsPaginatedParams{
 		Limit:   params.Limit,
 		Offset:  params.Offset,
@@ -267,7 +309,10 @@ func (r *OrganizationRepository) ListOrganizations(ctx context.Context, params d
 	return page, nil
 }
 
-func (r *OrganizationRepository) ListOrganizationLocations(ctx context.Context, params domain.ListOrganizationLocationsParams) (*domain.OrganizationLocationPage, error) {
+func (r *OrganizationRepository) ListOrganizationLocations(
+	ctx context.Context,
+	params domain.ListOrganizationLocationsParams,
+) (*domain.OrganizationLocationPage, error) {
 	rows, err := r.queries.ListLocationsPaginated(ctx, db.ListLocationsPaginatedParams{
 		OrganisationID: params.OrganizationID,
 		Limit:          params.Limit,
@@ -295,7 +340,10 @@ func (r *OrganizationRepository) ListOrganizationLocations(ctx context.Context, 
 	return page, nil
 }
 
-func (r *OrganizationRepository) ListAllLocations(ctx context.Context, params domain.ListAllLocationsParams) (*domain.OrganizationLocationPage, error) {
+func (r *OrganizationRepository) ListAllLocations(
+	ctx context.Context,
+	params domain.ListAllLocationsParams,
+) (*domain.OrganizationLocationPage, error) {
 	rows, err := r.queries.ListAllLocationsPaginated(ctx, db.ListAllLocationsPaginatedParams{
 		Limit:   params.Limit,
 		Offset:  params.Offset,
@@ -373,7 +421,10 @@ func toDomainOrganizationDetail(row db.GetOrganisationRow) *domain.Organization 
 	}
 }
 
-func toDomainOrganizationLocation(row db.ListLocationsPaginatedRow, shifts []db.LocationShift) domain.OrganizationLocation {
+func toDomainOrganizationLocation(
+	row db.ListLocationsPaginatedRow,
+	shifts []db.LocationShift,
+) domain.OrganizationLocation {
 	return domain.OrganizationLocation{
 		ID:                  row.ID,
 		OrganizationID:      row.OrganisationID,
@@ -419,7 +470,10 @@ func toDomainOrganizationLocationFromLocationDetail(row db.Location) domain.Orga
 	}
 }
 
-func toDomainOrganizationLocationFromAllLocations(row db.ListAllLocationsPaginatedRow, shifts []db.LocationShift) domain.OrganizationLocation {
+func toDomainOrganizationLocationFromAllLocations(
+	row db.ListAllLocationsPaginatedRow,
+	shifts []db.LocationShift,
+) domain.OrganizationLocation {
 	return domain.OrganizationLocation{
 		ID:                  row.ID,
 		OrganizationID:      row.OrganisationID,
@@ -435,7 +489,9 @@ func toDomainOrganizationLocationFromAllLocations(row db.ListAllLocationsPaginat
 	}
 }
 
-func toDomainOrganizationLocationShifts(shifts []db.LocationShift) []domain.OrganizationLocationShift {
+func toDomainOrganizationLocationShifts(
+	shifts []db.LocationShift,
+) []domain.OrganizationLocationShift {
 	result := make([]domain.OrganizationLocationShift, len(shifts))
 	for i, shift := range shifts {
 		result[i] = domain.OrganizationLocationShift{

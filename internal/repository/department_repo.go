@@ -18,7 +18,10 @@ func NewDepartmentRepository(queries db.Querier) domain.DepartmentRepository {
 	return &DepartmentRepository{queries: queries}
 }
 
-func (r *DepartmentRepository) CreateDepartment(ctx context.Context, params domain.CreateDepartmentParams) (*domain.Department, error) {
+func (r *DepartmentRepository) CreateDepartment(
+	ctx context.Context,
+	params domain.CreateDepartmentParams,
+) (*domain.Department, error) {
 	department, err := r.queries.CreateDepartment(ctx, db.CreateDepartmentParams{
 		Name:                     params.Name,
 		Description:              params.Description,
@@ -31,7 +34,10 @@ func (r *DepartmentRepository) CreateDepartment(ctx context.Context, params doma
 	return toDomainDepartment(department), nil
 }
 
-func (r *DepartmentRepository) GetDepartmentByID(ctx context.Context, departmentID uuid.UUID) (*domain.Department, error) {
+func (r *DepartmentRepository) GetDepartmentByID(
+	ctx context.Context,
+	departmentID uuid.UUID,
+) (*domain.Department, error) {
 	department, err := r.queries.GetDepartment(ctx, departmentID)
 	if err != nil {
 		return nil, err
@@ -40,7 +46,11 @@ func (r *DepartmentRepository) GetDepartmentByID(ctx context.Context, department
 	return toDomainDepartment(department), nil
 }
 
-func (r *DepartmentRepository) UpdateDepartment(ctx context.Context, departmentID uuid.UUID, params domain.UpdateDepartmentParams) (*domain.Department, error) {
+func (r *DepartmentRepository) UpdateDepartment(
+	ctx context.Context,
+	departmentID uuid.UUID,
+	params domain.UpdateDepartmentParams,
+) (*domain.Department, error) {
 	department, err := r.queries.UpdateDepartment(ctx, db.UpdateDepartmentParams{
 		ID:                       departmentID,
 		Name:                     params.Name,
@@ -59,7 +69,10 @@ func (r *DepartmentRepository) DeleteDepartment(ctx context.Context, departmentI
 	return err
 }
 
-func (r *DepartmentRepository) ListDepartments(ctx context.Context, params domain.ListDepartmentsParams) (*domain.DepartmentPage, error) {
+func (r *DepartmentRepository) ListDepartments(
+	ctx context.Context,
+	params domain.ListDepartmentsParams,
+) (*domain.DepartmentPage, error) {
 	rows, err := r.queries.ListDepartmentsPaginated(ctx, db.ListDepartmentsPaginatedParams{
 		Limit:   params.Limit,
 		Offset:  params.Offset,

@@ -340,7 +340,13 @@ type NoOverlap2DConstraint struct {
 
 // AddRectangle adds a rectangle (parallel to the axis) to the constraint.
 func (noc NoOverlap2DConstraint) AddRectangle(xInterval, yInterval IntervalVar) {
-	if !xInterval.cpb.checkSameModelAndSetErrorf(yInterval.cpb, "invalid parameters xInterval %v and yInterval %v added to NoOverlapConstraint %v", xInterval.Index(), yInterval.Index(), noc.Index()) {
+	if !xInterval.cpb.checkSameModelAndSetErrorf(
+		yInterval.cpb,
+		"invalid parameters xInterval %v and yInterval %v added to NoOverlapConstraint %v",
+		xInterval.Index(),
+		yInterval.Index(),
+		noc.Index(),
+	) {
 		return
 	}
 	noOverlapCt := noc.cpb.cmpb.GetConstraints()[noc.ind].GetNoOverlap_2D()
@@ -357,7 +363,12 @@ type CircuitConstraint struct {
 // AddArc adds an arc to the circuit constraint. `tail` and `head` are the indices of the tail
 // and head nodes, respectively, and `literal` is true if the arc is selected.
 func (cc *CircuitConstraint) AddArc(tail, head int32, literal BoolVar) {
-	if !cc.cpb.checkSameModelAndSetErrorf(literal.cpb, "invalid parameter Boolvar %v added to CircuitConstraint %v", literal.Index(), cc.Index()) {
+	if !cc.cpb.checkSameModelAndSetErrorf(
+		literal.cpb,
+		"invalid parameter Boolvar %v added to CircuitConstraint %v",
+		literal.Index(),
+		cc.Index(),
+	) {
 		return
 	}
 	cirCt := cc.cpb.cmpb.GetConstraints()[cc.ind].GetCircuit()
@@ -375,7 +386,12 @@ type MultipleCircuitConstraint struct {
 // AddRoute adds an arc to the circuit constraint. `tail` and `head` and the indices of the tail
 // and head nodes, respectively, and `literal` is true if the arc is selected.
 func (mc *MultipleCircuitConstraint) AddRoute(tail, head int32, literal BoolVar) {
-	if !mc.cpb.checkSameModelAndSetErrorf(literal.cpb, "invalid parameter boolvar %v added to MultipleCircuitConstraint %v", literal.Index(), mc.Index()) {
+	if !mc.cpb.checkSameModelAndSetErrorf(
+		literal.cpb,
+		"invalid parameter boolvar %v added to MultipleCircuitConstraint %v",
+		literal.Index(),
+		mc.Index(),
+	) {
 		return
 	}
 	multCirCt := mc.cpb.cmpb.GetConstraints()[mc.ind].GetRoutes()
@@ -394,7 +410,11 @@ type TableConstraint struct {
 func (tc *TableConstraint) AddTuple(tuple ...int64) {
 	ct := tc.cpb.cmpb.GetConstraints()[tc.ind].GetTable()
 	if len(ct.GetVars()) != len(tuple) {
-		log.Fatalf("length of vars in the proto must be the same length as the input tuple: %v != %v", len(ct.GetVars()), len(tuple))
+		log.Fatalf(
+			"length of vars in the proto must be the same length as the input tuple: %v != %v",
+			len(ct.GetVars()),
+			len(tuple),
+		)
 	}
 
 	ct.Values = append(ct.GetValues(), tuple...)
@@ -440,7 +460,12 @@ type CumulativeConstraint struct {
 
 // AddDemand adds the demand to the constraint for the specified interval.
 func (cc *CumulativeConstraint) AddDemand(interval IntervalVar, demand LinearArgument) {
-	if !cc.cpb.checkSameModelAndSetErrorf(interval.cpb, "invalid parameter intervalVar %v added to CumulativeConstraint %v", interval.Index(), cc.Index()) {
+	if !cc.cpb.checkSameModelAndSetErrorf(
+		interval.cpb,
+		"invalid parameter intervalVar %v added to CumulativeConstraint %v",
+		interval.Index(),
+		cc.Index(),
+	) {
 		return
 	}
 	ct := cc.cpb.cmpb.GetConstraints()[cc.ind].GetCumulative()
@@ -568,7 +593,10 @@ func (cp *Builder) NewFixedSizeIntervalVar(start LinearArgument, size int64) Int
 // NewOptionalIntervalVar creates an optional interval variable from the three linear arguments and
 // the Boolean variable. It only enforces that `start` + `size` = `end` if the `presence` variable
 // is true.
-func (cp *Builder) NewOptionalIntervalVar(start, size, end LinearArgument, presence BoolVar) IntervalVar {
+func (cp *Builder) NewOptionalIntervalVar(
+	start, size, end LinearArgument,
+	presence BoolVar,
+) IntervalVar {
 	cp.AddEquality(NewLinearExpr().Add(start).Add(size), end).OnlyEnforceIf(presence)
 
 	ind := ConstrIndex(len(cp.cmpb.GetConstraints()))
@@ -586,7 +614,11 @@ func (cp *Builder) NewOptionalIntervalVar(start, size, end LinearArgument, prese
 
 // NewOptionalFixedSizeIntervalVar creates an optional interval variable with the fixed size. It
 // only enforces that the interval is of the fixed size when the `presence` variable is true.
-func (cp *Builder) NewOptionalFixedSizeIntervalVar(start LinearArgument, size int64, presence BoolVar) IntervalVar {
+func (cp *Builder) NewOptionalFixedSizeIntervalVar(
+	start LinearArgument,
+	size int64,
+	presence BoolVar,
+) IntervalVar {
 	sizeLinExpr := NewConstant(size)
 	end := NewLinearExpr().Add(start).Add(sizeLinExpr)
 
@@ -603,7 +635,12 @@ func (cp *Builder) appendConstraint(ct *cmpb.ConstraintProto) Constraint {
 func buildBoolArgumentProto(cp *Builder, bvs ...BoolVar) *cmpb.BoolArgumentProto {
 	var literals []int32
 	for _, b := range bvs {
-		cp.checkSameModelAndSetErrorf(b.cpb, "BoolVar %v added to Constraint %v", b.Index(), len(cp.cmpb.GetConstraints()))
+		cp.checkSameModelAndSetErrorf(
+			b.cpb,
+			"BoolVar %v added to Constraint %v",
+			b.Index(),
+			len(cp.cmpb.GetConstraints()),
+		)
 		literals = append(literals, int32(b.ind))
 	}
 	return &cmpb.BoolArgumentProto{Literals: literals}
@@ -729,7 +766,11 @@ func (cp *Builder) AddGreaterThan(lhs LinearArgument, rhs LinearArgument) Constr
 func (cp *Builder) AddNotEqual(lhs LinearArgument, rhs LinearArgument) Constraint {
 	diff := NewLinearExpr().Add(lhs).AddTerm(rhs, -1)
 
-	return cp.addLinearConstraint(diff, ClosedInterval{math.MinInt64, -1}, ClosedInterval{1, math.MaxInt64})
+	return cp.addLinearConstraint(
+		diff,
+		ClosedInterval{math.MinInt64, -1},
+		ClosedInterval{1, math.MaxInt64},
+	)
 }
 
 // AddAllDifferent adds a constraint that forces all expressions to have different values.
@@ -775,7 +816,11 @@ func (cp *Builder) AddElement(ind IntVar, values []int64, target IntVar) Constra
 // and `inverseVars` must be the same size.
 func (cp *Builder) AddInverseConstraint(vars []IntVar, inverseVars []IntVar) Constraint {
 	if len(vars) != len(inverseVars) {
-		log.Fatalf("vars and inverseVars must be the same length: %v != %v", len(vars), len(inverseVars))
+		log.Fatalf(
+			"vars and inverseVars must be the same length: %v != %v",
+			len(vars),
+			len(inverseVars),
+		)
 	}
 
 	var fDirect []int32
@@ -826,7 +871,10 @@ func (cp *Builder) AddMaxEquality(target LinearArgument, exprs ...LinearArgument
 }
 
 // AddMultiplicationEquality adds the constraint: target == Product(exprs).
-func (cp *Builder) AddMultiplicationEquality(target LinearArgument, exprs ...LinearArgument) Constraint {
+func (cp *Builder) AddMultiplicationEquality(
+	target LinearArgument,
+	exprs ...LinearArgument,
+) Constraint {
 	var protos []*cmpb.LinearExpressionProto
 	for _, e := range exprs {
 		protos = append(protos, e.asLinearExpressionProto())
@@ -883,7 +931,12 @@ func (cp *Builder) AddModuloEquality(target, v, mod LinearArgument) Constraint {
 func (cp *Builder) AddNoOverlap(vars ...IntervalVar) Constraint {
 	intervals := make([]int32, len(vars))
 	for i, v := range vars {
-		cp.checkSameModelAndSetErrorf(v.cpb, "invalid parameter intervalVar %v added to the AddNoOverlap constraint %v", v.Index(), len(cp.cmpb.GetConstraints()))
+		cp.checkSameModelAndSetErrorf(
+			v.cpb,
+			"invalid parameter intervalVar %v added to the AddNoOverlap constraint %v",
+			v.Index(),
+			len(cp.cmpb.GetConstraints()),
+		)
 		intervals[i] = int32(v.ind)
 	}
 
@@ -981,10 +1034,19 @@ func (cp *Builder) AddReservoirConstraint(min, max int64) ReservoirConstraint {
 //
 // It returns an AutomatonConstraint that allows adding transition
 // incrementally after construction.
-func (cp *Builder) AddAutomaton(transitionVars []IntVar, startState int64, finalStates []int64) AutomatonConstraint {
+func (cp *Builder) AddAutomaton(
+	transitionVars []IntVar,
+	startState int64,
+	finalStates []int64,
+) AutomatonConstraint {
 	var transitions []int32
 	for _, v := range transitionVars {
-		cp.checkSameModelAndSetErrorf(v.cpb, "invalid parameter intVar %v added to the AutomatonConstraint %v", v.Index(), len(cp.cmpb.GetConstraints()))
+		cp.checkSameModelAndSetErrorf(
+			v.cpb,
+			"invalid parameter intVar %v added to the AutomatonConstraint %v",
+			v.Index(),
+			len(cp.cmpb.GetConstraints()),
+		)
 		transitions = append(transitions, int32(v.Index()))
 	}
 	return AutomatonConstraint{cp.appendConstraint(&cmpb.ConstraintProto{
@@ -1100,7 +1162,11 @@ func (cp *Builder) ClearHint() {
 // AddAssumption adds the literals to the model as assumptions.
 func (cp *Builder) AddAssumption(lits ...BoolVar) {
 	for _, lit := range lits {
-		if !cp.checkSameModelAndSetErrorf(lit.cpb, "BoolVar %v added as an Assumption", lit.Index()) {
+		if !cp.checkSameModelAndSetErrorf(
+			lit.cpb,
+			"BoolVar %v added as an Assumption",
+			lit.Index(),
+		) {
 			return
 		}
 		cp.cmpb.Assumptions = append(cp.cmpb.GetAssumptions(), int32(lit.ind))
@@ -1113,10 +1179,18 @@ func (cp *Builder) ClearAssumption() {
 }
 
 // AddDecisionStrategy adds a decision strategy on a list of integer variables.
-func (cp *Builder) AddDecisionStrategy(vars []IntVar, vs cmpb.DecisionStrategyProto_VariableSelectionStrategy, ds cmpb.DecisionStrategyProto_DomainReductionStrategy) {
+func (cp *Builder) AddDecisionStrategy(
+	vars []IntVar,
+	vs cmpb.DecisionStrategyProto_VariableSelectionStrategy,
+	ds cmpb.DecisionStrategyProto_DomainReductionStrategy,
+) {
 	var indices []int32
 	for _, v := range vars {
-		if !cp.checkSameModelAndSetErrorf(v.cpb, "invalid parameter var %v added to the DecisionStrategy", v.Index()) {
+		if !cp.checkSameModelAndSetErrorf(
+			v.cpb,
+			"invalid parameter var %v added to the DecisionStrategy",
+			v.Index(),
+		) {
 			return
 		}
 		indices = append(indices, int32(v.ind))

@@ -26,7 +26,10 @@ func NewEmployeeRepository(store *db.Store) domain.EmployeeRepository {
 	return &EmployeeRepository{store: store}
 }
 
-func (r *EmployeeRepository) GetEmployeeByID(ctx context.Context, id uuid.UUID) (*domain.EmployeeDetail, error) {
+func (r *EmployeeRepository) GetEmployeeByID(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.EmployeeDetail, error) {
 	row, err := r.store.GetEmployeeProfileByID(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -38,7 +41,10 @@ func (r *EmployeeRepository) GetEmployeeByID(ctx context.Context, id uuid.UUID) 
 	return toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row), nil
 }
 
-func (r *EmployeeRepository) GetEmployeeByUserID(ctx context.Context, userID uuid.UUID) (*domain.EmployeeProfile, error) {
+func (r *EmployeeRepository) GetEmployeeByUserID(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*domain.EmployeeProfile, error) {
 	row, err := r.store.GetEmployeeProfileByUserID(ctx, userID)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -50,7 +56,10 @@ func (r *EmployeeRepository) GetEmployeeByUserID(ctx context.Context, userID uui
 	return toDomainEmployeeProfile(row)
 }
 
-func (r *EmployeeRepository) ListEmployees(ctx context.Context, params domain.ListEmployeesParams) (*domain.EmployeePage, error) {
+func (r *EmployeeRepository) ListEmployees(
+	ctx context.Context,
+	params domain.ListEmployeesParams,
+) (*domain.EmployeePage, error) {
 	rows, err := r.store.ListEmployeeProfile(ctx, db.ListEmployeeProfileParams{
 		Limit:               params.Limit,
 		Offset:              params.Offset,
@@ -81,7 +90,10 @@ func (r *EmployeeRepository) ListEmployees(ctx context.Context, params domain.Li
 	return page, nil
 }
 
-func (r *EmployeeRepository) CountEmployees(ctx context.Context, params domain.ListEmployeesParams) (int64, error) {
+func (r *EmployeeRepository) CountEmployees(
+	ctx context.Context,
+	params domain.ListEmployeesParams,
+) (int64, error) {
 	return r.store.CountEmployeeProfile(ctx, db.CountEmployeeProfileParams{
 		IncludeArchived:     params.IncludeArchived,
 		IncludeOutOfService: params.IncludeOutOfService,
@@ -90,7 +102,10 @@ func (r *EmployeeRepository) CountEmployees(ctx context.Context, params domain.L
 	})
 }
 
-func (r *EmployeeRepository) CreateEmployee(ctx context.Context, params domain.CreateEmployeeParams) (*domain.EmployeeDetail, error) {
+func (r *EmployeeRepository) CreateEmployee(
+	ctx context.Context,
+	params domain.CreateEmployeeParams,
+) (*domain.EmployeeDetail, error) {
 	result, err := r.store.CreateEmployeeWithAccountTx(ctx, db.CreateEmployeeWithAccountTxParams{
 		CreateUserParams: db.CreateUserParams{
 			Password: params.UserPassword,
@@ -135,7 +150,11 @@ func (r *EmployeeRepository) CreateEmployee(ctx context.Context, params domain.C
 	return toDomainEmployeeDetailFromEmployeeProfile(result.Employee), nil
 }
 
-func (r *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, params domain.UpdateEmployeeParams) (*domain.EmployeeDetail, error) {
+func (r *EmployeeRepository) UpdateEmployee(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateEmployeeParams,
+) (*domain.EmployeeDetail, error) {
 	row, err := r.store.UpdateEmployeeProfile(ctx, db.UpdateEmployeeProfileParams{
 		FirstName:             params.FirstName,
 		LastName:              params.LastName,
@@ -168,7 +187,9 @@ func (r *EmployeeRepository) UpdateEmployee(ctx context.Context, id uuid.UUID, p
 	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
 }
 
-func (r *EmployeeRepository) GetEmployeeCounts(ctx context.Context) (*domain.EmployeeCounts, error) {
+func (r *EmployeeRepository) GetEmployeeCounts(
+	ctx context.Context,
+) (*domain.EmployeeCounts, error) {
 	row, err := r.store.GetEmployeeCounts(ctx)
 	if err != nil {
 		return nil, err
@@ -177,7 +198,10 @@ func (r *EmployeeRepository) GetEmployeeCounts(ctx context.Context) (*domain.Emp
 	return toDomainEmployeeCounts(row), nil
 }
 
-func (r *EmployeeRepository) SearchEmployeesByNameOrEmail(ctx context.Context, search *string) ([]domain.EmployeeSearchResult, error) {
+func (r *EmployeeRepository) SearchEmployeesByNameOrEmail(
+	ctx context.Context,
+	search *string,
+) ([]domain.EmployeeSearchResult, error) {
 	rows, err := r.store.SearchEmployeesByNameOrEmail(ctx, search)
 	if err != nil {
 		return nil, err
@@ -191,7 +215,10 @@ func (r *EmployeeRepository) SearchEmployeesByNameOrEmail(ctx context.Context, s
 	return result, nil
 }
 
-func (r *EmployeeRepository) GetContractDetails(ctx context.Context, employeeID uuid.UUID) (*domain.ContractDetails, error) {
+func (r *EmployeeRepository) GetContractDetails(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.ContractDetails, error) {
 	row, err := r.store.GetEmployeeContractDetails(ctx, employeeID)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -203,7 +230,11 @@ func (r *EmployeeRepository) GetContractDetails(ctx context.Context, employeeID 
 	return toDomainContractDetails(row), nil
 }
 
-func (r *EmployeeRepository) AddContractDetails(ctx context.Context, employeeID uuid.UUID, params domain.AddContractDetailsParams) (*domain.EmployeeDetail, error) {
+func (r *EmployeeRepository) AddContractDetails(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.AddContractDetailsParams,
+) (*domain.EmployeeDetail, error) {
 	changeCount, err := r.store.CountEmployeeContractChanges(ctx, employeeID)
 	if err != nil {
 		return nil, err
@@ -220,8 +251,10 @@ func (r *EmployeeRepository) AddContractDetails(ctx context.Context, employeeID 
 		ContractType:      db.NullEmployeeContractTypeEnum{},
 		ContractRate:      params.ContractRate,
 		IrregularHoursProfile: db.NullIrregularHoursProfileEnum{
-			IrregularHoursProfileEnum: irregularHoursProfileFromString(params.IrregularHoursProfile),
-			Valid:                     true,
+			IrregularHoursProfileEnum: irregularHoursProfileFromString(
+				params.IrregularHoursProfile,
+			),
+			Valid: true,
 		},
 	})
 	if err != nil {
@@ -234,7 +267,10 @@ func (r *EmployeeRepository) AddContractDetails(ctx context.Context, employeeID 
 	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
 }
 
-func (r *EmployeeRepository) ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]domain.EmployeeContractChange, error) {
+func (r *EmployeeRepository) ListContractChanges(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.EmployeeContractChange, error) {
 	if _, err := r.store.GetEmployeeContractSnapshotForContractChange(ctx, employeeID); err != nil {
 		if isDBNotFound(err) {
 			return nil, domain.ErrEmployeeNotFound
@@ -330,7 +366,15 @@ func (r *EmployeeRepository) CreateContractChange(
 			return err
 		}
 
-		recalculations, err := recomputeLegalLeaveBalancesFromYear(ctx, q, actorEmployeeID, employeeID, int32(created.EffectiveFrom.Time.Year()), created.ID, conv.TimeFromPgDate(created.EffectiveFrom))
+		recalculations, err := recomputeLegalLeaveBalancesFromYear(
+			ctx,
+			q,
+			actorEmployeeID,
+			employeeID,
+			int32(created.EffectiveFrom.Time.Year()),
+			created.ID,
+			conv.TimeFromPgDate(created.EffectiveFrom),
+		)
 		if err != nil {
 			return err
 		}
@@ -362,7 +406,11 @@ func (r *EmployeeRepository) CreateContractChange(
 	return result, nil
 }
 
-func (r *EmployeeRepository) UpdateIsSubcontractor(ctx context.Context, employeeID uuid.UUID, contractType string) (*domain.EmployeeDetail, error) {
+func (r *EmployeeRepository) UpdateIsSubcontractor(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	contractType string,
+) (*domain.EmployeeDetail, error) {
 	row, err := r.store.UpdateEmployeeIsSubcontractor(ctx, db.UpdateEmployeeIsSubcontractorParams{
 		ID:           employeeID,
 		ContractType: contractTypeFromString(contractType),
@@ -377,7 +425,10 @@ func (r *EmployeeRepository) UpdateIsSubcontractor(ctx context.Context, employee
 	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
 }
 
-func (r *EmployeeRepository) ListEducation(ctx context.Context, employeeID uuid.UUID) ([]domain.Education, error) {
+func (r *EmployeeRepository) ListEducation(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.Education, error) {
 	rows, err := r.store.ListEducations(ctx, employeeID)
 	if err != nil {
 		return nil, err
@@ -391,7 +442,11 @@ func (r *EmployeeRepository) ListEducation(ctx context.Context, employeeID uuid.
 	return result, nil
 }
 
-func (r *EmployeeRepository) AddEducation(ctx context.Context, employeeID uuid.UUID, params domain.CreateEducationParams) (*domain.Education, error) {
+func (r *EmployeeRepository) AddEducation(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateEducationParams,
+) (*domain.Education, error) {
 	row, err := r.store.AddEducationToEmployeeProfile(ctx, db.AddEducationToEmployeeProfileParams{
 		EmployeeID:      employeeID,
 		InstitutionName: params.InstitutionName,
@@ -408,7 +463,11 @@ func (r *EmployeeRepository) AddEducation(ctx context.Context, employeeID uuid.U
 	return &result, nil
 }
 
-func (r *EmployeeRepository) UpdateEducation(ctx context.Context, id uuid.UUID, params domain.UpdateEducationParams) (*domain.Education, error) {
+func (r *EmployeeRepository) UpdateEducation(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateEducationParams,
+) (*domain.Education, error) {
 	row, err := r.store.UpdateEmployeeEducation(ctx, db.UpdateEmployeeEducationParams{
 		ID:              id,
 		InstitutionName: params.InstitutionName,
@@ -428,7 +487,10 @@ func (r *EmployeeRepository) UpdateEducation(ctx context.Context, id uuid.UUID, 
 	return &result, nil
 }
 
-func (r *EmployeeRepository) DeleteEducation(ctx context.Context, id uuid.UUID) (*domain.Education, error) {
+func (r *EmployeeRepository) DeleteEducation(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.Education, error) {
 	row, err := r.store.DeleteEmployeeEducation(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -441,7 +503,10 @@ func (r *EmployeeRepository) DeleteEducation(ctx context.Context, id uuid.UUID) 
 	return &result, nil
 }
 
-func (r *EmployeeRepository) ListExperience(ctx context.Context, employeeID uuid.UUID) ([]domain.Experience, error) {
+func (r *EmployeeRepository) ListExperience(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.Experience, error) {
 	rows, err := r.store.ListEmployeeExperience(ctx, employeeID)
 	if err != nil {
 		return nil, err
@@ -455,7 +520,11 @@ func (r *EmployeeRepository) ListExperience(ctx context.Context, employeeID uuid
 	return result, nil
 }
 
-func (r *EmployeeRepository) AddExperience(ctx context.Context, employeeID uuid.UUID, params domain.CreateExperienceParams) (*domain.Experience, error) {
+func (r *EmployeeRepository) AddExperience(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateExperienceParams,
+) (*domain.Experience, error) {
 	row, err := r.store.AddEmployeeExperience(ctx, db.AddEmployeeExperienceParams{
 		EmployeeID:  employeeID,
 		JobTitle:    params.JobTitle,
@@ -472,7 +541,11 @@ func (r *EmployeeRepository) AddExperience(ctx context.Context, employeeID uuid.
 	return &result, nil
 }
 
-func (r *EmployeeRepository) UpdateExperience(ctx context.Context, id uuid.UUID, params domain.UpdateExperienceParams) (*domain.Experience, error) {
+func (r *EmployeeRepository) UpdateExperience(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateExperienceParams,
+) (*domain.Experience, error) {
 	row, err := r.store.UpdateEmployeeExperience(ctx, db.UpdateEmployeeExperienceParams{
 		ID:          id,
 		JobTitle:    params.JobTitle,
@@ -492,7 +565,10 @@ func (r *EmployeeRepository) UpdateExperience(ctx context.Context, id uuid.UUID,
 	return &result, nil
 }
 
-func (r *EmployeeRepository) DeleteExperience(ctx context.Context, id uuid.UUID) (*domain.Experience, error) {
+func (r *EmployeeRepository) DeleteExperience(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.Experience, error) {
 	row, err := r.store.DeleteEmployeeExperience(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -505,7 +581,10 @@ func (r *EmployeeRepository) DeleteExperience(ctx context.Context, id uuid.UUID)
 	return &result, nil
 }
 
-func (r *EmployeeRepository) ListCertification(ctx context.Context, employeeID uuid.UUID) ([]domain.Certification, error) {
+func (r *EmployeeRepository) ListCertification(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.Certification, error) {
 	rows, err := r.store.ListEmployeeCertifications(ctx, employeeID)
 	if err != nil {
 		return nil, err
@@ -519,7 +598,11 @@ func (r *EmployeeRepository) ListCertification(ctx context.Context, employeeID u
 	return result, nil
 }
 
-func (r *EmployeeRepository) AddCertification(ctx context.Context, employeeID uuid.UUID, params domain.CreateCertificationParams) (*domain.Certification, error) {
+func (r *EmployeeRepository) AddCertification(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateCertificationParams,
+) (*domain.Certification, error) {
 	row, err := r.store.AddEmployeeCertification(ctx, db.AddEmployeeCertificationParams{
 		EmployeeID: employeeID,
 		Name:       params.Name,
@@ -534,7 +617,11 @@ func (r *EmployeeRepository) AddCertification(ctx context.Context, employeeID uu
 	return &result, nil
 }
 
-func (r *EmployeeRepository) UpdateCertification(ctx context.Context, id uuid.UUID, params domain.UpdateCertificationParams) (*domain.Certification, error) {
+func (r *EmployeeRepository) UpdateCertification(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateCertificationParams,
+) (*domain.Certification, error) {
 	row, err := r.store.UpdateEmployeeCertification(ctx, db.UpdateEmployeeCertificationParams{
 		ID:         id,
 		Name:       params.Name,
@@ -552,7 +639,10 @@ func (r *EmployeeRepository) UpdateCertification(ctx context.Context, id uuid.UU
 	return &result, nil
 }
 
-func (r *EmployeeRepository) DeleteCertification(ctx context.Context, id uuid.UUID) (*domain.Certification, error) {
+func (r *EmployeeRepository) DeleteCertification(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.Certification, error) {
 	row, err := r.store.DeleteEmployeeCertification(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -578,7 +668,9 @@ func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
 	}
 }
 
-func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row db.GetEmployeeProfileByIDRow) *domain.EmployeeDetail {
+func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
+	row db.GetEmployeeProfileByIDRow,
+) *domain.EmployeeDetail {
 	return &domain.EmployeeDetail{
 		ID:                    row.ID,
 		UserID:                row.UserID,
@@ -658,7 +750,9 @@ func toDomainEmployeeDetailFromEmployeeProfile(row db.EmployeeProfile) *domain.E
 	}
 }
 
-func toDomainEmployeeProfile(row db.GetEmployeeProfileByUserIDRow) (*domain.EmployeeProfile, error) {
+func toDomainEmployeeProfile(
+	row db.GetEmployeeProfileByUserIDRow,
+) (*domain.EmployeeProfile, error) {
 	permissions := make([]domain.Permission, 0)
 	if len(row.Permissions) > 0 {
 		if err := json.Unmarshal(row.Permissions, &permissions); err != nil {
@@ -687,7 +781,9 @@ func toDomainEmployeeCounts(row db.GetEmployeeCountsRow) *domain.EmployeeCounts 
 	}
 }
 
-func toDomainEmployeeSearchResult(row db.SearchEmployeesByNameOrEmailRow) domain.EmployeeSearchResult {
+func toDomainEmployeeSearchResult(
+	row db.SearchEmployeesByNameOrEmailRow,
+) domain.EmployeeSearchResult {
 	return domain.EmployeeSearchResult{
 		ID:               row.ID,
 		FirstName:        row.FirstName,
@@ -778,7 +874,9 @@ func nullGenderEnumFromPtr(value *string) db.NullGenderEnum {
 
 func contractTypeFromString(value string) db.EmployeeContractTypeEnum {
 	switch db.EmployeeContractTypeEnum(value) {
-	case db.EmployeeContractTypeEnumLoondienst, db.EmployeeContractTypeEnumZZP, db.EmployeeContractTypeEnumNone:
+	case db.EmployeeContractTypeEnumLoondienst,
+		db.EmployeeContractTypeEnumZZP,
+		db.EmployeeContractTypeEnumNone:
 		return db.EmployeeContractTypeEnum(value)
 	default:
 		return db.EmployeeContractTypeEnumNone
@@ -790,12 +888,17 @@ func nullContractTypeFromPtr(value *string) db.NullEmployeeContractTypeEnum {
 		return db.NullEmployeeContractTypeEnum{}
 	}
 
-	return db.NullEmployeeContractTypeEnum{EmployeeContractTypeEnum: contractTypeFromString(*value), Valid: true}
+	return db.NullEmployeeContractTypeEnum{
+		EmployeeContractTypeEnum: contractTypeFromString(*value),
+		Valid:                    true,
+	}
 }
 
 func irregularHoursProfileFromString(value string) db.IrregularHoursProfileEnum {
 	switch db.IrregularHoursProfileEnum(value) {
-	case db.IrregularHoursProfileEnumNone, db.IrregularHoursProfileEnumRoster, db.IrregularHoursProfileEnumNonRoster:
+	case db.IrregularHoursProfileEnumNone,
+		db.IrregularHoursProfileEnumRoster,
+		db.IrregularHoursProfileEnumNonRoster:
 		return db.IrregularHoursProfileEnum(value)
 	default:
 		return db.IrregularHoursProfileEnumNone
@@ -821,7 +924,16 @@ func valueOrZero(value *float64) float64 {
 }
 
 func dateOnly(value time.Time) time.Time {
-	return time.Date(value.UTC().Year(), value.UTC().Month(), value.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	return time.Date(
+		value.UTC().Year(),
+		value.UTC().Month(),
+		value.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
 }
 
 func recomputeLegalLeaveBalancesFromYear(
@@ -848,18 +960,24 @@ func recomputeLegalLeaveBalancesFromYear(
 			return nil, err
 		}
 
-		balance, err := q.LockLeaveBalanceByEmployeeYear(ctx, db.LockLeaveBalanceByEmployeeYearParams{
-			EmployeeID: employeeID,
-			Year:       year,
-		})
+		balance, err := q.LockLeaveBalanceByEmployeeYear(
+			ctx,
+			db.LockLeaveBalanceByEmployeeYearParams{
+				EmployeeID: employeeID,
+				Year:       year,
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		legalTotalAfter, err := q.ComputeLegalLeaveTotalForYear(ctx, db.ComputeLegalLeaveTotalForYearParams{
-			EmployeeID: employeeID,
-			Year:       year,
-		})
+		legalTotalAfter, err := q.ComputeLegalLeaveTotalForYear(
+			ctx,
+			db.ComputeLegalLeaveTotalForYearParams{
+				EmployeeID: employeeID,
+				Year:       year,
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -880,11 +998,14 @@ func recomputeLegalLeaveBalancesFromYear(
 			continue
 		}
 
-		updated, err := q.ApplyLeaveBalanceTotalAdjustment(ctx, db.ApplyLeaveBalanceTotalAdjustmentParams{
-			ID:              balance.ID,
-			LegalHoursDelta: legalDelta,
-			ExtraHoursDelta: 0,
-		})
+		updated, err := q.ApplyLeaveBalanceTotalAdjustment(
+			ctx,
+			db.ApplyLeaveBalanceTotalAdjustmentParams{
+				ID:              balance.ID,
+				LegalHoursDelta: legalDelta,
+				ExtraHoursDelta: 0,
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -894,19 +1015,22 @@ func recomputeLegalLeaveBalancesFromYear(
 			contractChangeID.String(),
 			effectiveFrom.UTC().Format("2006-01-02"),
 		)
-		if _, err := q.CreateLeaveBalanceAdjustmentAudit(ctx, db.CreateLeaveBalanceAdjustmentAuditParams{
-			LeaveBalanceID:        updated.ID,
-			EmployeeID:            employeeID,
-			Year:                  year,
-			LegalHoursDelta:       legalDelta,
-			ExtraHoursDelta:       0,
-			Reason:                reason,
-			AdjustedByEmployeeID:  actorEmployeeID,
-			LegalTotalHoursBefore: balance.LegalTotalHours,
-			ExtraTotalHoursBefore: balance.ExtraTotalHours,
-			LegalTotalHoursAfter:  updated.LegalTotalHours,
-			ExtraTotalHoursAfter:  updated.ExtraTotalHours,
-		}); err != nil {
+		if _, err := q.CreateLeaveBalanceAdjustmentAudit(
+			ctx,
+			db.CreateLeaveBalanceAdjustmentAuditParams{
+				LeaveBalanceID:        updated.ID,
+				EmployeeID:            employeeID,
+				Year:                  year,
+				LegalHoursDelta:       legalDelta,
+				ExtraHoursDelta:       0,
+				Reason:                reason,
+				AdjustedByEmployeeID:  actorEmployeeID,
+				LegalTotalHoursBefore: balance.LegalTotalHours,
+				ExtraTotalHoursBefore: balance.ExtraTotalHours,
+				LegalTotalHoursAfter:  updated.LegalTotalHours,
+				ExtraTotalHoursAfter:  updated.ExtraTotalHours,
+			},
+		); err != nil {
 			return nil, err
 		}
 	}
@@ -918,7 +1042,10 @@ func mapContractChangeDBError(err error) error {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		if pgErr.Code == "23505" {
-			return fmt.Errorf("%w: duplicate effective_from for employee", domain.ErrContractChangeInvalid)
+			return fmt.Errorf(
+				"%w: duplicate effective_from for employee",
+				domain.ErrContractChangeInvalid,
+			)
 		}
 	}
 	return err

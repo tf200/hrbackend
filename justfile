@@ -17,3 +17,6 @@ permissions-sync:
 
 seed-admin:
     go run ./scripts/seed_admin
+
+lines:
+    golines -w .

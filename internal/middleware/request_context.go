@@ -32,7 +32,10 @@ func (m *RequestContextMiddleware) Handle() gin.HandlerFunc {
 		ctx.Request = ctx.Request.WithContext(requestCtx)
 
 		if m.logger != nil {
-			m.logger.LogInfo(ctx.Request.Context(), "RequestContextMiddleware", "request context initialized",
+			m.logger.LogInfo(
+				ctx.Request.Context(),
+				"RequestContextMiddleware",
+				"request context initialized",
 				zap.String("request_id", requestID),
 				zap.String("path", ctx.Request.URL.Path),
 				zap.String("method", ctx.Request.Method),

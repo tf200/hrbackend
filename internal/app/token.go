@@ -13,16 +13,36 @@ type tokenMakerAdapter struct {
 	maker *pkgjwt.Maker
 }
 
-func (a *tokenMakerAdapter) CreateToken(userID, employeeID uuid.UUID, duration time.Duration, tokenType domain.TokenType) (string, *domain.TokenPayload, error) {
-	token, payload, err := a.maker.CreateToken(userID, employeeID, duration, toPkgTokenType(tokenType))
+func (a *tokenMakerAdapter) CreateToken(
+	userID, employeeID uuid.UUID,
+	duration time.Duration,
+	tokenType domain.TokenType,
+) (string, *domain.TokenPayload, error) {
+	token, payload, err := a.maker.CreateToken(
+		userID,
+		employeeID,
+		duration,
+		toPkgTokenType(tokenType),
+	)
 	if err != nil {
 		return "", nil, err
 	}
 	return token, toDomainTokenPayload(payload), nil
 }
 
-func (a *tokenMakerAdapter) CreateTokenWithSessionID(userID, employeeID uuid.UUID, duration time.Duration, tokenType domain.TokenType, sessionID uuid.UUID) (string, *domain.TokenPayload, error) {
-	token, payload, err := a.maker.CreateTokenWithSessionID(userID, employeeID, duration, toPkgTokenType(tokenType), sessionID)
+func (a *tokenMakerAdapter) CreateTokenWithSessionID(
+	userID, employeeID uuid.UUID,
+	duration time.Duration,
+	tokenType domain.TokenType,
+	sessionID uuid.UUID,
+) (string, *domain.TokenPayload, error) {
+	token, payload, err := a.maker.CreateTokenWithSessionID(
+		userID,
+		employeeID,
+		duration,
+		toPkgTokenType(tokenType),
+		sessionID,
+	)
 	if err != nil {
 		return "", nil, err
 	}

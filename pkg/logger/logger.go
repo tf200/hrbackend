@@ -86,7 +86,12 @@ func (l *Logger) Sync() error {
 	return l.logger.Sync()
 }
 
-func (l *Logger) LogError(ctx context.Context, operation, message string, err error, fields ...zap.Field) {
+func (l *Logger) LogError(
+	ctx context.Context,
+	operation, message string,
+	err error,
+	fields ...zap.Field,
+) {
 	if err != nil {
 		fields = append(fields, zap.Error(err))
 	}
@@ -101,7 +106,12 @@ func (l *Logger) LogInfo(ctx context.Context, operation, message string, fields 
 	l.log(ctx, zap.InfoLevel, operation, message, fields...)
 }
 
-func (l *Logger) log(ctx context.Context, level zapcore.Level, operation, message string, fields ...zap.Field) {
+func (l *Logger) log(
+	ctx context.Context,
+	level zapcore.Level,
+	operation, message string,
+	fields ...zap.Field,
+) {
 	requestID := "unknown"
 	if v, ok := ctx.Value("request_id").(string); ok {
 		requestID = v

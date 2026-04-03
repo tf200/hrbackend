@@ -57,14 +57,24 @@ func (s *pdfService) generateContractPDF(contractData ContractData) (multipart.F
 			Title: "Sender",
 			Lines: []string{
 				fmt.Sprintf("Name: %s", contractData.SenderName),
-				fmt.Sprintf("Address: %s %s, %s %s", contractData.SenderStreet, contractData.SenderHouseNumber, contractData.SenderPostalCode, contractData.SenderCity),
+				fmt.Sprintf(
+					"Address: %s %s, %s %s",
+					contractData.SenderStreet,
+					contractData.SenderHouseNumber,
+					contractData.SenderPostalCode,
+					contractData.SenderCity,
+				),
 				fmt.Sprintf("Contact info: %s", contractData.SenderContactInfo),
 			},
 		},
 		{
 			Title: "Client",
 			Lines: []string{
-				fmt.Sprintf("Name: %s %s", contractData.ClientFirstName, contractData.ClientLastName),
+				fmt.Sprintf(
+					"Name: %s %s",
+					contractData.ClientFirstName,
+					contractData.ClientLastName,
+				),
 				fmt.Sprintf("Address: %s", contractData.ClientAddress),
 				fmt.Sprintf("Contact info: %s", contractData.ClientContactInfo),
 			},
@@ -82,7 +92,11 @@ func (s *pdfService) generateContractPDF(contractData ContractData) (multipart.F
 		{
 			Title: "Financial terms",
 			Lines: []string{
-				fmt.Sprintf("Price: EUR %.2f per %s", contractData.Price, contractData.PriceTimeUnit),
+				fmt.Sprintf(
+					"Price: EUR %.2f per %s",
+					contractData.Price,
+					contractData.PriceTimeUnit,
+				),
 				fmt.Sprintf("VAT: %.2f%%", contractData.Vat),
 				fmt.Sprintf("Contract type: %s", contractData.TypeName),
 			},
@@ -97,7 +111,11 @@ func (s *pdfService) generateContractPDF(contractData ContractData) (multipart.F
 	return toMultipartFile(pdfBytes), nil
 }
 
-func (s *pdfService) uploadContractPDF(ctx context.Context, pdfFile multipart.File, contractID int64) (string, error) {
+func (s *pdfService) uploadContractPDF(
+	ctx context.Context,
+	pdfFile multipart.File,
+	contractID int64,
+) (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
 	filename := fmt.Sprintf("contract/%s/contract-%d.pdf", timestamp, contractID)
 
@@ -108,7 +126,10 @@ func (s *pdfService) uploadContractPDF(ctx context.Context, pdfFile multipart.Fi
 	return key, nil
 }
 
-func (s *pdfService) GenerateAndUploadContractPDF(ctx context.Context, contractData ContractData) (string, error) {
+func (s *pdfService) GenerateAndUploadContractPDF(
+	ctx context.Context,
+	contractData ContractData,
+) (string, error) {
 	pdfFile, err := s.generateContractPDF(contractData)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)

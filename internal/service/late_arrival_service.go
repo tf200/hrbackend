@@ -16,14 +16,20 @@ type LateArrivalService struct {
 	logger     domain.Logger
 }
 
-func NewLateArrivalService(repository domain.LateArrivalRepository, logger domain.Logger) domain.LateArrivalService {
+func NewLateArrivalService(
+	repository domain.LateArrivalRepository,
+	logger domain.Logger,
+) domain.LateArrivalService {
 	return &LateArrivalService{
 		repository: repository,
 		logger:     logger,
 	}
 }
 
-func (s *LateArrivalService) CreateLateArrival(ctx context.Context, params domain.LateArrivalCreateParams) (*domain.CreateLateArrivalResult, error) {
+func (s *LateArrivalService) CreateLateArrival(
+	ctx context.Context,
+	params domain.LateArrivalCreateParams,
+) (*domain.CreateLateArrivalResult, error) {
 	if params.EmployeeID == uuid.Nil || params.CreatedByEmployeeID == uuid.Nil {
 		return nil, domain.ErrLateArrivalInvalidRequest
 	}
@@ -31,14 +37,20 @@ func (s *LateArrivalService) CreateLateArrival(ctx context.Context, params domai
 	return s.createLateArrival(ctx, params)
 }
 
-func (s *LateArrivalService) CreateLateArrivalByAdmin(ctx context.Context, params domain.LateArrivalCreateParams) (*domain.CreateLateArrivalResult, error) {
+func (s *LateArrivalService) CreateLateArrivalByAdmin(
+	ctx context.Context,
+	params domain.LateArrivalCreateParams,
+) (*domain.CreateLateArrivalResult, error) {
 	if params.EmployeeID == uuid.Nil || params.CreatedByEmployeeID == uuid.Nil {
 		return nil, domain.ErrLateArrivalInvalidRequest
 	}
 	return s.createLateArrival(ctx, params)
 }
 
-func (s *LateArrivalService) createLateArrival(ctx context.Context, params domain.LateArrivalCreateParams) (*domain.CreateLateArrivalResult, error) {
+func (s *LateArrivalService) createLateArrival(
+	ctx context.Context,
+	params domain.LateArrivalCreateParams,
+) (*domain.CreateLateArrivalResult, error) {
 	if params.ArrivalDate.IsZero() {
 		return nil, domain.ErrLateArrivalInvalidRequest
 	}
@@ -55,15 +67,25 @@ func (s *LateArrivalService) createLateArrival(ctx context.Context, params domai
 	}
 	params.ArrivalTime = normalizedArrivalTime
 
-	schedules, err := s.repository.ListAssignedSchedulesForEmployeeOnDate(ctx, params.EmployeeID, params.ArrivalDate)
+	schedules, err := s.repository.ListAssignedSchedulesForEmployeeOnDate(
+		ctx,
+		params.EmployeeID,
+		params.ArrivalDate,
+	)
 	if err != nil {
 		return nil, err
 	}
 	if len(schedules) == 0 {
-		return nil, fmt.Errorf("%w: no assigned shift found for selected date", domain.ErrLateArrivalInvalidRequest)
+		return nil, fmt.Errorf(
+			"%w: no assigned shift found for selected date",
+			domain.ErrLateArrivalInvalidRequest,
+		)
 	}
 	if len(schedules) > 1 {
-		return nil, fmt.Errorf("%w: multiple assigned shifts found for selected date", domain.ErrLateArrivalConflict)
+		return nil, fmt.Errorf(
+			"%w: multiple assigned shifts found for selected date",
+			domain.ErrLateArrivalConflict,
+		)
 	}
 
 	resolved := schedules[0]
@@ -84,7 +106,10 @@ func (s *LateArrivalService) createLateArrival(ctx context.Context, params domai
 	)
 	shiftStartLocal := resolved.StartDatetime.In(locationTZ)
 	if !arrivalAtLocal.After(shiftStartLocal) {
-		return nil, fmt.Errorf("%w: arrival_time must be after shift start", domain.ErrLateArrivalInvalidRequest)
+		return nil, fmt.Errorf(
+			"%w: arrival_time must be after shift start",
+			domain.ErrLateArrivalInvalidRequest,
+		)
 	}
 
 	created, err := s.repository.CreateLateArrival(ctx, params, resolved.ScheduleID)
@@ -143,7 +168,10 @@ func parseLateArrivalTime(value string) (hour, minute, second int, normalized st
 	if err != nil {
 		parsed, err = time.Parse("15:04", input)
 		if err != nil {
-			return 0, 0, 0, "", fmt.Errorf("%w: invalid arrival_time format", domain.ErrLateArrivalInvalidRequest)
+			return 0, 0, 0, "", fmt.Errorf(
+				"%w: invalid arrival_time format",
+				domain.ErrLateArrivalInvalidRequest,
+			)
 		}
 	}
 
@@ -155,7 +183,10 @@ func validateLateArrivalDateRange(dateFrom, dateTo *time.Time) error {
 		return nil
 	}
 	if dateTo.Before(*dateFrom) {
-		return fmt.Errorf("%w: date_to must be on or after date_from", domain.ErrLateArrivalInvalidRequest)
+		return fmt.Errorf(
+			"%w: date_to must be on or after date_from",
+			domain.ErrLateArrivalInvalidRequest,
+		)
 	}
 	return nil
 }

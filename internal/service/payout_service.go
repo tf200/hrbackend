@@ -20,14 +20,21 @@ type PayoutService struct {
 	logger     domain.Logger
 }
 
-func NewPayoutService(repository domain.PayoutRepository, logger domain.Logger) domain.PayoutService {
+func NewPayoutService(
+	repository domain.PayoutRepository,
+	logger domain.Logger,
+) domain.PayoutService {
 	return &PayoutService{
 		repository: repository,
 		logger:     logger,
 	}
 }
 
-func (s *PayoutService) CreatePayoutRequest(ctx context.Context, actorEmployeeID uuid.UUID, params domain.CreatePayoutRequestParams) (*domain.PayoutRequest, error) {
+func (s *PayoutService) CreatePayoutRequest(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.CreatePayoutRequestParams,
+) (*domain.PayoutRequest, error) {
 	if actorEmployeeID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -51,7 +58,11 @@ func (s *PayoutService) CreatePayoutRequest(ctx context.Context, actorEmployeeID
 			return domain.ErrPayoutRequestInvalidRequest
 		}
 
-		if err := tx.EnsureLeaveBalanceForYear(ctx, params.EmployeeID, params.BalanceYear); err != nil {
+		if err := tx.EnsureLeaveBalanceForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+		); err != nil {
 			return err
 		}
 		balance, err := tx.GetPayoutBalanceForUpdate(ctx, params.EmployeeID, params.BalanceYear)
@@ -83,7 +94,11 @@ func (s *PayoutService) CreatePayoutRequest(ctx context.Context, actorEmployeeID
 	return created, nil
 }
 
-func (s *PayoutService) DecidePayoutRequestByAdmin(ctx context.Context, adminEmployeeID, payoutRequestID uuid.UUID, params domain.DecidePayoutRequestParams) (*domain.PayoutRequest, error) {
+func (s *PayoutService) DecidePayoutRequestByAdmin(
+	ctx context.Context,
+	adminEmployeeID, payoutRequestID uuid.UUID,
+	params domain.DecidePayoutRequestParams,
+) (*domain.PayoutRequest, error) {
 	if adminEmployeeID == uuid.Nil || payoutRequestID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -107,25 +122,49 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(ctx context.Context, adminEmp
 		}
 
 		if decision == "approve" {
-			if err := tx.EnsureLeaveBalanceForYear(ctx, current.EmployeeID, current.BalanceYear); err != nil {
+			if err := tx.EnsureLeaveBalanceForYear(
+				ctx,
+				current.EmployeeID,
+				current.BalanceYear,
+			); err != nil {
 				return err
 			}
-			balance, err := tx.GetPayoutBalanceForUpdate(ctx, current.EmployeeID, current.BalanceYear)
+			balance, err := tx.GetPayoutBalanceForUpdate(
+				ctx,
+				current.EmployeeID,
+				current.BalanceYear,
+			)
 			if err != nil {
 				return err
 			}
 			if balance.ExtraRemaining < current.RequestedHours {
 				return domain.ErrPayoutRequestInsufficientHours
 			}
-			if _, err := tx.ApplyLeaveBalanceDeduction(ctx, balance.LeaveBalanceID, current.RequestedHours, 0); err != nil {
+			if _, err := tx.ApplyLeaveBalanceDeduction(
+				ctx,
+				balance.LeaveBalanceID,
+				current.RequestedHours,
+				0,
+			); err != nil {
 				return err
 			}
 
-			updated, err = tx.ApprovePayoutRequest(ctx, payoutRequestID, adminEmployeeID, params.SalaryMonth.UTC(), params.DecisionNote)
+			updated, err = tx.ApprovePayoutRequest(
+				ctx,
+				payoutRequestID,
+				adminEmployeeID,
+				params.SalaryMonth.UTC(),
+				params.DecisionNote,
+			)
 			return err
 		}
 
-		updated, err = tx.RejectPayoutRequest(ctx, payoutRequestID, adminEmployeeID, params.DecisionNote)
+		updated, err = tx.RejectPayoutRequest(
+			ctx,
+			payoutRequestID,
+			adminEmployeeID,
+			params.DecisionNote,
+		)
 		return err
 	})
 	if err != nil {
@@ -135,7 +174,10 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(ctx context.Context, adminEmp
 	return updated, nil
 }
 
-func (s *PayoutService) MarkPayoutRequestPaidByAdmin(ctx context.Context, adminEmployeeID, payoutRequestID uuid.UUID) (*domain.PayoutRequest, error) {
+func (s *PayoutService) MarkPayoutRequestPaidByAdmin(
+	ctx context.Context,
+	adminEmployeeID, payoutRequestID uuid.UUID,
+) (*domain.PayoutRequest, error) {
 	if adminEmployeeID == uuid.Nil || payoutRequestID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -160,7 +202,10 @@ func (s *PayoutService) MarkPayoutRequestPaidByAdmin(ctx context.Context, adminE
 	return updated, nil
 }
 
-func (s *PayoutService) ListMyPayoutRequests(ctx context.Context, params domain.ListMyPayoutRequestsParams) (*domain.PayoutRequestPage, error) {
+func (s *PayoutService) ListMyPayoutRequests(
+	ctx context.Context,
+	params domain.ListMyPayoutRequestsParams,
+) (*domain.PayoutRequestPage, error) {
 	if params.EmployeeID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -170,14 +215,21 @@ func (s *PayoutService) ListMyPayoutRequests(ctx context.Context, params domain.
 	return s.repository.ListMyPayoutRequests(ctx, params)
 }
 
-func (s *PayoutService) ListPayoutRequests(ctx context.Context, params domain.ListPayoutRequestsParams) (*domain.PayoutRequestPage, error) {
+func (s *PayoutService) ListPayoutRequests(
+	ctx context.Context,
+	params domain.ListPayoutRequestsParams,
+) (*domain.PayoutRequestPage, error) {
 	if params.Status != nil && !isValidPayoutStatus(*params.Status) {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
 	return s.repository.ListPayoutRequests(ctx, params)
 }
 
-func (s *PayoutService) PreviewMyPayroll(ctx context.Context, actorEmployeeID uuid.UUID, periodStart, periodEnd time.Time) (*domain.PayrollPreview, error) {
+func (s *PayoutService) PreviewMyPayroll(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	periodStart, periodEnd time.Time,
+) (*domain.PayrollPreview, error) {
 	return s.PreviewPayroll(ctx, domain.PayrollPreviewParams{
 		EmployeeID:  actorEmployeeID,
 		PeriodStart: periodStart,
@@ -185,7 +237,10 @@ func (s *PayoutService) PreviewMyPayroll(ctx context.Context, actorEmployeeID uu
 	})
 }
 
-func (s *PayoutService) PreviewPayroll(ctx context.Context, params domain.PayrollPreviewParams) (*domain.PayrollPreview, error) {
+func (s *PayoutService) PreviewPayroll(
+	ctx context.Context,
+	params domain.PayrollPreviewParams,
+) (*domain.PayrollPreview, error) {
 	normalized, err := normalizePayrollPreviewParams(params)
 	if err != nil {
 		return nil, err
@@ -196,7 +251,13 @@ func (s *PayoutService) PreviewPayroll(ctx context.Context, params domain.Payrol
 		if err == domain.ErrEmployeeNotFound {
 			return nil, err
 		}
-		s.logError(ctx, "PreviewPayroll", "failed to get employee", err, zap.String("employee_id", normalized.EmployeeID.String()))
+		s.logError(
+			ctx,
+			"PreviewPayroll",
+			"failed to get employee",
+			err,
+			zap.String("employee_id", normalized.EmployeeID.String()),
+		)
 		return nil, fmt.Errorf("failed to get employee for payroll preview: %w", err)
 	}
 
@@ -211,7 +272,11 @@ func (s *PayoutService) PreviewPayroll(ctx context.Context, params domain.Payrol
 	return s.buildPayrollPreview(ctx, employee, normalized, entries)
 }
 
-func (s *PayoutService) ClosePayPeriod(ctx context.Context, adminEmployeeID uuid.UUID, params domain.ClosePayPeriodParams) (*domain.PayPeriod, error) {
+func (s *PayoutService) ClosePayPeriod(
+	ctx context.Context,
+	adminEmployeeID uuid.UUID,
+	params domain.ClosePayPeriodParams,
+) (*domain.PayPeriod, error) {
 	if adminEmployeeID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -226,13 +291,24 @@ func (s *PayoutService) ClosePayPeriod(ctx context.Context, adminEmployeeID uuid
 		if err == domain.ErrEmployeeNotFound {
 			return nil, err
 		}
-		s.logError(ctx, "ClosePayPeriod", "failed to get employee", err, zap.String("employee_id", normalized.EmployeeID.String()))
+		s.logError(
+			ctx,
+			"ClosePayPeriod",
+			"failed to get employee",
+			err,
+			zap.String("employee_id", normalized.EmployeeID.String()),
+		)
 		return nil, fmt.Errorf("failed to get employee for pay period close: %w", err)
 	}
 
 	var result *domain.PayPeriod
 	err = s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
-		existing, err := tx.GetPayPeriodByEmployeePeriod(ctx, normalized.EmployeeID, normalized.PeriodStart, normalized.PeriodEnd)
+		existing, err := tx.GetPayPeriodByEmployeePeriod(
+			ctx,
+			normalized.EmployeeID,
+			normalized.PeriodStart,
+			normalized.PeriodEnd,
+		)
 		if err != nil && err != domain.ErrPayPeriodNotFound {
 			return err
 		}
@@ -269,7 +345,11 @@ func (s *PayoutService) ClosePayPeriod(ctx context.Context, adminEmployeeID uuid
 		created.EmployeeName = strings.TrimSpace(employee.FirstName + " " + employee.LastName)
 		created.LineItems = make([]domain.PayPeriodLineItem, 0, len(preview.LineItems))
 		for _, item := range preview.LineItems {
-			createdLine, err := tx.CreatePayPeriodLineItem(ctx, created.ID, buildPayPeriodLineItem(item, entries))
+			createdLine, err := tx.CreatePayPeriodLineItem(
+				ctx,
+				created.ID,
+				buildPayPeriodLineItem(item, entries),
+			)
 			if err != nil {
 				return err
 			}
@@ -294,7 +374,10 @@ func (s *PayoutService) ClosePayPeriod(ctx context.Context, adminEmployeeID uuid
 	return result, nil
 }
 
-func (s *PayoutService) GetPayPeriodByID(ctx context.Context, payPeriodID uuid.UUID) (*domain.PayPeriod, error) {
+func (s *PayoutService) GetPayPeriodByID(
+	ctx context.Context,
+	payPeriodID uuid.UUID,
+) (*domain.PayPeriod, error) {
 	if payPeriodID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -312,20 +395,33 @@ func (s *PayoutService) GetPayPeriodByID(ctx context.Context, payPeriodID uuid.U
 	return period, nil
 }
 
-func (s *PayoutService) ListPayPeriods(ctx context.Context, params domain.ListPayPeriodsParams) (*domain.PayPeriodPage, error) {
+func (s *PayoutService) ListPayPeriods(
+	ctx context.Context,
+	params domain.ListPayPeriodsParams,
+) (*domain.PayPeriodPage, error) {
 	if params.Status != nil && !isValidPayPeriodStatus(*params.Status) {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
 	return s.repository.ListPayPeriods(ctx, params)
 }
 
-func (s *PayoutService) GetPayrollMonthSummary(ctx context.Context, params domain.PayrollMonthSummaryParams) (*domain.PayrollMonthSummaryPage, error) {
-	normalized, monthStart, monthEnd, isCurrentMonth, err := normalizePayrollMonthSummaryParams(params)
+func (s *PayoutService) GetPayrollMonthSummary(
+	ctx context.Context,
+	params domain.PayrollMonthSummaryParams,
+) (*domain.PayrollMonthSummaryPage, error) {
+	normalized, monthStart, monthEnd, isCurrentMonth, err := normalizePayrollMonthSummaryParams(
+		params,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	employees, totalCount, err := s.repository.ListPayrollMonthEmployees(ctx, normalized, monthStart, monthEnd)
+	employees, totalCount, err := s.repository.ListPayrollMonthEmployees(
+		ctx,
+		normalized,
+		monthStart,
+		monthEnd,
+	)
 	if err != nil {
 		s.logError(ctx, "GetPayrollMonthSummary", "failed to list payroll month employees", err)
 		return nil, fmt.Errorf("failed to list payroll month employees: %w", err)
@@ -342,7 +438,12 @@ func (s *PayoutService) GetPayrollMonthSummary(ctx context.Context, params domai
 		employeeIDs = append(employeeIDs, employee.EmployeeID)
 	}
 
-	lockedPayPeriods, err := s.repository.ListPayPeriodsByEmployeesAndRange(ctx, employeeIDs, monthStart, monthEnd)
+	lockedPayPeriods, err := s.repository.ListPayPeriodsByEmployeesAndRange(
+		ctx,
+		employeeIDs,
+		monthStart,
+		monthEnd,
+	)
 	if err != nil {
 		s.logError(ctx, "GetPayrollMonthSummary", "failed to list locked pay periods", err)
 		return nil, fmt.Errorf("failed to list pay periods for payroll month summary: %w", err)
@@ -354,22 +455,45 @@ func (s *PayoutService) GetPayrollMonthSummary(ctx context.Context, params domai
 		payPeriodIDs = append(payPeriodIDs, payPeriod.ID)
 	}
 
-	lockedMultiplierRows, err := s.repository.ListPayrollMonthLockedMultiplierSummaries(ctx, payPeriodIDs)
+	lockedMultiplierRows, err := s.repository.ListPayrollMonthLockedMultiplierSummaries(
+		ctx,
+		payPeriodIDs,
+	)
 	if err != nil {
 		s.logError(ctx, "GetPayrollMonthSummary", "failed to list locked multiplier summaries", err)
 		return nil, fmt.Errorf("failed to list locked multiplier summaries: %w", err)
 	}
 	lockedMultiplierByPeriod := buildLockedMultiplierSummaryMap(lockedMultiplierRows)
 
-	approvedEntries, err := s.repository.ListPayrollMonthApprovedTimeEntries(ctx, employeeIDs, monthStart, monthEnd)
+	approvedEntries, err := s.repository.ListPayrollMonthApprovedTimeEntries(
+		ctx,
+		employeeIDs,
+		monthStart,
+		monthEnd,
+	)
 	if err != nil {
-		s.logError(ctx, "GetPayrollMonthSummary", "failed to list approved payroll time entries", err)
+		s.logError(
+			ctx,
+			"GetPayrollMonthSummary",
+			"failed to list approved payroll time entries",
+			err,
+		)
 		return nil, fmt.Errorf("failed to list approved payroll month time entries: %w", err)
 	}
 
-	pendingRows, err := s.repository.ListPayrollMonthPendingSummaries(ctx, employeeIDs, monthStart, monthEnd)
+	pendingRows, err := s.repository.ListPayrollMonthPendingSummaries(
+		ctx,
+		employeeIDs,
+		monthStart,
+		monthEnd,
+	)
 	if err != nil {
-		s.logError(ctx, "GetPayrollMonthSummary", "failed to list pending payroll time entries", err)
+		s.logError(
+			ctx,
+			"GetPayrollMonthSummary",
+			"failed to list pending payroll time entries",
+			err,
+		)
 		return nil, fmt.Errorf("failed to list pending payroll month summaries: %w", err)
 	}
 	pendingByEmployee := make(map[uuid.UUID]domain.PayrollMonthPendingSummary, len(pendingRows))
@@ -417,7 +541,11 @@ func (s *PayoutService) GetPayrollMonthSummary(ctx context.Context, params domai
 		} else if hasLockedSnapshot {
 			row.IsLocked = true
 			row.DataSource = "locked"
-			applyLockedPayrollMonthSummary(&row, lockedPayPeriod, lockedMultiplierByPeriod[lockedPayPeriod.ID])
+			applyLockedPayrollMonthSummary(
+				&row,
+				lockedPayPeriod,
+				lockedMultiplierByPeriod[lockedPayPeriod.ID],
+			)
 		} else if live, ok := liveSummaries[employee.EmployeeID]; ok {
 			applyLivePayrollMonthSummary(&row, live)
 		}
@@ -431,7 +559,10 @@ func (s *PayoutService) GetPayrollMonthSummary(ctx context.Context, params domai
 	}, nil
 }
 
-func (s *PayoutService) MarkPayPeriodPaidByAdmin(ctx context.Context, adminEmployeeID, payPeriodID uuid.UUID) (*domain.PayPeriod, error) {
+func (s *PayoutService) MarkPayPeriodPaidByAdmin(
+	ctx context.Context,
+	adminEmployeeID, payPeriodID uuid.UUID,
+) (*domain.PayPeriod, error) {
 	if adminEmployeeID == uuid.Nil || payPeriodID == uuid.Nil {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -488,13 +619,33 @@ func isValidPayrollIrregularHoursProfile(value string) bool {
 	}
 }
 
-func normalizePayrollPreviewParams(params domain.PayrollPreviewParams) (domain.PayrollPreviewParams, error) {
+func normalizePayrollPreviewParams(
+	params domain.PayrollPreviewParams,
+) (domain.PayrollPreviewParams, error) {
 	if params.EmployeeID == uuid.Nil || params.PeriodStart.IsZero() || params.PeriodEnd.IsZero() {
 		return domain.PayrollPreviewParams{}, domain.ErrPayoutRequestInvalidRequest
 	}
 
-	start := time.Date(params.PeriodStart.UTC().Year(), params.PeriodStart.UTC().Month(), params.PeriodStart.UTC().Day(), 0, 0, 0, 0, time.UTC)
-	end := time.Date(params.PeriodEnd.UTC().Year(), params.PeriodEnd.UTC().Month(), params.PeriodEnd.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	start := time.Date(
+		params.PeriodStart.UTC().Year(),
+		params.PeriodStart.UTC().Month(),
+		params.PeriodStart.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	end := time.Date(
+		params.PeriodEnd.UTC().Year(),
+		params.PeriodEnd.UTC().Month(),
+		params.PeriodEnd.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
 	if end.Before(start) {
 		return domain.PayrollPreviewParams{}, domain.ErrPayoutRequestInvalidRequest
 	}
@@ -504,7 +655,9 @@ func normalizePayrollPreviewParams(params domain.PayrollPreviewParams) (domain.P
 	return params, nil
 }
 
-func normalizeClosePayPeriodParams(params domain.ClosePayPeriodParams) (domain.ClosePayPeriodParams, error) {
+func normalizeClosePayPeriodParams(
+	params domain.ClosePayPeriodParams,
+) (domain.ClosePayPeriodParams, error) {
 	normalized, err := normalizePayrollPreviewParams(domain.PayrollPreviewParams{
 		EmployeeID:  params.EmployeeID,
 		PeriodStart: params.PeriodStart,
@@ -521,12 +674,23 @@ func normalizeClosePayPeriodParams(params domain.ClosePayPeriodParams) (domain.C
 	}, nil
 }
 
-func normalizePayrollMonthSummaryParams(params domain.PayrollMonthSummaryParams) (domain.PayrollMonthSummaryParams, time.Time, time.Time, bool, error) {
+func normalizePayrollMonthSummaryParams(
+	params domain.PayrollMonthSummaryParams,
+) (domain.PayrollMonthSummaryParams, time.Time, time.Time, bool, error) {
 	if params.Month.IsZero() {
 		return domain.PayrollMonthSummaryParams{}, time.Time{}, time.Time{}, false, domain.ErrPayoutRequestInvalidRequest
 	}
 
-	month := time.Date(params.Month.UTC().Year(), params.Month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
+	month := time.Date(
+		params.Month.UTC().Year(),
+		params.Month.UTC().Month(),
+		1,
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
 	monthEnd := month.AddDate(0, 1, -1)
 	now := time.Now().UTC()
 	currentMonth := now.Year() == month.Year() && now.Month() == month.Month()
@@ -535,7 +699,12 @@ func normalizePayrollMonthSummaryParams(params domain.PayrollMonthSummaryParams)
 	return params, month, monthEnd, currentMonth, nil
 }
 
-func (s *PayoutService) buildPayrollPreview(ctx context.Context, employee *domain.EmployeeDetail, params domain.PayrollPreviewParams, entries []domain.PayrollPreviewTimeEntry) (*domain.PayrollPreview, error) {
+func (s *PayoutService) buildPayrollPreview(
+	ctx context.Context,
+	employee *domain.EmployeeDetail,
+	params domain.PayrollPreviewParams,
+	entries []domain.PayrollPreviewTimeEntry,
+) (*domain.PayrollPreview, error) {
 	holidaySet, err := s.loadHolidaySet(ctx, params.PeriodStart, params.PeriodEnd)
 	if err != nil {
 		return nil, err
@@ -560,7 +729,11 @@ func (s *PayoutService) buildPayrollPreview(ctx context.Context, employee *domai
 			return nil, domain.ErrPayoutRequestInvalidRequest
 		}
 
-		lineItems, workedMinutes, baseAmount, premiumAmount, err := buildPayrollPreviewLineItems(entry, *entry.ContractRate, holidaySet)
+		lineItems, workedMinutes, baseAmount, premiumAmount, err := buildPayrollPreviewLineItems(
+			entry,
+			*entry.ContractRate,
+			holidaySet,
+		)
 		if err != nil {
 			return nil, domain.ErrPayoutRequestInvalidRequest
 		}
@@ -575,7 +748,11 @@ func (s *PayoutService) buildPayrollPreview(ctx context.Context, employee *domai
 	return preview, nil
 }
 
-func buildPayrollPreviewLineItems(entry domain.PayrollPreviewTimeEntry, hourlyRate float64, holidaySet map[string]struct{}) ([]domain.PayrollPreviewLineItem, int32, float64, float64, error) {
+func buildPayrollPreviewLineItems(
+	entry domain.PayrollPreviewTimeEntry,
+	hourlyRate float64,
+	holidaySet map[string]struct{},
+) ([]domain.PayrollPreviewLineItem, int32, float64, float64, error) {
 	start, end, err := parseTimeEntryBounds(entry.EntryDate, entry.StartTime, entry.EndTime)
 	if err != nil {
 		return nil, 0, 0, 0, err
@@ -603,7 +780,16 @@ func buildPayrollPreviewLineItems(entry domain.PayrollPreviewTimeEntry, hourlyRa
 	current := start
 	segmentStart := start
 	segmentRate := ortRateForMinute(entry.IrregularHoursProfile, current, holidaySet)
-	segmentWorkDate := time.Date(current.Year(), current.Month(), current.Day(), 0, 0, 0, 0, time.UTC)
+	segmentWorkDate := time.Date(
+		current.Year(),
+		current.Month(),
+		current.Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
 
 	for current.Before(end) {
 		next := current.Add(time.Minute)
@@ -657,8 +843,20 @@ func buildPayrollPreviewLineItems(entry domain.PayrollPreviewTimeEntry, hourlyRa
 	return items, totalMinutes - entry.BreakMinutes, baseTotal, premiumTotal, nil
 }
 
-func parseTimeEntryBounds(entryDate time.Time, startTime, endTime string) (time.Time, time.Time, error) {
-	baseDate := time.Date(entryDate.UTC().Year(), entryDate.UTC().Month(), entryDate.UTC().Day(), 0, 0, 0, 0, time.UTC)
+func parseTimeEntryBounds(
+	entryDate time.Time,
+	startTime, endTime string,
+) (time.Time, time.Time, error) {
+	baseDate := time.Date(
+		entryDate.UTC().Year(),
+		entryDate.UTC().Month(),
+		entryDate.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
 	startParsed, err := time.Parse("15:04:05", startTime)
 	if err != nil {
 		startParsed, err = time.Parse("15:04", startTime)
@@ -674,8 +872,26 @@ func parseTimeEntryBounds(entryDate time.Time, startTime, endTime string) (time.
 		}
 	}
 
-	start := time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), startParsed.Hour(), startParsed.Minute(), startParsed.Second(), 0, time.UTC)
-	end := time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), endParsed.Hour(), endParsed.Minute(), endParsed.Second(), 0, time.UTC)
+	start := time.Date(
+		baseDate.Year(),
+		baseDate.Month(),
+		baseDate.Day(),
+		startParsed.Hour(),
+		startParsed.Minute(),
+		startParsed.Second(),
+		0,
+		time.UTC,
+	)
+	end := time.Date(
+		baseDate.Year(),
+		baseDate.Month(),
+		baseDate.Day(),
+		endParsed.Hour(),
+		endParsed.Minute(),
+		endParsed.Second(),
+		0,
+		time.UTC,
+	)
 	if !end.After(start) {
 		end = end.Add(24 * time.Hour)
 	}
@@ -736,7 +952,10 @@ type payrollMonthLiveSummary struct {
 	MultiplierSummaries  []domain.PayrollMultiplierSummary
 }
 
-func buildPayrollMonthLiveSummaries(entries []domain.PayrollPreviewTimeEntry, holidaySet map[string]struct{}) (map[uuid.UUID]payrollMonthLiveSummary, error) {
+func buildPayrollMonthLiveSummaries(
+	entries []domain.PayrollPreviewTimeEntry,
+	holidaySet map[string]struct{},
+) (map[uuid.UUID]payrollMonthLiveSummary, error) {
 	type liveAccumulator struct {
 		WorkedMinutes        int32
 		PaidMinutes          float64
@@ -757,7 +976,11 @@ func buildPayrollMonthLiveSummaries(entries []domain.PayrollPreviewTimeEntry, ho
 			return nil, domain.ErrPayoutRequestInvalidRequest
 		}
 
-		lineItems, workedMinutes, baseAmount, premiumAmount, err := buildPayrollPreviewLineItems(entry, *entry.ContractRate, holidaySet)
+		lineItems, workedMinutes, baseAmount, premiumAmount, err := buildPayrollPreviewLineItems(
+			entry,
+			*entry.ContractRate,
+			holidaySet,
+		)
 		if err != nil {
 			return nil, domain.ErrPayoutRequestInvalidRequest
 		}
@@ -802,7 +1025,9 @@ func buildPayrollMonthLiveSummaries(entries []domain.PayrollPreviewTimeEntry, ho
 	return results, nil
 }
 
-func buildLockedMultiplierSummaryMap(rows []domain.PayrollLockedMultiplierSummary) map[uuid.UUID][]domain.PayrollMultiplierSummary {
+func buildLockedMultiplierSummaryMap(
+	rows []domain.PayrollLockedMultiplierSummary,
+) map[uuid.UUID][]domain.PayrollMultiplierSummary {
 	grouped := make(map[uuid.UUID][]domain.PayrollMultiplierSummary)
 	for _, row := range rows {
 		grouped[row.PayPeriodID] = append(grouped[row.PayPeriodID], domain.PayrollMultiplierSummary{
@@ -816,7 +1041,9 @@ func buildLockedMultiplierSummaryMap(rows []domain.PayrollLockedMultiplierSummar
 	return grouped
 }
 
-func sortedMultiplierSummaries(buckets map[float64]*domain.PayrollMultiplierSummary) []domain.PayrollMultiplierSummary {
+func sortedMultiplierSummaries(
+	buckets map[float64]*domain.PayrollMultiplierSummary,
+) []domain.PayrollMultiplierSummary {
 	keys := make([]float64, 0, len(buckets))
 	for rate := range buckets {
 		keys = append(keys, rate)
@@ -830,7 +1057,10 @@ func sortedMultiplierSummaries(buckets map[float64]*domain.PayrollMultiplierSumm
 	return items
 }
 
-func applyLivePayrollMonthSummary(row *domain.PayrollMonthSummaryRow, live payrollMonthLiveSummary) {
+func applyLivePayrollMonthSummary(
+	row *domain.PayrollMonthSummaryRow,
+	live payrollMonthLiveSummary,
+) {
 	row.DataSource = "live"
 	row.WorkedMinutes = live.WorkedMinutes
 	row.PaidMinutes = live.PaidMinutes
@@ -840,7 +1070,11 @@ func applyLivePayrollMonthSummary(row *domain.PayrollMonthSummaryRow, live payro
 	row.MultiplierSummaries = live.MultiplierSummaries
 }
 
-func applyLockedPayrollMonthSummary(row *domain.PayrollMonthSummaryRow, payPeriod domain.PayPeriod, multiplierSummaries []domain.PayrollMultiplierSummary) {
+func applyLockedPayrollMonthSummary(
+	row *domain.PayrollMonthSummaryRow,
+	payPeriod domain.PayPeriod,
+	multiplierSummaries []domain.PayrollMultiplierSummary,
+) {
 	var paidMinutes float64
 	var workedMinutes float64
 	for _, item := range multiplierSummaries {
@@ -856,8 +1090,16 @@ func applyLockedPayrollMonthSummary(row *domain.PayrollMonthSummaryRow, payPerio
 	row.MultiplierSummaries = multiplierSummaries
 }
 
-func (s *PayoutService) loadHolidaySet(ctx context.Context, startDate, endDate time.Time) (map[string]struct{}, error) {
-	holidays, err := s.repository.ListNationalHolidays(ctx, "NL", startDate, endDate.AddDate(0, 0, 1))
+func (s *PayoutService) loadHolidaySet(
+	ctx context.Context,
+	startDate, endDate time.Time,
+) (map[string]struct{}, error) {
+	holidays, err := s.repository.ListNationalHolidays(
+		ctx,
+		"NL",
+		startDate,
+		endDate.AddDate(0, 0, 1),
+	)
 	if err != nil {
 		s.logError(ctx, "loadHolidaySet", "failed to list national holidays", err)
 		return nil, fmt.Errorf("failed to list national holidays: %w", err)
@@ -870,7 +1112,10 @@ func (s *PayoutService) loadHolidaySet(ctx context.Context, startDate, endDate t
 	return holidaySet, nil
 }
 
-func buildPayPeriodLineItem(item domain.PayrollPreviewLineItem, entries []domain.PayrollPreviewTimeEntry) domain.PayPeriodLineItem {
+func buildPayPeriodLineItem(
+	item domain.PayrollPreviewLineItem,
+	entries []domain.PayrollPreviewTimeEntry,
+) domain.PayPeriodLineItem {
 	metadata := map[string]any{
 		"start_time":   item.StartTime,
 		"end_time":     item.EndTime,
@@ -903,7 +1148,10 @@ func buildPayPeriodLineItem(item domain.PayrollPreviewLineItem, entries []domain
 	}
 }
 
-func findPreviewTimeEntry(entries []domain.PayrollPreviewTimeEntry, timeEntryID uuid.UUID) (domain.PayrollPreviewTimeEntry, bool) {
+func findPreviewTimeEntry(
+	entries []domain.PayrollPreviewTimeEntry,
+	timeEntryID uuid.UUID,
+) (domain.PayrollPreviewTimeEntry, bool) {
 	for _, entry := range entries {
 		if entry.ID == timeEntryID {
 			return entry, true
@@ -925,7 +1173,12 @@ func uniquePreviewTimeEntryIDs(items []domain.PayrollPreviewLineItem) []uuid.UUI
 	return result
 }
 
-func (s *PayoutService) logError(ctx context.Context, operation, message string, err error, fields ...zap.Field) {
+func (s *PayoutService) logError(
+	ctx context.Context,
+	operation, message string,
+	err error,
+	fields ...zap.Field,
+) {
 	if s.logger == nil {
 		return
 	}

@@ -20,12 +20,27 @@ func RegisterScheduleRoutes(
 	requirePermission func(string) gin.HandlerFunc,
 ) {
 	rg.POST("/schedules", auth, requirePermission("SCHEDULE.CREATE"), handler.CreateSchedule)
-	rg.GET("/locations/:id/schedules", auth, requirePermission("SCHEDULE.VIEW"), handler.GetSchedulesByLocationInRange)
+	rg.GET(
+		"/locations/:id/schedules",
+		auth,
+		requirePermission("SCHEDULE.VIEW"),
+		handler.GetSchedulesByLocationInRange,
+	)
 	rg.GET("/schedules/:id", auth, requirePermission("SCHEDULE.VIEW"), handler.GetScheduleByID)
 	rg.PUT("/schedules/:id", auth, requirePermission("SCHEDULE.UPDATE"), handler.UpdateSchedule)
 	rg.DELETE("/schedules/:id", auth, requirePermission("SCHEDULE.DELETE"), handler.DeleteSchedule)
-	rg.POST("/schedules/auto_generate", auth, requirePermission("SCHEDULE.CREATE"), handler.AutoGenerateSchedules)
-	rg.POST("/schedules/save_generated", auth, requirePermission("SCHEDULE.CREATE"), handler.SaveGeneratedSchedules)
+	rg.POST(
+		"/schedules/auto_generate",
+		auth,
+		requirePermission("SCHEDULE.CREATE"),
+		handler.AutoGenerateSchedules,
+	)
+	rg.POST(
+		"/schedules/save_generated",
+		auth,
+		requirePermission("SCHEDULE.CREATE"),
+		handler.SaveGeneratedSchedules,
+	)
 }
 
 type ScheduleHandler struct {
@@ -51,7 +66,10 @@ func (h *ScheduleHandler) CreateSchedule(ctx *gin.Context) {
 
 	schedules, err := h.service.CreateSchedule(ctx.Request.Context(), employeeID, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to create schedule: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to create schedule: %v", err), ""),
+		)
 		return
 	}
 
@@ -71,9 +89,16 @@ func (h *ScheduleHandler) GetSchedulesByLocationInRange(ctx *gin.Context) {
 		return
 	}
 
-	response, err := h.service.GetSchedulesByLocationInRange(ctx.Request.Context(), locationID, &req)
+	response, err := h.service.GetSchedulesByLocationInRange(
+		ctx.Request.Context(),
+		locationID,
+		&req,
+	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to get schedules by range: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get schedules by range: %v", err), ""),
+		)
 		return
 	}
 
@@ -89,7 +114,10 @@ func (h *ScheduleHandler) GetScheduleByID(ctx *gin.Context) {
 
 	item, err := h.service.GetScheduleByID(ctx.Request.Context(), scheduleID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to get schedule: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get schedule: %v", err), ""),
+		)
 		return
 	}
 
@@ -117,7 +145,10 @@ func (h *ScheduleHandler) UpdateSchedule(ctx *gin.Context) {
 
 	item, err := h.service.UpdateSchedule(ctx.Request.Context(), scheduleID, employeeID, &req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to update schedule: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to update schedule: %v", err), ""),
+		)
 		return
 	}
 
@@ -132,7 +163,10 @@ func (h *ScheduleHandler) DeleteSchedule(ctx *gin.Context) {
 	}
 
 	if err := h.service.DeleteSchedule(ctx.Request.Context(), scheduleID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to delete schedule: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to delete schedule: %v", err), ""),
+		)
 		return
 	}
 
@@ -156,7 +190,10 @@ func (h *ScheduleHandler) AutoGenerateSchedules(ctx *gin.Context) {
 			ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to auto-generate schedules: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to auto-generate schedules: %v", err), ""),
+		)
 		return
 	}
 
@@ -176,12 +213,19 @@ func (h *ScheduleHandler) SaveGeneratedSchedules(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.service.SaveGeneratedSchedules(ctx.Request.Context(), employeeID, &req); err != nil {
+	if err := h.service.SaveGeneratedSchedules(
+		ctx.Request.Context(),
+		employeeID,
+		&req,
+	); err != nil {
 		if errors.Is(err, domain.ErrScheduleAutogenUnavailable) {
 			ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail(fmt.Sprintf("failed to save generated schedules: %v", err), ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to save generated schedules: %v", err), ""),
+		)
 		return
 	}
 

@@ -75,11 +75,20 @@ func New(accessTokenKey, refreshTokenKey, twoFATokenKey string) (*Maker, error) 
 	}, nil
 }
 
-func (m *Maker) CreateToken(userID, employeeID uuid.UUID, duration time.Duration, tokenType TokenType) (string, *Payload, error) {
+func (m *Maker) CreateToken(
+	userID, employeeID uuid.UUID,
+	duration time.Duration,
+	tokenType TokenType,
+) (string, *Payload, error) {
 	return m.CreateTokenWithSessionID(userID, employeeID, duration, tokenType, uuid.Nil)
 }
 
-func (m *Maker) CreateTokenWithSessionID(userID, employeeID uuid.UUID, duration time.Duration, tokenType TokenType, sessionID uuid.UUID) (string, *Payload, error) {
+func (m *Maker) CreateTokenWithSessionID(
+	userID, employeeID uuid.UUID,
+	duration time.Duration,
+	tokenType TokenType,
+	sessionID uuid.UUID,
+) (string, *Payload, error) {
 	payload, err := newPayload(userID, employeeID, duration, tokenType)
 	if err != nil {
 		return "", nil, err
@@ -160,7 +169,11 @@ func (m *Maker) secretKeyForType(tokenType TokenType) (string, error) {
 	}
 }
 
-func newPayload(userID, employeeID uuid.UUID, duration time.Duration, tokenType TokenType) (*Payload, error) {
+func newPayload(
+	userID, employeeID uuid.UUID,
+	duration time.Duration,
+	tokenType TokenType,
+) (*Payload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err

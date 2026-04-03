@@ -140,7 +140,10 @@ func validateConfig(config *Config) error {
 	}
 
 	if len(missingVars) > 0 {
-		return fmt.Errorf("missing or invalid crucial environment variables: %s", strings.Join(missingVars, ", "))
+		return fmt.Errorf(
+			"missing or invalid crucial environment variables: %s",
+			strings.Join(missingVars, ", "),
+		)
 	}
 
 	return nil

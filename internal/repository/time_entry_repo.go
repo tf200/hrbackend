@@ -22,13 +22,19 @@ func NewTimeEntryRepository(store *db.Store) domain.TimeEntryRepository {
 	return &TimeEntryRepository{store: store}
 }
 
-func (r *TimeEntryRepository) WithTx(ctx context.Context, fn func(tx domain.TimeEntryTxRepository) error) error {
+func (r *TimeEntryRepository) WithTx(
+	ctx context.Context,
+	fn func(tx domain.TimeEntryTxRepository) error,
+) error {
 	return r.store.ExecTx(ctx, func(q *db.Queries) error {
 		return fn(&timeEntryTxRepo{queries: q})
 	})
 }
 
-func (r *TimeEntryRepository) CreateTimeEntry(ctx context.Context, params domain.CreateTimeEntryParams) (*domain.TimeEntry, error) {
+func (r *TimeEntryRepository) CreateTimeEntry(
+	ctx context.Context,
+	params domain.CreateTimeEntryParams,
+) (*domain.TimeEntry, error) {
 	if params.ScheduleID != nil {
 		schedule, err := r.store.GetScheduleById(ctx, *params.ScheduleID)
 		if err != nil {
@@ -73,7 +79,10 @@ func (r *TimeEntryRepository) CreateTimeEntry(ctx context.Context, params domain
 	return &result, nil
 }
 
-func (r *TimeEntryRepository) GetTimeEntryByID(ctx context.Context, id uuid.UUID) (*domain.TimeEntry, error) {
+func (r *TimeEntryRepository) GetTimeEntryByID(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.TimeEntry, error) {
 	row, err := r.store.GetTimeEntryByID(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -86,7 +95,10 @@ func (r *TimeEntryRepository) GetTimeEntryByID(ctx context.Context, id uuid.UUID
 	return &result, nil
 }
 
-func (r *TimeEntryRepository) ListTimeEntries(ctx context.Context, params domain.ListTimeEntriesParams) (*domain.TimeEntryPage, error) {
+func (r *TimeEntryRepository) ListTimeEntries(
+	ctx context.Context,
+	params domain.ListTimeEntriesParams,
+) (*domain.TimeEntryPage, error) {
 	rows, err := r.store.ListTimeEntriesPaginated(ctx, db.ListTimeEntriesPaginatedParams{
 		Status:         toDBNullTimeEntryStatus(params.Status),
 		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
@@ -137,7 +149,10 @@ func (r *TimeEntryRepository) ListTimeEntries(ctx context.Context, params domain
 	return page, nil
 }
 
-func (r *TimeEntryRepository) ListMyTimeEntries(ctx context.Context, params domain.ListMyTimeEntriesParams) (*domain.TimeEntryPage, error) {
+func (r *TimeEntryRepository) ListMyTimeEntries(
+	ctx context.Context,
+	params domain.ListMyTimeEntriesParams,
+) (*domain.TimeEntryPage, error) {
 	rows, err := r.store.ListMyTimeEntriesPaginated(ctx, db.ListMyTimeEntriesPaginatedParams{
 		EmployeeID: params.EmployeeID,
 		Status:     toDBNullTimeEntryStatus(params.Status),
@@ -374,7 +389,10 @@ type timeEntryTxRepo struct {
 	queries *db.Queries
 }
 
-func (r *timeEntryTxRepo) GetTimeEntryForUpdate(ctx context.Context, timeEntryID uuid.UUID) (*domain.TimeEntry, error) {
+func (r *timeEntryTxRepo) GetTimeEntryForUpdate(
+	ctx context.Context,
+	timeEntryID uuid.UUID,
+) (*domain.TimeEntry, error) {
 	row, err := r.queries.LockTimeEntryByID(ctx, timeEntryID)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -387,7 +405,10 @@ func (r *timeEntryTxRepo) GetTimeEntryForUpdate(ctx context.Context, timeEntryID
 	return &model, nil
 }
 
-func (r *timeEntryTxRepo) ApproveTimeEntry(ctx context.Context, timeEntryID, approvedByEmployeeID uuid.UUID) (*domain.TimeEntry, error) {
+func (r *timeEntryTxRepo) ApproveTimeEntry(
+	ctx context.Context,
+	timeEntryID, approvedByEmployeeID uuid.UUID,
+) (*domain.TimeEntry, error) {
 	row, err := r.queries.ApproveTimeEntry(ctx, db.ApproveTimeEntryParams{
 		ID:                   timeEntryID,
 		ApprovedByEmployeeID: &approvedByEmployeeID,
@@ -403,7 +424,11 @@ func (r *timeEntryTxRepo) ApproveTimeEntry(ctx context.Context, timeEntryID, app
 	return &model, nil
 }
 
-func (r *timeEntryTxRepo) RejectTimeEntry(ctx context.Context, timeEntryID uuid.UUID, rejectionReason *string) (*domain.TimeEntry, error) {
+func (r *timeEntryTxRepo) RejectTimeEntry(
+	ctx context.Context,
+	timeEntryID uuid.UUID,
+	rejectionReason *string,
+) (*domain.TimeEntry, error) {
 	row, err := r.queries.RejectTimeEntry(ctx, db.RejectTimeEntryParams{
 		ID:              timeEntryID,
 		RejectionReason: rejectionReason,

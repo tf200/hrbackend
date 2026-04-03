@@ -9,7 +9,7 @@ import (
 )
 
 type PageRequest struct {
-	Page     int32 `form:"page" binding:"required,min=1"`
+	Page     int32 `form:"page"      binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=100"`
 }
 
@@ -33,7 +33,12 @@ func (r PageRequest) Params() PageParams {
 	}
 }
 
-func NewPageResponse[T any](ctx *gin.Context, req PageRequest, results []T, totalCount int64) PageResponse[T] {
+func NewPageResponse[T any](
+	ctx *gin.Context,
+	req PageRequest,
+	results []T,
+	totalCount int64,
+) PageResponse[T] {
 	totalPages := int32(math.Ceil(float64(totalCount) / float64(req.PageSize)))
 	baseURL := *ctx.Request.URL
 

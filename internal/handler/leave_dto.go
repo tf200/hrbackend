@@ -15,35 +15,35 @@ const leaveDateLayout = "2006-01-02"
 type createLeaveRequestRequest struct {
 	LeaveType string  `json:"leave_type" binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
 	StartDate string  `json:"start_date" binding:"required,datetime=2006-01-02"`
-	EndDate   string  `json:"end_date" binding:"required,datetime=2006-01-02"`
+	EndDate   string  `json:"end_date"   binding:"required,datetime=2006-01-02"`
 	Reason    *string `json:"reason"`
 }
 
 type createLeaveRequestByAdminRequest struct {
 	EmployeeID uuid.UUID `json:"employee_id" binding:"required"`
-	LeaveType  string    `json:"leave_type" binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
-	StartDate  string    `json:"start_date" binding:"required,datetime=2006-01-02"`
-	EndDate    string    `json:"end_date" binding:"required,datetime=2006-01-02"`
+	LeaveType  string    `json:"leave_type"  binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
+	StartDate  string    `json:"start_date"  binding:"required,datetime=2006-01-02"`
+	EndDate    string    `json:"end_date"    binding:"required,datetime=2006-01-02"`
 	Reason     *string   `json:"reason"`
 }
 
 type updateLeaveRequestRequest struct {
 	LeaveType *string `json:"leave_type" binding:"omitempty,oneof=vacation personal sick pregnancy unpaid other"`
 	StartDate *string `json:"start_date" binding:"omitempty,datetime=2006-01-02"`
-	EndDate   *string `json:"end_date" binding:"omitempty,datetime=2006-01-02"`
+	EndDate   *string `json:"end_date"   binding:"omitempty,datetime=2006-01-02"`
 	Reason    *string `json:"reason"`
 }
 
 type updateLeaveRequestByAdminRequest struct {
-	LeaveType       *string `json:"leave_type" binding:"omitempty,oneof=vacation personal sick pregnancy unpaid other"`
-	StartDate       *string `json:"start_date" binding:"omitempty,datetime=2006-01-02"`
-	EndDate         *string `json:"end_date" binding:"omitempty,datetime=2006-01-02"`
+	LeaveType       *string `json:"leave_type"        binding:"omitempty,oneof=vacation personal sick pregnancy unpaid other"`
+	StartDate       *string `json:"start_date"        binding:"omitempty,datetime=2006-01-02"`
+	EndDate         *string `json:"end_date"          binding:"omitempty,datetime=2006-01-02"`
 	Reason          *string `json:"reason"`
 	AdminUpdateNote string  `json:"admin_update_note" binding:"required"`
 }
 
 type decideLeaveRequestByAdminRequest struct {
-	Decision     string  `json:"decision" binding:"required,oneof=approve reject"`
+	Decision     string  `json:"decision"      binding:"required,oneof=approve reject"`
 	DecisionNote *string `json:"decision_note"`
 }
 
@@ -54,14 +54,14 @@ type listMyLeaveRequestsRequest struct {
 
 type listLeaveRequestsRequest struct {
 	httpapi.PageRequest
-	Status         *string `form:"status" binding:"omitempty,oneof=pending approved rejected cancelled expired"`
+	Status         *string `form:"status"          binding:"omitempty,oneof=pending approved rejected cancelled expired"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 
 type listLeaveBalancesRequest struct {
 	httpapi.PageRequest
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
-	Year           *int32  `form:"year" binding:"omitempty,min=2000,max=2100"`
+	Year           *int32  `form:"year"            binding:"omitempty,min=2000,max=2100"`
 }
 
 type listMyLeaveBalancesRequest struct {
@@ -70,11 +70,11 @@ type listMyLeaveBalancesRequest struct {
 }
 
 type adjustLeaveBalanceRequest struct {
-	EmployeeID      uuid.UUID `json:"employee_id" binding:"required"`
-	Year            int32     `json:"year" binding:"required,min=2000,max=2100"`
+	EmployeeID      uuid.UUID `json:"employee_id"       binding:"required"`
+	Year            int32     `json:"year"              binding:"required,min=2000,max=2100"`
 	LegalHoursDelta int32     `json:"legal_hours_delta"`
 	ExtraHoursDelta int32     `json:"extra_hours_delta"`
-	Reason          string    `json:"reason" binding:"required"`
+	Reason          string    `json:"reason"            binding:"required"`
 }
 
 type leaveRequestResponse struct {
@@ -157,7 +157,9 @@ type adjustLeaveBalanceResponse struct {
 	Balance leaveBalanceResponse `json:"balance"`
 }
 
-func toCreateLeaveRequestParams(req createLeaveRequestRequest) (domain.CreateLeaveRequestParams, error) {
+func toCreateLeaveRequestParams(
+	req createLeaveRequestRequest,
+) (domain.CreateLeaveRequestParams, error) {
 	startDate, err := time.Parse(leaveDateLayout, req.StartDate)
 	if err != nil {
 		return domain.CreateLeaveRequestParams{}, err
@@ -174,7 +176,9 @@ func toCreateLeaveRequestParams(req createLeaveRequestRequest) (domain.CreateLea
 	}, nil
 }
 
-func toCreateLeaveRequestByAdminParams(req createLeaveRequestByAdminRequest) (domain.CreateLeaveRequestParams, error) {
+func toCreateLeaveRequestByAdminParams(
+	req createLeaveRequestByAdminRequest,
+) (domain.CreateLeaveRequestParams, error) {
 	base, err := toCreateLeaveRequestParams(createLeaveRequestRequest{
 		LeaveType: req.LeaveType,
 		StartDate: req.StartDate,
@@ -188,7 +192,9 @@ func toCreateLeaveRequestByAdminParams(req createLeaveRequestByAdminRequest) (do
 	return base, nil
 }
 
-func toUpdateLeaveRequestParams(req updateLeaveRequestRequest) (domain.UpdateLeaveRequestParams, error) {
+func toUpdateLeaveRequestParams(
+	req updateLeaveRequestRequest,
+) (domain.UpdateLeaveRequestParams, error) {
 	startDate, err := parseLeaveDatePtr(req.StartDate)
 	if err != nil {
 		return domain.UpdateLeaveRequestParams{}, err
@@ -206,7 +212,9 @@ func toUpdateLeaveRequestParams(req updateLeaveRequestRequest) (domain.UpdateLea
 	}, nil
 }
 
-func toUpdateLeaveRequestByAdminParams(req updateLeaveRequestByAdminRequest) (domain.UpdateLeaveRequestParams, string, error) {
+func toUpdateLeaveRequestByAdminParams(
+	req updateLeaveRequestByAdminRequest,
+) (domain.UpdateLeaveRequestParams, string, error) {
 	updateParams, err := toUpdateLeaveRequestParams(updateLeaveRequestRequest{
 		LeaveType: req.LeaveType,
 		StartDate: req.StartDate,
@@ -219,14 +227,19 @@ func toUpdateLeaveRequestByAdminParams(req updateLeaveRequestByAdminRequest) (do
 	return updateParams, req.AdminUpdateNote, nil
 }
 
-func toDecideLeaveRequestParams(req decideLeaveRequestByAdminRequest) domain.DecideLeaveRequestParams {
+func toDecideLeaveRequestParams(
+	req decideLeaveRequestByAdminRequest,
+) domain.DecideLeaveRequestParams {
 	return domain.DecideLeaveRequestParams{
 		Decision:     req.Decision,
 		DecisionNote: req.DecisionNote,
 	}
 }
 
-func toListMyLeaveRequestsParams(employeeID uuid.UUID, req listMyLeaveRequestsRequest) domain.ListMyLeaveRequestsParams {
+func toListMyLeaveRequestsParams(
+	employeeID uuid.UUID,
+	req listMyLeaveRequestsRequest,
+) domain.ListMyLeaveRequestsParams {
 	return domain.ListMyLeaveRequestsParams{
 		EmployeeID: employeeID,
 		Limit:      req.PageSize,
@@ -253,7 +266,10 @@ func toListLeaveBalancesParams(req listLeaveBalancesRequest) domain.ListLeaveBal
 	}
 }
 
-func toListMyLeaveBalancesParams(employeeID uuid.UUID, req listMyLeaveBalancesRequest) domain.ListMyLeaveBalancesParams {
+func toListMyLeaveBalancesParams(
+	employeeID uuid.UUID,
+	req listMyLeaveBalancesRequest,
+) domain.ListMyLeaveBalancesParams {
 	return domain.ListMyLeaveBalancesParams{
 		EmployeeID: employeeID,
 		Limit:      req.PageSize,
@@ -262,7 +278,10 @@ func toListMyLeaveBalancesParams(employeeID uuid.UUID, req listMyLeaveBalancesRe
 	}
 }
 
-func toAdjustLeaveBalanceParams(adminEmployeeID uuid.UUID, req adjustLeaveBalanceRequest) domain.AdjustLeaveBalanceParams {
+func toAdjustLeaveBalanceParams(
+	adminEmployeeID uuid.UUID,
+	req adjustLeaveBalanceRequest,
+) domain.AdjustLeaveBalanceParams {
 	return domain.AdjustLeaveBalanceParams{
 		AdminEmployeeID: adminEmployeeID,
 		EmployeeID:      req.EmployeeID,

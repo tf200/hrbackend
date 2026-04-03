@@ -42,15 +42,28 @@ type IncidentReportData struct {
 	LocationName            string    `json:"location_name"`
 }
 
-func (s *pdfService) GenerateIncidentPDF(ctx context.Context, incidentData IncidentReportData) ([]byte, error) {
+func (s *pdfService) GenerateIncidentPDF(
+	ctx context.Context,
+	incidentData IncidentReportData,
+) ([]byte, error) {
 	_ = ctx
 
 	headerLines := []string{
 		fmt.Sprintf("Incident ID: %s", incidentData.ID),
 		fmt.Sprintf("Occurred at: %s", formatTimeOrNA(incidentData.OccurredAt)),
 		fmt.Sprintf("Location: %s (%s)", incidentData.LocationName, incidentData.LocationID),
-		fmt.Sprintf("Reporter: %s %s (%s)", incidentData.EmployeeFirstName, incidentData.EmployeeLastName, incidentData.EmployeeID),
-		fmt.Sprintf("Client: %s %s (%s)", incidentData.ClientFirstName, incidentData.ClientLastName, incidentData.ClientID),
+		fmt.Sprintf(
+			"Reporter: %s %s (%s)",
+			incidentData.EmployeeFirstName,
+			incidentData.EmployeeLastName,
+			incidentData.EmployeeID,
+		),
+		fmt.Sprintf(
+			"Client: %s %s (%s)",
+			incidentData.ClientFirstName,
+			incidentData.ClientLastName,
+			incidentData.ClientID,
+		),
 	}
 
 	sections := []documentSection{
@@ -66,7 +79,10 @@ func (s *pdfService) GenerateIncidentPDF(ctx context.Context, incidentData Incid
 		{
 			Title: "Impact and risk",
 			Lines: []string{
-				fmt.Sprintf("Incident explanation: %s", stringOrNA(incidentData.IncidentExplanation)),
+				fmt.Sprintf(
+					"Incident explanation: %s",
+					stringOrNA(incidentData.IncidentExplanation),
+				),
 				fmt.Sprintf("Recurrence risk: %s", incidentData.RecurrenceRisk),
 				fmt.Sprintf("Preventive steps: %s", stringOrNA(incidentData.IncidentPreventSteps)),
 				fmt.Sprintf("Taken measures: %s", stringOrNA(incidentData.IncidentTakenMeasures)),
@@ -83,9 +99,15 @@ func (s *pdfService) GenerateIncidentPDF(ctx context.Context, incidentData Incid
 			Title: "Damage and follow-up",
 			Lines: []string{
 				fmt.Sprintf("Physical injury: %s", incidentData.PhysicalInjury),
-				fmt.Sprintf("Physical injury description: %s", stringOrNA(incidentData.PhysicalInjuryDesc)),
+				fmt.Sprintf(
+					"Physical injury description: %s",
+					stringOrNA(incidentData.PhysicalInjuryDesc),
+				),
 				fmt.Sprintf("Psychological damage: %s", incidentData.PsychologicalDamage),
-				fmt.Sprintf("Psychological damage description: %s", stringOrNA(incidentData.PsychologicalDamageDesc)),
+				fmt.Sprintf(
+					"Psychological damage description: %s",
+					stringOrNA(incidentData.PsychologicalDamageDesc),
+				),
 				fmt.Sprintf("Needed consultation: %s", incidentData.NeededConsultation),
 				fmt.Sprintf("Follow-up actions: %s", joinOrNA(incidentData.FollowUpActions)),
 				fmt.Sprintf("Follow-up notes: %s", stringOrNA(incidentData.FollowUpNotes)),
@@ -111,9 +133,17 @@ func (s *pdfService) generateIncidentPDF(incidentData IncidentReportData) (multi
 	return toMultipartFile(pdfBytes), nil
 }
 
-func (s *pdfService) uploadIncidentPDF(ctx context.Context, pdfFile multipart.File, incidentID uuid.UUID) (string, error) {
+func (s *pdfService) uploadIncidentPDF(
+	ctx context.Context,
+	pdfFile multipart.File,
+	incidentID uuid.UUID,
+) (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("incident_reports/%s/incident_report_%s.pdf", timestamp, incidentID.String())
+	filename := fmt.Sprintf(
+		"incident_reports/%s/incident_report_%s.pdf",
+		timestamp,
+		incidentID.String(),
+	)
 
 	key, _, err := s.bucketClient.Upload(ctx, pdfFile, filename, "application/pdf")
 	if err != nil {
@@ -122,7 +152,10 @@ func (s *pdfService) uploadIncidentPDF(ctx context.Context, pdfFile multipart.Fi
 	return key, nil
 }
 
-func (s *pdfService) GenerateAndUploadIncidentPDF(ctx context.Context, incidentData IncidentReportData) (string, error) {
+func (s *pdfService) GenerateAndUploadIncidentPDF(
+	ctx context.Context,
+	incidentData IncidentReportData,
+) (string, error) {
 	pdfFile, err := s.generateIncidentPDF(incidentData)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)

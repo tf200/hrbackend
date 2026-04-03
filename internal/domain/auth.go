@@ -95,16 +95,41 @@ type AuthRepository interface {
 	GetSessionByID(ctx context.Context, id uuid.UUID) (*AuthSession, error)
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	CreateTemp2FaSecret(ctx context.Context, userID uuid.UUID, secret *string) (int64, error)
-	Enable2Fa(ctx context.Context, userID uuid.UUID, secret *string, recoveryCodes []string) (int64, error)
+	Enable2Fa(
+		ctx context.Context,
+		userID uuid.UUID,
+		secret *string,
+		recoveryCodes []string,
+	) (int64, error)
 	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
 }
 
 type AuthService interface {
-	Login(ctx context.Context, params LoginParams, clientIP string, userAgent string) (*LoginResult, error)
+	Login(
+		ctx context.Context,
+		params LoginParams,
+		clientIP string,
+		userAgent string,
+	) (*LoginResult, error)
 	RefreshToken(ctx context.Context, params RefreshTokenParams) (*RefreshTokenResult, error)
 	Logout(ctx context.Context, params LogoutParams) error
-	Verify2FA(ctx context.Context, code string, tempToken string, clientIP string, userAgent string) (*LoginResult, error)
-	Setup2FA(ctx context.Context, userID uuid.UUID, currentPassword string) (*Setup2FAResponse, error)
+	Verify2FA(
+		ctx context.Context,
+		code string,
+		tempToken string,
+		clientIP string,
+		userAgent string,
+	) (*LoginResult, error)
+	Setup2FA(
+		ctx context.Context,
+		userID uuid.UUID,
+		currentPassword string,
+	) (*Setup2FAResponse, error)
 	Enable2FA(ctx context.Context, userID uuid.UUID, code string) (*Enable2FAResponse, error)
-	ChangePassword(ctx context.Context, userID uuid.UUID, oldPassword string, newPassword string) error
+	ChangePassword(
+		ctx context.Context,
+		userID uuid.UUID,
+		oldPassword string,
+		newPassword string,
+	) error
 }

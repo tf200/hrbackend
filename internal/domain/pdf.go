@@ -127,9 +127,15 @@ type InvoicePDF struct {
 
 type PDFService interface {
 	GenerateAppointmentCardPDF(ctx context.Context, cardData AppointmentCardPDF) ([]byte, error)
-	GenerateAndUploadAppointmentCardPDF(ctx context.Context, cardData AppointmentCardPDF) (string, error)
+	GenerateAndUploadAppointmentCardPDF(
+		ctx context.Context,
+		cardData AppointmentCardPDF,
+	) (string, error)
 	GenerateAndUploadInvoicePDF(ctx context.Context, invoiceData InvoicePDF) (string, int64, error)
 	GenerateAndUploadContractPDF(ctx context.Context, contractData ContractPDF) (string, error)
 	GenerateIncidentPDF(ctx context.Context, incidentData IncidentReportPDF) ([]byte, error)
-	GenerateAndUploadIncidentPDF(ctx context.Context, incidentData IncidentReportPDF) (string, error)
+	GenerateAndUploadIncidentPDF(
+		ctx context.Context,
+		incidentData IncidentReportPDF,
+	) (string, error)
 }

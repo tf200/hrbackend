@@ -39,7 +39,10 @@ func (c *AsynqClient) EnqueueProcessRegistrationFormEmail(
 	task := hibikenasynq.NewTask(TypeProcessRegistrationFormEmail, jsonPayload)
 	info, err := c.client.EnqueueContext(ctx, task, opts...)
 	if err != nil {
-		return fmt.Errorf("EnqueueProcessRegistrationFormEmail: client.EnqueueContext failed: %w", err)
+		return fmt.Errorf(
+			"EnqueueProcessRegistrationFormEmail: client.EnqueueContext failed: %w",
+			err,
+		)
 	}
 
 	log.Printf("Process Registration Form Email task enqueued: id=%s queue=%s", info.ID, info.Queue)

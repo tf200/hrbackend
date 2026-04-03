@@ -18,19 +18,79 @@ func RegisterLeaveRoutes(
 	auth gin.HandlerFunc,
 	requirePermission func(string) gin.HandlerFunc,
 ) {
-	rg.POST("/leave-requests", auth, requirePermission("LEAVE.REQUEST.CREATE"), handler.CreateLeaveRequest)
-	rg.POST("/leave-requests/admin", auth, requirePermission("LEAVE.REQUEST.UPDATE_ALL"), handler.CreateLeaveRequestByAdmin)
-	rg.POST("/leave-requests/:id/decision", auth, requirePermission("LEAVE.REQUEST.DECIDE"), handler.DecideLeaveRequestByAdmin)
-	rg.PUT("/leave-requests/:id", auth, requirePermission("LEAVE.REQUEST.UPDATE"), handler.UpdateLeaveRequest)
-	rg.PUT("/leave-requests/:id/admin", auth, requirePermission("LEAVE.REQUEST.UPDATE_ALL"), handler.UpdateLeaveRequestByAdmin)
-	rg.GET("/leave-requests", auth, requirePermission("LEAVE.REQUEST.VIEW_ALL"), handler.ListLeaveRequests)
-	rg.GET("/leave-requests/my", auth, requirePermission("LEAVE.REQUEST.VIEW"), handler.ListMyLeaveRequests)
-	rg.GET("/leave-requests/my/stats", auth, requirePermission("LEAVE.REQUEST.VIEW"), handler.GetMyLeaveRequestStats)
-	rg.GET("/leave-requests/stats", auth, requirePermission("LEAVE.REQUEST.VIEW_ALL"), handler.GetLeaveRequestStats)
+	rg.POST(
+		"/leave-requests",
+		auth,
+		requirePermission("LEAVE.REQUEST.CREATE"),
+		handler.CreateLeaveRequest,
+	)
+	rg.POST(
+		"/leave-requests/admin",
+		auth,
+		requirePermission("LEAVE.REQUEST.UPDATE_ALL"),
+		handler.CreateLeaveRequestByAdmin,
+	)
+	rg.POST(
+		"/leave-requests/:id/decision",
+		auth,
+		requirePermission("LEAVE.REQUEST.DECIDE"),
+		handler.DecideLeaveRequestByAdmin,
+	)
+	rg.PUT(
+		"/leave-requests/:id",
+		auth,
+		requirePermission("LEAVE.REQUEST.UPDATE"),
+		handler.UpdateLeaveRequest,
+	)
+	rg.PUT(
+		"/leave-requests/:id/admin",
+		auth,
+		requirePermission("LEAVE.REQUEST.UPDATE_ALL"),
+		handler.UpdateLeaveRequestByAdmin,
+	)
+	rg.GET(
+		"/leave-requests",
+		auth,
+		requirePermission("LEAVE.REQUEST.VIEW_ALL"),
+		handler.ListLeaveRequests,
+	)
+	rg.GET(
+		"/leave-requests/my",
+		auth,
+		requirePermission("LEAVE.REQUEST.VIEW"),
+		handler.ListMyLeaveRequests,
+	)
+	rg.GET(
+		"/leave-requests/my/stats",
+		auth,
+		requirePermission("LEAVE.REQUEST.VIEW"),
+		handler.GetMyLeaveRequestStats,
+	)
+	rg.GET(
+		"/leave-requests/stats",
+		auth,
+		requirePermission("LEAVE.REQUEST.VIEW_ALL"),
+		handler.GetLeaveRequestStats,
+	)
 
-	rg.GET("/leave-balances", auth, requirePermission("LEAVE.BALANCE.VIEW_ALL"), handler.ListLeaveBalances)
-	rg.GET("/leave-balances/my", auth, requirePermission("LEAVE.BALANCE.VIEW"), handler.ListMyLeaveBalances)
-	rg.POST("/leave-balances/adjust", auth, requirePermission("LEAVE.BALANCE.ADJUST"), handler.AdjustLeaveBalance)
+	rg.GET(
+		"/leave-balances",
+		auth,
+		requirePermission("LEAVE.BALANCE.VIEW_ALL"),
+		handler.ListLeaveBalances,
+	)
+	rg.GET(
+		"/leave-balances/my",
+		auth,
+		requirePermission("LEAVE.BALANCE.VIEW"),
+		handler.ListMyLeaveBalances,
+	)
+	rg.POST(
+		"/leave-balances/adjust",
+		auth,
+		requirePermission("LEAVE.BALANCE.ADJUST"),
+		handler.AdjustLeaveBalance,
+	)
 }
 
 type LeaveHandler struct {
@@ -66,7 +126,10 @@ func (h *LeaveHandler) CreateLeaveRequest(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toLeaveRequestResponse(item), "Leave request created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toLeaveRequestResponse(item), "Leave request created successfully"),
+	)
 }
 
 func (h *LeaveHandler) CreateLeaveRequestByAdmin(ctx *gin.Context) {
@@ -94,7 +157,10 @@ func (h *LeaveHandler) CreateLeaveRequestByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toLeaveRequestResponse(item), "Leave request created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toLeaveRequestResponse(item), "Leave request created successfully"),
+	)
 }
 
 func (h *LeaveHandler) UpdateLeaveRequest(ctx *gin.Context) {
@@ -122,13 +188,21 @@ func (h *LeaveHandler) UpdateLeaveRequest(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.UpdateLeaveRequest(ctx.Request.Context(), employeeID, leaveRequestID, params)
+	item, err := h.service.UpdateLeaveRequest(
+		ctx.Request.Context(),
+		employeeID,
+		leaveRequestID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toLeaveRequestResponse(item), "Leave request updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toLeaveRequestResponse(item), "Leave request updated successfully"),
+	)
 }
 
 func (h *LeaveHandler) UpdateLeaveRequestByAdmin(ctx *gin.Context) {
@@ -156,13 +230,22 @@ func (h *LeaveHandler) UpdateLeaveRequestByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.UpdateLeaveRequestByAdmin(ctx.Request.Context(), adminEmployeeID, leaveRequestID, params, note)
+	item, err := h.service.UpdateLeaveRequestByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		leaveRequestID,
+		params,
+		note,
+	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toLeaveRequestResponse(item), "Leave request updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toLeaveRequestResponse(item), "Leave request updated successfully"),
+	)
 }
 
 func (h *LeaveHandler) DecideLeaveRequestByAdmin(ctx *gin.Context) {
@@ -184,13 +267,21 @@ func (h *LeaveHandler) DecideLeaveRequestByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.DecideLeaveRequestByAdmin(ctx.Request.Context(), adminEmployeeID, leaveRequestID, toDecideLeaveRequestParams(req))
+	item, err := h.service.DecideLeaveRequestByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		leaveRequestID,
+		toDecideLeaveRequestParams(req),
+	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toLeaveRequestResponse(item), "Leave request decided successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toLeaveRequestResponse(item), "Leave request decided successfully"),
+	)
 }
 
 func (h *LeaveHandler) ListMyLeaveRequests(ctx *gin.Context) {
@@ -206,7 +297,10 @@ func (h *LeaveHandler) ListMyLeaveRequests(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListMyLeaveRequests(ctx.Request.Context(), toListMyLeaveRequestsParams(employeeID, req))
+	page, err := h.service.ListMyLeaveRequests(
+		ctx.Request.Context(),
+		toListMyLeaveRequestsParams(employeeID, req),
+	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -256,7 +350,13 @@ func (h *LeaveHandler) GetMyLeaveRequestStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toLeaveRequestStatsResponse(stats), "Leave request stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toLeaveRequestStatsResponse(stats),
+			"Leave request stats retrieved successfully",
+		),
+	)
 }
 
 func (h *LeaveHandler) GetLeaveRequestStats(ctx *gin.Context) {
@@ -266,7 +366,13 @@ func (h *LeaveHandler) GetLeaveRequestStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toLeaveRequestStatsResponse(stats), "Leave request stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toLeaveRequestStatsResponse(stats),
+			"Leave request stats retrieved successfully",
+		),
+	)
 }
 
 func (h *LeaveHandler) ListLeaveBalances(ctx *gin.Context) {
@@ -304,7 +410,10 @@ func (h *LeaveHandler) ListMyLeaveBalances(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListMyLeaveBalances(ctx.Request.Context(), toListMyLeaveBalancesParams(employeeID, req))
+	page, err := h.service.ListMyLeaveBalances(
+		ctx.Request.Context(),
+		toListMyLeaveBalancesParams(employeeID, req),
+	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -332,7 +441,10 @@ func (h *LeaveHandler) AdjustLeaveBalance(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.AdjustLeaveBalance(ctx.Request.Context(), toAdjustLeaveBalanceParams(adminEmployeeID, req))
+	item, err := h.service.AdjustLeaveBalance(
+		ctx.Request.Context(),
+		toAdjustLeaveBalanceParams(adminEmployeeID, req),
+	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return

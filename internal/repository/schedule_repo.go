@@ -23,7 +23,10 @@ func NewScheduleRepository(store *db.Store) domain.ScheduleRepository {
 	return &ScheduleRepository{store: store}
 }
 
-func (r *ScheduleRepository) CreateSchedule(ctx context.Context, params domain.CreateScheduleParams) (*domain.CreateScheduleResponse, error) {
+func (r *ScheduleRepository) CreateSchedule(
+	ctx context.Context,
+	params domain.CreateScheduleParams,
+) (*domain.CreateScheduleResponse, error) {
 	row, err := r.store.CreateSchedule(ctx, db.CreateScheduleParams{
 		EmployeeID:             params.EmployeeID,
 		LocationID:             params.LocationID,
@@ -54,7 +57,11 @@ func (r *ScheduleRepository) CreateSchedule(ctx context.Context, params domain.C
 	}, nil
 }
 
-func (r *ScheduleRepository) GetSchedulesByLocationInRange(ctx context.Context, locationID uuid.UUID, startDate, endDate time.Time) ([]domain.GetSchedulesByLocationInRangeResponse, error) {
+func (r *ScheduleRepository) GetSchedulesByLocationInRange(
+	ctx context.Context,
+	locationID uuid.UUID,
+	startDate, endDate time.Time,
+) ([]domain.GetSchedulesByLocationInRangeResponse, error) {
 	rows, err := r.store.GetSchedulesByLocationInRange(ctx, db.GetSchedulesByLocationInRangeParams{
 		LocationID: locationID,
 		StartDate:  conv.PgDateFromTime(startDate),
@@ -92,7 +99,10 @@ func (r *ScheduleRepository) GetSchedulesByLocationInRange(ctx context.Context, 
 	return response, nil
 }
 
-func (r *ScheduleRepository) GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*domain.GetScheduleByIdResponse, error) {
+func (r *ScheduleRepository) GetScheduleByID(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+) (*domain.GetScheduleByIdResponse, error) {
 	row, err := r.store.GetScheduleById(ctx, scheduleID)
 	if err != nil {
 		return nil, err
@@ -115,7 +125,11 @@ func (r *ScheduleRepository) GetScheduleByID(ctx context.Context, scheduleID uui
 	}, nil
 }
 
-func (r *ScheduleRepository) UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, params domain.UpdateScheduleParams) (*domain.UpdateScheduleResponse, error) {
+func (r *ScheduleRepository) UpdateSchedule(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	params domain.UpdateScheduleParams,
+) (*domain.UpdateScheduleResponse, error) {
 	row, err := r.store.UpdateSchedule(ctx, db.UpdateScheduleParams{
 		ID:                     scheduleID,
 		EmployeeID:             params.EmployeeID,
@@ -150,7 +164,10 @@ func (r *ScheduleRepository) DeleteSchedule(ctx context.Context, scheduleID uuid
 	return r.store.DeleteSchedule(ctx, scheduleID)
 }
 
-func (r *ScheduleRepository) GetLocationByID(ctx context.Context, locationID uuid.UUID) (*domain.ScheduleLocation, error) {
+func (r *ScheduleRepository) GetLocationByID(
+	ctx context.Context,
+	locationID uuid.UUID,
+) (*domain.ScheduleLocation, error) {
 	location, err := r.store.GetLocation(ctx, locationID)
 	if err != nil {
 		return nil, err
@@ -162,7 +179,10 @@ func (r *ScheduleRepository) GetLocationByID(ctx context.Context, locationID uui
 	}, nil
 }
 
-func (r *ScheduleRepository) GetShiftByID(ctx context.Context, shiftID uuid.UUID) (*domain.ScheduleLocationShift, error) {
+func (r *ScheduleRepository) GetShiftByID(
+	ctx context.Context,
+	shiftID uuid.UUID,
+) (*domain.ScheduleLocationShift, error) {
 	shift, err := r.store.GetShiftByID(ctx, shiftID)
 	if err != nil {
 		return nil, err
@@ -171,7 +191,10 @@ func (r *ScheduleRepository) GetShiftByID(ctx context.Context, shiftID uuid.UUID
 	return toDomainScheduleLocationShift(shift), nil
 }
 
-func (r *ScheduleRepository) GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]domain.ScheduleLocationShift, error) {
+func (r *ScheduleRepository) GetShiftsByLocationID(
+	ctx context.Context,
+	locationID uuid.UUID,
+) ([]domain.ScheduleLocationShift, error) {
 	shifts, err := r.store.GetShiftsByLocationID(ctx, locationID)
 	if err != nil {
 		return nil, err
@@ -184,7 +207,10 @@ func (r *ScheduleRepository) GetShiftsByLocationID(ctx context.Context, location
 	return result, nil
 }
 
-func (r *ScheduleRepository) ListEmployeesWithContractHours(ctx context.Context, employeeIDs []uuid.UUID) ([]domain.ScheduleEmployeeContractHours, error) {
+func (r *ScheduleRepository) ListEmployeesWithContractHours(
+	ctx context.Context,
+	employeeIDs []uuid.UUID,
+) ([]domain.ScheduleEmployeeContractHours, error) {
 	rows, err := r.store.ListEmployeesWithContractHours(ctx, employeeIDs)
 	if err != nil {
 		return nil, err
@@ -222,7 +248,10 @@ func toPgTimePtr(value *int64) pgtype.Time {
 	}
 }
 
-func (r *ScheduleRepository) WithTx(ctx context.Context, fn func(tx domain.ScheduleRepository) error) error {
+func (r *ScheduleRepository) WithTx(
+	ctx context.Context,
+	fn func(tx domain.ScheduleRepository) error,
+) error {
 	if r.store == nil {
 		return errors.New("schedule repository transaction store is not configured")
 	}
@@ -242,7 +271,10 @@ func (r *ScheduleRepository) ExpirePendingShiftSwapRequests(ctx context.Context)
 	return r.store.ExpirePendingShiftSwapRequests(ctx)
 }
 
-func (r *ScheduleRepository) GetScheduleForSwapValidation(ctx context.Context, scheduleID uuid.UUID) (*domain.ScheduleSwapValidation, error) {
+func (r *ScheduleRepository) GetScheduleForSwapValidation(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+) (*domain.ScheduleSwapValidation, error) {
 	row, err := r.store.GetScheduleForSwapValidation(ctx, scheduleID)
 	if err != nil {
 		return nil, err
@@ -257,7 +289,11 @@ func (r *ScheduleRepository) GetScheduleForSwapValidation(ctx context.Context, s
 	}, nil
 }
 
-func (r *ScheduleRepository) CreateShiftSwapRequest(ctx context.Context, params domain.CreateShiftSwapRequest, requesterEmployeeID uuid.UUID) (*domain.ShiftSwapRequestRecord, error) {
+func (r *ScheduleRepository) CreateShiftSwapRequest(
+	ctx context.Context,
+	params domain.CreateShiftSwapRequest,
+	requesterEmployeeID uuid.UUID,
+) (*domain.ShiftSwapRequestRecord, error) {
 	createParams := db.CreateShiftSwapRequestParams{
 		RequesterEmployeeID: requesterEmployeeID,
 		RecipientEmployeeID: params.RecipientEmployeeID,
@@ -282,17 +318,25 @@ func (r *ScheduleRepository) CreateShiftSwapRequest(ctx context.Context, params 
 	return &item, nil
 }
 
-func (r *ScheduleRepository) UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, swapID, recipientEmployeeID uuid.UUID, status string, note *string) (*domain.ShiftSwapRequestRecord, error) {
+func (r *ScheduleRepository) UpdateShiftSwapStatusAfterRecipientResponse(
+	ctx context.Context,
+	swapID, recipientEmployeeID uuid.UUID,
+	status string,
+	note *string,
+) (*domain.ShiftSwapRequestRecord, error) {
 	dbStatus, ok := parseDBShiftSwapStatus(status)
 	if !ok {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
-	row, err := r.store.UpdateShiftSwapStatusAfterRecipientResponse(ctx, db.UpdateShiftSwapStatusAfterRecipientResponseParams{
-		Status:                dbStatus,
-		RecipientResponseNote: note,
-		ID:                    swapID,
-		RecipientEmployeeID:   recipientEmployeeID,
-	})
+	row, err := r.store.UpdateShiftSwapStatusAfterRecipientResponse(
+		ctx,
+		db.UpdateShiftSwapStatusAfterRecipientResponseParams{
+			Status:                dbStatus,
+			RecipientResponseNote: note,
+			ID:                    swapID,
+			RecipientEmployeeID:   recipientEmployeeID,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +344,13 @@ func (r *ScheduleRepository) UpdateShiftSwapStatusAfterRecipientResponse(ctx con
 	return &item, nil
 }
 
-func (r *ScheduleRepository) UpdateShiftSwapAdminDecision(ctx context.Context, swapID uuid.UUID, status string, note *string, adminEmployeeID uuid.UUID) (*domain.ShiftSwapRequestRecord, error) {
+func (r *ScheduleRepository) UpdateShiftSwapAdminDecision(
+	ctx context.Context,
+	swapID uuid.UUID,
+	status string,
+	note *string,
+	adminEmployeeID uuid.UUID,
+) (*domain.ShiftSwapRequestRecord, error) {
 	dbStatus, ok := parseDBShiftSwapStatus(status)
 	if !ok {
 		return nil, domain.ErrShiftSwapInvalidRequest
@@ -318,7 +368,12 @@ func (r *ScheduleRepository) UpdateShiftSwapAdminDecision(ctx context.Context, s
 	return &item, nil
 }
 
-func (r *ScheduleRepository) MarkShiftSwapConfirmed(ctx context.Context, swapID uuid.UUID, note *string, adminEmployeeID uuid.UUID) (*domain.ShiftSwapRequestRecord, error) {
+func (r *ScheduleRepository) MarkShiftSwapConfirmed(
+	ctx context.Context,
+	swapID uuid.UUID,
+	note *string,
+	adminEmployeeID uuid.UUID,
+) (*domain.ShiftSwapRequestRecord, error) {
 	row, err := r.store.MarkShiftSwapConfirmed(ctx, db.MarkShiftSwapConfirmedParams{
 		ID:                swapID,
 		AdminDecisionNote: note,
@@ -331,7 +386,10 @@ func (r *ScheduleRepository) MarkShiftSwapConfirmed(ctx context.Context, swapID 
 	return &item, nil
 }
 
-func (r *ScheduleRepository) GetShiftSwapRequestByID(ctx context.Context, swapID uuid.UUID) (*domain.ShiftSwapRequestRecord, error) {
+func (r *ScheduleRepository) GetShiftSwapRequestByID(
+	ctx context.Context,
+	swapID uuid.UUID,
+) (*domain.ShiftSwapRequestRecord, error) {
 	row, err := r.store.GetShiftSwapRequestByID(ctx, swapID)
 	if err != nil {
 		return nil, err
@@ -340,7 +398,10 @@ func (r *ScheduleRepository) GetShiftSwapRequestByID(ctx context.Context, swapID
 	return &item, nil
 }
 
-func (r *ScheduleRepository) GetShiftSwapRequestDetailsByID(ctx context.Context, swapID uuid.UUID) (*domain.ShiftSwapResponse, error) {
+func (r *ScheduleRepository) GetShiftSwapRequestDetailsByID(
+	ctx context.Context,
+	swapID uuid.UUID,
+) (*domain.ShiftSwapResponse, error) {
 	row, err := r.store.GetShiftSwapRequestDetailsByID(ctx, swapID)
 	if err != nil {
 		return nil, err
@@ -349,7 +410,10 @@ func (r *ScheduleRepository) GetShiftSwapRequestDetailsByID(ctx context.Context,
 	return &item, nil
 }
 
-func (r *ScheduleRepository) ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID) ([]domain.ShiftSwapResponse, error) {
+func (r *ScheduleRepository) ListMyShiftSwapRequests(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.ShiftSwapResponse, error) {
 	rows, err := r.store.ListMyShiftSwapRequests(ctx, employeeID)
 	if err != nil {
 		return nil, err
@@ -361,7 +425,10 @@ func (r *ScheduleRepository) ListMyShiftSwapRequests(ctx context.Context, employ
 	return result, nil
 }
 
-func (r *ScheduleRepository) ListShiftSwapRequests(ctx context.Context, params domain.ListShiftSwapRequestsParams) (*domain.ShiftSwapPage, error) {
+func (r *ScheduleRepository) ListShiftSwapRequests(
+	ctx context.Context,
+	params domain.ListShiftSwapRequestsParams,
+) (*domain.ShiftSwapPage, error) {
 	queryArg := db.ListShiftSwapRequestsPaginatedParams{
 		Status:     db.NullShiftSwapStatusEnum{},
 		EmployeeID: params.EmployeeID,
@@ -396,7 +463,10 @@ func (r *ScheduleRepository) ListShiftSwapRequests(ctx context.Context, params d
 	return page, nil
 }
 
-func (r *ScheduleRepository) LockSchedulesByIDsForSwap(ctx context.Context, ids []uuid.UUID) ([]domain.ScheduleSwapValidation, error) {
+func (r *ScheduleRepository) LockSchedulesByIDsForSwap(
+	ctx context.Context,
+	ids []uuid.UUID,
+) ([]domain.ScheduleSwapValidation, error) {
 	rows, err := r.store.LockSchedulesByIDsForSwap(ctx, ids)
 	if err != nil {
 		return nil, err
@@ -414,7 +484,10 @@ func (r *ScheduleRepository) LockSchedulesByIDsForSwap(ctx context.Context, ids 
 	return result, nil
 }
 
-func (r *ScheduleRepository) LockShiftSwapRequestForAdminDecision(ctx context.Context, swapID uuid.UUID) (*domain.ShiftSwapRequestRecord, error) {
+func (r *ScheduleRepository) LockShiftSwapRequestForAdminDecision(
+	ctx context.Context,
+	swapID uuid.UUID,
+) (*domain.ShiftSwapRequestRecord, error) {
 	row, err := r.store.LockShiftSwapRequestForAdminDecision(ctx, swapID)
 	if err != nil {
 		return nil, err
@@ -423,7 +496,12 @@ func (r *ScheduleRepository) LockShiftSwapRequestForAdminDecision(ctx context.Co
 	return &item, nil
 }
 
-func (r *ScheduleRepository) CountScheduleOverlapsForEmployee(ctx context.Context, employeeID uuid.UUID, excludedScheduleIDs []uuid.UUID, conflictStart, conflictEnd time.Time) (int64, error) {
+func (r *ScheduleRepository) CountScheduleOverlapsForEmployee(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	excludedScheduleIDs []uuid.UUID,
+	conflictStart, conflictEnd time.Time,
+) (int64, error) {
 	return r.store.CountScheduleOverlapsForEmployee(ctx, db.CountScheduleOverlapsForEmployeeParams{
 		EmployeeID:          employeeID,
 		ExcludedScheduleIds: excludedScheduleIDs,
@@ -432,7 +510,10 @@ func (r *ScheduleRepository) CountScheduleOverlapsForEmployee(ctx context.Contex
 	})
 }
 
-func (r *ScheduleRepository) UpdateScheduleEmployeeAssignment(ctx context.Context, scheduleID, employeeID uuid.UUID) error {
+func (r *ScheduleRepository) UpdateScheduleEmployeeAssignment(
+	ctx context.Context,
+	scheduleID, employeeID uuid.UUID,
+) error {
 	return r.store.UpdateScheduleEmployeeAssignment(ctx, db.UpdateScheduleEmployeeAssignmentParams{
 		ID:         scheduleID,
 		EmployeeID: employeeID,
@@ -459,7 +540,10 @@ func toDomainShiftSwapRequestRecord(row db.ShiftSwapRequest) domain.ShiftSwapReq
 	}
 }
 
-func toDomainShiftSwapDetails(row db.GetShiftSwapRequestDetailsByIDRow, viewerEmployeeID uuid.UUID) domain.ShiftSwapResponse {
+func toDomainShiftSwapDetails(
+	row db.GetShiftSwapRequestDetailsByIDRow,
+	viewerEmployeeID uuid.UUID,
+) domain.ShiftSwapResponse {
 	requesterName := strings.TrimSpace(row.RequesterFirstName + " " + row.RequesterLastName)
 	recipientName := strings.TrimSpace(row.RecipientFirstName + " " + row.RecipientLastName)
 
@@ -506,7 +590,10 @@ func toDomainShiftSwapDetails(row db.GetShiftSwapRequestDetailsByIDRow, viewerEm
 	return resp
 }
 
-func toDomainShiftSwapListRow(row db.ListMyShiftSwapRequestsRow, viewerEmployeeID uuid.UUID) domain.ShiftSwapResponse {
+func toDomainShiftSwapListRow(
+	row db.ListMyShiftSwapRequestsRow,
+	viewerEmployeeID uuid.UUID,
+) domain.ShiftSwapResponse {
 	requesterName := strings.TrimSpace(row.RequesterFirstName + " " + row.RequesterLastName)
 	recipientName := strings.TrimSpace(row.RecipientFirstName + " " + row.RecipientLastName)
 
@@ -553,7 +640,10 @@ func toDomainShiftSwapListRow(row db.ListMyShiftSwapRequestsRow, viewerEmployeeI
 	return resp
 }
 
-func toDomainShiftSwapPaginatedRow(row db.ListShiftSwapRequestsPaginatedRow, viewerEmployeeID uuid.UUID) domain.ShiftSwapResponse {
+func toDomainShiftSwapPaginatedRow(
+	row db.ListShiftSwapRequestsPaginatedRow,
+	viewerEmployeeID uuid.UUID,
+) domain.ShiftSwapResponse {
 	requesterName := strings.TrimSpace(row.RequesterFirstName + " " + row.RequesterLastName)
 	recipientName := strings.TrimSpace(row.RecipientFirstName + " " + row.RecipientLastName)
 

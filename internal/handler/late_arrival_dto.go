@@ -15,27 +15,27 @@ const lateArrivalDateLayout = "2006-01-02"
 type createLateArrivalRequest struct {
 	ArrivalDate string `json:"arrival_date" binding:"required,datetime=2006-01-02"`
 	ArrivalTime string `json:"arrival_time" binding:"required"`
-	Reason      string `json:"reason" binding:"required"`
+	Reason      string `json:"reason"       binding:"required"`
 }
 
 type createLateArrivalByAdminRequest struct {
-	EmployeeID  uuid.UUID `json:"employee_id" binding:"required"`
+	EmployeeID  uuid.UUID `json:"employee_id"  binding:"required"`
 	ArrivalDate string    `json:"arrival_date" binding:"required,datetime=2006-01-02"`
 	ArrivalTime string    `json:"arrival_time" binding:"required"`
-	Reason      string    `json:"reason" binding:"required"`
+	Reason      string    `json:"reason"       binding:"required"`
 }
 
 type listMyLateArrivalsRequest struct {
 	httpapi.PageRequest
 	DateFrom *string `form:"date_from" binding:"omitempty,datetime=2006-01-02"`
-	DateTo   *string `form:"date_to" binding:"omitempty,datetime=2006-01-02"`
+	DateTo   *string `form:"date_to"   binding:"omitempty,datetime=2006-01-02"`
 }
 
 type listLateArrivalsRequest struct {
 	httpapi.PageRequest
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
-	DateFrom       *string `form:"date_from" binding:"omitempty,datetime=2006-01-02"`
-	DateTo         *string `form:"date_to" binding:"omitempty,datetime=2006-01-02"`
+	DateFrom       *string `form:"date_from"       binding:"omitempty,datetime=2006-01-02"`
+	DateTo         *string `form:"date_to"         binding:"omitempty,datetime=2006-01-02"`
 }
 
 type createLateArrivalResponse struct {
@@ -71,7 +71,10 @@ type lateArrivalListItemResponse struct {
 	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
-func toCreateLateArrivalParams(employeeID, createdByEmployeeID uuid.UUID, req createLateArrivalRequest) (domain.LateArrivalCreateParams, error) {
+func toCreateLateArrivalParams(
+	employeeID, createdByEmployeeID uuid.UUID,
+	req createLateArrivalRequest,
+) (domain.LateArrivalCreateParams, error) {
 	arrivalDate, err := time.Parse(lateArrivalDateLayout, req.ArrivalDate)
 	if err != nil {
 		return domain.LateArrivalCreateParams{}, err
@@ -86,7 +89,10 @@ func toCreateLateArrivalParams(employeeID, createdByEmployeeID uuid.UUID, req cr
 	}, nil
 }
 
-func toCreateLateArrivalByAdminParams(adminEmployeeID uuid.UUID, req createLateArrivalByAdminRequest) (domain.LateArrivalCreateParams, error) {
+func toCreateLateArrivalByAdminParams(
+	adminEmployeeID uuid.UUID,
+	req createLateArrivalByAdminRequest,
+) (domain.LateArrivalCreateParams, error) {
 	return toCreateLateArrivalParams(req.EmployeeID, adminEmployeeID, createLateArrivalRequest{
 		ArrivalDate: req.ArrivalDate,
 		ArrivalTime: req.ArrivalTime,
@@ -94,7 +100,10 @@ func toCreateLateArrivalByAdminParams(adminEmployeeID uuid.UUID, req createLateA
 	})
 }
 
-func toListMyLateArrivalsParams(employeeID uuid.UUID, req listMyLateArrivalsRequest) (domain.ListMyLateArrivalsParams, error) {
+func toListMyLateArrivalsParams(
+	employeeID uuid.UUID,
+	req listMyLateArrivalsRequest,
+) (domain.ListMyLateArrivalsParams, error) {
 	dateFrom, err := parseLateArrivalDatePtr(req.DateFrom)
 	if err != nil {
 		return domain.ListMyLateArrivalsParams{}, err

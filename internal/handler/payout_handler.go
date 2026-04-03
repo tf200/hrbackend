@@ -33,13 +33,20 @@ func (h *PayoutHandler) CreatePayoutRequest(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.CreatePayoutRequest(ctx.Request.Context(), employeeID, toCreatePayoutRequestParams(employeeID, req))
+	item, err := h.service.CreatePayoutRequest(
+		ctx.Request.Context(),
+		employeeID,
+		toCreatePayoutRequestParams(employeeID, req),
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toPayoutRequestResponse(*item), "Payout request created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toPayoutRequestResponse(*item), "Payout request created successfully"),
+	)
 }
 
 func (h *PayoutHandler) ListMyPayoutRequests(ctx *gin.Context) {
@@ -55,13 +62,21 @@ func (h *PayoutHandler) ListMyPayoutRequests(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListMyPayoutRequests(ctx.Request.Context(), toListMyPayoutRequestsParams(employeeID, req))
+	page, err := h.service.ListMyPayoutRequests(
+		ctx.Request.Context(),
+		toListMyPayoutRequestsParams(employeeID, req),
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, toPayoutRequestResponses(page.Items), page.TotalCount)
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toPayoutRequestResponses(page.Items),
+		page.TotalCount,
+	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payout requests retrieved successfully"))
 }
 
@@ -72,13 +87,21 @@ func (h *PayoutHandler) ListPayoutRequests(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListPayoutRequests(ctx.Request.Context(), toListPayoutRequestsParams(req))
+	page, err := h.service.ListPayoutRequests(
+		ctx.Request.Context(),
+		toListPayoutRequestsParams(req),
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, toPayoutRequestResponses(page.Items), page.TotalCount)
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toPayoutRequestResponses(page.Items),
+		page.TotalCount,
+	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payout requests retrieved successfully"))
 }
 
@@ -101,7 +124,10 @@ func (h *PayoutHandler) PreviewPayroll(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"),
+	)
 }
 
 func (h *PayoutHandler) PreviewMyPayroll(ctx *gin.Context) {
@@ -123,13 +149,21 @@ func (h *PayoutHandler) PreviewMyPayroll(ctx *gin.Context) {
 		return
 	}
 
-	preview, err := h.service.PreviewMyPayroll(ctx.Request.Context(), employeeID, periodStart, periodEnd)
+	preview, err := h.service.PreviewMyPayroll(
+		ctx.Request.Context(),
+		employeeID,
+		periodStart,
+		periodEnd,
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"),
+	)
 }
 
 func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
@@ -151,7 +185,12 @@ func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 		return
 	}
 
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, toPayrollMonthSummaryResponses(page.Items), page.TotalCount)
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toPayrollMonthSummaryResponses(page.Items),
+		page.TotalCount,
+	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month summary retrieved successfully"))
 }
 
@@ -180,7 +219,10 @@ func (h *PayoutHandler) ClosePayPeriod(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toPayPeriodResponse(item), "Pay period created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toPayPeriodResponse(item), "Pay period created successfully"),
+	)
 }
 
 func (h *PayoutHandler) ListPayPeriods(ctx *gin.Context) {
@@ -196,7 +238,12 @@ func (h *PayoutHandler) ListPayPeriods(ctx *gin.Context) {
 		return
 	}
 
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, toPayPeriodResponses(page.Items), page.TotalCount)
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toPayPeriodResponses(page.Items),
+		page.TotalCount,
+	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Pay periods retrieved successfully"))
 }
 
@@ -213,7 +260,10 @@ func (h *PayoutHandler) GetPayPeriodByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayPeriodResponse(item), "Pay period retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayPeriodResponse(item), "Pay period retrieved successfully"),
+	)
 }
 
 func (h *PayoutHandler) MarkPayPeriodPaidByAdmin(ctx *gin.Context) {
@@ -229,13 +279,20 @@ func (h *PayoutHandler) MarkPayPeriodPaidByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.MarkPayPeriodPaidByAdmin(ctx.Request.Context(), adminEmployeeID, payPeriodID)
+	item, err := h.service.MarkPayPeriodPaidByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		payPeriodID,
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayPeriodResponse(item), "Pay period marked as paid successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayPeriodResponse(item), "Pay period marked as paid successfully"),
+	)
 }
 
 func (h *PayoutHandler) DecidePayoutRequestByAdmin(ctx *gin.Context) {
@@ -263,13 +320,21 @@ func (h *PayoutHandler) DecidePayoutRequestByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.DecidePayoutRequestByAdmin(ctx.Request.Context(), adminEmployeeID, payoutRequestID, params)
+	item, err := h.service.DecidePayoutRequestByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		payoutRequestID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayoutRequestResponse(*item), "Payout request decided successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayoutRequestResponse(*item), "Payout request decided successfully"),
+	)
 }
 
 func (h *PayoutHandler) MarkPayoutRequestPaidByAdmin(ctx *gin.Context) {
@@ -285,13 +350,20 @@ func (h *PayoutHandler) MarkPayoutRequestPaidByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.MarkPayoutRequestPaidByAdmin(ctx.Request.Context(), adminEmployeeID, payoutRequestID)
+	item, err := h.service.MarkPayoutRequestPaidByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		payoutRequestID,
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayoutRequestResponse(*item), "Payout request marked as paid successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayoutRequestResponse(*item), "Payout request marked as paid successfully"),
+	)
 }
 
 func mapPayoutErrorStatus(err error) int {

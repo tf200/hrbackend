@@ -50,7 +50,10 @@ func (h *EmployeeHandler) CreateEmployee(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toEmployeeDetailResponse(employee), "Employee created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toEmployeeDetailResponse(employee), "Employee created successfully"),
+	)
 }
 
 func (h *EmployeeHandler) ListEmployee(ctx *gin.Context) {
@@ -71,7 +74,13 @@ func (h *EmployeeHandler) ListEmployee(ctx *gin.Context) {
 		results[i] = toEmployeeListItemResponse(item)
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount), "Employees retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount),
+			"Employees retrieved successfully",
+		),
+	)
 }
 
 func (h *EmployeeHandler) GetEmployeeCounts(ctx *gin.Context) {
@@ -81,7 +90,10 @@ func (h *EmployeeHandler) GetEmployeeCounts(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeCountsResponse(counts), "Employee counts retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeCountsResponse(counts), "Employee counts retrieved successfully"),
+	)
 }
 
 func (h *EmployeeHandler) GetEmployeeByID(ctx *gin.Context) {
@@ -107,7 +119,10 @@ func (h *EmployeeHandler) GetEmployeeByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeDetailResponse(employee), "Employee retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeDetailResponse(employee), "Employee retrieved successfully"),
+	)
 }
 
 func (h *EmployeeHandler) UpdateEmployee(ctx *gin.Context) {
@@ -128,7 +143,11 @@ func (h *EmployeeHandler) UpdateEmployee(ctx *gin.Context) {
 		return
 	}
 
-	employee, err := h.service.UpdateEmployee(ctx.Request.Context(), id, toUpdateEmployeeParams(req))
+	employee, err := h.service.UpdateEmployee(
+		ctx.Request.Context(),
+		id,
+		toUpdateEmployeeParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -142,7 +161,10 @@ func (h *EmployeeHandler) UpdateEmployee(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeDetailResponse(employee), "Employee updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeDetailResponse(employee), "Employee updated successfully"),
+	)
 }
 
 func (h *EmployeeHandler) GetEmployeeProfile(ctx *gin.Context) {
@@ -162,7 +184,10 @@ func (h *EmployeeHandler) GetEmployeeProfile(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeProfileResponse(profile), "Employee profile retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeProfileResponse(profile), "Employee profile retrieved successfully"),
+	)
 }
 
 func (h *EmployeeHandler) UpdateIsSubcontractor(ctx *gin.Context) {
@@ -178,17 +203,30 @@ func (h *EmployeeHandler) UpdateIsSubcontractor(ctx *gin.Context) {
 		return
 	}
 
-	employee, err := h.service.UpdateIsSubcontractor(ctx.Request.Context(), id, domain.UpdateIsSubcontractorParams{IsSubcontractor: *req.IsSubcontractor})
+	employee, err := h.service.UpdateIsSubcontractor(
+		ctx.Request.Context(),
+		id,
+		domain.UpdateIsSubcontractorParams{IsSubcontractor: *req.IsSubcontractor},
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update is subcontractor", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to update is subcontractor", ""),
+		)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeDetailResponse(employee), "Employee subcontractor status updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toEmployeeDetailResponse(employee),
+			"Employee subcontractor status updated successfully",
+		),
+	)
 }
 
 func (h *EmployeeHandler) AddContractDetails(ctx *gin.Context) {
@@ -213,7 +251,11 @@ func (h *EmployeeHandler) AddContractDetails(ctx *gin.Context) {
 		return
 	}
 
-	employee, err := h.service.AddContractDetails(ctx.Request.Context(), id, toAddContractDetailsParams(req))
+	employee, err := h.service.AddContractDetails(
+		ctx.Request.Context(),
+		id,
+		toAddContractDetailsParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -231,7 +273,10 @@ func (h *EmployeeHandler) AddContractDetails(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEmployeeDetailResponse(employee), "Contract details updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeDetailResponse(employee), "Contract details updated successfully"),
+	)
 }
 
 func (h *EmployeeHandler) GetContractDetails(ctx *gin.Context) {
@@ -251,7 +296,10 @@ func (h *EmployeeHandler) GetContractDetails(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toContractDetailsResponse(details), "Contract details retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toContractDetailsResponse(details), "Contract details retrieved successfully"),
+	)
 }
 
 func (h *EmployeeHandler) ListContractChanges(ctx *gin.Context) {
@@ -267,11 +315,17 @@ func (h *EmployeeHandler) ListContractChanges(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list contract changes", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to list contract changes", ""),
+		)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toContractChangeResponses(items), "Contract changes retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toContractChangeResponses(items), "Contract changes retrieved successfully"),
+	)
 }
 
 func (h *EmployeeHandler) CreateContractChange(ctx *gin.Context) {
@@ -299,7 +353,12 @@ func (h *EmployeeHandler) CreateContractChange(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.service.CreateContractChange(ctx.Request.Context(), adminEmployeeID, id, params)
+	result, err := h.service.CreateContractChange(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		id,
+		params,
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrEmployeeNotFound):
@@ -310,12 +369,18 @@ func (h *EmployeeHandler) CreateContractChange(ctx *gin.Context) {
 			errors.Is(err, domain.ErrContractChangeLeaveConflict):
 			ctx.JSON(http.StatusConflict, httpapi.Fail(err.Error(), ""))
 		default:
-			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create contract change", ""))
+			ctx.JSON(
+				http.StatusInternalServerError,
+				httpapi.Fail("failed to create contract change", ""),
+			)
 		}
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toCreateContractChangeResponse(result), "Contract change created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toCreateContractChangeResponse(result), "Contract change created successfully"),
+	)
 }
 
 func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {
@@ -340,7 +405,11 @@ func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {
 		return
 	}
 
-	education, err := h.service.AddEducation(ctx.Request.Context(), employeeID, toCreateEducationParams(req))
+	education, err := h.service.AddEducation(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateEducationParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -350,7 +419,10 @@ func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toEducationResponse(education), "Education added successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toEducationResponse(education), "Education added successfully"),
+	)
 }
 
 func (h *EmployeeHandler) ListEducation(ctx *gin.Context) {
@@ -407,7 +479,11 @@ func (h *EmployeeHandler) UpdateEducation(ctx *gin.Context) {
 		return
 	}
 
-	education, err := h.service.UpdateEducation(ctx.Request.Context(), educationID, toUpdateEducationParams(req))
+	education, err := h.service.UpdateEducation(
+		ctx.Request.Context(),
+		educationID,
+		toUpdateEducationParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEducationNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -417,7 +493,10 @@ func (h *EmployeeHandler) UpdateEducation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEducationResponse(education), "Education updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEducationResponse(education), "Education updated successfully"),
+	)
 }
 
 func (h *EmployeeHandler) DeleteEducation(ctx *gin.Context) {
@@ -444,7 +523,10 @@ func (h *EmployeeHandler) DeleteEducation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toEducationResponse(education), "Education deleted successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEducationResponse(education), "Education deleted successfully"),
+	)
 }
 
 func (h *EmployeeHandler) AddExperience(ctx *gin.Context) {
@@ -469,7 +551,11 @@ func (h *EmployeeHandler) AddExperience(ctx *gin.Context) {
 		return
 	}
 
-	experience, err := h.service.AddExperience(ctx.Request.Context(), employeeID, toCreateExperienceParams(req))
+	experience, err := h.service.AddExperience(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateExperienceParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -479,7 +565,10 @@ func (h *EmployeeHandler) AddExperience(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toExperienceResponse(experience), "Experience added successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toExperienceResponse(experience), "Experience added successfully"),
+	)
 }
 
 func (h *EmployeeHandler) ListExperience(ctx *gin.Context) {
@@ -536,7 +625,11 @@ func (h *EmployeeHandler) UpdateExperience(ctx *gin.Context) {
 		return
 	}
 
-	experience, err := h.service.UpdateExperience(ctx.Request.Context(), experienceID, toUpdateExperienceParams(req))
+	experience, err := h.service.UpdateExperience(
+		ctx.Request.Context(),
+		experienceID,
+		toUpdateExperienceParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrExperienceNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -546,7 +639,10 @@ func (h *EmployeeHandler) UpdateExperience(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toExperienceResponse(experience), "Experience updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toExperienceResponse(experience), "Experience updated successfully"),
+	)
 }
 
 func (h *EmployeeHandler) DeleteExperience(ctx *gin.Context) {
@@ -573,7 +669,10 @@ func (h *EmployeeHandler) DeleteExperience(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toExperienceResponse(experience), "Experience deleted successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toExperienceResponse(experience), "Experience deleted successfully"),
+	)
 }
 
 func (h *EmployeeHandler) AddCertification(ctx *gin.Context) {
@@ -594,7 +693,11 @@ func (h *EmployeeHandler) AddCertification(ctx *gin.Context) {
 		return
 	}
 
-	certification, err := h.service.AddCertification(ctx.Request.Context(), employeeID, toCreateCertificationParams(req))
+	certification, err := h.service.AddCertification(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateCertificationParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -604,7 +707,10 @@ func (h *EmployeeHandler) AddCertification(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toCertificationResponse(certification), "Certification added successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toCertificationResponse(certification), "Certification added successfully"),
+	)
 }
 
 func (h *EmployeeHandler) ListCertification(ctx *gin.Context) {
@@ -657,7 +763,11 @@ func (h *EmployeeHandler) UpdateCertification(ctx *gin.Context) {
 		return
 	}
 
-	certification, err := h.service.UpdateCertification(ctx.Request.Context(), certificationID, toUpdateCertificationParams(req))
+	certification, err := h.service.UpdateCertification(
+		ctx.Request.Context(),
+		certificationID,
+		toUpdateCertificationParams(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrCertificationNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
@@ -667,7 +777,10 @@ func (h *EmployeeHandler) UpdateCertification(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toCertificationResponse(certification), "Certification updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toCertificationResponse(certification), "Certification updated successfully"),
+	)
 }
 
 func (h *EmployeeHandler) DeleteCertification(ctx *gin.Context) {
@@ -694,7 +807,10 @@ func (h *EmployeeHandler) DeleteCertification(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toCertificationResponse(certification), "Certification deleted successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toCertificationResponse(certification), "Certification deleted successfully"),
+	)
 }
 
 func (h *EmployeeHandler) SearchEmployeesByNameOrEmail(ctx *gin.Context) {

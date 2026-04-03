@@ -9,8 +9,10 @@ import (
 )
 
 var (
-	ErrWeekNotEmpty                    = errors.New("week is not empty")
-	ErrScheduleAutogenUnavailable      = errors.New("schedule auto-generation is only available in the Docker dev environment")
+	ErrWeekNotEmpty               = errors.New("week is not empty")
+	ErrScheduleAutogenUnavailable = errors.New(
+		"schedule auto-generation is only available in the Docker dev environment",
+	)
 	ErrScheduleNotFound                = errors.New("schedule not found")
 	ErrInvalidSchedule                 = errors.New("invalid schedule")
 	ErrInvalidLocationTZ               = errors.New("invalid location timezone")
@@ -20,20 +22,22 @@ var (
 	ErrShiftSwapExpired                = errors.New("shift swap request has expired")
 	ErrShiftSwapConflict               = errors.New("swap would create schedule overlap conflict")
 	ErrShiftSwapScheduleOwnership      = errors.New("schedule ownership is invalid for this swap")
-	ErrShiftSwapDuplicateActiveRequest = errors.New("one of the schedules is already in an active swap request")
+	ErrShiftSwapDuplicateActiveRequest = errors.New(
+		"one of the schedules is already in an active swap request",
+	)
 )
 
 type CreateScheduleRequest struct {
 	EmployeeIDs []uuid.UUID `json:"employee_ids"`
 	LocationID  uuid.UUID   `json:"location_id"`
-	IsCustom    bool        `json:"is_custom" example:"true"`
+	IsCustom    bool        `json:"is_custom"            example:"true"`
 	Recurrence  *string     `json:"recurrence,omitempty" example:"end_of_week"`
 
 	StartDatetime *time.Time `json:"start_datetime,omitempty" example:"2023-10-01T09:00:00Z"`
-	EndDatetime   *time.Time `json:"end_datetime,omitempty" example:"2023-10-01T17:00:00Z"`
+	EndDatetime   *time.Time `json:"end_datetime,omitempty"   example:"2023-10-01T17:00:00Z"`
 
 	LocationShiftID *uuid.UUID `json:"location_shift_id,omitempty" example:"1"`
-	ShiftDate       *string    `json:"shift_date,omitempty" example:"2023-10-01"`
+	ShiftDate       *string    `json:"shift_date,omitempty"        example:"2023-10-01"`
 }
 
 type CreateScheduleResponse struct {
@@ -57,7 +61,7 @@ const (
 
 type GetSchedulesByLocationInRangeRequest struct {
 	StartDate string `form:"start_date" binding:"required" example:"2026-02-01"`
-	EndDate   string `form:"end_date" binding:"required" example:"2026-02-29"`
+	EndDate   string `form:"end_date"   binding:"required" example:"2026-02-29"`
 }
 
 type Shift struct {
@@ -97,13 +101,13 @@ type GetScheduleByIdResponse struct {
 type UpdateScheduleRequest struct {
 	EmployeeID *uuid.UUID `json:"employee_id,omitempty"`
 	LocationID *uuid.UUID `json:"location_id,omitempty"`
-	IsCustom   *bool      `json:"is_custom,omitempty" example:"true"`
+	IsCustom   *bool      `json:"is_custom,omitempty"   example:"true"`
 
 	StartDatetime *time.Time `json:"start_datetime,omitempty" example:"2023-10-01T09:00:00Z"`
-	EndDatetime   *time.Time `json:"end_datetime,omitempty" example:"2023-10-01T17:00:00Z"`
+	EndDatetime   *time.Time `json:"end_datetime,omitempty"   example:"2023-10-01T17:00:00Z"`
 
 	LocationShiftID *uuid.UUID `json:"location_shift_id,omitempty" example:"1"`
-	ShiftDate       *string    `json:"shift_date,omitempty" example:"2023-10-01"`
+	ShiftDate       *string    `json:"shift_date,omitempty"        example:"2023-10-01"`
 }
 
 type UpdateScheduleResponse struct {
@@ -333,43 +337,135 @@ type ScheduleSwapValidation struct {
 }
 
 type ScheduleRepository interface {
-	CreateSchedule(ctx context.Context, params CreateScheduleParams) (*CreateScheduleResponse, error)
-	GetSchedulesByLocationInRange(ctx context.Context, locationID uuid.UUID, startDate, endDate time.Time) ([]GetSchedulesByLocationInRangeResponse, error)
+	CreateSchedule(
+		ctx context.Context,
+		params CreateScheduleParams,
+	) (*CreateScheduleResponse, error)
+	GetSchedulesByLocationInRange(
+		ctx context.Context,
+		locationID uuid.UUID,
+		startDate, endDate time.Time,
+	) ([]GetSchedulesByLocationInRangeResponse, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
-	UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, params UpdateScheduleParams) (*UpdateScheduleResponse, error)
+	UpdateSchedule(
+		ctx context.Context,
+		scheduleID uuid.UUID,
+		params UpdateScheduleParams,
+	) (*UpdateScheduleResponse, error)
 	DeleteSchedule(ctx context.Context, scheduleID uuid.UUID) error
 	GetLocationByID(ctx context.Context, locationID uuid.UUID) (*ScheduleLocation, error)
 	GetShiftByID(ctx context.Context, shiftID uuid.UUID) (*ScheduleLocationShift, error)
-	GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]ScheduleLocationShift, error)
-	ListEmployeesWithContractHours(ctx context.Context, employeeIDs []uuid.UUID) ([]ScheduleEmployeeContractHours, error)
+	GetShiftsByLocationID(
+		ctx context.Context,
+		locationID uuid.UUID,
+	) ([]ScheduleLocationShift, error)
+	ListEmployeesWithContractHours(
+		ctx context.Context,
+		employeeIDs []uuid.UUID,
+	) ([]ScheduleEmployeeContractHours, error)
 	WithTx(ctx context.Context, fn func(tx ScheduleRepository) error) error
 	ExpirePendingShiftSwapRequests(ctx context.Context) error
-	GetScheduleForSwapValidation(ctx context.Context, scheduleID uuid.UUID) (*ScheduleSwapValidation, error)
-	CreateShiftSwapRequest(ctx context.Context, params CreateShiftSwapRequest, requesterEmployeeID uuid.UUID) (*ShiftSwapRequestRecord, error)
-	UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, swapID, recipientEmployeeID uuid.UUID, status string, note *string) (*ShiftSwapRequestRecord, error)
-	UpdateShiftSwapAdminDecision(ctx context.Context, swapID uuid.UUID, status string, note *string, adminEmployeeID uuid.UUID) (*ShiftSwapRequestRecord, error)
-	MarkShiftSwapConfirmed(ctx context.Context, swapID uuid.UUID, note *string, adminEmployeeID uuid.UUID) (*ShiftSwapRequestRecord, error)
+	GetScheduleForSwapValidation(
+		ctx context.Context,
+		scheduleID uuid.UUID,
+	) (*ScheduleSwapValidation, error)
+	CreateShiftSwapRequest(
+		ctx context.Context,
+		params CreateShiftSwapRequest,
+		requesterEmployeeID uuid.UUID,
+	) (*ShiftSwapRequestRecord, error)
+	UpdateShiftSwapStatusAfterRecipientResponse(
+		ctx context.Context,
+		swapID, recipientEmployeeID uuid.UUID,
+		status string,
+		note *string,
+	) (*ShiftSwapRequestRecord, error)
+	UpdateShiftSwapAdminDecision(
+		ctx context.Context,
+		swapID uuid.UUID,
+		status string,
+		note *string,
+		adminEmployeeID uuid.UUID,
+	) (*ShiftSwapRequestRecord, error)
+	MarkShiftSwapConfirmed(
+		ctx context.Context,
+		swapID uuid.UUID,
+		note *string,
+		adminEmployeeID uuid.UUID,
+	) (*ShiftSwapRequestRecord, error)
 	GetShiftSwapRequestByID(ctx context.Context, swapID uuid.UUID) (*ShiftSwapRequestRecord, error)
-	GetShiftSwapRequestDetailsByID(ctx context.Context, swapID uuid.UUID) (*ShiftSwapResponse, error)
+	GetShiftSwapRequestDetailsByID(
+		ctx context.Context,
+		swapID uuid.UUID,
+	) (*ShiftSwapResponse, error)
 	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID) ([]ShiftSwapResponse, error)
-	ListShiftSwapRequests(ctx context.Context, params ListShiftSwapRequestsParams) (*ShiftSwapPage, error)
-	LockSchedulesByIDsForSwap(ctx context.Context, ids []uuid.UUID) ([]ScheduleSwapValidation, error)
-	LockShiftSwapRequestForAdminDecision(ctx context.Context, swapID uuid.UUID) (*ShiftSwapRequestRecord, error)
-	CountScheduleOverlapsForEmployee(ctx context.Context, employeeID uuid.UUID, excludedScheduleIDs []uuid.UUID, conflictStart, conflictEnd time.Time) (int64, error)
+	ListShiftSwapRequests(
+		ctx context.Context,
+		params ListShiftSwapRequestsParams,
+	) (*ShiftSwapPage, error)
+	LockSchedulesByIDsForSwap(
+		ctx context.Context,
+		ids []uuid.UUID,
+	) ([]ScheduleSwapValidation, error)
+	LockShiftSwapRequestForAdminDecision(
+		ctx context.Context,
+		swapID uuid.UUID,
+	) (*ShiftSwapRequestRecord, error)
+	CountScheduleOverlapsForEmployee(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		excludedScheduleIDs []uuid.UUID,
+		conflictStart, conflictEnd time.Time,
+	) (int64, error)
 	UpdateScheduleEmployeeAssignment(ctx context.Context, scheduleID, employeeID uuid.UUID) error
 }
 
 type ScheduleService interface {
-	CreateSchedule(ctx context.Context, creatorID uuid.UUID, req *CreateScheduleRequest) ([]CreateScheduleResponse, error)
-	GetSchedulesByLocationInRange(ctx context.Context, locationID uuid.UUID, req *GetSchedulesByLocationInRangeRequest) ([]GetSchedulesByLocationInRangeResponse, error)
+	CreateSchedule(
+		ctx context.Context,
+		creatorID uuid.UUID,
+		req *CreateScheduleRequest,
+	) ([]CreateScheduleResponse, error)
+	GetSchedulesByLocationInRange(
+		ctx context.Context,
+		locationID uuid.UUID,
+		req *GetSchedulesByLocationInRangeRequest,
+	) ([]GetSchedulesByLocationInRangeResponse, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
-	UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, updaterEmployeeID uuid.UUID, req *UpdateScheduleRequest) (*UpdateScheduleResponse, error)
+	UpdateSchedule(
+		ctx context.Context,
+		scheduleID uuid.UUID,
+		updaterEmployeeID uuid.UUID,
+		req *UpdateScheduleRequest,
+	) (*UpdateScheduleResponse, error)
 	DeleteSchedule(ctx context.Context, scheduleID uuid.UUID) error
-	AutoGenerateSchedules(ctx context.Context, req *AutoGenerateSchedulesRequest) (*AutoGenerateSchedulesResponse, error)
-	SaveGeneratedSchedules(ctx context.Context, creatorID uuid.UUID, req *SaveGeneratedSchedulesRequest) error
-	CreateShiftSwapRequest(ctx context.Context, requesterEmployeeID uuid.UUID, req *CreateShiftSwapRequest) (*CreateShiftSwapResponse, error)
-	RespondToShiftSwapRequest(ctx context.Context, recipientEmployeeID, swapID uuid.UUID, req *RespondShiftSwapRequest) (*ShiftSwapResponse, error)
-	AdminDecisionShiftSwapRequest(ctx context.Context, adminEmployeeID, swapID uuid.UUID, req *AdminDecisionShiftSwapRequest) (*ShiftSwapResponse, error)
+	AutoGenerateSchedules(
+		ctx context.Context,
+		req *AutoGenerateSchedulesRequest,
+	) (*AutoGenerateSchedulesResponse, error)
+	SaveGeneratedSchedules(
+		ctx context.Context,
+		creatorID uuid.UUID,
+		req *SaveGeneratedSchedulesRequest,
+	) error
+	CreateShiftSwapRequest(
+		ctx context.Context,
+		requesterEmployeeID uuid.UUID,
+		req *CreateShiftSwapRequest,
+	) (*CreateShiftSwapResponse, error)
+	RespondToShiftSwapRequest(
+		ctx context.Context,
+		recipientEmployeeID, swapID uuid.UUID,
+		req *RespondShiftSwapRequest,
+	) (*ShiftSwapResponse, error)
+	AdminDecisionShiftSwapRequest(
+		ctx context.Context,
+		adminEmployeeID, swapID uuid.UUID,
+		req *AdminDecisionShiftSwapRequest,
+	) (*ShiftSwapResponse, error)
 	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID) ([]ShiftSwapResponse, error)
-	ListShiftSwapRequests(ctx context.Context, params ListShiftSwapRequestsParams) (*ShiftSwapPage, error)
+	ListShiftSwapRequests(
+		ctx context.Context,
+		params ListShiftSwapRequestsParams,
+	) (*ShiftSwapPage, error)
 }

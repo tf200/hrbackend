@@ -58,8 +58,13 @@ func TestPreviewPayrollRosterShiftSplitsAcrossEveningAndNight(t *testing.T) {
 	if len(preview.LineItems) != 2 {
 		t.Fatalf("expected 2 line items, got %d", len(preview.LineItems))
 	}
-	if preview.LineItems[0].AppliedRatePercent != 25 || preview.LineItems[1].AppliedRatePercent != 45 {
-		t.Fatalf("unexpected rates: %.2f and %.2f", preview.LineItems[0].AppliedRatePercent, preview.LineItems[1].AppliedRatePercent)
+	if preview.LineItems[0].AppliedRatePercent != 25 ||
+		preview.LineItems[1].AppliedRatePercent != 45 {
+		t.Fatalf(
+			"unexpected rates: %.2f and %.2f",
+			preview.LineItems[0].AppliedRatePercent,
+			preview.LineItems[1].AppliedRatePercent,
+		)
 	}
 }
 
@@ -104,7 +109,10 @@ func TestPreviewPayrollNonRosterLeavesNineteenToTwentyAtZero(t *testing.T) {
 		t.Fatalf("expected first segment at 0%%, got %.2f", preview.LineItems[0].AppliedRatePercent)
 	}
 	if preview.LineItems[1].AppliedRatePercent != 25 {
-		t.Fatalf("expected second segment at 25%%, got %.2f", preview.LineItems[1].AppliedRatePercent)
+		t.Fatalf(
+			"expected second segment at 25%%, got %.2f",
+			preview.LineItems[1].AppliedRatePercent,
+		)
 	}
 	if preview.IrregularGrossAmount != 2.5 {
 		t.Fatalf("expected irregular gross 2.50, got %.2f", preview.IrregularGrossAmount)
@@ -184,11 +192,15 @@ func TestClosePayPeriodCreatesDraftAndAssignsEntries(t *testing.T) {
 	}
 
 	service := &PayoutService{repository: repo}
-	period, err := service.ClosePayPeriod(context.Background(), mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), domain.ClosePayPeriodParams{
-		EmployeeID:  repo.employee.ID,
-		PeriodStart: dateUTC(2026, 4, 1),
-		PeriodEnd:   dateUTC(2026, 4, 30),
-	})
+	period, err := service.ClosePayPeriod(
+		context.Background(),
+		mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+		domain.ClosePayPeriodParams{
+			EmployeeID:  repo.employee.ID,
+			PeriodStart: dateUTC(2026, 4, 1),
+			PeriodEnd:   dateUTC(2026, 4, 30),
+		},
+	)
 	if err != nil {
 		t.Fatalf("ClosePayPeriod returned error: %v", err)
 	}
@@ -200,9 +212,14 @@ func TestClosePayPeriodCreatesDraftAndAssignsEntries(t *testing.T) {
 		t.Fatalf("expected 2 persisted line items, got %d", len(period.LineItems))
 	}
 	if period.LineItems[0].MinutesWorked != 52.5 || period.LineItems[1].MinutesWorked != 52.5 {
-		t.Fatalf("expected paid minutes 52.5/52.5, got %.2f/%.2f", period.LineItems[0].MinutesWorked, period.LineItems[1].MinutesWorked)
+		t.Fatalf(
+			"expected paid minutes 52.5/52.5, got %.2f/%.2f",
+			period.LineItems[0].MinutesWorked,
+			period.LineItems[1].MinutesWorked,
+		)
 	}
-	if len(txRepo.assignedTimeEntryIDs) != 1 || txRepo.assignedTimeEntryIDs[0] != txRepo.entries[0].ID {
+	if len(txRepo.assignedTimeEntryIDs) != 1 ||
+		txRepo.assignedTimeEntryIDs[0] != txRepo.entries[0].ID {
 		t.Fatalf("expected one assigned time entry id, got %#v", txRepo.assignedTimeEntryIDs)
 	}
 
@@ -223,16 +240,22 @@ func TestClosePayPeriodRejectsDuplicatePeriod(t *testing.T) {
 			LastName:  "Jansen",
 		},
 		tx: &fakePayoutTxRepository{
-			existingPayPeriod: &domain.PayPeriod{ID: mustUUID("88888888-8888-8888-8888-888888888888")},
+			existingPayPeriod: &domain.PayPeriod{
+				ID: mustUUID("88888888-8888-8888-8888-888888888888"),
+			},
 		},
 	}
 
 	service := &PayoutService{repository: repo}
-	_, err := service.ClosePayPeriod(context.Background(), mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), domain.ClosePayPeriodParams{
-		EmployeeID:  repo.employee.ID,
-		PeriodStart: dateUTC(2026, 4, 1),
-		PeriodEnd:   dateUTC(2026, 4, 30),
-	})
+	_, err := service.ClosePayPeriod(
+		context.Background(),
+		mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+		domain.ClosePayPeriodParams{
+			EmployeeID:  repo.employee.ID,
+			PeriodStart: dateUTC(2026, 4, 1),
+			PeriodEnd:   dateUTC(2026, 4, 30),
+		},
+	)
 	if !errors.Is(err, domain.ErrPayPeriodAlreadyExists) {
 		t.Fatalf("expected ErrPayPeriodAlreadyExists, got %v", err)
 	}
@@ -249,11 +272,15 @@ func TestClosePayPeriodRejectsWhenNoEligibleEntries(t *testing.T) {
 	}
 
 	service := &PayoutService{repository: repo}
-	_, err := service.ClosePayPeriod(context.Background(), mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), domain.ClosePayPeriodParams{
-		EmployeeID:  repo.employee.ID,
-		PeriodStart: dateUTC(2026, 4, 1),
-		PeriodEnd:   dateUTC(2026, 4, 30),
-	})
+	_, err := service.ClosePayPeriod(
+		context.Background(),
+		mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+		domain.ClosePayPeriodParams{
+			EmployeeID:  repo.employee.ID,
+			PeriodStart: dateUTC(2026, 4, 1),
+			PeriodEnd:   dateUTC(2026, 4, 30),
+		},
+	)
 	if !errors.Is(err, domain.ErrPayPeriodNoEntries) {
 		t.Fatalf("expected ErrPayPeriodNoEntries, got %v", err)
 	}
@@ -270,7 +297,11 @@ func TestMarkPayPeriodPaidByAdminRequiresDraftState(t *testing.T) {
 	}
 
 	service := &PayoutService{repository: repo}
-	_, err := service.MarkPayPeriodPaidByAdmin(context.Background(), mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), mustUUID("99999999-9999-9999-9999-999999999999"))
+	_, err := service.MarkPayPeriodPaidByAdmin(
+		context.Background(),
+		mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+		mustUUID("99999999-9999-9999-9999-999999999999"),
+	)
 	if !errors.Is(err, domain.ErrPayPeriodStateInvalid) {
 		t.Fatalf("expected ErrPayPeriodStateInvalid, got %v", err)
 	}
@@ -287,7 +318,11 @@ func TestMarkPayPeriodPaidByAdminMarksDraftPaid(t *testing.T) {
 	}
 
 	service := &PayoutService{repository: repo}
-	period, err := service.MarkPayPeriodPaidByAdmin(context.Background(), mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), mustUUID("99999999-9999-9999-9999-999999999999"))
+	period, err := service.MarkPayPeriodPaidByAdmin(
+		context.Background(),
+		mustUUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+		mustUUID("99999999-9999-9999-9999-999999999999"),
+	)
 	if err != nil {
 		t.Fatalf("MarkPayPeriodPaidByAdmin returned error: %v", err)
 	}
@@ -322,7 +357,14 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 			},
 		},
 		monthLockedMultipliers: []domain.PayrollLockedMultiplierSummary{
-			{PayPeriodID: payPeriodID, RatePercent: 25, WorkedMinutes: 60, PaidMinutes: 60, BaseAmount: 10, PremiumAmount: 2.5},
+			{
+				PayPeriodID:   payPeriodID,
+				RatePercent:   25,
+				WorkedMinutes: 60,
+				PaidMinutes:   60,
+				BaseAmount:    10,
+				PremiumAmount: 2.5,
+			},
 		},
 		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
 			{
@@ -345,10 +387,13 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 	}
 
 	service := &PayoutService{repository: repo}
-	page, err := service.GetPayrollMonthSummary(context.Background(), domain.PayrollMonthSummaryParams{
-		Month: monthStart,
-		Limit: 20,
-	})
+	page, err := service.GetPayrollMonthSummary(
+		context.Background(),
+		domain.PayrollMonthSummaryParams{
+			Month: monthStart,
+			Limit: 20,
+		},
+	)
 	if err != nil {
 		t.Fatalf("GetPayrollMonthSummary returned error: %v", err)
 	}
@@ -370,7 +415,11 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 		t.Fatalf("expected live gross 25.00, got %.2f", row.GrossAmount)
 	}
 	if row.PendingEntryCount != 1 || row.PendingWorkedMinutes != 30 {
-		t.Fatalf("unexpected pending values: count=%d minutes=%d", row.PendingEntryCount, row.PendingWorkedMinutes)
+		t.Fatalf(
+			"unexpected pending values: count=%d minutes=%d",
+			row.PendingEntryCount,
+			row.PendingWorkedMinutes,
+		)
 	}
 	if len(row.MultiplierSummaries) != 1 || row.MultiplierSummaries[0].RatePercent != 25 {
 		t.Fatalf("expected one 25%% multiplier summary, got %#v", row.MultiplierSummaries)
@@ -402,8 +451,22 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 			},
 		},
 		monthLockedMultipliers: []domain.PayrollLockedMultiplierSummary{
-			{PayPeriodID: payPeriodID, RatePercent: 25, WorkedMinutes: 120, PaidMinutes: 120, BaseAmount: 50, PremiumAmount: 12.5},
-			{PayPeriodID: payPeriodID, RatePercent: 45, WorkedMinutes: 90, PaidMinutes: 90, BaseAmount: 50, PremiumAmount: 17.5},
+			{
+				PayPeriodID:   payPeriodID,
+				RatePercent:   25,
+				WorkedMinutes: 120,
+				PaidMinutes:   120,
+				BaseAmount:    50,
+				PremiumAmount: 12.5,
+			},
+			{
+				PayPeriodID:   payPeriodID,
+				RatePercent:   45,
+				WorkedMinutes: 90,
+				PaidMinutes:   90,
+				BaseAmount:    50,
+				PremiumAmount: 17.5,
+			},
 		},
 		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
 			{
@@ -423,10 +486,13 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 	}
 
 	service := &PayoutService{repository: repo}
-	page, err := service.GetPayrollMonthSummary(context.Background(), domain.PayrollMonthSummaryParams{
-		Month: monthStart,
-		Limit: 20,
-	})
+	page, err := service.GetPayrollMonthSummary(
+		context.Background(),
+		domain.PayrollMonthSummaryParams{
+			Month: monthStart,
+			Limit: 20,
+		},
+	)
 	if err != nil {
 		t.Fatalf("GetPayrollMonthSummary returned error: %v", err)
 	}
@@ -461,10 +527,13 @@ func TestGetPayrollMonthSummaryIncludesPendingOnlyEmployee(t *testing.T) {
 	}
 
 	service := &PayoutService{repository: repo}
-	page, err := service.GetPayrollMonthSummary(context.Background(), domain.PayrollMonthSummaryParams{
-		Month: monthStart,
-		Limit: 20,
-	})
+	page, err := service.GetPayrollMonthSummary(
+		context.Background(),
+		domain.PayrollMonthSummaryParams{
+			Month: monthStart,
+			Limit: 20,
+		},
+	)
 	if err != nil {
 		t.Fatalf("GetPayrollMonthSummary returned error: %v", err)
 	}
@@ -491,62 +560,109 @@ type fakePayoutRepository struct {
 	monthPendingSummaries   []domain.PayrollMonthPendingSummary
 }
 
-func (f *fakePayoutRepository) WithTx(ctx context.Context, fn func(tx domain.PayoutTxRepository) error) error {
+func (f *fakePayoutRepository) WithTx(
+	ctx context.Context,
+	fn func(tx domain.PayoutTxRepository) error,
+) error {
 	if f.tx == nil {
 		panic("unexpected call")
 	}
 	return fn(f.tx)
 }
 
-func (f *fakePayoutRepository) ListMyPayoutRequests(_ context.Context, _ domain.ListMyPayoutRequestsParams) (*domain.PayoutRequestPage, error) {
+func (f *fakePayoutRepository) ListMyPayoutRequests(
+	_ context.Context,
+	_ domain.ListMyPayoutRequestsParams,
+) (*domain.PayoutRequestPage, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutRepository) ListPayoutRequests(_ context.Context, _ domain.ListPayoutRequestsParams) (*domain.PayoutRequestPage, error) {
+func (f *fakePayoutRepository) ListPayoutRequests(
+	_ context.Context,
+	_ domain.ListPayoutRequestsParams,
+) (*domain.PayoutRequestPage, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutRepository) GetPayrollPreviewEmployee(_ context.Context, _ uuid.UUID) (*domain.EmployeeDetail, error) {
+func (f *fakePayoutRepository) GetPayrollPreviewEmployee(
+	_ context.Context,
+	_ uuid.UUID,
+) (*domain.EmployeeDetail, error) {
 	return f.employee, nil
 }
 
-func (f *fakePayoutRepository) ListPayrollPreviewTimeEntries(_ context.Context, _ domain.PayrollPreviewParams) ([]domain.PayrollPreviewTimeEntry, error) {
+func (f *fakePayoutRepository) ListPayrollPreviewTimeEntries(
+	_ context.Context,
+	_ domain.PayrollPreviewParams,
+) ([]domain.PayrollPreviewTimeEntry, error) {
 	return f.entries, nil
 }
 
-func (f *fakePayoutRepository) ListNationalHolidays(_ context.Context, _ string, _, _ time.Time) ([]domain.NationalHoliday, error) {
+func (f *fakePayoutRepository) ListNationalHolidays(
+	_ context.Context,
+	_ string,
+	_, _ time.Time,
+) ([]domain.NationalHoliday, error) {
 	return f.holidays, nil
 }
 
-func (f *fakePayoutRepository) GetPayPeriodByID(_ context.Context, _ uuid.UUID) (*domain.PayPeriod, error) {
+func (f *fakePayoutRepository) GetPayPeriodByID(
+	_ context.Context,
+	_ uuid.UUID,
+) (*domain.PayPeriod, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutRepository) ListPayPeriods(_ context.Context, _ domain.ListPayPeriodsParams) (*domain.PayPeriodPage, error) {
+func (f *fakePayoutRepository) ListPayPeriods(
+	_ context.Context,
+	_ domain.ListPayPeriodsParams,
+) (*domain.PayPeriodPage, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutRepository) ListPayPeriodLineItems(_ context.Context, _ uuid.UUID) ([]domain.PayPeriodLineItem, error) {
+func (f *fakePayoutRepository) ListPayPeriodLineItems(
+	_ context.Context,
+	_ uuid.UUID,
+) ([]domain.PayPeriodLineItem, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutRepository) ListPayrollMonthEmployees(_ context.Context, _ domain.PayrollMonthSummaryParams, _, _ time.Time) ([]domain.PayrollMonthEmployee, int64, error) {
+func (f *fakePayoutRepository) ListPayrollMonthEmployees(
+	_ context.Context,
+	_ domain.PayrollMonthSummaryParams,
+	_, _ time.Time,
+) ([]domain.PayrollMonthEmployee, int64, error) {
 	return f.monthEmployees, f.monthEmployeeTotalCount, nil
 }
 
-func (f *fakePayoutRepository) ListPayPeriodsByEmployeesAndRange(_ context.Context, _ []uuid.UUID, _, _ time.Time) ([]domain.PayPeriod, error) {
+func (f *fakePayoutRepository) ListPayPeriodsByEmployeesAndRange(
+	_ context.Context,
+	_ []uuid.UUID,
+	_, _ time.Time,
+) ([]domain.PayPeriod, error) {
 	return f.monthPayPeriods, nil
 }
 
-func (f *fakePayoutRepository) ListPayrollMonthLockedMultiplierSummaries(_ context.Context, _ []uuid.UUID) ([]domain.PayrollLockedMultiplierSummary, error) {
+func (f *fakePayoutRepository) ListPayrollMonthLockedMultiplierSummaries(
+	_ context.Context,
+	_ []uuid.UUID,
+) ([]domain.PayrollLockedMultiplierSummary, error) {
 	return f.monthLockedMultipliers, nil
 }
 
-func (f *fakePayoutRepository) ListPayrollMonthApprovedTimeEntries(_ context.Context, _ []uuid.UUID, _, _ time.Time) ([]domain.PayrollPreviewTimeEntry, error) {
+func (f *fakePayoutRepository) ListPayrollMonthApprovedTimeEntries(
+	_ context.Context,
+	_ []uuid.UUID,
+	_, _ time.Time,
+) ([]domain.PayrollPreviewTimeEntry, error) {
 	return f.monthApprovedEntries, nil
 }
 
-func (f *fakePayoutRepository) ListPayrollMonthPendingSummaries(_ context.Context, _ []uuid.UUID, _, _ time.Time) ([]domain.PayrollMonthPendingSummary, error) {
+func (f *fakePayoutRepository) ListPayrollMonthPendingSummaries(
+	_ context.Context,
+	_ []uuid.UUID,
+	_, _ time.Time,
+) ([]domain.PayrollMonthPendingSummary, error) {
 	return f.monthPendingSummaries, nil
 }
 
@@ -559,54 +675,99 @@ type fakePayoutTxRepository struct {
 	payPeriodForUpdate   *domain.PayPeriod
 }
 
-func (f *fakePayoutTxRepository) GetEmployeePayoutContract(_ context.Context, _ uuid.UUID) (*domain.PayoutContract, error) {
+func (f *fakePayoutTxRepository) GetEmployeePayoutContract(
+	_ context.Context,
+	_ uuid.UUID,
+) (*domain.PayoutContract, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) EnsureLeaveBalanceForYear(_ context.Context, _ uuid.UUID, _ int32) error {
+func (f *fakePayoutTxRepository) EnsureLeaveBalanceForYear(
+	_ context.Context,
+	_ uuid.UUID,
+	_ int32,
+) error {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) GetPayoutBalanceForUpdate(_ context.Context, _ uuid.UUID, _ int32) (*domain.PayoutBalanceSnapshot, error) {
+func (f *fakePayoutTxRepository) GetPayoutBalanceForUpdate(
+	_ context.Context,
+	_ uuid.UUID,
+	_ int32,
+) (*domain.PayoutBalanceSnapshot, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) CreatePayoutRequest(_ context.Context, _ domain.CreatePayoutRequestTxParams) (*domain.PayoutRequest, error) {
+func (f *fakePayoutTxRepository) CreatePayoutRequest(
+	_ context.Context,
+	_ domain.CreatePayoutRequestTxParams,
+) (*domain.PayoutRequest, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) GetPayoutRequestForUpdate(_ context.Context, _ uuid.UUID) (*domain.PayoutRequest, error) {
+func (f *fakePayoutTxRepository) GetPayoutRequestForUpdate(
+	_ context.Context,
+	_ uuid.UUID,
+) (*domain.PayoutRequest, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) ApprovePayoutRequest(_ context.Context, _, _ uuid.UUID, _ time.Time, _ *string) (*domain.PayoutRequest, error) {
+func (f *fakePayoutTxRepository) ApprovePayoutRequest(
+	_ context.Context,
+	_, _ uuid.UUID,
+	_ time.Time,
+	_ *string,
+) (*domain.PayoutRequest, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) RejectPayoutRequest(_ context.Context, _, _ uuid.UUID, _ *string) (*domain.PayoutRequest, error) {
+func (f *fakePayoutTxRepository) RejectPayoutRequest(
+	_ context.Context,
+	_, _ uuid.UUID,
+	_ *string,
+) (*domain.PayoutRequest, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) MarkPayoutRequestPaid(_ context.Context, _, _ uuid.UUID) (*domain.PayoutRequest, error) {
+func (f *fakePayoutTxRepository) MarkPayoutRequestPaid(
+	_ context.Context,
+	_, _ uuid.UUID,
+) (*domain.PayoutRequest, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) ApplyLeaveBalanceDeduction(_ context.Context, _ uuid.UUID, _, _ int32) (*domain.LeaveBalance, error) {
+func (f *fakePayoutTxRepository) ApplyLeaveBalanceDeduction(
+	_ context.Context,
+	_ uuid.UUID,
+	_, _ int32,
+) (*domain.LeaveBalance, error) {
 	panic("unexpected call")
 }
 
-func (f *fakePayoutTxRepository) GetPayPeriodByEmployeePeriod(_ context.Context, _ uuid.UUID, _, _ time.Time) (*domain.PayPeriod, error) {
+func (f *fakePayoutTxRepository) GetPayPeriodByEmployeePeriod(
+	_ context.Context,
+	_ uuid.UUID,
+	_, _ time.Time,
+) (*domain.PayPeriod, error) {
 	if f.existingPayPeriod == nil {
 		return nil, domain.ErrPayPeriodNotFound
 	}
 	return f.existingPayPeriod, nil
 }
 
-func (f *fakePayoutTxRepository) LockPayrollPreviewTimeEntries(_ context.Context, _ domain.PayrollPreviewParams) ([]domain.PayrollPreviewTimeEntry, error) {
+func (f *fakePayoutTxRepository) LockPayrollPreviewTimeEntries(
+	_ context.Context,
+	_ domain.PayrollPreviewParams,
+) ([]domain.PayrollPreviewTimeEntry, error) {
 	return f.entries, nil
 }
 
-func (f *fakePayoutTxRepository) CreatePayPeriod(_ context.Context, params domain.ClosePayPeriodParams, createdByEmployeeID uuid.UUID, preview domain.PayrollPreview) (*domain.PayPeriod, error) {
+func (f *fakePayoutTxRepository) CreatePayPeriod(
+	_ context.Context,
+	params domain.ClosePayPeriodParams,
+	createdByEmployeeID uuid.UUID,
+	preview domain.PayrollPreview,
+) (*domain.PayPeriod, error) {
 	f.createdPayPeriod = &domain.PayPeriod{
 		ID:                   mustUUID("abababab-abab-abab-abab-abababababab"),
 		EmployeeID:           params.EmployeeID,
@@ -624,7 +785,11 @@ func (f *fakePayoutTxRepository) CreatePayPeriod(_ context.Context, params domai
 	return f.createdPayPeriod, nil
 }
 
-func (f *fakePayoutTxRepository) CreatePayPeriodLineItem(_ context.Context, payPeriodID uuid.UUID, item domain.PayPeriodLineItem) (*domain.PayPeriodLineItem, error) {
+func (f *fakePayoutTxRepository) CreatePayPeriodLineItem(
+	_ context.Context,
+	payPeriodID uuid.UUID,
+	item domain.PayPeriodLineItem,
+) (*domain.PayPeriodLineItem, error) {
 	item.ID = uuid.New()
 	item.PayPeriodID = payPeriodID
 	item.CreatedAt = time.Now().UTC()
@@ -633,19 +798,29 @@ func (f *fakePayoutTxRepository) CreatePayPeriodLineItem(_ context.Context, payP
 	return &item, nil
 }
 
-func (f *fakePayoutTxRepository) AssignTimeEntriesToPayPeriod(_ context.Context, _ uuid.UUID, timeEntryIDs []uuid.UUID) error {
+func (f *fakePayoutTxRepository) AssignTimeEntriesToPayPeriod(
+	_ context.Context,
+	_ uuid.UUID,
+	timeEntryIDs []uuid.UUID,
+) error {
 	f.assignedTimeEntryIDs = append([]uuid.UUID(nil), timeEntryIDs...)
 	return nil
 }
 
-func (f *fakePayoutTxRepository) GetPayPeriodForUpdate(_ context.Context, _ uuid.UUID) (*domain.PayPeriod, error) {
+func (f *fakePayoutTxRepository) GetPayPeriodForUpdate(
+	_ context.Context,
+	_ uuid.UUID,
+) (*domain.PayPeriod, error) {
 	if f.payPeriodForUpdate == nil {
 		return nil, domain.ErrPayPeriodNotFound
 	}
 	return f.payPeriodForUpdate, nil
 }
 
-func (f *fakePayoutTxRepository) MarkPayPeriodPaid(_ context.Context, payPeriodID uuid.UUID) (*domain.PayPeriod, error) {
+func (f *fakePayoutTxRepository) MarkPayPeriodPaid(
+	_ context.Context,
+	payPeriodID uuid.UUID,
+) (*domain.PayPeriod, error) {
 	paidAt := time.Now().UTC()
 	return &domain.PayPeriod{
 		ID:     payPeriodID,

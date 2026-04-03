@@ -24,21 +24,29 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 	if req == nil || requesterEmployeeID == uuid.Nil {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
-	if req.RequesterScheduleID == uuid.Nil || req.RecipientScheduleID == uuid.Nil || req.RecipientEmployeeID == uuid.Nil {
+	if req.RequesterScheduleID == uuid.Nil || req.RecipientScheduleID == uuid.Nil ||
+		req.RecipientEmployeeID == uuid.Nil {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
-	if requesterEmployeeID == req.RecipientEmployeeID || req.RequesterScheduleID == req.RecipientScheduleID {
+	if requesterEmployeeID == req.RecipientEmployeeID ||
+		req.RequesterScheduleID == req.RecipientScheduleID {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
 	if req.ExpiresAt != nil && !req.ExpiresAt.After(time.Now().UTC()) {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
 
-	requesterSchedule, err := s.repository.GetScheduleForSwapValidation(ctx, req.RequesterScheduleID)
+	requesterSchedule, err := s.repository.GetScheduleForSwapValidation(
+		ctx,
+		req.RequesterScheduleID,
+	)
 	if err != nil {
 		return nil, domain.ErrScheduleNotFound
 	}
-	recipientSchedule, err := s.repository.GetScheduleForSwapValidation(ctx, req.RecipientScheduleID)
+	recipientSchedule, err := s.repository.GetScheduleForSwapValidation(
+		ctx,
+		req.RecipientScheduleID,
+	)
 	if err != nil {
 		return nil, domain.ErrScheduleNotFound
 	}
@@ -47,7 +55,8 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 	if requesterSchedule.StartDatetime.Before(now) || recipientSchedule.StartDatetime.Before(now) {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
-	if requesterSchedule.EmployeeID != requesterEmployeeID || recipientSchedule.EmployeeID != req.RecipientEmployeeID {
+	if requesterSchedule.EmployeeID != requesterEmployeeID ||
+		recipientSchedule.EmployeeID != req.RecipientEmployeeID {
 		return nil, domain.ErrShiftSwapScheduleOwnership
 	}
 
@@ -94,13 +103,20 @@ func (s *ScheduleService) RespondToShiftSwapRequest(
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
 
-	updated, err := s.repository.UpdateShiftSwapStatusAfterRecipientResponse(ctx, swapID, recipientEmployeeID, nextStatus, req.Note)
+	updated, err := s.repository.UpdateShiftSwapStatusAfterRecipientResponse(
+		ctx,
+		swapID,
+		recipientEmployeeID,
+		nextStatus,
+		req.Note,
+	)
 	if err != nil {
 		existing, getErr := s.repository.GetShiftSwapRequestByID(ctx, swapID)
 		if getErr != nil || existing == nil {
 			return nil, domain.ErrShiftSwapNotFound
 		}
-		if existing.Status == "expired" || (existing.ExpiresAt != nil && !existing.ExpiresAt.After(time.Now().UTC())) {
+		if existing.Status == "expired" ||
+			(existing.ExpiresAt != nil && !existing.ExpiresAt.After(time.Now().UTC())) {
 			return nil, domain.ErrShiftSwapExpired
 		}
 		return nil, domain.ErrShiftSwapStateInvalid
@@ -147,7 +163,10 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 				return domain.ErrShiftSwapExpired
 			}
 
-			schedules, err := tx.LockSchedulesByIDsForSwap(ctx, []uuid.UUID{swapRow.RequesterScheduleID, swapRow.RecipientScheduleID})
+			schedules, err := tx.LockSchedulesByIDsForSwap(
+				ctx,
+				[]uuid.UUID{swapRow.RequesterScheduleID, swapRow.RecipientScheduleID},
+			)
 			if err != nil {
 				return err
 			}
@@ -164,16 +183,24 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 			if !okReq || !okRec {
 				return domain.ErrScheduleNotFound
 			}
-			if requesterSchedule.EmployeeID != swapRow.RequesterEmployeeID || recipientSchedule.EmployeeID != swapRow.RecipientEmployeeID {
+			if requesterSchedule.EmployeeID != swapRow.RequesterEmployeeID ||
+				recipientSchedule.EmployeeID != swapRow.RecipientEmployeeID {
 				return domain.ErrShiftSwapScheduleOwnership
 			}
 			now := time.Now().UTC()
-			if requesterSchedule.StartDatetime.Before(now) || recipientSchedule.StartDatetime.Before(now) {
+			if requesterSchedule.StartDatetime.Before(now) ||
+				recipientSchedule.StartDatetime.Before(now) {
 				return domain.ErrShiftSwapInvalidRequest
 			}
 
 			excludeIDs := []uuid.UUID{requesterSchedule.ID, recipientSchedule.ID}
-			requesterOverlap, err := tx.CountScheduleOverlapsForEmployee(ctx, swapRow.RequesterEmployeeID, excludeIDs, recipientSchedule.StartDatetime, recipientSchedule.EndDatetime)
+			requesterOverlap, err := tx.CountScheduleOverlapsForEmployee(
+				ctx,
+				swapRow.RequesterEmployeeID,
+				excludeIDs,
+				recipientSchedule.StartDatetime,
+				recipientSchedule.EndDatetime,
+			)
 			if err != nil {
 				return err
 			}
@@ -181,7 +208,13 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 				return domain.ErrShiftSwapConflict
 			}
 
-			recipientOverlap, err := tx.CountScheduleOverlapsForEmployee(ctx, swapRow.RecipientEmployeeID, excludeIDs, requesterSchedule.StartDatetime, requesterSchedule.EndDatetime)
+			recipientOverlap, err := tx.CountScheduleOverlapsForEmployee(
+				ctx,
+				swapRow.RecipientEmployeeID,
+				excludeIDs,
+				requesterSchedule.StartDatetime,
+				requesterSchedule.EndDatetime,
+			)
 			if err != nil {
 				return err
 			}
@@ -189,10 +222,18 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 				return domain.ErrShiftSwapConflict
 			}
 
-			if err := tx.UpdateScheduleEmployeeAssignment(ctx, requesterSchedule.ID, swapRow.RecipientEmployeeID); err != nil {
+			if err := tx.UpdateScheduleEmployeeAssignment(
+				ctx,
+				requesterSchedule.ID,
+				swapRow.RecipientEmployeeID,
+			); err != nil {
 				return err
 			}
-			if err := tx.UpdateScheduleEmployeeAssignment(ctx, recipientSchedule.ID, swapRow.RequesterEmployeeID); err != nil {
+			if err := tx.UpdateScheduleEmployeeAssignment(
+				ctx,
+				recipientSchedule.ID,
+				swapRow.RequesterEmployeeID,
+			); err != nil {
 				return err
 			}
 
@@ -218,13 +259,20 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 		return details, nil
 
 	case shiftSwapDecisionReject:
-		updated, err := s.repository.UpdateShiftSwapAdminDecision(ctx, swapID, "admin_rejected", req.Note, adminEmployeeID)
+		updated, err := s.repository.UpdateShiftSwapAdminDecision(
+			ctx,
+			swapID,
+			"admin_rejected",
+			req.Note,
+			adminEmployeeID,
+		)
 		if err != nil {
 			existing, getErr := s.repository.GetShiftSwapRequestByID(ctx, swapID)
 			if getErr != nil || existing == nil {
 				return nil, domain.ErrShiftSwapNotFound
 			}
-			if existing.Status == "expired" || (existing.ExpiresAt != nil && !existing.ExpiresAt.After(time.Now().UTC())) {
+			if existing.Status == "expired" ||
+				(existing.ExpiresAt != nil && !existing.ExpiresAt.After(time.Now().UTC())) {
 				return nil, domain.ErrShiftSwapExpired
 			}
 			return nil, domain.ErrShiftSwapStateInvalid
@@ -240,14 +288,20 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 	}
 }
 
-func (s *ScheduleService) ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID) ([]domain.ShiftSwapResponse, error) {
+func (s *ScheduleService) ListMyShiftSwapRequests(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.ShiftSwapResponse, error) {
 	if employeeID == uuid.Nil {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
 	return s.repository.ListMyShiftSwapRequests(ctx, employeeID)
 }
 
-func (s *ScheduleService) ListShiftSwapRequests(ctx context.Context, params domain.ListShiftSwapRequestsParams) (*domain.ShiftSwapPage, error) {
+func (s *ScheduleService) ListShiftSwapRequests(
+	ctx context.Context,
+	params domain.ListShiftSwapRequestsParams,
+) (*domain.ShiftSwapPage, error) {
 	if params.Status != nil {
 		if !isValidShiftSwapStatus(*params.Status) {
 			return nil, domain.ErrShiftSwapInvalidRequest
@@ -263,7 +317,13 @@ func (s *ScheduleService) ListShiftSwapRequests(ctx context.Context, params doma
 
 func isValidShiftSwapStatus(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "pending_recipient", "recipient_rejected", "pending_admin", "admin_rejected", "confirmed", "cancelled", "expired":
+	case "pending_recipient",
+		"recipient_rejected",
+		"pending_admin",
+		"admin_rejected",
+		"confirmed",
+		"cancelled",
+		"expired":
 		return true
 	default:
 		return false

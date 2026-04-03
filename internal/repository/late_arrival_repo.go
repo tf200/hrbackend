@@ -28,10 +28,13 @@ func (r *LateArrivalRepository) ListAssignedSchedulesForEmployeeOnDate(
 	employeeID uuid.UUID,
 	arrivalDate time.Time,
 ) ([]domain.AssignedScheduleForDate, error) {
-	rows, err := r.queries.ListAssignedSchedulesForEmployeeOnDate(ctx, db.ListAssignedSchedulesForEmployeeOnDateParams{
-		EmployeeID:  employeeID,
-		ArrivalDate: conv.PgDateFromTime(arrivalDate),
-	})
+	rows, err := r.queries.ListAssignedSchedulesForEmployeeOnDate(
+		ctx,
+		db.ListAssignedSchedulesForEmployeeOnDateParams{
+			EmployeeID:  employeeID,
+			ArrivalDate: conv.PgDateFromTime(arrivalDate),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

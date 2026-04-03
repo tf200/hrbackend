@@ -38,7 +38,10 @@ func SolveCpModel(input *cmpb.CpModelProto) (*cmpb.CpSolverResponse, error) {
 
 // SolveCpModelWithParameters solves a CP Model with the given input proto and solver
 // parameters and returns a CPSolverResponse.
-func SolveCpModelWithParameters(input *cmpb.CpModelProto, params *sppb.SatParameters) (*cmpb.CpSolverResponse, error) {
+func SolveCpModelWithParameters(
+	input *cmpb.CpModelProto,
+	params *sppb.SatParameters,
+) (*cmpb.CpSolverResponse, error) {
 	// Transform `input` into bytes.
 	bReq, err := proto.Marshal(input)
 	if err != nil {
@@ -57,7 +60,14 @@ func SolveCpModelWithParameters(input *cmpb.CpModelProto, params *sppb.SatParame
 
 	var cRes unsafe.Pointer
 	var cResLen C.int
-	C.SolveCpModelWithParameters(cReq, C.int(len(bReq)), cParams, C.int(len(bParams)), &cRes, &cResLen)
+	C.SolveCpModelWithParameters(
+		cReq,
+		C.int(len(bReq)),
+		cParams,
+		C.int(len(bParams)),
+		&cRes,
+		&cResLen,
+	)
 	defer C.free(cRes)
 
 	// Transform `cRes` into the Go response proto.
@@ -73,7 +83,11 @@ func SolveCpModelWithParameters(input *cmpb.CpModelProto, params *sppb.SatParame
 // SolveCpModelInterruptibleWithParameters solves a CP Model with the given input proto
 // and parameters and returns a CPSolverResponse. The solve can be interrupted by triggering
 // the `interrupt`.
-func SolveCpModelInterruptibleWithParameters(input *cmpb.CpModelProto, params *sppb.SatParameters, interrupt <-chan struct{}) (*cmpb.CpSolverResponse, error) {
+func SolveCpModelInterruptibleWithParameters(
+	input *cmpb.CpModelProto,
+	params *sppb.SatParameters,
+	interrupt <-chan struct{},
+) (*cmpb.CpSolverResponse, error) {
 	// Create the atomic bool for interrupting solves.
 	limitReached := newAtomicBoolWrapper()
 	defer limitReached.delete()
@@ -118,7 +132,15 @@ func SolveCpModelInterruptibleWithParameters(input *cmpb.CpModelProto, params *s
 
 	var cRes unsafe.Pointer
 	var cResLen C.int
-	C.SolveCpInterruptible(limitReached.ptr, cReq, C.int(len(bReq)), cParams, C.int(len(bParams)), &cRes, &cResLen)
+	C.SolveCpInterruptible(
+		limitReached.ptr,
+		cReq,
+		C.int(len(bReq)),
+		cParams,
+		C.int(len(bParams)),
+		&cRes,
+		&cResLen,
+	)
 	defer C.free(cRes)
 
 	// Transform `cRes` into the Go response proto.

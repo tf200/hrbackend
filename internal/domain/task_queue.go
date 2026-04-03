@@ -142,11 +142,35 @@ type NewScheduleNotificationTaskData struct {
 }
 
 type TaskQueue interface {
-	EnqueueEmailDelivery(ctx context.Context, payload EmailDeliveryTaskPayload, opts *TaskEnqueueOptions) error
-	EnqueueIncident(ctx context.Context, payload IncidentTaskPayload, opts *TaskEnqueueOptions) error
-	EnqueueIncidentConfirmedEmail(ctx context.Context, payload IncidentConfirmedEmailTaskPayload, opts *TaskEnqueueOptions) error
-	EnqueueNotificationTask(ctx context.Context, payload NotificationTaskPayload, opts *TaskEnqueueOptions) error
-	EnqueueAcceptedRegistration(ctx context.Context, payload AcceptedRegistrationFormTaskPayload, opts *TaskEnqueueOptions) error
-	EnqueueProcessRegistrationFormEmail(ctx context.Context, payload ProcessRegistrationFormEmailTaskPayload, opts *TaskEnqueueOptions) error
+	EnqueueEmailDelivery(
+		ctx context.Context,
+		payload EmailDeliveryTaskPayload,
+		opts *TaskEnqueueOptions,
+	) error
+	EnqueueIncident(
+		ctx context.Context,
+		payload IncidentTaskPayload,
+		opts *TaskEnqueueOptions,
+	) error
+	EnqueueIncidentConfirmedEmail(
+		ctx context.Context,
+		payload IncidentConfirmedEmailTaskPayload,
+		opts *TaskEnqueueOptions,
+	) error
+	EnqueueNotificationTask(
+		ctx context.Context,
+		payload NotificationTaskPayload,
+		opts *TaskEnqueueOptions,
+	) error
+	EnqueueAcceptedRegistration(
+		ctx context.Context,
+		payload AcceptedRegistrationFormTaskPayload,
+		opts *TaskEnqueueOptions,
+	) error
+	EnqueueProcessRegistrationFormEmail(
+		ctx context.Context,
+		payload ProcessRegistrationFormEmailTaskPayload,
+		opts *TaskEnqueueOptions,
+	) error
 	Close() error
 }

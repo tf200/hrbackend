@@ -69,7 +69,13 @@ func PgTimeFromString(value string) (pgtype.Time, error) {
 	}
 
 	return pgtype.Time{
-		Microseconds: int64(parsed.Hour())*3600*1000000 + int64(parsed.Minute())*60*1000000 + int64(parsed.Second())*1000000,
-		Valid:        true,
+		Microseconds: int64(
+			parsed.Hour(),
+		)*3600*1000000 + int64(
+			parsed.Minute(),
+		)*60*1000000 + int64(
+			parsed.Second(),
+		)*1000000,
+		Valid: true,
 	}, nil
 }

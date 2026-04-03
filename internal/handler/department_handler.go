@@ -25,13 +25,19 @@ func (h *DepartmentHandler) CreateDepartment(ctx *gin.Context) {
 		return
 	}
 
-	department, err := h.service.CreateDepartment(ctx.Request.Context(), toCreateDepartmentParams(req))
+	department, err := h.service.CreateDepartment(
+		ctx.Request.Context(),
+		toCreateDepartmentParams(req),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create department", ""))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toDepartmentResponse(department), "Department created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toDepartmentResponse(department), "Department created successfully"),
+	)
 }
 
 func (h *DepartmentHandler) ListDepartments(ctx *gin.Context) {
@@ -69,7 +75,10 @@ func (h *DepartmentHandler) GetDepartmentByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toDepartmentResponse(department), "Department retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toDepartmentResponse(department), "Department retrieved successfully"),
+	)
 }
 
 func (h *DepartmentHandler) UpdateDepartment(ctx *gin.Context) {
@@ -85,13 +94,20 @@ func (h *DepartmentHandler) UpdateDepartment(ctx *gin.Context) {
 		return
 	}
 
-	department, err := h.service.UpdateDepartment(ctx.Request.Context(), departmentID, toUpdateDepartmentParams(req))
+	department, err := h.service.UpdateDepartment(
+		ctx.Request.Context(),
+		departmentID,
+		toUpdateDepartmentParams(req),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update department", ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toDepartmentResponse(department), "Department updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toDepartmentResponse(department), "Department updated successfully"),
+	)
 }
 
 func (h *DepartmentHandler) DeleteDepartment(ctx *gin.Context) {
@@ -106,5 +122,8 @@ func (h *DepartmentHandler) DeleteDepartment(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(deleteDepartmentResponse{ID: departmentID}, "Department deleted successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(deleteDepartmentResponse{ID: departmentID}, "Department deleted successfully"),
+	)
 }

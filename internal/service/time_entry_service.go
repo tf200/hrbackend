@@ -17,14 +17,21 @@ type TimeEntryService struct {
 	logger     domain.Logger
 }
 
-func NewTimeEntryService(repository domain.TimeEntryRepository, logger domain.Logger) domain.TimeEntryService {
+func NewTimeEntryService(
+	repository domain.TimeEntryRepository,
+	logger domain.Logger,
+) domain.TimeEntryService {
 	return &TimeEntryService{
 		repository: repository,
 		logger:     logger,
 	}
 }
 
-func (s *TimeEntryService) CreateTimeEntry(ctx context.Context, actorEmployeeID uuid.UUID, params domain.CreateTimeEntryParams) (*domain.TimeEntry, error) {
+func (s *TimeEntryService) CreateTimeEntry(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.CreateTimeEntryParams,
+) (*domain.TimeEntry, error) {
 	if actorEmployeeID == uuid.Nil {
 		return nil, domain.ErrTimeEntryInvalidRequest
 	}
@@ -33,7 +40,11 @@ func (s *TimeEntryService) CreateTimeEntry(ctx context.Context, actorEmployeeID 
 	return s.createTimeEntry(ctx, params, "TimeEntryService.CreateTimeEntry")
 }
 
-func (s *TimeEntryService) CreateTimeEntryByAdmin(ctx context.Context, adminEmployeeID uuid.UUID, params domain.CreateTimeEntryParams) (*domain.TimeEntry, error) {
+func (s *TimeEntryService) CreateTimeEntryByAdmin(
+	ctx context.Context,
+	adminEmployeeID uuid.UUID,
+	params domain.CreateTimeEntryParams,
+) (*domain.TimeEntry, error) {
 	if adminEmployeeID == uuid.Nil {
 		return nil, domain.ErrTimeEntryInvalidRequest
 	}
@@ -44,7 +55,11 @@ func (s *TimeEntryService) CreateTimeEntryByAdmin(ctx context.Context, adminEmpl
 	return s.createTimeEntry(ctx, params, "TimeEntryService.CreateTimeEntryByAdmin")
 }
 
-func (s *TimeEntryService) DecideTimeEntryByAdmin(ctx context.Context, adminEmployeeID, timeEntryID uuid.UUID, params domain.DecideTimeEntryParams) (*domain.TimeEntry, error) {
+func (s *TimeEntryService) DecideTimeEntryByAdmin(
+	ctx context.Context,
+	adminEmployeeID, timeEntryID uuid.UUID,
+	params domain.DecideTimeEntryParams,
+) (*domain.TimeEntry, error) {
 	if adminEmployeeID == uuid.Nil || timeEntryID == uuid.Nil {
 		return nil, domain.ErrTimeEntryInvalidRequest
 	}
@@ -84,7 +99,11 @@ func (s *TimeEntryService) DecideTimeEntryByAdmin(ctx context.Context, adminEmpl
 	return updated, nil
 }
 
-func (s *TimeEntryService) createTimeEntry(ctx context.Context, params domain.CreateTimeEntryParams, operation string) (*domain.TimeEntry, error) {
+func (s *TimeEntryService) createTimeEntry(
+	ctx context.Context,
+	params domain.CreateTimeEntryParams,
+	operation string,
+) (*domain.TimeEntry, error) {
 	normalizedParams, err := normalizeCreateTimeEntryParams(params)
 	if err != nil {
 		return nil, err
@@ -101,7 +120,10 @@ func (s *TimeEntryService) createTimeEntry(ctx context.Context, params domain.Cr
 	return item, nil
 }
 
-func (s *TimeEntryService) GetTimeEntryByID(ctx context.Context, timeEntryID uuid.UUID) (*domain.TimeEntry, error) {
+func (s *TimeEntryService) GetTimeEntryByID(
+	ctx context.Context,
+	timeEntryID uuid.UUID,
+) (*domain.TimeEntry, error) {
 	if timeEntryID == uuid.Nil {
 		return nil, domain.ErrTimeEntryInvalidRequest
 	}
@@ -120,7 +142,10 @@ func (s *TimeEntryService) GetTimeEntryByID(ctx context.Context, timeEntryID uui
 	return item, nil
 }
 
-func (s *TimeEntryService) GetMyTimeEntryByID(ctx context.Context, actorEmployeeID, timeEntryID uuid.UUID) (*domain.TimeEntry, error) {
+func (s *TimeEntryService) GetMyTimeEntryByID(
+	ctx context.Context,
+	actorEmployeeID, timeEntryID uuid.UUID,
+) (*domain.TimeEntry, error) {
 	if actorEmployeeID == uuid.Nil || timeEntryID == uuid.Nil {
 		return nil, domain.ErrTimeEntryInvalidRequest
 	}
@@ -136,7 +161,10 @@ func (s *TimeEntryService) GetMyTimeEntryByID(ctx context.Context, actorEmployee
 	return item, nil
 }
 
-func (s *TimeEntryService) ListTimeEntries(ctx context.Context, params domain.ListTimeEntriesParams) (*domain.TimeEntryPage, error) {
+func (s *TimeEntryService) ListTimeEntries(
+	ctx context.Context,
+	params domain.ListTimeEntriesParams,
+) (*domain.TimeEntryPage, error) {
 	normalizedParams, err := normalizeListTimeEntriesParams(params)
 	if err != nil {
 		return nil, err
@@ -151,7 +179,10 @@ func (s *TimeEntryService) ListTimeEntries(ctx context.Context, params domain.Li
 	return page, nil
 }
 
-func (s *TimeEntryService) ListMyTimeEntries(ctx context.Context, params domain.ListMyTimeEntriesParams) (*domain.TimeEntryPage, error) {
+func (s *TimeEntryService) ListMyTimeEntries(
+	ctx context.Context,
+	params domain.ListMyTimeEntriesParams,
+) (*domain.TimeEntryPage, error) {
 	normalizedParams, err := normalizeListMyTimeEntriesParams(params)
 	if err != nil {
 		return nil, err
@@ -168,7 +199,9 @@ func (s *TimeEntryService) ListMyTimeEntries(ctx context.Context, params domain.
 	return page, nil
 }
 
-func normalizeCreateTimeEntryParams(params domain.CreateTimeEntryParams) (domain.CreateTimeEntryParams, error) {
+func normalizeCreateTimeEntryParams(
+	params domain.CreateTimeEntryParams,
+) (domain.CreateTimeEntryParams, error) {
 	if params.EmployeeID == uuid.Nil {
 		return domain.CreateTimeEntryParams{}, domain.ErrTimeEntryInvalidRequest
 	}
@@ -211,7 +244,9 @@ func normalizeCreateTimeEntryParams(params domain.CreateTimeEntryParams) (domain
 	return params, nil
 }
 
-func normalizeListTimeEntriesParams(params domain.ListTimeEntriesParams) (domain.ListTimeEntriesParams, error) {
+func normalizeListTimeEntriesParams(
+	params domain.ListTimeEntriesParams,
+) (domain.ListTimeEntriesParams, error) {
 	if params.Status == nil {
 		return params, nil
 	}
@@ -225,7 +260,9 @@ func normalizeListTimeEntriesParams(params domain.ListTimeEntriesParams) (domain
 	return params, nil
 }
 
-func normalizeListMyTimeEntriesParams(params domain.ListMyTimeEntriesParams) (domain.ListMyTimeEntriesParams, error) {
+func normalizeListMyTimeEntriesParams(
+	params domain.ListMyTimeEntriesParams,
+) (domain.ListMyTimeEntriesParams, error) {
 	if params.EmployeeID == uuid.Nil {
 		return domain.ListMyTimeEntriesParams{}, domain.ErrTimeEntryInvalidRequest
 	}
@@ -268,7 +305,12 @@ func isValidTimeEntryStatus(value string) bool {
 	}
 }
 
-func (s *TimeEntryService) logError(ctx context.Context, operation, message string, err error, fields ...zap.Field) {
+func (s *TimeEntryService) logError(
+	ctx context.Context,
+	operation, message string,
+	err error,
+	fields ...zap.Field,
+) {
 	if s.logger == nil || err == nil {
 		return
 	}

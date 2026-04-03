@@ -112,7 +112,8 @@ func ensureAdminRole(ctx context.Context, tx pgx.Tx) (uuid.UUID, error) {
 	}
 
 	var roleID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = 'admin'`).Scan(&roleID); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = 'admin'`).
+		Scan(&roleID); err != nil {
 		return uuid.Nil, fmt.Errorf("read admin role id: %w", err)
 	}
 	return roleID, nil
@@ -120,7 +121,8 @@ func ensureAdminRole(ctx context.Context, tx pgx.Tx) (uuid.UUID, error) {
 
 func syncAdminRolePermissions(ctx context.Context, tx pgx.Tx, roleID uuid.UUID) (int64, error) {
 	var permissionCount int64
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM permissions`).Scan(&permissionCount); err != nil {
+	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM permissions`).
+		Scan(&permissionCount); err != nil {
 		return 0, fmt.Errorf("count permissions: %w", err)
 	}
 	if permissionCount == 0 {
@@ -140,7 +142,11 @@ func syncAdminRolePermissions(ctx context.Context, tx pgx.Tx, roleID uuid.UUID) 
 	return tag.RowsAffected(), nil
 }
 
-func ensureAdminUser(ctx context.Context, tx pgx.Tx, email, plainPassword string) (uuid.UUID, bool, error) {
+func ensureAdminUser(
+	ctx context.Context,
+	tx pgx.Tx,
+	email, plainPassword string,
+) (uuid.UUID, bool, error) {
 	var userID uuid.UUID
 	err := tx.QueryRow(ctx, `SELECT id FROM custom_user WHERE email = $1`, email).Scan(&userID)
 	if err == nil {
@@ -166,9 +172,15 @@ func ensureAdminUser(ctx context.Context, tx pgx.Tx, email, plainPassword string
 	return userID, true, nil
 }
 
-func ensureEmployeeProfile(ctx context.Context, tx pgx.Tx, userID uuid.UUID, cfg seedConfig) (bool, error) {
+func ensureEmployeeProfile(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID uuid.UUID,
+	cfg seedConfig,
+) (bool, error) {
 	var profileID uuid.UUID
-	err := tx.QueryRow(ctx, `SELECT id FROM employee_profile WHERE user_id = $1`, userID).Scan(&profileID)
+	err := tx.QueryRow(ctx, `SELECT id FROM employee_profile WHERE user_id = $1`, userID).
+		Scan(&profileID)
 	if err == nil {
 		return false, nil
 	}

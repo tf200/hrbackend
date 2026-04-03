@@ -27,11 +27,16 @@ type AppointmentCard struct {
 	Leave                  []string
 }
 
-func (s *pdfService) GenerateAppointmentCardPDF(_ context.Context, cardData AppointmentCard) ([]byte, error) {
+func (s *pdfService) GenerateAppointmentCardPDF(
+	_ context.Context,
+	cardData AppointmentCard,
+) ([]byte, error) {
 	return s.generateAppointmentCardPDFBytes(cardData)
 }
 
-func (s *pdfService) generateAppointmentCardPDF(appointmentCardData AppointmentCard) (multipart.File, error) {
+func (s *pdfService) generateAppointmentCardPDF(
+	appointmentCardData AppointmentCard,
+) (multipart.File, error) {
 	pdfBytes, err := s.generateAppointmentCardPDFBytes(appointmentCardData)
 	if err != nil {
 		return nil, err
@@ -39,7 +44,9 @@ func (s *pdfService) generateAppointmentCardPDF(appointmentCardData AppointmentC
 	return toMultipartFile(pdfBytes), nil
 }
 
-func (s *pdfService) generateAppointmentCardPDFBytes(appointmentCardData AppointmentCard) ([]byte, error) {
+func (s *pdfService) generateAppointmentCardPDFBytes(
+	appointmentCardData AppointmentCard,
+) ([]byte, error) {
 	headerLines := []string{
 		fmt.Sprintf("Client: %s", appointmentCardData.ClientName),
 		fmt.Sprintf("Date: %s", appointmentCardData.Date),
@@ -68,9 +75,17 @@ func (s *pdfService) generateAppointmentCardPDFBytes(appointmentCardData Appoint
 	return pdfBytes, nil
 }
 
-func (s *pdfService) uploadAppointmentCardPDF(ctx context.Context, pdfFile multipart.File, appointmentCardID uuid.UUID) (string, error) {
+func (s *pdfService) uploadAppointmentCardPDF(
+	ctx context.Context,
+	pdfFile multipart.File,
+	appointmentCardID uuid.UUID,
+) (string, error) {
 	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("appointment_cards/%s/appointment_card_%s.pdf", timestamp, appointmentCardID.String())
+	filename := fmt.Sprintf(
+		"appointment_cards/%s/appointment_card_%s.pdf",
+		timestamp,
+		appointmentCardID.String(),
+	)
 
 	key, _, err := s.bucketClient.Upload(ctx, pdfFile, filename, "application/pdf")
 	if err != nil {
@@ -80,7 +95,10 @@ func (s *pdfService) uploadAppointmentCardPDF(ctx context.Context, pdfFile multi
 	return key, nil
 }
 
-func (s *pdfService) GenerateAndUploadAppointmentCardPDF(ctx context.Context, cardData AppointmentCard) (string, error) {
+func (s *pdfService) GenerateAndUploadAppointmentCardPDF(
+	ctx context.Context,
+	cardData AppointmentCard,
+) (string, error) {
 	pdfFile, err := s.generateAppointmentCardPDF(cardData)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate PDF: %w", err)

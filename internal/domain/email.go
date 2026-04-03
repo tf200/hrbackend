@@ -58,8 +58,26 @@ type ClientContractReminderEmail struct {
 type EmailSender interface {
 	SendCredentials(ctx context.Context, to []string, data EmailCredentials) error
 	SendIncident(ctx context.Context, to []string, data IncidentEmail) error
-	SendIncidentWithAttachment(ctx context.Context, to []string, data IncidentEmail, attachmentName string, attachmentBytes []byte) error
-	SendAcceptedRegistrationForm(ctx context.Context, to []string, data AcceptedRegistrationFormEmail) error
-	SendProcessRegistrationForm(ctx context.Context, to []string, data ProcessRegistrationFormEmail) error
-	SendClientContractReminder(ctx context.Context, to []string, data ClientContractReminderEmail) error
+	SendIncidentWithAttachment(
+		ctx context.Context,
+		to []string,
+		data IncidentEmail,
+		attachmentName string,
+		attachmentBytes []byte,
+	) error
+	SendAcceptedRegistrationForm(
+		ctx context.Context,
+		to []string,
+		data AcceptedRegistrationFormEmail,
+	) error
+	SendProcessRegistrationForm(
+		ctx context.Context,
+		to []string,
+		data ProcessRegistrationFormEmail,
+	) error
+	SendClientContractReminder(
+		ctx context.Context,
+		to []string,
+		data ClientContractReminderEmail,
+	) error
 }

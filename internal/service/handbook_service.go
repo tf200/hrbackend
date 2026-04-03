@@ -18,14 +18,20 @@ type HandbookService struct {
 	logger     domain.Logger
 }
 
-func NewHandbookService(repository domain.HandbookRepository, logger domain.Logger) domain.HandbookService {
+func NewHandbookService(
+	repository domain.HandbookRepository,
+	logger domain.Logger,
+) domain.HandbookService {
 	return &HandbookService{
 		repository: repository,
 		logger:     logger,
 	}
 }
 
-func (s *HandbookService) GetMyActiveHandbook(ctx context.Context, employeeID uuid.UUID) (*domain.MyActiveHandbook, error) {
+func (s *HandbookService) GetMyActiveHandbook(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.MyActiveHandbook, error) {
 	if employeeID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -44,7 +50,10 @@ func (s *HandbookService) GetMyActiveHandbook(ctx context.Context, employeeID uu
 	return handbook, nil
 }
 
-func (s *HandbookService) StartMyHandbook(ctx context.Context, employeeID uuid.UUID) (*domain.StartedHandbook, error) {
+func (s *HandbookService) StartMyHandbook(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.StartedHandbook, error) {
 	if employeeID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -68,15 +77,18 @@ func (s *HandbookService) StartMyHandbook(ctx context.Context, employeeID uuid.U
 			if err != nil {
 				return err
 			}
-			return tx.CreateEmployeeHandbookAssignmentHistory(ctx, domain.CreateAssignmentHistoryParams{
-				EmployeeHandbookID: &handbook.HandbookID,
-				EmployeeID:         employeeID,
-				TemplateID:         handbook.TemplateID,
-				TemplateVersion:    handbook.TemplateVersion,
-				Event:              "started",
-				ActorEmployeeID:    &employeeID,
-				Metadata:           metadata,
-			})
+			return tx.CreateEmployeeHandbookAssignmentHistory(
+				ctx,
+				domain.CreateAssignmentHistoryParams{
+					EmployeeHandbookID: &handbook.HandbookID,
+					EmployeeID:         employeeID,
+					TemplateID:         handbook.TemplateID,
+					TemplateVersion:    handbook.TemplateVersion,
+					Event:              "started",
+					ActorEmployeeID:    &employeeID,
+					Metadata:           metadata,
+				},
+			)
 		}
 
 		return nil
@@ -92,7 +104,11 @@ func (s *HandbookService) StartMyHandbook(ctx context.Context, employeeID uuid.U
 	}, nil
 }
 
-func (s *HandbookService) CompleteMyHandbookStep(ctx context.Context, employeeID, stepID uuid.UUID, response []byte) (*domain.CompletedHandbookStep, error) {
+func (s *HandbookService) CompleteMyHandbookStep(
+	ctx context.Context,
+	employeeID, stepID uuid.UUID,
+	response []byte,
+) (*domain.CompletedHandbookStep, error) {
 	if employeeID == uuid.Nil || stepID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -140,15 +156,18 @@ func (s *HandbookService) CompleteMyHandbookStep(ctx context.Context, employeeID
 			if err != nil {
 				return err
 			}
-			return tx.CreateEmployeeHandbookAssignmentHistory(ctx, domain.CreateAssignmentHistoryParams{
-				EmployeeHandbookID: &handbook.HandbookID,
-				EmployeeID:         employeeID,
-				TemplateID:         handbook.TemplateID,
-				TemplateVersion:    handbook.TemplateVersion,
-				Event:              "completed",
-				ActorEmployeeID:    &employeeID,
-				Metadata:           metadata,
-			})
+			return tx.CreateEmployeeHandbookAssignmentHistory(
+				ctx,
+				domain.CreateAssignmentHistoryParams{
+					EmployeeHandbookID: &handbook.HandbookID,
+					EmployeeID:         employeeID,
+					TemplateID:         handbook.TemplateID,
+					TemplateVersion:    handbook.TemplateVersion,
+					Event:              "completed",
+					ActorEmployeeID:    &employeeID,
+					Metadata:           metadata,
+				},
+			)
 		}
 
 		completed.HandbookStatus = handbook.Status
@@ -161,7 +180,11 @@ func (s *HandbookService) CompleteMyHandbookStep(ctx context.Context, employeeID
 	return completed, nil
 }
 
-func (s *HandbookService) CreateTemplateForDepartment(ctx context.Context, actorEmployeeID uuid.UUID, params domain.CreateTemplateForDepartmentParams) (*domain.HandbookTemplate, error) {
+func (s *HandbookService) CreateTemplateForDepartment(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.CreateTemplateForDepartmentParams,
+) (*domain.HandbookTemplate, error) {
 	if params.DepartmentID == uuid.Nil || strings.TrimSpace(params.Title) == "" {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -169,14 +192,21 @@ func (s *HandbookService) CreateTemplateForDepartment(ctx context.Context, actor
 	return s.repository.CreateHandbookTemplateForDepartment(ctx, actorEmployeeID, params)
 }
 
-func (s *HandbookService) CloneTemplateToDraft(ctx context.Context, actorEmployeeID uuid.UUID, params domain.CloneTemplateToDraftParams) (*domain.HandbookTemplate, error) {
+func (s *HandbookService) CloneTemplateToDraft(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.CloneTemplateToDraftParams,
+) (*domain.HandbookTemplate, error) {
 	if params.SourceTemplateID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
 	return s.repository.CloneHandbookTemplateToDraft(ctx, actorEmployeeID, params)
 }
 
-func (s *HandbookService) UpdateTemplate(ctx context.Context, params domain.UpdateTemplateParams) (*domain.HandbookTemplate, error) {
+func (s *HandbookService) UpdateTemplate(
+	ctx context.Context,
+	params domain.UpdateTemplateParams,
+) (*domain.HandbookTemplate, error) {
 	if params.TemplateID == uuid.Nil || (!params.SetTitle && !params.SetDescription) {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -199,7 +229,11 @@ func (s *HandbookService) UpdateTemplate(ctx context.Context, params domain.Upda
 	return s.repository.UpdateHandbookTemplateMetadata(ctx, params)
 }
 
-func (s *HandbookService) PublishTemplate(ctx context.Context, actorEmployeeID uuid.UUID, params domain.PublishTemplateParams) (*domain.HandbookTemplate, error) {
+func (s *HandbookService) PublishTemplate(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.PublishTemplateParams,
+) (*domain.HandbookTemplate, error) {
 	if params.TemplateID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -223,15 +257,22 @@ func (s *HandbookService) PublishTemplate(ctx context.Context, actorEmployeeID u
 	return s.repository.PublishHandbookTemplate(ctx, actorEmployeeID, params)
 }
 
-func (s *HandbookService) ListTemplatesByDepartment(ctx context.Context, departmentID uuid.UUID) ([]domain.HandbookTemplate, error) {
+func (s *HandbookService) ListTemplatesByDepartment(
+	ctx context.Context,
+	departmentID uuid.UUID,
+) ([]domain.HandbookTemplate, error) {
 	if departmentID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
 	return s.repository.ListHandbookTemplatesByDepartment(ctx, departmentID)
 }
 
-func (s *HandbookService) CreateStep(ctx context.Context, params domain.CreateStepParams) (*domain.HandbookStep, error) {
-	if params.TemplateID == uuid.Nil || strings.TrimSpace(params.Title) == "" || params.SortOrder <= 0 {
+func (s *HandbookService) CreateStep(
+	ctx context.Context,
+	params domain.CreateStepParams,
+) (*domain.HandbookStep, error) {
+	if params.TemplateID == uuid.Nil || strings.TrimSpace(params.Title) == "" ||
+		params.SortOrder <= 0 {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
 
@@ -253,7 +294,10 @@ func (s *HandbookService) CreateStep(ctx context.Context, params domain.CreateSt
 	return s.repository.CreateHandbookStep(ctx, params)
 }
 
-func (s *HandbookService) UpdateStep(ctx context.Context, params domain.UpdateStepParams) (*domain.HandbookStep, error) {
+func (s *HandbookService) UpdateStep(
+	ctx context.Context,
+	params domain.UpdateStepParams,
+) (*domain.HandbookStep, error) {
 	if params.StepID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -325,7 +369,10 @@ func (s *HandbookService) DeleteStep(ctx context.Context, params domain.DeleteSt
 	})
 }
 
-func (s *HandbookService) ReorderTemplateSteps(ctx context.Context, params domain.ReorderStepsParams) ([]domain.HandbookStep, error) {
+func (s *HandbookService) ReorderTemplateSteps(
+	ctx context.Context,
+	params domain.ReorderStepsParams,
+) ([]domain.HandbookStep, error) {
 	if params.TemplateID == uuid.Nil || len(params.OrderedStepIDs) == 0 {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -382,14 +429,21 @@ func (s *HandbookService) ReorderTemplateSteps(ctx context.Context, params domai
 	return s.repository.ListHandbookStepsByTemplate(ctx, params.TemplateID)
 }
 
-func (s *HandbookService) ListStepsByTemplate(ctx context.Context, templateID uuid.UUID) ([]domain.HandbookStep, error) {
+func (s *HandbookService) ListStepsByTemplate(
+	ctx context.Context,
+	templateID uuid.UUID,
+) ([]domain.HandbookStep, error) {
 	if templateID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
 	return s.repository.ListHandbookStepsByTemplate(ctx, templateID)
 }
 
-func (s *HandbookService) AssignTemplateToEmployee(ctx context.Context, actorEmployeeID uuid.UUID, params domain.AssignTemplateToEmployeeParams) (*domain.EmployeeHandbookAssignment, error) {
+func (s *HandbookService) AssignTemplateToEmployee(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.AssignTemplateToEmployeeParams,
+) (*domain.EmployeeHandbookAssignment, error) {
 	if params.EmployeeID == uuid.Nil || params.TemplateID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -430,15 +484,18 @@ func (s *HandbookService) AssignTemplateToEmployee(ctx context.Context, actorEmp
 			if err != nil {
 				return err
 			}
-			if err := tx.CreateEmployeeHandbookAssignmentHistory(ctx, domain.CreateAssignmentHistoryParams{
-				EmployeeHandbookID: &previousActive.HandbookID,
-				EmployeeID:         previousActive.EmployeeID,
-				TemplateID:         previousActive.TemplateID,
-				TemplateVersion:    previousActive.TemplateVersion,
-				Event:              "reassigned",
-				ActorEmployeeID:    uuidPtrOrNil(actorEmployeeID),
-				Metadata:           metadata,
-			}); err != nil {
+			if err := tx.CreateEmployeeHandbookAssignmentHistory(
+				ctx,
+				domain.CreateAssignmentHistoryParams{
+					EmployeeHandbookID: &previousActive.HandbookID,
+					EmployeeID:         previousActive.EmployeeID,
+					TemplateID:         previousActive.TemplateID,
+					TemplateVersion:    previousActive.TemplateVersion,
+					Event:              "reassigned",
+					ActorEmployeeID:    uuidPtrOrNil(actorEmployeeID),
+					Metadata:           metadata,
+				},
+			); err != nil {
 				return err
 			}
 		}
@@ -469,7 +526,11 @@ func (s *HandbookService) AssignTemplateToEmployee(ctx context.Context, actorEmp
 	return assigned, nil
 }
 
-func (s *HandbookService) WaiveEmployeeHandbook(ctx context.Context, actorEmployeeID uuid.UUID, params domain.WaiveEmployeeHandbookParams) (*domain.WaivedEmployeeHandbook, error) {
+func (s *HandbookService) WaiveEmployeeHandbook(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.WaiveEmployeeHandbookParams,
+) (*domain.WaivedEmployeeHandbook, error) {
 	if params.EmployeeHandbookID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -516,14 +577,21 @@ func (s *HandbookService) WaiveEmployeeHandbook(ctx context.Context, actorEmploy
 	return waived, nil
 }
 
-func (s *HandbookService) ListEmployeeHandbookHistory(ctx context.Context, employeeID uuid.UUID) ([]domain.HandbookAssignmentHistoryEntry, error) {
+func (s *HandbookService) ListEmployeeHandbookHistory(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.HandbookAssignmentHistoryEntry, error) {
 	if employeeID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
 	return s.repository.ListEmployeeHandbookAssignmentHistoryByEmployeeID(ctx, employeeID, 50, 0)
 }
 
-func (s *HandbookService) ListEligibleEmployees(ctx context.Context, actorEmployeeID uuid.UUID, params domain.ListEligibleEmployeesParams) (*domain.EligibleEmployeePage, error) {
+func (s *HandbookService) ListEligibleEmployees(
+	ctx context.Context,
+	actorEmployeeID uuid.UUID,
+	params domain.ListEligibleEmployeesParams,
+) (*domain.EligibleEmployeePage, error) {
 	if actorEmployeeID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}
@@ -533,7 +601,11 @@ func (s *HandbookService) ListEligibleEmployees(ctx context.Context, actorEmploy
 		return nil, err
 	}
 
-	hasViewAll, err := s.repository.CheckUserPermission(ctx, userID, "HANDBOOK.ELIGIBLE_EMPLOYEES.VIEW_ALL")
+	hasViewAll, err := s.repository.CheckUserPermission(
+		ctx,
+		userID,
+		"HANDBOOK.ELIGIBLE_EMPLOYEES.VIEW_ALL",
+	)
 	if err != nil {
 		return nil, domain.ErrEligibleEmployeePermissionCheck
 	}
@@ -544,7 +616,10 @@ func (s *HandbookService) ListEligibleEmployees(ctx context.Context, actorEmploy
 			return nil, err
 		}
 		if profile.DepartmentID == nil {
-			return &domain.EligibleEmployeePage{Items: []domain.EligibleEmployee{}, TotalCount: 0}, nil
+			return &domain.EligibleEmployeePage{
+				Items:      []domain.EligibleEmployee{},
+				TotalCount: 0,
+			}, nil
 		}
 		params.DepartmentID = profile.DepartmentID
 	}
@@ -553,7 +628,10 @@ func (s *HandbookService) ListEligibleEmployees(ctx context.Context, actorEmploy
 	return s.repository.ListEligibleEmployeesForHandbookAssignment(ctx, params)
 }
 
-func (s *HandbookService) ListEmployeeHandbookAssignments(ctx context.Context, params domain.ListEmployeeHandbookAssignmentsParams) (*domain.EmployeeHandbookAssignmentPage, error) {
+func (s *HandbookService) ListEmployeeHandbookAssignments(
+	ctx context.Context,
+	params domain.ListEmployeeHandbookAssignmentsParams,
+) (*domain.EmployeeHandbookAssignmentPage, error) {
 	if params.Status != nil {
 		normalized := strings.TrimSpace(strings.ToLower(*params.Status))
 		switch normalized {
@@ -567,7 +645,10 @@ func (s *HandbookService) ListEmployeeHandbookAssignments(ctx context.Context, p
 	return s.repository.ListEmployeeHandbookAssignments(ctx, params)
 }
 
-func (s *HandbookService) GetEmployeeHandbookDetails(ctx context.Context, handbookID uuid.UUID) (*domain.EmployeeHandbookDetails, error) {
+func (s *HandbookService) GetEmployeeHandbookDetails(
+	ctx context.Context,
+	handbookID uuid.UUID,
+) (*domain.EmployeeHandbookDetails, error) {
 	if handbookID == uuid.Nil {
 		return nil, domain.ErrHandbookInvalidRequest
 	}

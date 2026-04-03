@@ -34,13 +34,19 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authHeader := ctx.GetHeader("Authorization")
 		if authHeader == "" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, httpapi.Fail(ErrMissingToken.Error(), ""))
+			ctx.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				httpapi.Fail(ErrMissingToken.Error(), ""),
+			)
 			return
 		}
 
 		fields := strings.Fields(authHeader)
 		if len(fields) != 2 {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, httpapi.Fail(ErrInvalidAuthFormat.Error(), ""))
+			ctx.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				httpapi.Fail(ErrInvalidAuthFormat.Error(), ""),
+			)
 			return
 		}
 
@@ -53,14 +59,22 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 		payload, err := m.tokenVerifier.VerifyToken(fields[1])
 		if err != nil {
 			if m.logger != nil {
-				m.logger.LogWarn(ctx.Request.Context(), "AuthMiddleware", "token verification failed", zap.Error(err))
+				m.logger.LogWarn(
+					ctx.Request.Context(),
+					"AuthMiddleware",
+					"token verification failed",
+					zap.Error(err),
+				)
 			}
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
 			return
 		}
 
 		if payload.TokenType != domain.AccessTokenType {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, httpapi.Fail(domain.ErrInvalidToken.Error(), ""))
+			ctx.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				httpapi.Fail(domain.ErrInvalidToken.Error(), ""),
+			)
 			return
 		}
 

@@ -16,7 +16,10 @@ type RequestLoggingMiddleware struct {
 	environment string
 }
 
-func NewRequestLoggingMiddleware(logger domain.Logger, environment string) *RequestLoggingMiddleware {
+func NewRequestLoggingMiddleware(
+	logger domain.Logger,
+	environment string,
+) *RequestLoggingMiddleware {
 	return &RequestLoggingMiddleware{
 		logger:      logger,
 		environment: environment,
@@ -62,12 +65,25 @@ func (m *RequestLoggingMiddleware) Handle() gin.HandlerFunc {
 
 		switch requestLogLevel(statusCode) {
 		case zapcore.ErrorLevel:
-			m.logger.LogError(ctx.Request.Context(), "RequestLoggingMiddleware", "HTTP request", nil, fields...)
+			m.logger.LogError(
+				ctx.Request.Context(),
+				"RequestLoggingMiddleware",
+				"HTTP request",
+				nil,
+				fields...)
 		case zapcore.WarnLevel:
-			m.logger.LogWarn(ctx.Request.Context(), "RequestLoggingMiddleware", "HTTP request", fields...)
+			m.logger.LogWarn(
+				ctx.Request.Context(),
+				"RequestLoggingMiddleware",
+				"HTTP request",
+				fields...)
 		default:
 			if shouldLogRequest(m.environment, statusCode) {
-				m.logger.LogInfo(ctx.Request.Context(), "RequestLoggingMiddleware", "HTTP request", fields...)
+				m.logger.LogInfo(
+					ctx.Request.Context(),
+					"RequestLoggingMiddleware",
+					"HTTP request",
+					fields...)
 			}
 		}
 

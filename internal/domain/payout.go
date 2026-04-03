@@ -15,9 +15,13 @@ var (
 	ErrPayoutRequestStateInvalid      = errors.New("payout request is not in an editable state")
 	ErrPayoutRequestInsufficientHours = errors.New("insufficient extra leave balance for payout")
 	ErrPayPeriodNotFound              = errors.New("pay period not found")
-	ErrPayPeriodStateInvalid          = errors.New("pay period is not in a valid state for this operation")
-	ErrPayPeriodAlreadyExists         = errors.New("pay period already exists for this employee and date range")
-	ErrPayPeriodNoEntries             = errors.New("no eligible time entries found for pay period")
+	ErrPayPeriodStateInvalid          = errors.New(
+		"pay period is not in a valid state for this operation",
+	)
+	ErrPayPeriodAlreadyExists = errors.New(
+		"pay period already exists for this employee and date range",
+	)
+	ErrPayPeriodNoEntries = errors.New("no eligible time entries found for pay period")
 )
 
 const (
@@ -261,18 +265,64 @@ type ListPayPeriodsParams struct {
 type PayoutTxRepository interface {
 	GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (*PayoutContract, error)
 	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
-	GetPayoutBalanceForUpdate(ctx context.Context, employeeID uuid.UUID, year int32) (*PayoutBalanceSnapshot, error)
-	CreatePayoutRequest(ctx context.Context, params CreatePayoutRequestTxParams) (*PayoutRequest, error)
-	GetPayoutRequestForUpdate(ctx context.Context, payoutRequestID uuid.UUID) (*PayoutRequest, error)
-	ApprovePayoutRequest(ctx context.Context, payoutRequestID, decidedByEmployeeID uuid.UUID, salaryMonth time.Time, decisionNote *string) (*PayoutRequest, error)
-	RejectPayoutRequest(ctx context.Context, payoutRequestID, decidedByEmployeeID uuid.UUID, decisionNote *string) (*PayoutRequest, error)
-	MarkPayoutRequestPaid(ctx context.Context, payoutRequestID, paidByEmployeeID uuid.UUID) (*PayoutRequest, error)
-	ApplyLeaveBalanceDeduction(ctx context.Context, balanceID uuid.UUID, extraHours, legalHours int32) (*LeaveBalance, error)
-	GetPayPeriodByEmployeePeriod(ctx context.Context, employeeID uuid.UUID, periodStart, periodEnd time.Time) (*PayPeriod, error)
-	LockPayrollPreviewTimeEntries(ctx context.Context, params PayrollPreviewParams) ([]PayrollPreviewTimeEntry, error)
-	CreatePayPeriod(ctx context.Context, params ClosePayPeriodParams, createdByEmployeeID uuid.UUID, preview PayrollPreview) (*PayPeriod, error)
-	CreatePayPeriodLineItem(ctx context.Context, payPeriodID uuid.UUID, item PayPeriodLineItem) (*PayPeriodLineItem, error)
-	AssignTimeEntriesToPayPeriod(ctx context.Context, payPeriodID uuid.UUID, timeEntryIDs []uuid.UUID) error
+	GetPayoutBalanceForUpdate(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		year int32,
+	) (*PayoutBalanceSnapshot, error)
+	CreatePayoutRequest(
+		ctx context.Context,
+		params CreatePayoutRequestTxParams,
+	) (*PayoutRequest, error)
+	GetPayoutRequestForUpdate(
+		ctx context.Context,
+		payoutRequestID uuid.UUID,
+	) (*PayoutRequest, error)
+	ApprovePayoutRequest(
+		ctx context.Context,
+		payoutRequestID, decidedByEmployeeID uuid.UUID,
+		salaryMonth time.Time,
+		decisionNote *string,
+	) (*PayoutRequest, error)
+	RejectPayoutRequest(
+		ctx context.Context,
+		payoutRequestID, decidedByEmployeeID uuid.UUID,
+		decisionNote *string,
+	) (*PayoutRequest, error)
+	MarkPayoutRequestPaid(
+		ctx context.Context,
+		payoutRequestID, paidByEmployeeID uuid.UUID,
+	) (*PayoutRequest, error)
+	ApplyLeaveBalanceDeduction(
+		ctx context.Context,
+		balanceID uuid.UUID,
+		extraHours, legalHours int32,
+	) (*LeaveBalance, error)
+	GetPayPeriodByEmployeePeriod(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		periodStart, periodEnd time.Time,
+	) (*PayPeriod, error)
+	LockPayrollPreviewTimeEntries(
+		ctx context.Context,
+		params PayrollPreviewParams,
+	) ([]PayrollPreviewTimeEntry, error)
+	CreatePayPeriod(
+		ctx context.Context,
+		params ClosePayPeriodParams,
+		createdByEmployeeID uuid.UUID,
+		preview PayrollPreview,
+	) (*PayPeriod, error)
+	CreatePayPeriodLineItem(
+		ctx context.Context,
+		payPeriodID uuid.UUID,
+		item PayPeriodLineItem,
+	) (*PayPeriodLineItem, error)
+	AssignTimeEntriesToPayPeriod(
+		ctx context.Context,
+		payPeriodID uuid.UUID,
+		timeEntryIDs []uuid.UUID,
+	) error
 	GetPayPeriodForUpdate(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	MarkPayPeriodPaid(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 }
@@ -289,32 +339,95 @@ type CreatePayoutRequestTxParams struct {
 
 type PayoutRepository interface {
 	WithTx(ctx context.Context, fn func(tx PayoutTxRepository) error) error
-	ListMyPayoutRequests(ctx context.Context, params ListMyPayoutRequestsParams) (*PayoutRequestPage, error)
-	ListPayoutRequests(ctx context.Context, params ListPayoutRequestsParams) (*PayoutRequestPage, error)
+	ListMyPayoutRequests(
+		ctx context.Context,
+		params ListMyPayoutRequestsParams,
+	) (*PayoutRequestPage, error)
+	ListPayoutRequests(
+		ctx context.Context,
+		params ListPayoutRequestsParams,
+	) (*PayoutRequestPage, error)
 	GetPayrollPreviewEmployee(ctx context.Context, employeeID uuid.UUID) (*EmployeeDetail, error)
-	ListPayrollPreviewTimeEntries(ctx context.Context, params PayrollPreviewParams) ([]PayrollPreviewTimeEntry, error)
-	ListNationalHolidays(ctx context.Context, countryCode string, startDate, endDate time.Time) ([]NationalHoliday, error)
+	ListPayrollPreviewTimeEntries(
+		ctx context.Context,
+		params PayrollPreviewParams,
+	) ([]PayrollPreviewTimeEntry, error)
+	ListNationalHolidays(
+		ctx context.Context,
+		countryCode string,
+		startDate, endDate time.Time,
+	) ([]NationalHoliday, error)
 	GetPayPeriodByID(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	ListPayPeriods(ctx context.Context, params ListPayPeriodsParams) (*PayPeriodPage, error)
 	ListPayPeriodLineItems(ctx context.Context, payPeriodID uuid.UUID) ([]PayPeriodLineItem, error)
-	ListPayrollMonthEmployees(ctx context.Context, params PayrollMonthSummaryParams, monthStart, monthEnd time.Time) ([]PayrollMonthEmployee, int64, error)
-	ListPayPeriodsByEmployeesAndRange(ctx context.Context, employeeIDs []uuid.UUID, monthStart, monthEnd time.Time) ([]PayPeriod, error)
-	ListPayrollMonthLockedMultiplierSummaries(ctx context.Context, payPeriodIDs []uuid.UUID) ([]PayrollLockedMultiplierSummary, error)
-	ListPayrollMonthApprovedTimeEntries(ctx context.Context, employeeIDs []uuid.UUID, monthStart, monthEnd time.Time) ([]PayrollPreviewTimeEntry, error)
-	ListPayrollMonthPendingSummaries(ctx context.Context, employeeIDs []uuid.UUID, monthStart, monthEnd time.Time) ([]PayrollMonthPendingSummary, error)
+	ListPayrollMonthEmployees(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollMonthEmployee, int64, error)
+	ListPayPeriodsByEmployeesAndRange(
+		ctx context.Context,
+		employeeIDs []uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]PayPeriod, error)
+	ListPayrollMonthLockedMultiplierSummaries(
+		ctx context.Context,
+		payPeriodIDs []uuid.UUID,
+	) ([]PayrollLockedMultiplierSummary, error)
+	ListPayrollMonthApprovedTimeEntries(
+		ctx context.Context,
+		employeeIDs []uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollPreviewTimeEntry, error)
+	ListPayrollMonthPendingSummaries(
+		ctx context.Context,
+		employeeIDs []uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollMonthPendingSummary, error)
 }
 
 type PayoutService interface {
-	CreatePayoutRequest(ctx context.Context, actorEmployeeID uuid.UUID, params CreatePayoutRequestParams) (*PayoutRequest, error)
-	DecidePayoutRequestByAdmin(ctx context.Context, adminEmployeeID, payoutRequestID uuid.UUID, params DecidePayoutRequestParams) (*PayoutRequest, error)
-	MarkPayoutRequestPaidByAdmin(ctx context.Context, adminEmployeeID, payoutRequestID uuid.UUID) (*PayoutRequest, error)
-	ListMyPayoutRequests(ctx context.Context, params ListMyPayoutRequestsParams) (*PayoutRequestPage, error)
-	ListPayoutRequests(ctx context.Context, params ListPayoutRequestsParams) (*PayoutRequestPage, error)
+	CreatePayoutRequest(
+		ctx context.Context,
+		actorEmployeeID uuid.UUID,
+		params CreatePayoutRequestParams,
+	) (*PayoutRequest, error)
+	DecidePayoutRequestByAdmin(
+		ctx context.Context,
+		adminEmployeeID, payoutRequestID uuid.UUID,
+		params DecidePayoutRequestParams,
+	) (*PayoutRequest, error)
+	MarkPayoutRequestPaidByAdmin(
+		ctx context.Context,
+		adminEmployeeID, payoutRequestID uuid.UUID,
+	) (*PayoutRequest, error)
+	ListMyPayoutRequests(
+		ctx context.Context,
+		params ListMyPayoutRequestsParams,
+	) (*PayoutRequestPage, error)
+	ListPayoutRequests(
+		ctx context.Context,
+		params ListPayoutRequestsParams,
+	) (*PayoutRequestPage, error)
 	PreviewPayroll(ctx context.Context, params PayrollPreviewParams) (*PayrollPreview, error)
-	PreviewMyPayroll(ctx context.Context, actorEmployeeID uuid.UUID, periodStart, periodEnd time.Time) (*PayrollPreview, error)
-	ClosePayPeriod(ctx context.Context, adminEmployeeID uuid.UUID, params ClosePayPeriodParams) (*PayPeriod, error)
+	PreviewMyPayroll(
+		ctx context.Context,
+		actorEmployeeID uuid.UUID,
+		periodStart, periodEnd time.Time,
+	) (*PayrollPreview, error)
+	ClosePayPeriod(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		params ClosePayPeriodParams,
+	) (*PayPeriod, error)
 	GetPayPeriodByID(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	ListPayPeriods(ctx context.Context, params ListPayPeriodsParams) (*PayPeriodPage, error)
-	MarkPayPeriodPaidByAdmin(ctx context.Context, adminEmployeeID, payPeriodID uuid.UUID) (*PayPeriod, error)
-	GetPayrollMonthSummary(ctx context.Context, params PayrollMonthSummaryParams) (*PayrollMonthSummaryPage, error)
+	MarkPayPeriodPaidByAdmin(
+		ctx context.Context,
+		adminEmployeeID, payPeriodID uuid.UUID,
+	) (*PayPeriod, error)
+	GetPayrollMonthSummary(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+	) (*PayrollMonthSummaryPage, error)
 }

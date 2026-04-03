@@ -44,7 +44,11 @@ func (h *Hub) Run() {
 				h.clients[client.userID] = userClients
 			}
 			userClients[client] = true
-			log.Printf("Client registered via channel for user %d. Total connections for user: %d", client.userID, len(userClients))
+			log.Printf(
+				"Client registered via channel for user %d. Total connections for user: %d",
+				client.userID,
+				len(userClients),
+			)
 
 		case client := <-h.unregister:
 			userClients, ok := h.clients[client.userID]
@@ -52,10 +56,17 @@ func (h *Hub) Run() {
 				if _, clientExists := userClients[client]; clientExists {
 					close(client.send)
 					delete(userClients, client)
-					log.Printf("Client unregistered via channel for user %d. Remaining connections for user: %d", client.userID, len(userClients))
+					log.Printf(
+						"Client unregistered via channel for user %d. Remaining connections for user: %d",
+						client.userID,
+						len(userClients),
+					)
 					if len(userClients) == 0 {
 						delete(h.clients, client.userID)
-						log.Printf("User %d has no more connections. Removed user entry.", client.userID)
+						log.Printf(
+							"User %d has no more connections. Removed user entry.",
+							client.userID,
+						)
 					}
 				}
 			}
@@ -69,19 +80,33 @@ func (h *Hub) Run() {
 					case client.send <- userMessage.Message:
 						activeClients++
 					default:
-						log.Printf("Client send buffer full for user %d. Forcing unregister.", client.userID)
+						log.Printf(
+							"Client send buffer full for user %d. Forcing unregister.",
+							client.userID,
+						)
 						close(client.send)
 						delete(userClients, client)
 						if len(userClients) == 0 {
 							delete(h.clients, client.userID)
-							log.Printf("User %d has no more connections after forced unregister. Removed user entry.", client.userID)
+							log.Printf(
+								"User %d has no more connections after forced unregister. Removed user entry.",
+								client.userID,
+							)
 						}
 					}
 				}
 				if activeClients == 0 && len(userClients) > 0 {
-					log.Printf("Warning: No active clients could receive message for user %d, but %d clients were registered.", userMessage.UserID, len(userClients))
+					log.Printf(
+						"Warning: No active clients could receive message for user %d, but %d clients were registered.",
+						userMessage.UserID,
+						len(userClients),
+					)
 				} else if ok {
-					log.Printf("Message sent to %d active connections for user %d", activeClients, userMessage.UserID)
+					log.Printf(
+						"Message sent to %d active connections for user %d",
+						activeClients,
+						userMessage.UserID,
+					)
 				}
 			}
 
@@ -93,7 +118,10 @@ func (h *Hub) Run() {
 					close(client.send)
 					_ = client.conn.WriteMessage(
 						websocket.CloseMessage,
-						websocket.FormatCloseMessage(websocket.CloseGoingAway, "Server shutting down"),
+						websocket.FormatCloseMessage(
+							websocket.CloseGoingAway,
+							"Server shutting down",
+						),
 					)
 					_ = client.conn.Close()
 				}
@@ -110,7 +138,10 @@ func (h *Hub) Register(client *Client) {
 	case h.register <- client:
 		log.Printf("Client for user %d queued for registration", client.userID)
 	default:
-		log.Printf("CRITICAL: Hub register channel blocked. Cannot register client for user %d. Closing client.", client.userID)
+		log.Printf(
+			"CRITICAL: Hub register channel blocked. Cannot register client for user %d. Closing client.",
+			client.userID,
+		)
 		_ = client.conn.Close()
 	}
 }
@@ -123,7 +154,10 @@ func (h *Hub) SendToUser(userID uuid.UUID, message []byte) {
 	select {
 	case h.sendToUser <- msg:
 	default:
-		log.Printf("Warning: Hub's sendToUser channel is blocked or Hub is not running. Message for user %d dropped.", userID)
+		log.Printf(
+			"Warning: Hub's sendToUser channel is blocked or Hub is not running. Message for user %d dropped.",
+			userID,
+		)
 	}
 }
 

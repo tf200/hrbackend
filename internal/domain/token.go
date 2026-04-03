@@ -31,8 +31,17 @@ type TokenPayload struct {
 }
 
 type TokenMaker interface {
-	CreateToken(userID, employeeID uuid.UUID, duration time.Duration, tokenType TokenType) (string, *TokenPayload, error)
-	CreateTokenWithSessionID(userID, employeeID uuid.UUID, duration time.Duration, tokenType TokenType, sessionID uuid.UUID) (string, *TokenPayload, error)
+	CreateToken(
+		userID, employeeID uuid.UUID,
+		duration time.Duration,
+		tokenType TokenType,
+	) (string, *TokenPayload, error)
+	CreateTokenWithSessionID(
+		userID, employeeID uuid.UUID,
+		duration time.Duration,
+		tokenType TokenType,
+		sessionID uuid.UUID,
+	) (string, *TokenPayload, error)
 	VerifyToken(token string) (*TokenPayload, error)
 }
 

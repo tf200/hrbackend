@@ -17,7 +17,11 @@ type ScheduleService struct {
 	logger      domain.Logger
 }
 
-func NewScheduleService(repository domain.ScheduleRepository, asynqClient domain.TaskQueue, logger domain.Logger) domain.ScheduleService {
+func NewScheduleService(
+	repository domain.ScheduleRepository,
+	asynqClient domain.TaskQueue,
+	logger domain.Logger,
+) domain.ScheduleService {
 	return &ScheduleService{
 		repository:  repository,
 		asynqClient: asynqClient,
@@ -25,7 +29,11 @@ func NewScheduleService(repository domain.ScheduleRepository, asynqClient domain
 	}
 }
 
-func (s *ScheduleService) CreateSchedule(ctx context.Context, creatorID uuid.UUID, req *domain.CreateScheduleRequest) ([]domain.CreateScheduleResponse, error) {
+func (s *ScheduleService) CreateSchedule(
+	ctx context.Context,
+	creatorID uuid.UUID,
+	req *domain.CreateScheduleRequest,
+) ([]domain.CreateScheduleResponse, error) {
 	if err := s.validateCreateScheduleRequest(req); err != nil {
 		return nil, err
 	}
@@ -41,18 +49,38 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, creatorID uuid.UUI
 		duration := req.EndDatetime.Sub(*req.StartDatetime)
 		for _, date := range dates {
 			start := time.Date(
-				date.Year(), date.Month(), date.Day(),
-				req.StartDatetime.Hour(), req.StartDatetime.Minute(), req.StartDatetime.Second(), req.StartDatetime.Nanosecond(),
+				date.Year(),
+				date.Month(),
+				date.Day(),
+				req.StartDatetime.Hour(),
+				req.StartDatetime.Minute(),
+				req.StartDatetime.Second(),
+				req.StartDatetime.Nanosecond(),
 				req.StartDatetime.Location(),
 			)
 			end := start.Add(duration)
 			for _, assigneeID := range req.EmployeeIDs {
-				res, createErr := s.createCustomSchedule(ctx, creatorID, assigneeID, req.LocationID, start, end)
+				res, createErr := s.createCustomSchedule(
+					ctx,
+					creatorID,
+					assigneeID,
+					req.LocationID,
+					start,
+					end,
+				)
 				if createErr != nil {
 					return nil, createErr
 				}
 				results = append(results, *res)
-				s.sendNotificationForNewSchedule(ctx, res.ID, creatorID, assigneeID, res.StartDatetime, res.EndDatetime, res.LocationName)
+				s.sendNotificationForNewSchedule(
+					ctx,
+					res.ID,
+					creatorID,
+					assigneeID,
+					res.StartDatetime,
+					res.EndDatetime,
+					res.LocationName,
+				)
 			}
 		}
 		return results, nil
@@ -65,39 +93,85 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, creatorID uuid.UUI
 
 	baseDate, err := time.ParseInLocation("2006-01-02", *req.ShiftDate, locationTZ)
 	if err != nil {
-		s.logError(ctx, "CreateSchedule", "invalid shift_date format", err, zap.String("shift_date", *req.ShiftDate))
+		s.logError(
+			ctx,
+			"CreateSchedule",
+			"invalid shift_date format",
+			err,
+			zap.String("shift_date", *req.ShiftDate),
+		)
 		return nil, fmt.Errorf("invalid shift_date format: %w", err)
 	}
 
 	dates := s.buildCustomScheduleDates(baseDate, recurrence)
 	for _, date := range dates {
 		for _, assigneeID := range req.EmployeeIDs {
-			res, createErr := s.createPresetScheduleForDate(ctx, creatorID, assigneeID, req.LocationID, req.LocationShiftID, locationShift, date, locationTZ)
+			res, createErr := s.createPresetScheduleForDate(
+				ctx,
+				creatorID,
+				assigneeID,
+				req.LocationID,
+				req.LocationShiftID,
+				locationShift,
+				date,
+				locationTZ,
+			)
 			if createErr != nil {
 				return nil, createErr
 			}
 			results = append(results, *res)
-			s.sendNotificationForNewSchedule(ctx, res.ID, creatorID, assigneeID, res.StartDatetime, res.EndDatetime, res.LocationName)
+			s.sendNotificationForNewSchedule(
+				ctx,
+				res.ID,
+				creatorID,
+				assigneeID,
+				res.StartDatetime,
+				res.EndDatetime,
+				res.LocationName,
+			)
 		}
 	}
 	return results, nil
 }
 
-func (s *ScheduleService) GetSchedulesByLocationInRange(ctx context.Context, locationID uuid.UUID, req *domain.GetSchedulesByLocationInRangeRequest) ([]domain.GetSchedulesByLocationInRangeResponse, error) {
+func (s *ScheduleService) GetSchedulesByLocationInRange(
+	ctx context.Context,
+	locationID uuid.UUID,
+	req *domain.GetSchedulesByLocationInRangeRequest,
+) ([]domain.GetSchedulesByLocationInRangeResponse, error) {
 	startDate, err := time.Parse("2006-01-02", req.StartDate)
 	if err != nil {
-		s.logError(ctx, "GetSchedulesByLocationInRange", "invalid start_date format", err, zap.String("start_date", req.StartDate))
+		s.logError(
+			ctx,
+			"GetSchedulesByLocationInRange",
+			"invalid start_date format",
+			err,
+			zap.String("start_date", req.StartDate),
+		)
 		return nil, fmt.Errorf("invalid start_date format, expected YYYY-MM-DD")
 	}
 
 	endDate, err := time.Parse("2006-01-02", req.EndDate)
 	if err != nil {
-		s.logError(ctx, "GetSchedulesByLocationInRange", "invalid end_date format", err, zap.String("end_date", req.EndDate))
+		s.logError(
+			ctx,
+			"GetSchedulesByLocationInRange",
+			"invalid end_date format",
+			err,
+			zap.String("end_date", req.EndDate),
+		)
 		return nil, fmt.Errorf("invalid end_date format, expected YYYY-MM-DD")
 	}
 
 	if endDate.Before(startDate) {
-		s.logError(ctx, "GetSchedulesByLocationInRange", "end_date is before start_date", nil, zap.String("start_date", req.StartDate), zap.String("end_date", req.EndDate))
+		s.logError(
+			ctx,
+			"GetSchedulesByLocationInRange",
+			"end_date is before start_date",
+			nil,
+			zap.String("start_date", req.StartDate),
+			zap.String("end_date", req.EndDate),
+		)
 		return nil, fmt.Errorf("end_date must be on or after start_date")
 	}
 
@@ -109,7 +183,10 @@ func (s *ScheduleService) GetSchedulesByLocationInRange(ctx context.Context, loc
 	return rows, nil
 }
 
-func (s *ScheduleService) GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*domain.GetScheduleByIdResponse, error) {
+func (s *ScheduleService) GetScheduleByID(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+) (*domain.GetScheduleByIdResponse, error) {
 	item, err := s.repository.GetScheduleByID(ctx, scheduleID)
 	if err != nil {
 		s.logError(ctx, "GetScheduleByID", "failed to get schedule by id", err)
@@ -118,7 +195,12 @@ func (s *ScheduleService) GetScheduleByID(ctx context.Context, scheduleID uuid.U
 	return item, nil
 }
 
-func (s *ScheduleService) UpdateSchedule(ctx context.Context, scheduleID uuid.UUID, updaterEmployeeID uuid.UUID, req *domain.UpdateScheduleRequest) (*domain.UpdateScheduleResponse, error) {
+func (s *ScheduleService) UpdateSchedule(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	updaterEmployeeID uuid.UUID,
+	req *domain.UpdateScheduleRequest,
+) (*domain.UpdateScheduleResponse, error) {
 	existingSchedule, err := s.repository.GetScheduleByID(ctx, scheduleID)
 	if err != nil {
 		s.logError(ctx, "UpdateSchedule", "failed to fetch existing schedule", err)
@@ -139,7 +221,15 @@ func (s *ScheduleService) UpdateSchedule(ctx context.Context, scheduleID uuid.UU
 		}
 	}
 
-	s.sendNotificationForUpdatedSchedule(ctx, res.ID, updaterEmployeeID, res.EmployeeID, res.StartDatetime, res.EndDatetime, res.LocationName)
+	s.sendNotificationForUpdatedSchedule(
+		ctx,
+		res.ID,
+		updaterEmployeeID,
+		res.EmployeeID,
+		res.StartDatetime,
+		res.EndDatetime,
+		res.LocationName,
+	)
 	return res, nil
 }
 
@@ -182,15 +272,29 @@ func (s *ScheduleService) resolveRecurrence(req *domain.CreateScheduleRequest) (
 	}
 
 	switch *req.Recurrence {
-	case domain.CreateScheduleRecurrenceNone, domain.CreateScheduleRecurrenceEndOfWeek, domain.CreateScheduleRecurrenceEndOfMonth:
+	case domain.CreateScheduleRecurrenceNone,
+		domain.CreateScheduleRecurrenceEndOfWeek,
+		domain.CreateScheduleRecurrenceEndOfMonth:
 		return *req.Recurrence, nil
 	default:
 		return "", fmt.Errorf("recurrence must be one of: none, end_of_week, end_of_month")
 	}
 }
 
-func (s *ScheduleService) buildCustomScheduleDates(baseDate time.Time, recurrence string) []time.Time {
-	dayStart := time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), 0, 0, 0, 0, baseDate.Location())
+func (s *ScheduleService) buildCustomScheduleDates(
+	baseDate time.Time,
+	recurrence string,
+) []time.Time {
+	dayStart := time.Date(
+		baseDate.Year(),
+		baseDate.Month(),
+		baseDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		baseDate.Location(),
+	)
 	endDate := dayStart
 
 	switch recurrence {
@@ -216,22 +320,32 @@ func (s *ScheduleService) validateCustomSchedule(req *domain.CreateScheduleReque
 		return fmt.Errorf("start_datetime must be before end_datetime")
 	}
 	if req.LocationShiftID != nil || req.ShiftDate != nil {
-		return fmt.Errorf("location_shift_id and shift_date should not be provided for custom schedules")
+		return fmt.Errorf(
+			"location_shift_id and shift_date should not be provided for custom schedules",
+		)
 	}
 	return nil
 }
 
 func (s *ScheduleService) validatePresetSchedule(req *domain.CreateScheduleRequest) error {
 	if req.LocationShiftID == nil || req.ShiftDate == nil {
-		return fmt.Errorf("location_shift_id and shift_date are required for preset shift schedules")
+		return fmt.Errorf(
+			"location_shift_id and shift_date are required for preset shift schedules",
+		)
 	}
 	if req.StartDatetime != nil || req.EndDatetime != nil {
-		return fmt.Errorf("start_datetime and end_datetime should not be provided for preset shift schedules")
+		return fmt.Errorf(
+			"start_datetime and end_datetime should not be provided for preset shift schedules",
+		)
 	}
 	return nil
 }
 
-func (s *ScheduleService) createCustomSchedule(ctx context.Context, creatorID, assigneeID, locationID uuid.UUID, startDatetime, endDatetime time.Time) (*domain.CreateScheduleResponse, error) {
+func (s *ScheduleService) createCustomSchedule(
+	ctx context.Context,
+	creatorID, assigneeID, locationID uuid.UUID,
+	startDatetime, endDatetime time.Time,
+) (*domain.CreateScheduleResponse, error) {
 	schedule, err := s.repository.CreateSchedule(ctx, domain.CreateScheduleParams{
 		EmployeeID:             assigneeID,
 		LocationID:             locationID,
@@ -251,7 +365,10 @@ func (s *ScheduleService) createCustomSchedule(ctx context.Context, creatorID, a
 	return schedule, nil
 }
 
-func (s *ScheduleService) getPresetScheduleContext(ctx context.Context, req *domain.CreateScheduleRequest) (*domain.ScheduleLocationShift, *time.Location, error) {
+func (s *ScheduleService) getPresetScheduleContext(
+	ctx context.Context,
+	req *domain.CreateScheduleRequest,
+) (*domain.ScheduleLocationShift, *time.Location, error) {
 	if err := s.validatePresetSchedule(req); err != nil {
 		s.logError(ctx, "getPresetScheduleContext", "preset schedule validation failed", err)
 		return nil, nil, err
@@ -273,20 +390,62 @@ func (s *ScheduleService) getPresetScheduleContext(ctx context.Context, req *dom
 	}
 	locationTZ, err := time.LoadLocation(location.Timezone)
 	if err != nil {
-		s.logError(ctx, "getPresetScheduleContext", "invalid location timezone", err, zap.String("location_timezone", location.Timezone))
+		s.logError(
+			ctx,
+			"getPresetScheduleContext",
+			"invalid location timezone",
+			err,
+			zap.String("location_timezone", location.Timezone),
+		)
 		return nil, nil, fmt.Errorf("invalid location timezone: %w", err)
 	}
 
 	return locationShift, locationTZ, nil
 }
 
-func (s *ScheduleService) createPresetScheduleForDate(ctx context.Context, creatorID, assigneeID, locationID uuid.UUID, locationShiftID *uuid.UUID, locationShift *domain.ScheduleLocationShift, shiftDate time.Time, locationTZ *time.Location) (*domain.CreateScheduleResponse, error) {
-	shiftDate = time.Date(shiftDate.Year(), shiftDate.Month(), shiftDate.Day(), 0, 0, 0, 0, locationTZ)
-	startHour, startMin, startSec, startNano := microsecondsToTimeComponents(locationShift.StartMicroseconds)
+func (s *ScheduleService) createPresetScheduleForDate(
+	ctx context.Context,
+	creatorID, assigneeID, locationID uuid.UUID,
+	locationShiftID *uuid.UUID,
+	locationShift *domain.ScheduleLocationShift,
+	shiftDate time.Time,
+	locationTZ *time.Location,
+) (*domain.CreateScheduleResponse, error) {
+	shiftDate = time.Date(
+		shiftDate.Year(),
+		shiftDate.Month(),
+		shiftDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		locationTZ,
+	)
+	startHour, startMin, startSec, startNano := microsecondsToTimeComponents(
+		locationShift.StartMicroseconds,
+	)
 	endHour, endMin, endSec, endNano := microsecondsToTimeComponents(locationShift.EndMicroseconds)
 
-	startDatetime := time.Date(shiftDate.Year(), shiftDate.Month(), shiftDate.Day(), startHour, startMin, startSec, startNano, locationTZ)
-	endDatetime := time.Date(shiftDate.Year(), shiftDate.Month(), shiftDate.Day(), endHour, endMin, endSec, endNano, locationTZ)
+	startDatetime := time.Date(
+		shiftDate.Year(),
+		shiftDate.Month(),
+		shiftDate.Day(),
+		startHour,
+		startMin,
+		startSec,
+		startNano,
+		locationTZ,
+	)
+	endDatetime := time.Date(
+		shiftDate.Year(),
+		shiftDate.Month(),
+		shiftDate.Day(),
+		endHour,
+		endMin,
+		endSec,
+		endNano,
+		locationTZ,
+	)
 	if locationShift.EndMicroseconds < locationShift.StartMicroseconds {
 		endDatetime = endDatetime.AddDate(0, 0, 1)
 	}
@@ -312,7 +471,13 @@ func (s *ScheduleService) createPresetScheduleForDate(ctx context.Context, creat
 	return schedule, nil
 }
 
-func (s *ScheduleService) sendNotificationForNewSchedule(ctx context.Context, scheduleID uuid.UUID, creatorID, recipientID uuid.UUID, startTime, endTime time.Time, locationName string) {
+func (s *ScheduleService) sendNotificationForNewSchedule(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	creatorID, recipientID uuid.UUID,
+	startTime, endTime time.Time,
+	locationName string,
+) {
 	if s.asynqClient == nil {
 		return
 	}
@@ -331,11 +496,20 @@ func (s *ScheduleService) sendNotificationForNewSchedule(ctx context.Context, sc
 		Message:          "notifData.NewScheduleMessage()",
 	}, &domain.TaskEnqueueOptions{MaxRetry: 3})
 	if err != nil {
-		s.logError(ctx, "sendNotificationForNewSchedule", "failed to enqueue new schedule notification", err, zap.String("schedule_id", scheduleID.String()))
+		s.logError(
+			ctx,
+			"sendNotificationForNewSchedule",
+			"failed to enqueue new schedule notification",
+			err,
+			zap.String("schedule_id", scheduleID.String()),
+		)
 	}
 }
 
-func (s *ScheduleService) determineScheduleType(req *domain.UpdateScheduleRequest, existingSchedule *domain.GetScheduleByIdResponse) bool {
+func (s *ScheduleService) determineScheduleType(
+	req *domain.UpdateScheduleRequest,
+	existingSchedule *domain.GetScheduleByIdResponse,
+) bool {
 	if req.IsCustom != nil {
 		isCustom := *req.IsCustom
 		if !isCustom {
@@ -352,7 +526,12 @@ func (s *ScheduleService) determineScheduleType(req *domain.UpdateScheduleReques
 	return existingSchedule.LocationShiftID == nil
 }
 
-func (s *ScheduleService) updateCustomSchedule(ctx context.Context, scheduleID uuid.UUID, existingSchedule *domain.GetScheduleByIdResponse, req *domain.UpdateScheduleRequest) (*domain.UpdateScheduleResponse, error) {
+func (s *ScheduleService) updateCustomSchedule(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	existingSchedule *domain.GetScheduleByIdResponse,
+	req *domain.UpdateScheduleRequest,
+) (*domain.UpdateScheduleResponse, error) {
 	if err := s.validateCustomScheduleUpdate(req); err != nil {
 		s.logError(ctx, "updateCustomSchedule", "custom schedule validation failed", err)
 		return nil, err
@@ -397,7 +576,12 @@ func (s *ScheduleService) updateCustomSchedule(ctx context.Context, scheduleID u
 	return schedule, nil
 }
 
-func (s *ScheduleService) updatePresetSchedule(ctx context.Context, scheduleID uuid.UUID, existingSchedule *domain.GetScheduleByIdResponse, req *domain.UpdateScheduleRequest) (*domain.UpdateScheduleResponse, error) {
+func (s *ScheduleService) updatePresetSchedule(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	existingSchedule *domain.GetScheduleByIdResponse,
+	req *domain.UpdateScheduleRequest,
+) (*domain.UpdateScheduleResponse, error) {
 	employeeID := existingSchedule.EmployeeID
 	locationID := existingSchedule.LocationID
 	if req.EmployeeID != nil {
@@ -442,15 +626,50 @@ func (s *ScheduleService) updatePresetSchedule(ctx context.Context, scheduleID u
 	}
 	locationTZ, err := time.LoadLocation(location.Timezone)
 	if err != nil {
-		s.logError(ctx, "updatePresetSchedule", "invalid location timezone", err, zap.String("location_timezone", location.Timezone))
+		s.logError(
+			ctx,
+			"updatePresetSchedule",
+			"invalid location timezone",
+			err,
+			zap.String("location_timezone", location.Timezone),
+		)
 		return nil, fmt.Errorf("invalid location timezone: %w", err)
 	}
 
-	shiftDate = time.Date(shiftDate.Year(), shiftDate.Month(), shiftDate.Day(), 0, 0, 0, 0, locationTZ)
-	startHour, startMin, startSec, startNano := microsecondsToTimeComponents(locationShift.StartMicroseconds)
+	shiftDate = time.Date(
+		shiftDate.Year(),
+		shiftDate.Month(),
+		shiftDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		locationTZ,
+	)
+	startHour, startMin, startSec, startNano := microsecondsToTimeComponents(
+		locationShift.StartMicroseconds,
+	)
 	endHour, endMin, endSec, endNano := microsecondsToTimeComponents(locationShift.EndMicroseconds)
-	startDatetime := time.Date(shiftDate.Year(), shiftDate.Month(), shiftDate.Day(), startHour, startMin, startSec, startNano, locationTZ)
-	endDatetime := time.Date(shiftDate.Year(), shiftDate.Month(), shiftDate.Day(), endHour, endMin, endSec, endNano, locationTZ)
+	startDatetime := time.Date(
+		shiftDate.Year(),
+		shiftDate.Month(),
+		shiftDate.Day(),
+		startHour,
+		startMin,
+		startSec,
+		startNano,
+		locationTZ,
+	)
+	endDatetime := time.Date(
+		shiftDate.Year(),
+		shiftDate.Month(),
+		shiftDate.Day(),
+		endHour,
+		endMin,
+		endSec,
+		endNano,
+		locationTZ,
+	)
 	if locationShift.EndMicroseconds < locationShift.StartMicroseconds {
 		endDatetime = endDatetime.AddDate(0, 0, 1)
 	}
@@ -477,12 +696,20 @@ func (s *ScheduleService) updatePresetSchedule(ctx context.Context, scheduleID u
 
 func (s *ScheduleService) validateCustomScheduleUpdate(req *domain.UpdateScheduleRequest) error {
 	if req.LocationShiftID != nil || req.ShiftDate != nil {
-		return fmt.Errorf("location_shift_id and shift_date should not be provided for custom schedules")
+		return fmt.Errorf(
+			"location_shift_id and shift_date should not be provided for custom schedules",
+		)
 	}
 	return nil
 }
 
-func (s *ScheduleService) sendNotificationForUpdatedSchedule(ctx context.Context, scheduleID uuid.UUID, updaterEmployeeID, recipientEmployeeID uuid.UUID, startTime, endTime time.Time, locationName string) {
+func (s *ScheduleService) sendNotificationForUpdatedSchedule(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	updaterEmployeeID, recipientEmployeeID uuid.UUID,
+	startTime, endTime time.Time,
+	locationName string,
+) {
 	if s.asynqClient == nil {
 		return
 	}
@@ -501,11 +728,21 @@ func (s *ScheduleService) sendNotificationForUpdatedSchedule(ctx context.Context
 		Message:          "notifData.UpdatedScheduleMessage()",
 	}, &domain.TaskEnqueueOptions{MaxRetry: 3})
 	if err != nil {
-		s.logError(ctx, "sendNotificationForUpdatedSchedule", "failed to enqueue notification task", err)
+		s.logError(
+			ctx,
+			"sendNotificationForUpdatedSchedule",
+			"failed to enqueue notification task",
+			err,
+		)
 	}
 }
 
-func (s *ScheduleService) logError(ctx context.Context, operation, message string, err error, fields ...zap.Field) {
+func (s *ScheduleService) logError(
+	ctx context.Context,
+	operation, message string,
+	err error,
+	fields ...zap.Field,
+) {
 	if s.logger == nil {
 		return
 	}

@@ -98,8 +98,15 @@ type DecideTimeEntryParams struct {
 
 type TimeEntryTxRepository interface {
 	GetTimeEntryForUpdate(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
-	ApproveTimeEntry(ctx context.Context, timeEntryID, approvedByEmployeeID uuid.UUID) (*TimeEntry, error)
-	RejectTimeEntry(ctx context.Context, timeEntryID uuid.UUID, rejectionReason *string) (*TimeEntry, error)
+	ApproveTimeEntry(
+		ctx context.Context,
+		timeEntryID, approvedByEmployeeID uuid.UUID,
+	) (*TimeEntry, error)
+	RejectTimeEntry(
+		ctx context.Context,
+		timeEntryID uuid.UUID,
+		rejectionReason *string,
+	) (*TimeEntry, error)
 }
 
 type TimeEntryRepository interface {
@@ -111,11 +118,26 @@ type TimeEntryRepository interface {
 }
 
 type TimeEntryService interface {
-	CreateTimeEntry(ctx context.Context, actorEmployeeID uuid.UUID, params CreateTimeEntryParams) (*TimeEntry, error)
-	CreateTimeEntryByAdmin(ctx context.Context, adminEmployeeID uuid.UUID, params CreateTimeEntryParams) (*TimeEntry, error)
-	DecideTimeEntryByAdmin(ctx context.Context, adminEmployeeID, timeEntryID uuid.UUID, params DecideTimeEntryParams) (*TimeEntry, error)
+	CreateTimeEntry(
+		ctx context.Context,
+		actorEmployeeID uuid.UUID,
+		params CreateTimeEntryParams,
+	) (*TimeEntry, error)
+	CreateTimeEntryByAdmin(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		params CreateTimeEntryParams,
+	) (*TimeEntry, error)
+	DecideTimeEntryByAdmin(
+		ctx context.Context,
+		adminEmployeeID, timeEntryID uuid.UUID,
+		params DecideTimeEntryParams,
+	) (*TimeEntry, error)
 	GetTimeEntryByID(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
-	GetMyTimeEntryByID(ctx context.Context, actorEmployeeID, timeEntryID uuid.UUID) (*TimeEntry, error)
+	GetMyTimeEntryByID(
+		ctx context.Context,
+		actorEmployeeID, timeEntryID uuid.UUID,
+	) (*TimeEntry, error)
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)
 	ListMyTimeEntries(ctx context.Context, params ListMyTimeEntriesParams) (*TimeEntryPage, error)
 }

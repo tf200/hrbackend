@@ -13,31 +13,31 @@ type createEmployeeRequest struct {
 	EmployeeNumber        *string    `json:"employee_number"`
 	EmploymentNumber      *string    `json:"employment_number"`
 	LocationID            *uuid.UUID `json:"location_id"`
-	FirstName             string     `json:"first_name" binding:"required"`
-	LastName              string     `json:"last_name" binding:"required"`
-	Bsn                   string     `json:"bsn" binding:"required"`
-	Street                string     `json:"street" binding:"required"`
-	HouseNumber           string     `json:"house_number" binding:"required"`
+	FirstName             string     `json:"first_name"              binding:"required"`
+	LastName              string     `json:"last_name"               binding:"required"`
+	Bsn                   string     `json:"bsn"                     binding:"required"`
+	Street                string     `json:"street"                  binding:"required"`
+	HouseNumber           string     `json:"house_number"            binding:"required"`
 	HouseNumberAddition   *string    `json:"house_number_addition"`
-	PostalCode            string     `json:"postal_code" binding:"required"`
-	City                  string     `json:"city" binding:"required"`
+	PostalCode            string     `json:"postal_code"             binding:"required"`
+	City                  string     `json:"city"                    binding:"required"`
 	Position              *string    `json:"position"`
 	DepartmentID          *uuid.UUID `json:"department_id"`
 	ManagerEmployeeID     *uuid.UUID `json:"manager_employee_id"`
 	PrivateEmailAddress   *string    `json:"private_email_address"`
-	WorkEmailAddress      string     `json:"work_email_address" binding:"required,email"`
+	WorkEmailAddress      string     `json:"work_email_address"      binding:"required,email"`
 	WorkPhoneNumber       *string    `json:"work_phone_number"`
 	PrivatePhoneNumber    *string    `json:"private_phone_number"`
 	DateOfBirth           *string    `json:"date_of_birth"`
 	HomeTelephoneNumber   *string    `json:"home_telephone_number"`
-	Gender                string     `json:"gender" binding:"required,oneof=male female not_specified"`
+	Gender                string     `json:"gender"                  binding:"required,oneof=male female not_specified"`
 	ContractHours         *float64   `json:"contract_hours"`
 	ContractStartDate     *string    `json:"contract_start_date"`
 	ContractEndDate       *string    `json:"contract_end_date"`
-	ContractType          string     `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
+	ContractType          string     `json:"contract_type"           binding:"required,oneof=loondienst ZZP none"`
 	ContractRate          *float64   `json:"contract_rate"`
 	IrregularHoursProfile string     `json:"irregular_hours_profile" binding:"required,oneof=none roster non_roster"`
-	RoleID                uuid.UUID  `json:"role_id" binding:"required"`
+	RoleID                uuid.UUID  `json:"role_id"                 binding:"required"`
 }
 
 type updateEmployeeRequest struct {
@@ -66,7 +66,7 @@ type listEmployeesRequest struct {
 	IncludeArchived     *bool      `form:"is_archived"`
 	IncludeOutOfService *bool      `form:"out_of_service"`
 	LocationID          *uuid.UUID `form:"location_id"`
-	ContractType        *string    `form:"contract_type" binding:"omitempty,oneof=loondienst ZZP none"`
+	ContractType        *string    `form:"contract_type"  binding:"omitempty,oneof=loondienst ZZP none"`
 	Search              *string    `form:"search"`
 }
 
@@ -79,28 +79,28 @@ type updateIsSubcontractorRequest struct {
 }
 
 type addContractDetailsRequest struct {
-	ContractHours         *float64 `json:"contract_hours" binding:"required"`
-	ContractStartDate     *string  `json:"contract_start_date" binding:"required"`
-	ContractEndDate       *string  `json:"contract_end_date" binding:"required"`
+	ContractHours         *float64 `json:"contract_hours"          binding:"required"`
+	ContractStartDate     *string  `json:"contract_start_date"     binding:"required"`
+	ContractEndDate       *string  `json:"contract_end_date"       binding:"required"`
 	ContractRate          *float64 `json:"contract_rate"`
 	IrregularHoursProfile string   `json:"irregular_hours_profile" binding:"required,oneof=none roster non_roster"`
 }
 
 type createContractChangeRequest struct {
-	EffectiveFrom         string   `json:"effective_from" binding:"required,datetime=2006-01-02"`
-	ContractHours         float64  `json:"contract_hours" binding:"required"`
-	ContractType          string   `json:"contract_type" binding:"required,oneof=loondienst ZZP none"`
+	EffectiveFrom         string   `json:"effective_from"          binding:"required,datetime=2006-01-02"`
+	ContractHours         float64  `json:"contract_hours"          binding:"required"`
+	ContractType          string   `json:"contract_type"           binding:"required,oneof=loondienst ZZP none"`
 	ContractRate          *float64 `json:"contract_rate"`
 	IrregularHoursProfile string   `json:"irregular_hours_profile" binding:"required,oneof=none roster non_roster"`
-	ContractEndDate       *string  `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
+	ContractEndDate       *string  `json:"contract_end_date"       binding:"omitempty,datetime=2006-01-02"`
 }
 
 type createEducationRequest struct {
 	InstitutionName string `json:"institution_name" binding:"required"`
-	Degree          string `json:"degree" binding:"required"`
-	FieldOfStudy    string `json:"field_of_study" binding:"required"`
-	StartDate       string `json:"start_date" binding:"required"`
-	EndDate         string `json:"end_date" binding:"required"`
+	Degree          string `json:"degree"           binding:"required"`
+	FieldOfStudy    string `json:"field_of_study"   binding:"required"`
+	StartDate       string `json:"start_date"       binding:"required"`
+	EndDate         string `json:"end_date"         binding:"required"`
 }
 
 type updateEducationRequest struct {
@@ -112,10 +112,10 @@ type updateEducationRequest struct {
 }
 
 type createExperienceRequest struct {
-	JobTitle    string  `json:"job_title" binding:"required"`
+	JobTitle    string  `json:"job_title"    binding:"required"`
 	CompanyName string  `json:"company_name" binding:"required"`
-	StartDate   string  `json:"start_date" binding:"required"`
-	EndDate     string  `json:"end_date" binding:"required"`
+	StartDate   string  `json:"start_date"   binding:"required"`
+	EndDate     string  `json:"end_date"     binding:"required"`
 	Description *string `json:"description"`
 }
 
@@ -128,8 +128,8 @@ type updateExperienceRequest struct {
 }
 
 type createCertificationRequest struct {
-	Name       string `json:"name" binding:"required"`
-	IssuedBy   string `json:"issued_by" binding:"required"`
+	Name       string `json:"name"        binding:"required"`
+	IssuedBy   string `json:"issued_by"   binding:"required"`
 	DateIssued string `json:"date_issued" binding:"required"`
 }
 
@@ -476,7 +476,9 @@ func toAddContractDetailsParams(req addContractDetailsRequest) domain.AddContrac
 	}
 }
 
-func toCreateContractChangeParams(req createContractChangeRequest) (domain.CreateEmployeeContractChangeParams, error) {
+func toCreateContractChangeParams(
+	req createContractChangeRequest,
+) (domain.CreateEmployeeContractChangeParams, error) {
 	effectiveFrom, err := parseDate(req.EffectiveFrom)
 	if err != nil {
 		return domain.CreateEmployeeContractChangeParams{}, err
@@ -620,7 +622,9 @@ func toContractChangeResponses(items []domain.EmployeeContractChange) []contract
 	return results
 }
 
-func toCreateContractChangeResponse(result *domain.CreateEmployeeContractChangeResult) createContractChangeResponse {
+func toCreateContractChangeResponse(
+	result *domain.CreateEmployeeContractChangeResult,
+) createContractChangeResponse {
 	recalcs := make([]leaveRecalculationImpactResponse, len(result.Recalculations))
 	for i, impact := range result.Recalculations {
 		recalcs[i] = leaveRecalculationImpactResponse{
@@ -674,7 +678,9 @@ func toCertificationResponse(certification *domain.Certification) certificationR
 	}
 }
 
-func toEmployeeSearchResultResponse(result domain.EmployeeSearchResult) employeeSearchResultResponse {
+func toEmployeeSearchResultResponse(
+	result domain.EmployeeSearchResult,
+) employeeSearchResultResponse {
 	return employeeSearchResultResponse{
 		ID:        result.ID,
 		FirstName: result.FirstName,

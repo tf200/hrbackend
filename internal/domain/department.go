@@ -42,7 +42,11 @@ type DepartmentPage struct {
 type DepartmentRepository interface {
 	CreateDepartment(ctx context.Context, params CreateDepartmentParams) (*Department, error)
 	GetDepartmentByID(ctx context.Context, departmentID uuid.UUID) (*Department, error)
-	UpdateDepartment(ctx context.Context, departmentID uuid.UUID, params UpdateDepartmentParams) (*Department, error)
+	UpdateDepartment(
+		ctx context.Context,
+		departmentID uuid.UUID,
+		params UpdateDepartmentParams,
+	) (*Department, error)
 	DeleteDepartment(ctx context.Context, departmentID uuid.UUID) error
 	ListDepartments(ctx context.Context, params ListDepartmentsParams) (*DepartmentPage, error)
 }
@@ -50,7 +54,11 @@ type DepartmentRepository interface {
 type DepartmentService interface {
 	CreateDepartment(ctx context.Context, params CreateDepartmentParams) (*Department, error)
 	GetDepartmentByID(ctx context.Context, departmentID uuid.UUID) (*Department, error)
-	UpdateDepartment(ctx context.Context, departmentID uuid.UUID, params UpdateDepartmentParams) (*Department, error)
+	UpdateDepartment(
+		ctx context.Context,
+		departmentID uuid.UUID,
+		params UpdateDepartmentParams,
+	) (*Department, error)
 	DeleteDepartment(ctx context.Context, departmentID uuid.UUID) error
 	ListDepartments(ctx context.Context, params ListDepartmentsParams) (*DepartmentPage, error)
 }

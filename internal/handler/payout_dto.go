@@ -15,14 +15,14 @@ const payoutMonthLayout = "2006-01"
 
 type createPayoutRequestRequest struct {
 	RequestedHours int32   `json:"requested_hours" binding:"required,min=1"`
-	BalanceYear    int32   `json:"balance_year" binding:"required,min=2000,max=2100"`
+	BalanceYear    int32   `json:"balance_year"    binding:"required,min=2000,max=2100"`
 	RequestNote    *string `json:"request_note"`
 }
 
 type decidePayoutRequestByAdminRequest struct {
-	Decision     string  `json:"decision" binding:"required,oneof=approve reject"`
+	Decision     string  `json:"decision"      binding:"required,oneof=approve reject"`
 	DecisionNote *string `json:"decision_note"`
-	SalaryMonth  *string `json:"salary_month" binding:"omitempty,datetime=2006-01"`
+	SalaryMonth  *string `json:"salary_month"  binding:"omitempty,datetime=2006-01"`
 }
 
 type listMyPayoutRequestsRequest struct {
@@ -32,37 +32,37 @@ type listMyPayoutRequestsRequest struct {
 
 type listPayoutRequestsRequest struct {
 	httpapi.PageRequest
-	Status         *string `form:"status" binding:"omitempty,oneof=pending approved rejected paid"`
+	Status         *string `form:"status"          binding:"omitempty,oneof=pending approved rejected paid"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 
 type closePayPeriodRequest struct {
-	EmployeeID  uuid.UUID `json:"employee_id" binding:"required"`
+	EmployeeID  uuid.UUID `json:"employee_id"  binding:"required"`
 	PeriodStart string    `json:"period_start" binding:"required,datetime=2006-01-02"`
-	PeriodEnd   string    `json:"period_end" binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string    `json:"period_end"   binding:"required,datetime=2006-01-02"`
 }
 
 type listPayPeriodsRequest struct {
 	httpapi.PageRequest
-	Status         *string `form:"status" binding:"omitempty,oneof=draft paid"`
+	Status         *string `form:"status"          binding:"omitempty,oneof=draft paid"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 
 type payrollMonthSummaryRequest struct {
 	httpapi.PageRequest
-	Month          string  `form:"month" binding:"required,datetime=2006-01"`
+	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 
 type previewPayrollRequest struct {
-	EmployeeID  uuid.UUID `form:"employee_id" binding:"required"`
+	EmployeeID  uuid.UUID `form:"employee_id"  binding:"required"`
 	PeriodStart string    `form:"period_start" binding:"required,datetime=2006-01-02"`
-	PeriodEnd   string    `form:"period_end" binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string    `form:"period_end"   binding:"required,datetime=2006-01-02"`
 }
 
 type previewMyPayrollRequest struct {
 	PeriodStart string `form:"period_start" binding:"required,datetime=2006-01-02"`
-	PeriodEnd   string `form:"period_end" binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string `form:"period_end"   binding:"required,datetime=2006-01-02"`
 }
 
 type payoutRequestResponse struct {
@@ -175,7 +175,10 @@ type payrollMonthMultiplierSummaryItem struct {
 	PremiumAmount float64 `json:"premium_amount"`
 }
 
-func toCreatePayoutRequestParams(employeeID uuid.UUID, req createPayoutRequestRequest) domain.CreatePayoutRequestParams {
+func toCreatePayoutRequestParams(
+	employeeID uuid.UUID,
+	req createPayoutRequestRequest,
+) domain.CreatePayoutRequestParams {
 	return domain.CreatePayoutRequestParams{
 		EmployeeID:          employeeID,
 		CreatedByEmployeeID: employeeID,
@@ -185,7 +188,9 @@ func toCreatePayoutRequestParams(employeeID uuid.UUID, req createPayoutRequestRe
 	}
 }
 
-func toDecidePayoutRequestParams(req decidePayoutRequestByAdminRequest) (domain.DecidePayoutRequestParams, error) {
+func toDecidePayoutRequestParams(
+	req decidePayoutRequestByAdminRequest,
+) (domain.DecidePayoutRequestParams, error) {
 	salaryMonth, err := parsePayoutSalaryMonth(req.SalaryMonth)
 	if err != nil {
 		return domain.DecidePayoutRequestParams{}, err
@@ -197,7 +202,10 @@ func toDecidePayoutRequestParams(req decidePayoutRequestByAdminRequest) (domain.
 	}, nil
 }
 
-func toListMyPayoutRequestsParams(employeeID uuid.UUID, req listMyPayoutRequestsRequest) domain.ListMyPayoutRequestsParams {
+func toListMyPayoutRequestsParams(
+	employeeID uuid.UUID,
+	req listMyPayoutRequestsRequest,
+) domain.ListMyPayoutRequestsParams {
 	return domain.ListMyPayoutRequestsParams{
 		EmployeeID: employeeID,
 		Limit:      req.PageSize,
@@ -241,7 +249,9 @@ func toListPayPeriodsParams(req listPayPeriodsRequest) domain.ListPayPeriodsPara
 	}
 }
 
-func toPayrollMonthSummaryParams(req payrollMonthSummaryRequest) (domain.PayrollMonthSummaryParams, error) {
+func toPayrollMonthSummaryParams(
+	req payrollMonthSummaryRequest,
+) (domain.PayrollMonthSummaryParams, error) {
 	month, err := time.Parse(payoutMonthLayout, req.Month)
 	if err != nil {
 		return domain.PayrollMonthSummaryParams{}, err
@@ -427,7 +437,9 @@ func toPayrollMonthSummaryResponse(item domain.PayrollMonthSummaryRow) payrollMo
 	}
 }
 
-func toPayrollMonthSummaryResponses(items []domain.PayrollMonthSummaryRow) []payrollMonthSummaryResponse {
+func toPayrollMonthSummaryResponses(
+	items []domain.PayrollMonthSummaryRow,
+) []payrollMonthSummaryResponse {
 	results := make([]payrollMonthSummaryResponse, len(items))
 	for i, item := range items {
 		results[i] = toPayrollMonthSummaryResponse(item)

@@ -14,11 +14,11 @@ const timeEntryDateLayout = "2006-01-02"
 
 type createTimeEntryRequest struct {
 	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
-	EntryDate           string     `json:"entry_date" binding:"required,datetime=2006-01-02"`
-	StartTime           string     `json:"start_time" binding:"required"`
-	EndTime             string     `json:"end_time" binding:"required"`
+	EntryDate           string     `json:"entry_date"            binding:"required,datetime=2006-01-02"`
+	StartTime           string     `json:"start_time"            binding:"required"`
+	EndTime             string     `json:"end_time"              binding:"required"`
 	BreakMinutes        int32      `json:"break_minutes"`
-	HourType            string     `json:"hour_type" binding:"required,oneof=normal overtime travel leave sick training"`
+	HourType            string     `json:"hour_type"             binding:"required,oneof=normal overtime travel leave sick training"`
 	ProjectName         *string    `json:"project_name"`
 	ProjectNumber       *string    `json:"project_number"`
 	ClientName          *string    `json:"client_name"`
@@ -28,13 +28,13 @@ type createTimeEntryRequest struct {
 }
 
 type createTimeEntryByAdminRequest struct {
-	EmployeeID          uuid.UUID  `json:"employee_id" binding:"required"`
+	EmployeeID          uuid.UUID  `json:"employee_id"           binding:"required"`
 	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
-	EntryDate           string     `json:"entry_date" binding:"required,datetime=2006-01-02"`
-	StartTime           string     `json:"start_time" binding:"required"`
-	EndTime             string     `json:"end_time" binding:"required"`
+	EntryDate           string     `json:"entry_date"            binding:"required,datetime=2006-01-02"`
+	StartTime           string     `json:"start_time"            binding:"required"`
+	EndTime             string     `json:"end_time"              binding:"required"`
 	BreakMinutes        int32      `json:"break_minutes"`
-	HourType            string     `json:"hour_type" binding:"required,oneof=normal overtime travel leave sick training"`
+	HourType            string     `json:"hour_type"             binding:"required,oneof=normal overtime travel leave sick training"`
 	ProjectName         *string    `json:"project_name"`
 	ProjectNumber       *string    `json:"project_number"`
 	ClientName          *string    `json:"client_name"`
@@ -44,14 +44,14 @@ type createTimeEntryByAdminRequest struct {
 }
 
 type decideTimeEntryByAdminRequest struct {
-	Decision        string  `json:"decision" binding:"required,oneof=approve reject"`
+	Decision        string  `json:"decision"         binding:"required,oneof=approve reject"`
 	RejectionReason *string `json:"rejection_reason"`
 }
 
 type listTimeEntriesRequest struct {
 	httpapi.PageRequest
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
-	Status         *string `form:"status" binding:"omitempty,oneof=draft submitted approved rejected"`
+	Status         *string `form:"status"          binding:"omitempty,oneof=draft submitted approved rejected"`
 }
 
 type listMyTimeEntriesRequest struct {
@@ -107,7 +107,9 @@ func toCreateTimeEntryParams(req createTimeEntryRequest) (domain.CreateTimeEntry
 	}, nil
 }
 
-func toCreateTimeEntryByAdminParams(req createTimeEntryByAdminRequest) (domain.CreateTimeEntryParams, error) {
+func toCreateTimeEntryByAdminParams(
+	req createTimeEntryByAdminRequest,
+) (domain.CreateTimeEntryParams, error) {
 	base, err := toCreateTimeEntryParams(createTimeEntryRequest{
 		ScheduleID:          req.ScheduleID,
 		EntryDate:           req.EntryDate,
@@ -145,7 +147,10 @@ func toListTimeEntriesParams(req listTimeEntriesRequest) domain.ListTimeEntriesP
 	}
 }
 
-func toListMyTimeEntriesParams(employeeID uuid.UUID, req listMyTimeEntriesRequest) domain.ListMyTimeEntriesParams {
+func toListMyTimeEntriesParams(
+	employeeID uuid.UUID,
+	req listMyTimeEntriesRequest,
+) domain.ListMyTimeEntriesParams {
 	return domain.ListMyTimeEntriesParams{
 		EmployeeID: employeeID,
 		Limit:      req.PageSize,
