@@ -153,7 +153,7 @@ type OrganizationCounts struct {
 
 type GlobalOrganizationCounts struct {
 	TotalLocations int64
-	TotalCapacity  int64
+	TotalEmployees int64
 }
 
 type OrganizationRepository interface {

@@ -132,6 +132,112 @@ func (h *PayoutHandler) PreviewMyPayroll(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"))
 }
 
+func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
+	var req payrollMonthSummaryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPayrollMonthSummaryParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	page, err := h.service.GetPayrollMonthSummary(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response := httpapi.NewPageResponse(ctx, req.PageRequest, toPayrollMonthSummaryResponses(page.Items), page.TotalCount)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month summary retrieved successfully"))
+}
+
+func (h *PayoutHandler) ClosePayPeriod(ctx *gin.Context) {
+	var req closePayPeriodRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	params, err := toClosePayPeriodParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	item, err := h.service.ClosePayPeriod(ctx.Request.Context(), adminEmployeeID, params)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, httpapi.OK(toPayPeriodResponse(item), "Pay period created successfully"))
+}
+
+func (h *PayoutHandler) ListPayPeriods(ctx *gin.Context) {
+	var req listPayPeriodsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	page, err := h.service.ListPayPeriods(ctx.Request.Context(), toListPayPeriodsParams(req))
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response := httpapi.NewPageResponse(ctx, req.PageRequest, toPayPeriodResponses(page.Items), page.TotalCount)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Pay periods retrieved successfully"))
+}
+
+func (h *PayoutHandler) GetPayPeriodByID(ctx *gin.Context) {
+	payPeriodID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid pay period id", ""))
+		return
+	}
+
+	item, err := h.service.GetPayPeriodByID(ctx.Request.Context(), payPeriodID)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayPeriodResponse(item), "Pay period retrieved successfully"))
+}
+
+func (h *PayoutHandler) MarkPayPeriodPaidByAdmin(ctx *gin.Context) {
+	payPeriodID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid pay period id", ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	item, err := h.service.MarkPayPeriodPaidByAdmin(ctx.Request.Context(), adminEmployeeID, payPeriodID)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayPeriodResponse(item), "Pay period marked as paid successfully"))
+}
+
 func (h *PayoutHandler) DecidePayoutRequestByAdmin(ctx *gin.Context) {
 	payoutRequestID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -201,6 +307,14 @@ func mapPayoutErrorStatus(err error) int {
 	case errors.Is(err, domain.ErrPayoutRequestStateInvalid):
 		return http.StatusConflict
 	case errors.Is(err, domain.ErrPayoutRequestInsufficientHours):
+		return http.StatusConflict
+	case errors.Is(err, domain.ErrPayPeriodNotFound):
+		return http.StatusNotFound
+	case errors.Is(err, domain.ErrPayPeriodStateInvalid):
+		return http.StatusConflict
+	case errors.Is(err, domain.ErrPayPeriodAlreadyExists):
+		return http.StatusConflict
+	case errors.Is(err, domain.ErrPayPeriodNoEntries):
 		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError

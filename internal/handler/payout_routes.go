@@ -10,6 +10,11 @@ func RegisterPayoutRoutes(
 ) {
 	rg.GET("/payroll-preview/my", auth, requirePermission("PAYOUT.REQUEST.VIEW"), handler.PreviewMyPayroll)
 	rg.GET("/payroll-preview", auth, requirePermission("PAYOUT.REQUEST.VIEW_ALL"), handler.PreviewPayroll)
+	rg.GET("/payroll-month-summary", auth, requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"), handler.GetPayrollMonthSummary)
+	rg.POST("/pay-periods/close", auth, requirePermission("PAY_PERIOD.CLOSE"), handler.ClosePayPeriod)
+	rg.GET("/pay-periods", auth, requirePermission("PAY_PERIOD.VIEW_ALL"), handler.ListPayPeriods)
+	rg.GET("/pay-periods/:id", auth, requirePermission("PAY_PERIOD.VIEW_ALL"), handler.GetPayPeriodByID)
+	rg.POST("/pay-periods/:id/mark-paid", auth, requirePermission("PAY_PERIOD.MARK_PAID"), handler.MarkPayPeriodPaidByAdmin)
 	rg.POST("/payout-requests", auth, requirePermission("PAYOUT.REQUEST.CREATE"), handler.CreatePayoutRequest)
 	rg.GET("/payout-requests/my", auth, requirePermission("PAYOUT.REQUEST.VIEW"), handler.ListMyPayoutRequests)
 	rg.GET("/payout-requests", auth, requirePermission("PAYOUT.REQUEST.VIEW_ALL"), handler.ListPayoutRequests)

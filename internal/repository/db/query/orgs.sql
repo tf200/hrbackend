@@ -61,9 +61,8 @@ GROUP BY
 
 -- name: GetGlobalOrganisationCounts :one
 SELECT
-    COALESCE(COUNT(l.id), 0)::BIGINT AS total_locations,
-    COALESCE(SUM(l.capacity), 0)::BIGINT AS total_capacity
-FROM location l;
+    COALESCE((SELECT COUNT(*) FROM location), 0)::BIGINT AS total_locations,
+    COALESCE((SELECT COUNT(*) FROM employee_profile), 0)::BIGINT AS total_employees;
 
 
 -- name: UpdateOrganisation :one

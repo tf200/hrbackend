@@ -181,20 +181,19 @@ func (q *Queries) DeleteOrganisation(ctx context.Context, id uuid.UUID) (Organis
 
 const getGlobalOrganisationCounts = `-- name: GetGlobalOrganisationCounts :one
 SELECT
-    COALESCE(COUNT(l.id), 0)::BIGINT AS total_locations,
-    COALESCE(SUM(l.capacity), 0)::BIGINT AS total_capacity
-FROM location l
+    COALESCE((SELECT COUNT(*) FROM location), 0)::BIGINT AS total_locations,
+    COALESCE((SELECT COUNT(*) FROM employee_profile), 0)::BIGINT AS total_employees
 `
 
 type GetGlobalOrganisationCountsRow struct {
 	TotalLocations int64 `json:"total_locations"`
-	TotalCapacity  int64 `json:"total_capacity"`
+	TotalEmployees int64 `json:"total_employees"`
 }
 
 func (q *Queries) GetGlobalOrganisationCounts(ctx context.Context) (GetGlobalOrganisationCountsRow, error) {
 	row := q.db.QueryRow(ctx, getGlobalOrganisationCounts)
 	var i GetGlobalOrganisationCountsRow
-	err := row.Scan(&i.TotalLocations, &i.TotalCapacity)
+	err := row.Scan(&i.TotalLocations, &i.TotalEmployees)
 	return i, err
 }
 

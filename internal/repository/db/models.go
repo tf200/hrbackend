@@ -1424,7 +1424,7 @@ type PayPeriodLineItem struct {
 	LineType              string                    `json:"line_type"`
 	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
 	AppliedRatePercent    float64                   `json:"applied_rate_percent"`
-	MinutesWorked         int32                     `json:"minutes_worked"`
+	MinutesWorked         float64                   `json:"minutes_worked"`
 	BaseAmount            float64                   `json:"base_amount"`
 	PremiumAmount         float64                   `json:"premium_amount"`
 	Metadata              []byte                    `json:"metadata"`

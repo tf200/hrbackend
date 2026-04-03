@@ -145,6 +145,7 @@ type getOrganizationCountsResponse struct {
 
 type getGlobalOrganizationCountsResponse struct {
 	TotalLocations int64 `json:"total_locations"`
+	TotalEmployees int64 `json:"total_employees"`
 }
 
 type listOrganizationsResponse struct {
@@ -368,6 +369,7 @@ func toGetOrganizationCountsResponse(counts *domain.OrganizationCounts) getOrgan
 func toGetGlobalOrganizationCountsResponse(counts *domain.GlobalOrganizationCounts) getGlobalOrganizationCountsResponse {
 	return getGlobalOrganizationCountsResponse{
 		TotalLocations: counts.TotalLocations,
+		TotalEmployees: counts.TotalEmployees,
 	}
 }
 

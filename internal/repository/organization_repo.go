@@ -229,7 +229,7 @@ func (r *OrganizationRepository) GetGlobalOrganizationCounts(ctx context.Context
 
 	return &domain.GlobalOrganizationCounts{
 		TotalLocations: counts.TotalLocations,
-		TotalCapacity:  counts.TotalCapacity,
+		TotalEmployees: counts.TotalEmployees,
 	}, nil
 }
 
