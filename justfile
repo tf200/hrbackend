@@ -43,3 +43,11 @@ seed-mock-remote:
 
 lines:
     golines -w .
+
+deploy:
+    @if [ -z "${SSH_USER}" ]; then echo "SSH_USER is required (.env)"; exit 1; fi
+    @if [ -z "${SSH_HOST}" ]; then echo "SSH_HOST is required (.env)"; exit 1; fi
+    @if [ -z "${REMOTE_DIR}" ]; then echo "REMOTE_DIR is required (.env)"; exit 1; fi
+    @if [ -z "${DEPLOY_BRANCH}" ]; then echo "DEPLOY_BRANCH is required (.env)"; exit 1; fi
+    @if [ -z "${SERVICE_NAME}" ]; then echo "SERVICE_NAME is required (.env)"; exit 1; fi
+    ./scripts/deploy/deploy.sh
