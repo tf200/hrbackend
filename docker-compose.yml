@@ -1,38 +1,38 @@
 services:
-  db:
-    image: postgres:16-alpine
-    ports:
-      - "${DB_HOST_PORT:-5432}:5432"
-    environment:
-      POSTGRES_USER: maihr
-      POSTGRES_PASSWORD: maihr
-      POSTGRES_DB: maihr
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U maihr -d maihr"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    db:
+        image: postgres:16-alpine
+        ports:
+            - "${DB_HOST_PORT:-5432}:5432"
+        environment:
+            POSTGRES_USER: maihr
+            POSTGRES_PASSWORD: maihr
+            POSTGRES_DB: maihr
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U maihr -d maihr"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "${REDIS_HOST_PORT:-6379}:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    redis:
+        image: redis:7-alpine
+        ports:
+            - "6379"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
-  app:
-    build: .
-    # OR-Tools binary distributions are only published for x86_64/amd64.
-    platform: linux/amd64
-    env_file:
-      - .env
-    ports:
-      - "${APP_HOST_PORT:-8080}:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    app:
+        build: .
+        # OR-Tools binary distributions are only published for x86_64/amd64.
+        platform: linux/amd64
+        env_file:
+            - .env
+        ports:
+            - "${APP_HOST_PORT:-8080}:8080"
+        depends_on:
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
