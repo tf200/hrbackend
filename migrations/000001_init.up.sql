@@ -187,9 +187,10 @@ WITH seeded(name, sort_order) AS (
         ('SHIFT.VIEW', 490),
         ('TIME_ENTRY.CREATE', 500),
         ('TIME_ENTRY.CREATE_ALL', 510),
-        ('TIME_ENTRY.VIEW', 520),
-        ('TIME_ENTRY.VIEW_ALL', 530),
-        ('TIME_ENTRY.DECIDE', 540)
+        ('TIME_ENTRY.UPDATE_ALL', 520),
+        ('TIME_ENTRY.VIEW', 530),
+        ('TIME_ENTRY.VIEW_ALL', 540),
+        ('TIME_ENTRY.DECIDE', 550)
 )
 INSERT INTO permissions (
     name,
@@ -287,6 +288,7 @@ WHERE p.name IN (
     'SHIFT.VIEW',
     'TIME_ENTRY.CREATE',
     'TIME_ENTRY.CREATE_ALL',
+    'TIME_ENTRY.UPDATE_ALL',
     'TIME_ENTRY.VIEW',
     'TIME_ENTRY.VIEW_ALL',
     'TIME_ENTRY.DECIDE'
@@ -721,6 +723,19 @@ CREATE TABLE time_entries (
 CREATE INDEX idx_time_entries_employee_date ON time_entries(employee_id, entry_date DESC);
 CREATE INDEX idx_time_entries_status ON time_entries(status);
 CREATE INDEX idx_time_entries_schedule_id ON time_entries(schedule_id);
+
+CREATE TABLE time_entry_update_audits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    time_entry_id UUID NOT NULL REFERENCES time_entries(id) ON DELETE CASCADE,
+    admin_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    admin_update_note TEXT NOT NULL CHECK (btrim(admin_update_note) <> ''),
+    before_snapshot JSONB NOT NULL,
+    after_snapshot JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_time_entry_update_audits_entry_created_at
+ON time_entry_update_audits(time_entry_id, created_at DESC);
 
 -- ==========================================
 -- LATE ARRIVALS

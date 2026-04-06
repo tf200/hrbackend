@@ -63,6 +63,7 @@ type Querier interface {
 	CreateShiftSwapRequest(ctx context.Context, arg CreateShiftSwapRequestParams) (ShiftSwapRequest, error)
 	CreateTemp2FaSecret(ctx context.Context, arg CreateTemp2FaSecretParams) (int64, error)
 	CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (CreateTimeEntryRow, error)
+	CreateTimeEntryUpdateAudit(ctx context.Context, arg CreateTimeEntryUpdateAuditParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (CustomUser, error)
 	DeleteDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	DeleteEmployeeCertification(ctx context.Context, id uuid.UUID) (Certification, error)
@@ -85,6 +86,7 @@ type Querier interface {
 	// Returns the ID of the admin role.
 	GetAdminRoleId(ctx context.Context) (uuid.UUID, error)
 	GetAllAdminUsers(ctx context.Context) ([]CustomUser, error)
+	GetCurrentMonthTimeEntryStats(ctx context.Context) (GetCurrentMonthTimeEntryStatsRow, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEmployeeContractDetails(ctx context.Context, id uuid.UUID) (GetEmployeeContractDetailsRow, error)
 	GetEmployeeContractForLeave(ctx context.Context, employeeID uuid.UUID) (GetEmployeeContractForLeaveRow, error)
@@ -224,6 +226,7 @@ type Querier interface {
 	UpdateShift(ctx context.Context, arg UpdateShiftParams) (LocationShift, error)
 	UpdateShiftSwapAdminDecision(ctx context.Context, arg UpdateShiftSwapAdminDecisionParams) (ShiftSwapRequest, error)
 	UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, arg UpdateShiftSwapStatusAfterRecipientResponseParams) (ShiftSwapRequest, error)
+	UpdateTimeEntryByAdmin(ctx context.Context, arg UpdateTimeEntryByAdminParams) (UpdateTimeEntryByAdminRow, error)
 	WaiveActiveEmployeeHandbooksByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 	WaiveEmployeeHandbookByID(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 }

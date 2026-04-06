@@ -1531,6 +1531,16 @@ type TimeEntry struct {
 	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 }
 
+type TimeEntryUpdateAudit struct {
+	ID              uuid.UUID          `json:"id"`
+	TimeEntryID     uuid.UUID          `json:"time_entry_id"`
+	AdminEmployeeID uuid.UUID          `json:"admin_employee_id"`
+	AdminUpdateNote string             `json:"admin_update_note"`
+	BeforeSnapshot  []byte             `json:"before_snapshot"`
+	AfterSnapshot   []byte             `json:"after_snapshot"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
 type UserPermissionOverride struct {
 	UserID       uuid.UUID                `json:"user_id"`
 	PermissionID uuid.UUID                `json:"permission_id"`

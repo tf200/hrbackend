@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
@@ -121,6 +122,7 @@ func (r *TimeEntryRepository) ListTimeEntries(
 			row.ID,
 			row.EmployeeID,
 			row.ScheduleID,
+			row.PaidPeriodID,
 			row.EntryDate,
 			row.StartTime,
 			row.EndTime,
@@ -175,6 +177,7 @@ func (r *TimeEntryRepository) ListMyTimeEntries(
 			row.ID,
 			row.EmployeeID,
 			row.ScheduleID,
+			row.PaidPeriodID,
 			row.EntryDate,
 			row.StartTime,
 			row.EndTime,
@@ -203,11 +206,28 @@ func (r *TimeEntryRepository) ListMyTimeEntries(
 	return page, nil
 }
 
+func (r *TimeEntryRepository) GetCurrentMonthTimeEntryStats(
+	ctx context.Context,
+) (*domain.TimeEntryStats, error) {
+	row, err := r.store.GetCurrentMonthTimeEntryStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.TimeEntryStats{
+		TotalHours:            float64(row.TotalWorkedMinutes) / 60.0,
+		TotalAwaitingApproval: row.TotalAwaitingApproval,
+		TotalApproved:         row.TotalApproved,
+		TotalConcepts:         row.TotalConcepts,
+	}, nil
+}
+
 func toDomainTimeEntryFromCreateRow(row db.CreateTimeEntryRow) domain.TimeEntry {
 	return buildDomainTimeEntry(
 		row.ID,
 		row.EmployeeID,
 		row.ScheduleID,
+		row.PaidPeriodID,
 		row.EntryDate,
 		row.StartTime,
 		row.EndTime,
@@ -238,6 +258,7 @@ func toDomainTimeEntryFromGetRow(row db.GetTimeEntryByIDRow) domain.TimeEntry {
 		row.ID,
 		row.EmployeeID,
 		row.ScheduleID,
+		row.PaidPeriodID,
 		row.EntryDate,
 		row.StartTime,
 		row.EndTime,
@@ -267,6 +288,7 @@ func buildDomainTimeEntry(
 	id uuid.UUID,
 	employeeID uuid.UUID,
 	scheduleID *uuid.UUID,
+	paidPeriodID *uuid.UUID,
 	entryDate pgtype.Date,
 	startTime pgtype.Time,
 	endTime pgtype.Time,
@@ -295,6 +317,7 @@ func buildDomainTimeEntry(
 		EmployeeID:           employeeID,
 		EmployeeName:         fullName(employeeFirstName, employeeLastName),
 		ScheduleID:           scheduleID,
+		PaidPeriodID:         paidPeriodID,
 		EntryDate:            conv.TimeFromPgDate(entryDate),
 		StartTime:            conv.StringFromPgTime(startTime),
 		EndTime:              conv.StringFromPgTime(endTime),
@@ -444,11 +467,79 @@ func (r *timeEntryTxRepo) RejectTimeEntry(
 	return &model, nil
 }
 
+func (r *timeEntryTxRepo) UpdateTimeEntryByAdmin(
+	ctx context.Context,
+	timeEntryID uuid.UUID,
+	params domain.UpdateTimeEntryByAdminParams,
+) (*domain.TimeEntry, error) {
+	if params.ScheduleID != nil {
+		schedule, err := r.queries.GetScheduleById(ctx, *params.ScheduleID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, domain.ErrTimeEntryInvalidRequest
+			}
+			return nil, err
+		}
+		if schedule.EmployeeID != params.EmployeeID {
+			return nil, domain.ErrTimeEntryInvalidRequest
+		}
+	}
+
+	startTime, err := toNullablePgTime(params.StartTime)
+	if err != nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+	endTime, err := toNullablePgTime(params.EndTime)
+	if err != nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	row, err := r.queries.UpdateTimeEntryByAdmin(ctx, db.UpdateTimeEntryByAdminParams{
+		ScheduleID:          params.ScheduleID,
+		EntryDate:           toNullablePgDate(params.EntryDate),
+		StartTime:           startTime,
+		EndTime:             endTime,
+		BreakMinutes:        params.BreakMinutes,
+		HourType:            toDBNullTimeEntryHourType(params.HourType),
+		ProjectName:         params.ProjectName,
+		ProjectNumber:       params.ProjectNumber,
+		ClientName:          params.ClientName,
+		ActivityCategory:    params.ActivityCategory,
+		ActivityDescription: params.ActivityDescription,
+		Notes:               params.Notes,
+		SetSubmitted:        shouldSetSubmitted(params.Status),
+		ID:                  timeEntryID,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrTimeEntryNotFound
+		}
+		return nil, err
+	}
+
+	model := toDomainTimeEntryFromUpdateRow(row)
+	return &model, nil
+}
+
+func (r *timeEntryTxRepo) CreateTimeEntryUpdateAudit(
+	ctx context.Context,
+	params domain.CreateTimeEntryUpdateAuditParams,
+) error {
+	return r.queries.CreateTimeEntryUpdateAudit(ctx, db.CreateTimeEntryUpdateAuditParams{
+		TimeEntryID:     params.TimeEntryID,
+		AdminEmployeeID: params.AdminEmployeeID,
+		AdminUpdateNote: params.AdminUpdateNote,
+		BeforeSnapshot:  params.BeforeSnapshot,
+		AfterSnapshot:   params.AfterSnapshot,
+	})
+}
+
 func toDomainTimeEntryFromDBTimeEntry(row db.TimeEntry) domain.TimeEntry {
 	return buildDomainTimeEntry(
 		row.ID,
 		row.EmployeeID,
 		row.ScheduleID,
+		row.PaidPeriodID,
 		row.EntryDate,
 		row.StartTime,
 		row.EndTime,
@@ -479,6 +570,7 @@ func toDomainTimeEntryFromApproveRow(row db.ApproveTimeEntryRow) domain.TimeEntr
 		row.ID,
 		row.EmployeeID,
 		row.ScheduleID,
+		row.PaidPeriodID,
 		row.EntryDate,
 		row.StartTime,
 		row.EndTime,
@@ -509,6 +601,7 @@ func toDomainTimeEntryFromRejectRow(row db.RejectTimeEntryRow) domain.TimeEntry 
 		row.ID,
 		row.EmployeeID,
 		row.ScheduleID,
+		row.PaidPeriodID,
 		row.EntryDate,
 		row.StartTime,
 		row.EndTime,
@@ -532,4 +625,68 @@ func toDomainTimeEntryFromRejectRow(row db.RejectTimeEntryRow) domain.TimeEntry 
 		row.ApprovedByFirstName,
 		row.ApprovedByLastName,
 	)
+}
+
+func toDomainTimeEntryFromUpdateRow(row db.UpdateTimeEntryByAdminRow) domain.TimeEntry {
+	return buildDomainTimeEntry(
+		row.ID,
+		row.EmployeeID,
+		row.ScheduleID,
+		row.PaidPeriodID,
+		row.EntryDate,
+		row.StartTime,
+		row.EndTime,
+		row.BreakMinutes,
+		string(row.HourType),
+		row.ProjectName,
+		row.ProjectNumber,
+		row.ClientName,
+		row.ActivityCategory,
+		row.ActivityDescription,
+		string(row.Status),
+		row.SubmittedAt,
+		row.ApprovedAt,
+		row.ApprovedByEmployeeID,
+		row.RejectionReason,
+		row.Notes,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.EmployeeFirstName,
+		row.EmployeeLastName,
+		row.ApprovedByFirstName,
+		row.ApprovedByLastName,
+	)
+}
+
+func toNullablePgDate(value *time.Time) pgtype.Date {
+	if value == nil {
+		return pgtype.Date{}
+	}
+	return conv.PgDateFromTime(*value)
+}
+
+func toNullablePgTime(value *string) (pgtype.Time, error) {
+	if value == nil {
+		return pgtype.Time{}, nil
+	}
+	parsed, err := conv.PgTimeFromString(*value)
+	if err != nil {
+		return pgtype.Time{}, err
+	}
+	return parsed, nil
+}
+
+func toDBNullTimeEntryHourType(value *string) db.NullTimeEntryHourTypeEnum {
+	if value == nil {
+		return db.NullTimeEntryHourTypeEnum{}
+	}
+
+	return db.NullTimeEntryHourTypeEnum{
+		TimeEntryHourTypeEnum: toDBTimeEntryHourType(*value),
+		Valid:                 true,
+	}
+}
+
+func shouldSetSubmitted(status *string) bool {
+	return status != nil && strings.TrimSpace(strings.ToLower(*status)) == domain.TimeEntryStatusSubmitted
 }

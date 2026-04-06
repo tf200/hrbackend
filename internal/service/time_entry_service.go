@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -91,6 +92,64 @@ func (s *TimeEntryService) DecideTimeEntryByAdmin(
 
 		updated, err = tx.RejectTimeEntry(ctx, timeEntryID, rejectionReason)
 		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
+func (s *TimeEntryService) UpdateTimeEntryByAdmin(
+	ctx context.Context,
+	adminEmployeeID, timeEntryID uuid.UUID,
+	params domain.UpdateTimeEntryByAdminParams,
+	adminUpdateNote string,
+) (*domain.TimeEntry, error) {
+	if adminEmployeeID == uuid.Nil || timeEntryID == uuid.Nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	trimmedAdminUpdateNote := strings.TrimSpace(adminUpdateNote)
+	if trimmedAdminUpdateNote == "" {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	var updated *domain.TimeEntry
+	err := s.repository.WithTx(ctx, func(tx domain.TimeEntryTxRepository) error {
+		current, err := tx.GetTimeEntryForUpdate(ctx, timeEntryID)
+		if err != nil {
+			return err
+		}
+		if current.PaidPeriodID != nil {
+			return domain.ErrTimeEntryStateInvalid
+		}
+
+		normalized, err := normalizeUpdateTimeEntryByAdminParams(*current, params)
+		if err != nil {
+			return err
+		}
+		updated, err = tx.UpdateTimeEntryByAdmin(ctx, timeEntryID, normalized)
+		if err != nil {
+			return err
+		}
+
+		beforeSnapshot, err := json.Marshal(current)
+		if err != nil {
+			return fmt.Errorf("marshal time entry before snapshot: %w", err)
+		}
+		afterSnapshot, err := json.Marshal(updated)
+		if err != nil {
+			return fmt.Errorf("marshal time entry after snapshot: %w", err)
+		}
+
+		return tx.CreateTimeEntryUpdateAudit(ctx, domain.CreateTimeEntryUpdateAuditParams{
+			TimeEntryID:     timeEntryID,
+			AdminEmployeeID: adminEmployeeID,
+			AdminUpdateNote: trimmedAdminUpdateNote,
+			BeforeSnapshot:  beforeSnapshot,
+			AfterSnapshot:   afterSnapshot,
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -199,6 +258,23 @@ func (s *TimeEntryService) ListMyTimeEntries(
 	return page, nil
 }
 
+func (s *TimeEntryService) GetCurrentMonthTimeEntryStats(
+	ctx context.Context,
+) (*domain.TimeEntryStats, error) {
+	stats, err := s.repository.GetCurrentMonthTimeEntryStats(ctx)
+	if err != nil {
+		s.logError(
+			ctx,
+			"TimeEntryService.GetCurrentMonthTimeEntryStats",
+			"failed to get current month time entry stats",
+			err,
+		)
+		return nil, fmt.Errorf("failed to get current month time entry stats: %w", err)
+	}
+
+	return stats, nil
+}
+
 func normalizeCreateTimeEntryParams(
 	params domain.CreateTimeEntryParams,
 ) (domain.CreateTimeEntryParams, error) {
@@ -242,6 +318,126 @@ func normalizeCreateTimeEntryParams(
 	params.EndTime = endParsed.Format("15:04")
 	params.HourType = normalizedHourType
 	return params, nil
+}
+
+func normalizeUpdateTimeEntryByAdminParams(
+	current domain.TimeEntry,
+	params domain.UpdateTimeEntryByAdminParams,
+) (domain.UpdateTimeEntryByAdminParams, error) {
+	normalized := domain.UpdateTimeEntryByAdminParams{
+		EmployeeID: current.EmployeeID,
+	}
+	var hasUpdates bool
+
+	nextStart := current.StartTime
+	nextEnd := current.EndTime
+	nextBreak := current.BreakMinutes
+
+	if params.ScheduleID != nil {
+		normalized.ScheduleID = params.ScheduleID
+		hasUpdates = true
+	}
+	if params.EntryDate != nil {
+		dateOnly := params.EntryDate.UTC()
+		dateOnly = time.Date(dateOnly.Year(), dateOnly.Month(), dateOnly.Day(), 0, 0, 0, 0, time.UTC)
+		normalized.EntryDate = &dateOnly
+		hasUpdates = true
+	}
+	if params.StartTime != nil {
+		trimmed := strings.TrimSpace(*params.StartTime)
+		normalized.StartTime = &trimmed
+		nextStart = trimmed
+		hasUpdates = true
+	}
+	if params.EndTime != nil {
+		trimmed := strings.TrimSpace(*params.EndTime)
+		normalized.EndTime = &trimmed
+		nextEnd = trimmed
+		hasUpdates = true
+	}
+	if params.BreakMinutes != nil {
+		breakMinutes := *params.BreakMinutes
+		normalized.BreakMinutes = &breakMinutes
+		nextBreak = breakMinutes
+		hasUpdates = true
+	}
+	if params.HourType != nil {
+		normalizedHourType := strings.ToLower(strings.TrimSpace(*params.HourType))
+		normalized.HourType = &normalizedHourType
+		hasUpdates = true
+	}
+
+	if params.ProjectName != nil {
+		normalized.ProjectName = trimTimeEntryStringPtr(params.ProjectName)
+		hasUpdates = true
+	}
+	if params.ProjectNumber != nil {
+		normalized.ProjectNumber = trimTimeEntryStringPtr(params.ProjectNumber)
+		hasUpdates = true
+	}
+	if params.ClientName != nil {
+		normalized.ClientName = trimTimeEntryStringPtr(params.ClientName)
+		hasUpdates = true
+	}
+	if params.ActivityCategory != nil {
+		normalized.ActivityCategory = trimTimeEntryStringPtr(params.ActivityCategory)
+		hasUpdates = true
+	}
+	if params.ActivityDescription != nil {
+		normalized.ActivityDescription = trimTimeEntryStringPtr(params.ActivityDescription)
+		hasUpdates = true
+	}
+	if params.Notes != nil {
+		normalized.Notes = trimTimeEntryStringPtr(params.Notes)
+		hasUpdates = true
+	}
+
+	if params.Status != nil {
+		status := strings.ToLower(strings.TrimSpace(*params.Status))
+		if status != domain.TimeEntryStatusSubmitted {
+			return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+		}
+		normalized.Status = &status
+		hasUpdates = true
+	}
+
+	if !hasUpdates {
+		return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+
+	startParsed, err := time.Parse("15:04", nextStart)
+	if err != nil {
+		return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	endParsed, err := time.Parse("15:04", nextEnd)
+	if err != nil {
+		return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+
+	durationMinutes := int32(endParsed.Sub(startParsed).Minutes())
+	if durationMinutes <= 0 {
+		durationMinutes += 24 * 60
+	}
+	if durationMinutes <= 0 {
+		return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	if nextBreak < 0 || nextBreak >= durationMinutes {
+		return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+	if normalized.HourType != nil && !isValidTimeEntryHourType(*normalized.HourType) {
+		return domain.UpdateTimeEntryByAdminParams{}, domain.ErrTimeEntryInvalidRequest
+	}
+
+	startFormatted := startParsed.Format("15:04")
+	endFormatted := endParsed.Format("15:04")
+	if normalized.StartTime != nil {
+		normalized.StartTime = &startFormatted
+	}
+	if normalized.EndTime != nil {
+		normalized.EndTime = &endFormatted
+	}
+
+	return normalized, nil
 }
 
 func normalizeListTimeEntriesParams(

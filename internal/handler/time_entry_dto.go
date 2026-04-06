@@ -48,6 +48,23 @@ type decideTimeEntryByAdminRequest struct {
 	RejectionReason *string `json:"rejection_reason"`
 }
 
+type updateTimeEntryByAdminRequest struct {
+	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
+	EntryDate           *string    `json:"entry_date"            binding:"omitempty,datetime=2006-01-02"`
+	StartTime           *string    `json:"start_time"`
+	EndTime             *string    `json:"end_time"`
+	BreakMinutes        *int32     `json:"break_minutes"`
+	HourType            *string    `json:"hour_type"             binding:"omitempty,oneof=normal overtime travel leave sick training"`
+	ProjectName         *string    `json:"project_name"`
+	ProjectNumber       *string    `json:"project_number"`
+	ClientName          *string    `json:"client_name"`
+	ActivityCategory    *string    `json:"activity_category"`
+	ActivityDescription *string    `json:"activity_description"`
+	Notes               *string    `json:"notes"`
+	Status              *string    `json:"status"                binding:"omitempty,oneof=submitted"`
+	AdminUpdateNote     string     `json:"admin_update_note"     binding:"required"`
+}
+
 type listTimeEntriesRequest struct {
 	httpapi.PageRequest
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
@@ -64,6 +81,7 @@ type timeEntryResponse struct {
 	EmployeeID           uuid.UUID  `json:"employee_id"`
 	EmployeeName         string     `json:"employee_name"`
 	ScheduleID           *uuid.UUID `json:"schedule_id,omitempty"`
+	IsPaid               bool       `json:"is_paid"`
 	EntryDate            time.Time  `json:"entry_date"`
 	StartTime            string     `json:"start_time"`
 	EndTime              string     `json:"end_time"`
@@ -83,6 +101,13 @@ type timeEntryResponse struct {
 	Notes                *string    `json:"notes,omitempty"`
 	CreatedAt            time.Time  `json:"created_at"`
 	UpdatedAt            time.Time  `json:"updated_at"`
+}
+
+type timeEntryStatsResponse struct {
+	TotalHours            float64 `json:"total_hours"`
+	TotalAwaitingApproval int64   `json:"total_awaiting_approval"`
+	TotalApproved         int64   `json:"total_approved"`
+	TotalConcepts         int64   `json:"total_concepts"`
 }
 
 func toCreateTimeEntryParams(req createTimeEntryRequest) (domain.CreateTimeEntryParams, error) {
@@ -138,6 +163,37 @@ func toDecideTimeEntryParams(req decideTimeEntryByAdminRequest) domain.DecideTim
 	}
 }
 
+func toUpdateTimeEntryByAdminParams(
+	req updateTimeEntryByAdminRequest,
+) (domain.UpdateTimeEntryByAdminParams, string, error) {
+	entryDate, err := parseTimeEntryDatePtr(req.EntryDate)
+	if err != nil {
+		return domain.UpdateTimeEntryByAdminParams{}, "", err
+	}
+
+	status := req.Status
+	if status != nil {
+		trimmed := strings.TrimSpace(*status)
+		status = &trimmed
+	}
+
+	return domain.UpdateTimeEntryByAdminParams{
+		ScheduleID:          req.ScheduleID,
+		EntryDate:           entryDate,
+		StartTime:           trimStringPtr(req.StartTime),
+		EndTime:             trimStringPtr(req.EndTime),
+		BreakMinutes:        req.BreakMinutes,
+		HourType:            trimStringPtr(req.HourType),
+		ProjectName:         trimStringPtr(req.ProjectName),
+		ProjectNumber:       trimStringPtr(req.ProjectNumber),
+		ClientName:          trimStringPtr(req.ClientName),
+		ActivityCategory:    trimStringPtr(req.ActivityCategory),
+		ActivityDescription: trimStringPtr(req.ActivityDescription),
+		Notes:               trimStringPtr(req.Notes),
+		Status:              status,
+	}, req.AdminUpdateNote, nil
+}
+
 func toListTimeEntriesParams(req listTimeEntriesRequest) domain.ListTimeEntriesParams {
 	return domain.ListTimeEntriesParams{
 		Limit:          req.PageSize,
@@ -165,6 +221,7 @@ func toTimeEntryResponse(item *domain.TimeEntry) timeEntryResponse {
 		EmployeeID:           item.EmployeeID,
 		EmployeeName:         item.EmployeeName,
 		ScheduleID:           item.ScheduleID,
+		IsPaid:               item.PaidPeriodID != nil,
 		EntryDate:            item.EntryDate,
 		StartTime:            item.StartTime,
 		EndTime:              item.EndTime,
@@ -195,6 +252,15 @@ func toTimeEntryResponses(items []domain.TimeEntry) []timeEntryResponse {
 	return results
 }
 
+func toTimeEntryStatsResponse(stats *domain.TimeEntryStats) timeEntryStatsResponse {
+	return timeEntryStatsResponse{
+		TotalHours:            stats.TotalHours,
+		TotalAwaitingApproval: stats.TotalAwaitingApproval,
+		TotalApproved:         stats.TotalApproved,
+		TotalConcepts:         stats.TotalConcepts,
+	}
+}
+
 func trimStringPtr(value *string) *string {
 	if value == nil {
 		return nil
@@ -204,4 +270,16 @@ func trimStringPtr(value *string) *string {
 		return nil
 	}
 	return &trimmed
+}
+
+func parseTimeEntryDatePtr(value *string) (*time.Time, error) {
+	if value == nil {
+		return nil, nil
+	}
+	parsed, err := time.Parse(timeEntryDateLayout, strings.TrimSpace(*value))
+	if err != nil {
+		return nil, err
+	}
+	utc := parsed.UTC()
+	return &utc, nil
 }

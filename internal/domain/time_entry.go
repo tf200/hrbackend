@@ -34,6 +34,7 @@ type TimeEntry struct {
 	EmployeeID           uuid.UUID
 	EmployeeName         string
 	ScheduleID           *uuid.UUID
+	PaidPeriodID         *uuid.UUID
 	EntryDate            time.Time
 	StartTime            string
 	EndTime              string
@@ -58,6 +59,13 @@ type TimeEntry struct {
 type TimeEntryPage struct {
 	Items      []TimeEntry
 	TotalCount int64
+}
+
+type TimeEntryStats struct {
+	TotalHours            float64
+	TotalAwaitingApproval int64
+	TotalApproved         int64
+	TotalConcepts         int64
 }
 
 type CreateTimeEntryParams struct {
@@ -96,6 +104,31 @@ type DecideTimeEntryParams struct {
 	RejectionReason *string
 }
 
+type UpdateTimeEntryByAdminParams struct {
+	EmployeeID          uuid.UUID
+	ScheduleID          *uuid.UUID
+	EntryDate           *time.Time
+	StartTime           *string
+	EndTime             *string
+	BreakMinutes        *int32
+	HourType            *string
+	ProjectName         *string
+	ProjectNumber       *string
+	ClientName          *string
+	ActivityCategory    *string
+	ActivityDescription *string
+	Notes               *string
+	Status              *string
+}
+
+type CreateTimeEntryUpdateAuditParams struct {
+	TimeEntryID     uuid.UUID
+	AdminEmployeeID uuid.UUID
+	AdminUpdateNote string
+	BeforeSnapshot  []byte
+	AfterSnapshot   []byte
+}
+
 type TimeEntryTxRepository interface {
 	GetTimeEntryForUpdate(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
 	ApproveTimeEntry(
@@ -107,6 +140,12 @@ type TimeEntryTxRepository interface {
 		timeEntryID uuid.UUID,
 		rejectionReason *string,
 	) (*TimeEntry, error)
+	UpdateTimeEntryByAdmin(
+		ctx context.Context,
+		timeEntryID uuid.UUID,
+		params UpdateTimeEntryByAdminParams,
+	) (*TimeEntry, error)
+	CreateTimeEntryUpdateAudit(ctx context.Context, params CreateTimeEntryUpdateAuditParams) error
 }
 
 type TimeEntryRepository interface {
@@ -115,6 +154,7 @@ type TimeEntryRepository interface {
 	GetTimeEntryByID(ctx context.Context, id uuid.UUID) (*TimeEntry, error)
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)
 	ListMyTimeEntries(ctx context.Context, params ListMyTimeEntriesParams) (*TimeEntryPage, error)
+	GetCurrentMonthTimeEntryStats(ctx context.Context) (*TimeEntryStats, error)
 }
 
 type TimeEntryService interface {
@@ -133,6 +173,12 @@ type TimeEntryService interface {
 		adminEmployeeID, timeEntryID uuid.UUID,
 		params DecideTimeEntryParams,
 	) (*TimeEntry, error)
+	UpdateTimeEntryByAdmin(
+		ctx context.Context,
+		adminEmployeeID, timeEntryID uuid.UUID,
+		params UpdateTimeEntryByAdminParams,
+		adminUpdateNote string,
+	) (*TimeEntry, error)
 	GetTimeEntryByID(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
 	GetMyTimeEntryByID(
 		ctx context.Context,
@@ -140,4 +186,5 @@ type TimeEntryService interface {
 	) (*TimeEntry, error)
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)
 	ListMyTimeEntries(ctx context.Context, params ListMyTimeEntriesParams) (*TimeEntryPage, error)
+	GetCurrentMonthTimeEntryStats(ctx context.Context) (*TimeEntryStats, error)
 }

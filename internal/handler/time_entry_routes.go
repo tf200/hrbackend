@@ -21,7 +21,19 @@ func RegisterTimeEntryRoutes(
 		requirePermission("TIME_ENTRY.DECIDE"),
 		handler.DecideTimeEntryByAdmin,
 	)
+	rg.PUT(
+		"/time-entries/:id/admin",
+		auth,
+		requirePermission("TIME_ENTRY.UPDATE_ALL"),
+		handler.UpdateTimeEntryByAdmin,
+	)
 	rg.GET("/time-entries", auth, requirePermission("TIME_ENTRY.VIEW_ALL"), handler.ListTimeEntries)
+	rg.GET(
+		"/time-entries/stats",
+		auth,
+		requirePermission("TIME_ENTRY.VIEW_ALL"),
+		handler.GetTimeEntryStats,
+	)
 	rg.GET(
 		"/time-entries/my",
 		auth,

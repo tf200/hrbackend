@@ -43,7 +43,8 @@ WITH updated_time_entry AS (
         rejection_reason,
         notes,
         created_at,
-        updated_at
+        updated_at,
+        paid_period_id
 )
 SELECT
     te.id,
@@ -67,6 +68,7 @@ SELECT
     te.notes,
     te.created_at,
     te.updated_at,
+    te.paid_period_id,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
     ap.first_name AS approved_by_first_name,
@@ -103,6 +105,7 @@ type ApproveTimeEntryRow struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 	EmployeeFirstName    string                `json:"employee_first_name"`
 	EmployeeLastName     string                `json:"employee_last_name"`
 	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
@@ -134,6 +137,7 @@ func (q *Queries) ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryPara
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaidPeriodID,
 		&i.EmployeeFirstName,
 		&i.EmployeeLastName,
 		&i.ApprovedByFirstName,
@@ -194,7 +198,8 @@ WITH inserted_time_entry AS (
         rejection_reason,
         notes,
         created_at,
-        updated_at
+        updated_at,
+        paid_period_id
 )
 SELECT
     te.id,
@@ -218,6 +223,7 @@ SELECT
     te.notes,
     te.created_at,
     te.updated_at,
+    te.paid_period_id,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
     ap.first_name AS approved_by_first_name,
@@ -265,6 +271,7 @@ type CreateTimeEntryRow struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 	EmployeeFirstName    string                `json:"employee_first_name"`
 	EmployeeLastName     string                `json:"employee_last_name"`
 	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
@@ -310,10 +317,97 @@ func (q *Queries) CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaidPeriodID,
 		&i.EmployeeFirstName,
 		&i.EmployeeLastName,
 		&i.ApprovedByFirstName,
 		&i.ApprovedByLastName,
+	)
+	return i, err
+}
+
+const createTimeEntryUpdateAudit = `-- name: CreateTimeEntryUpdateAudit :exec
+INSERT INTO time_entry_update_audits (
+    time_entry_id,
+    admin_employee_id,
+    admin_update_note,
+    before_snapshot,
+    after_snapshot
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5
+)
+`
+
+type CreateTimeEntryUpdateAuditParams struct {
+	TimeEntryID     uuid.UUID `json:"time_entry_id"`
+	AdminEmployeeID uuid.UUID `json:"admin_employee_id"`
+	AdminUpdateNote string    `json:"admin_update_note"`
+	BeforeSnapshot  []byte    `json:"before_snapshot"`
+	AfterSnapshot   []byte    `json:"after_snapshot"`
+}
+
+func (q *Queries) CreateTimeEntryUpdateAudit(ctx context.Context, arg CreateTimeEntryUpdateAuditParams) error {
+	_, err := q.db.Exec(ctx, createTimeEntryUpdateAudit,
+		arg.TimeEntryID,
+		arg.AdminEmployeeID,
+		arg.AdminUpdateNote,
+		arg.BeforeSnapshot,
+		arg.AfterSnapshot,
+	)
+	return err
+}
+
+const getCurrentMonthTimeEntryStats = `-- name: GetCurrentMonthTimeEntryStats :one
+SELECT
+    COALESCE(
+        SUM(
+            GREATEST(
+                0,
+                (
+                    CASE
+                        WHEN te.end_time > te.start_time THEN
+                            EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
+                        ELSE
+                            EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
+                    END
+                ) / 60 - te.break_minutes
+            )
+        ),
+        0
+    )::BIGINT AS total_worked_minutes,
+    COUNT(*) FILTER (
+        WHERE te.status = 'submitted'::time_entry_status_enum
+    )::BIGINT AS total_awaiting_approval,
+    COUNT(*) FILTER (
+        WHERE te.status = 'approved'::time_entry_status_enum
+    )::BIGINT AS total_approved,
+    COUNT(*) FILTER (
+        WHERE te.status = 'draft'::time_entry_status_enum
+    )::BIGINT AS total_concepts
+FROM time_entries te
+WHERE te.entry_date >= DATE_TRUNC('month', NOW())::date
+  AND te.entry_date < (DATE_TRUNC('month', NOW()) + INTERVAL '1 month')::date
+`
+
+type GetCurrentMonthTimeEntryStatsRow struct {
+	TotalWorkedMinutes    int64 `json:"total_worked_minutes"`
+	TotalAwaitingApproval int64 `json:"total_awaiting_approval"`
+	TotalApproved         int64 `json:"total_approved"`
+	TotalConcepts         int64 `json:"total_concepts"`
+}
+
+func (q *Queries) GetCurrentMonthTimeEntryStats(ctx context.Context) (GetCurrentMonthTimeEntryStatsRow, error) {
+	row := q.db.QueryRow(ctx, getCurrentMonthTimeEntryStats)
+	var i GetCurrentMonthTimeEntryStatsRow
+	err := row.Scan(
+		&i.TotalWorkedMinutes,
+		&i.TotalAwaitingApproval,
+		&i.TotalApproved,
+		&i.TotalConcepts,
 	)
 	return i, err
 }
@@ -341,6 +435,7 @@ SELECT
     te.notes,
     te.created_at,
     te.updated_at,
+    te.paid_period_id,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
     ap.first_name AS approved_by_first_name,
@@ -374,6 +469,7 @@ type GetTimeEntryByIDRow struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 	EmployeeFirstName    string                `json:"employee_first_name"`
 	EmployeeLastName     string                `json:"employee_last_name"`
 	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
@@ -405,6 +501,7 @@ func (q *Queries) GetTimeEntryByID(ctx context.Context, id uuid.UUID) (GetTimeEn
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaidPeriodID,
 		&i.EmployeeFirstName,
 		&i.EmployeeLastName,
 		&i.ApprovedByFirstName,
@@ -436,6 +533,7 @@ SELECT
     te.notes,
     te.created_at,
     te.updated_at,
+    te.paid_period_id,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
     ap.first_name AS approved_by_first_name,
@@ -482,6 +580,7 @@ type ListMyTimeEntriesPaginatedRow struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 	EmployeeFirstName    string                `json:"employee_first_name"`
 	EmployeeLastName     string                `json:"employee_last_name"`
 	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
@@ -525,6 +624,7 @@ func (q *Queries) ListMyTimeEntriesPaginated(ctx context.Context, arg ListMyTime
 			&i.Notes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaidPeriodID,
 			&i.EmployeeFirstName,
 			&i.EmployeeLastName,
 			&i.ApprovedByFirstName,
@@ -564,6 +664,7 @@ SELECT
     te.notes,
     te.created_at,
     te.updated_at,
+    te.paid_period_id,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
     ap.first_name AS approved_by_first_name,
@@ -622,6 +723,7 @@ type ListTimeEntriesPaginatedRow struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 	EmployeeFirstName    string                `json:"employee_first_name"`
 	EmployeeLastName     string                `json:"employee_last_name"`
 	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
@@ -666,6 +768,7 @@ func (q *Queries) ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntr
 			&i.Notes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaidPeriodID,
 			&i.EmployeeFirstName,
 			&i.EmployeeLastName,
 			&i.ApprovedByFirstName,
@@ -750,7 +853,8 @@ WITH updated_time_entry AS (
         rejection_reason,
         notes,
         created_at,
-        updated_at
+        updated_at,
+        paid_period_id
 )
 SELECT
     te.id,
@@ -774,6 +878,7 @@ SELECT
     te.notes,
     te.created_at,
     te.updated_at,
+    te.paid_period_id,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
     ap.first_name AS approved_by_first_name,
@@ -810,6 +915,7 @@ type RejectTimeEntryRow struct {
 	Notes                *string               `json:"notes"`
 	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
 	EmployeeFirstName    string                `json:"employee_first_name"`
 	EmployeeLastName     string                `json:"employee_last_name"`
 	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
@@ -841,6 +947,200 @@ func (q *Queries) RejectTimeEntry(ctx context.Context, arg RejectTimeEntryParams
 		&i.Notes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaidPeriodID,
+		&i.EmployeeFirstName,
+		&i.EmployeeLastName,
+		&i.ApprovedByFirstName,
+		&i.ApprovedByLastName,
+	)
+	return i, err
+}
+
+const updateTimeEntryByAdmin = `-- name: UpdateTimeEntryByAdmin :one
+WITH updated_time_entry AS (
+    UPDATE time_entries
+    SET
+        schedule_id = COALESCE($1::uuid, schedule_id),
+        entry_date = COALESCE($2::date, entry_date),
+        start_time = COALESCE($3::time, start_time),
+        end_time = COALESCE($4::time, end_time),
+        break_minutes = COALESCE($5::integer, break_minutes),
+        hour_type = COALESCE($6::time_entry_hour_type_enum, hour_type),
+        project_name = COALESCE($7::text, project_name),
+        project_number = COALESCE($8::text, project_number),
+        client_name = COALESCE($9::text, client_name),
+        activity_category = COALESCE($10::text, activity_category),
+        activity_description = COALESCE(
+            $11::text,
+            activity_description
+        ),
+        notes = COALESCE($12::text, notes),
+        status = CASE
+            WHEN $13::boolean
+                THEN 'submitted'::time_entry_status_enum
+            ELSE status
+        END,
+        submitted_at = CASE
+            WHEN $13::boolean THEN NOW()
+            ELSE submitted_at
+        END,
+        approved_at = CASE
+            WHEN $13::boolean THEN NULL
+            ELSE approved_at
+        END,
+        approved_by_employee_id = CASE
+            WHEN $13::boolean THEN NULL
+            ELSE approved_by_employee_id
+        END,
+        rejection_reason = CASE
+            WHEN $13::boolean THEN NULL
+            ELSE rejection_reason
+        END,
+        updated_at = NOW()
+    WHERE time_entries.id = $14
+    RETURNING
+        id,
+        employee_id,
+        schedule_id,
+        entry_date,
+        start_time,
+        end_time,
+        break_minutes,
+        hour_type,
+        project_name,
+        project_number,
+        client_name,
+        activity_category,
+        activity_description,
+        status,
+        submitted_at,
+        approved_at,
+        approved_by_employee_id,
+        rejection_reason,
+        notes,
+        created_at,
+        updated_at,
+        paid_period_id
+)
+SELECT
+    te.id,
+    te.employee_id,
+    te.schedule_id,
+    te.entry_date,
+    te.start_time,
+    te.end_time,
+    te.break_minutes,
+    te.hour_type,
+    te.project_name,
+    te.project_number,
+    te.client_name,
+    te.activity_category,
+    te.activity_description,
+    te.status,
+    te.submitted_at,
+    te.approved_at,
+    te.approved_by_employee_id,
+    te.rejection_reason,
+    te.notes,
+    te.created_at,
+    te.updated_at,
+    te.paid_period_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    ap.first_name AS approved_by_first_name,
+    ap.last_name AS approved_by_last_name
+FROM updated_time_entry te
+JOIN employee_profile ep ON ep.id = te.employee_id
+LEFT JOIN employee_profile ap ON ap.id = te.approved_by_employee_id
+`
+
+type UpdateTimeEntryByAdminParams struct {
+	ScheduleID          *uuid.UUID                `json:"schedule_id"`
+	EntryDate           pgtype.Date               `json:"entry_date"`
+	StartTime           pgtype.Time               `json:"start_time"`
+	EndTime             pgtype.Time               `json:"end_time"`
+	BreakMinutes        *int32                    `json:"break_minutes"`
+	HourType            NullTimeEntryHourTypeEnum `json:"hour_type"`
+	ProjectName         *string                   `json:"project_name"`
+	ProjectNumber       *string                   `json:"project_number"`
+	ClientName          *string                   `json:"client_name"`
+	ActivityCategory    *string                   `json:"activity_category"`
+	ActivityDescription *string                   `json:"activity_description"`
+	Notes               *string                   `json:"notes"`
+	SetSubmitted        bool                      `json:"set_submitted"`
+	ID                  uuid.UUID                 `json:"id"`
+}
+
+type UpdateTimeEntryByAdminRow struct {
+	ID                   uuid.UUID             `json:"id"`
+	EmployeeID           uuid.UUID             `json:"employee_id"`
+	ScheduleID           *uuid.UUID            `json:"schedule_id"`
+	EntryDate            pgtype.Date           `json:"entry_date"`
+	StartTime            pgtype.Time           `json:"start_time"`
+	EndTime              pgtype.Time           `json:"end_time"`
+	BreakMinutes         int32                 `json:"break_minutes"`
+	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
+	ProjectName          *string               `json:"project_name"`
+	ProjectNumber        *string               `json:"project_number"`
+	ClientName           *string               `json:"client_name"`
+	ActivityCategory     *string               `json:"activity_category"`
+	ActivityDescription  *string               `json:"activity_description"`
+	Status               TimeEntryStatusEnum   `json:"status"`
+	SubmittedAt          pgtype.Timestamptz    `json:"submitted_at"`
+	ApprovedAt           pgtype.Timestamptz    `json:"approved_at"`
+	ApprovedByEmployeeID *uuid.UUID            `json:"approved_by_employee_id"`
+	RejectionReason      *string               `json:"rejection_reason"`
+	Notes                *string               `json:"notes"`
+	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
+	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
+	EmployeeFirstName    string                `json:"employee_first_name"`
+	EmployeeLastName     string                `json:"employee_last_name"`
+	ApprovedByFirstName  *string               `json:"approved_by_first_name"`
+	ApprovedByLastName   *string               `json:"approved_by_last_name"`
+}
+
+func (q *Queries) UpdateTimeEntryByAdmin(ctx context.Context, arg UpdateTimeEntryByAdminParams) (UpdateTimeEntryByAdminRow, error) {
+	row := q.db.QueryRow(ctx, updateTimeEntryByAdmin,
+		arg.ScheduleID,
+		arg.EntryDate,
+		arg.StartTime,
+		arg.EndTime,
+		arg.BreakMinutes,
+		arg.HourType,
+		arg.ProjectName,
+		arg.ProjectNumber,
+		arg.ClientName,
+		arg.ActivityCategory,
+		arg.ActivityDescription,
+		arg.Notes,
+		arg.SetSubmitted,
+		arg.ID,
+	)
+	var i UpdateTimeEntryByAdminRow
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ScheduleID,
+		&i.EntryDate,
+		&i.StartTime,
+		&i.EndTime,
+		&i.BreakMinutes,
+		&i.HourType,
+		&i.ProjectName,
+		&i.ProjectNumber,
+		&i.ClientName,
+		&i.ActivityCategory,
+		&i.ActivityDescription,
+		&i.Status,
+		&i.SubmittedAt,
+		&i.ApprovedAt,
+		&i.ApprovedByEmployeeID,
+		&i.RejectionReason,
+		&i.Notes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PaidPeriodID,
 		&i.EmployeeFirstName,
 		&i.EmployeeLastName,
 		&i.ApprovedByFirstName,
