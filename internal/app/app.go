@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"hrbackend/config"
+	docs "hrbackend/docs"
 	"hrbackend/internal/domain"
 	"hrbackend/internal/handler"
 	"hrbackend/internal/middleware"
@@ -21,6 +22,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type App struct {
@@ -116,6 +119,9 @@ func buildRouter(
 	router.GET("/healthz", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"status": "ok"})
 	})
+
+	docs.SwaggerInfo.BasePath = "/api"
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenMaker, logger)
 	permissionMiddleware := middleware.NewPermissionMiddleware(store, logger)

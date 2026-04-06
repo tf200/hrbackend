@@ -13,13 +13,27 @@ import (
 
 type Store struct {
 	*Queries
-	ConnPool *pgxpool.Pool
+	TxStarter TxStarter
+	ConnPool  *pgxpool.Pool
+}
+
+type TxStarter interface {
+	DBTX
+	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
 func NewStore(connPool *pgxpool.Pool) *Store {
 	return &Store{
-		ConnPool: connPool,
-		Queries:  New(connPool),
+		TxStarter: connPool,
+		ConnPool:  connPool,
+		Queries:   New(connPool),
+	}
+}
+
+func NewStoreWithTx(tx pgx.Tx) *Store {
+	return &Store{
+		TxStarter: tx,
+		Queries:   New(tx),
 	}
 }
 
@@ -27,7 +41,15 @@ type TxFn func(queries *Queries) error
 
 // ExecTx executes a function within a database transaction
 func (store *Store) ExecTx(ctx context.Context, fn TxFn) error {
-	tx, err := store.ConnPool.Begin(ctx)
+	starter := store.TxStarter
+	if starter == nil && store.ConnPool != nil {
+		starter = store.ConnPool
+	}
+	if starter == nil {
+		return errors.New("transaction store is not configured")
+	}
+
+	tx, err := starter.Begin(ctx)
 	if err != nil {
 		return err
 	}

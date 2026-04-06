@@ -96,6 +96,7 @@ type Querier interface {
 	GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByIDRow, error)
 	GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByUserIDRow, error)
 	GetEmployeeSchedules(ctx context.Context, arg GetEmployeeSchedulesParams) ([]GetEmployeeSchedulesRow, error)
+	GetEmployeeSchedulesByDay(ctx context.Context, arg GetEmployeeSchedulesByDayParams) ([]GetEmployeeSchedulesByDayRow, error)
 	GetGlobalOrganisationCounts(ctx context.Context) (GetGlobalOrganisationCountsRow, error)
 	GetHandbookStepByID(ctx context.Context, id uuid.UUID) (HandbookStep, error)
 	GetHandbookTemplateByID(ctx context.Context, id uuid.UUID) (HandbookTemplate, error)

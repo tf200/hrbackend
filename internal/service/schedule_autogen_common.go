@@ -40,10 +40,19 @@ func (s *ScheduleService) ensureWeekEmpty(
 	if err != nil {
 		return fmt.Errorf("failed to check existing schedules: %w", err)
 	}
-	if len(rows) > 0 {
+	if hasAnyScheduledShift(rows) {
 		return domain.ErrWeekNotEmpty
 	}
 	return nil
+}
+
+func hasAnyScheduledShift(rows []domain.GetSchedulesByLocationInRangeResponse) bool {
+	for _, day := range rows {
+		if len(day.Shifts) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *ScheduleService) validateAutoGenerateRequest(

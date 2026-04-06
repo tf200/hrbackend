@@ -183,6 +183,41 @@ func (s *ScheduleService) GetSchedulesByLocationInRange(
 	return rows, nil
 }
 
+func (s *ScheduleService) GetEmployeeSchedulesByDay(
+	ctx context.Context,
+	req *domain.GetEmployeeSchedulesByDayRequest,
+) ([]domain.EmployeeScheduleByDay, error) {
+	if req.EmployeeID == uuid.Nil {
+		return nil, fmt.Errorf("employee_id is required")
+	}
+
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetEmployeeSchedulesByDay",
+			"invalid date format",
+			err,
+			zap.String("date", req.Date),
+		)
+		return nil, fmt.Errorf("invalid date format, expected YYYY-MM-DD")
+	}
+
+	rows, err := s.repository.GetEmployeeSchedulesByDay(ctx, req.EmployeeID, date)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetEmployeeSchedulesByDay",
+			"failed to list employee schedules for date",
+			err,
+			zap.String("employee_id", req.EmployeeID.String()),
+			zap.String("date", req.Date),
+		)
+		return nil, fmt.Errorf("failed to list employee schedules for date: %w", err)
+	}
+	return rows, nil
+}
+
 func (s *ScheduleService) GetScheduleByID(
 	ctx context.Context,
 	scheduleID uuid.UUID,

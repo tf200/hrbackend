@@ -26,6 +26,12 @@ func RegisterScheduleRoutes(
 		requirePermission("SCHEDULE.VIEW"),
 		handler.GetSchedulesByLocationInRange,
 	)
+	rg.GET(
+		"/schedules/by-employee-day",
+		auth,
+		requirePermission("SCHEDULE.VIEW"),
+		handler.GetEmployeeSchedulesByDay,
+	)
 	rg.GET("/schedules/:id", auth, requirePermission("SCHEDULE.VIEW"), handler.GetScheduleByID)
 	rg.PUT("/schedules/:id", auth, requirePermission("SCHEDULE.UPDATE"), handler.UpdateSchedule)
 	rg.DELETE("/schedules/:id", auth, requirePermission("SCHEDULE.DELETE"), handler.DeleteSchedule)
@@ -98,6 +104,25 @@ func (h *ScheduleHandler) GetSchedulesByLocationInRange(ctx *gin.Context) {
 		ctx.JSON(
 			http.StatusInternalServerError,
 			httpapi.Fail(fmt.Sprintf("failed to get schedules by range: %v", err), ""),
+		)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Schedules retrieved successfully"))
+}
+
+func (h *ScheduleHandler) GetEmployeeSchedulesByDay(ctx *gin.Context) {
+	var req domain.GetEmployeeSchedulesByDayRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response, err := h.service.GetEmployeeSchedulesByDay(ctx.Request.Context(), &req)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get employee schedules by day: %v", err), ""),
 		)
 		return
 	}

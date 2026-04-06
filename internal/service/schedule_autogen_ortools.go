@@ -173,7 +173,7 @@ func (s *ScheduleService) generateSchedulesWithORTools(
 			WeekStartDate: weekStartStr,
 			Constraints: domain.SchedulePlanConstraints{
 				MaxStaffPerShift: int32(maxStaffPerShift),
-				AllowEmptyShift:  true,
+				AllowEmptyShift:  false,
 			},
 			Employees:      planEmployees,
 			ShiftTemplates: shiftTemplates,
@@ -267,7 +267,7 @@ func (s *ScheduleService) generateSchedulesWithORTools(
 			cpmodel.NewLinearExpr().Add(total).AddConstant(-emp.TargetMinutes),
 		)
 		objective.AddTerm(overtime, overtimeWeight)
-		objective.AddTerm(total, 1)
+		objective.AddTerm(total, -1)
 	}
 	model.Minimize(objective)
 
@@ -302,7 +302,7 @@ func (s *ScheduleService) generateSchedulesWithORTools(
 			WeekStartDate: weekStartStr,
 			Constraints: domain.SchedulePlanConstraints{
 				MaxStaffPerShift: int32(maxStaffPerShift),
-				AllowEmptyShift:  true,
+				AllowEmptyShift:  false,
 			},
 			Employees:      planEmployees,
 			ShiftTemplates: shiftTemplates,
@@ -367,7 +367,7 @@ func (s *ScheduleService) generateSchedulesWithORTools(
 		WeekStartDate: weekStartStr,
 		Constraints: domain.SchedulePlanConstraints{
 			MaxStaffPerShift: int32(maxStaffPerShift),
-			AllowEmptyShift:  true,
+			AllowEmptyShift:  false,
 		},
 		Employees:      planEmployees,
 		ShiftTemplates: shiftTemplates,

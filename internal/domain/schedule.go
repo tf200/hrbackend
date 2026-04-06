@@ -64,6 +64,11 @@ type GetSchedulesByLocationInRangeRequest struct {
 	EndDate   string `form:"end_date"   binding:"required" example:"2026-02-29"`
 }
 
+type GetEmployeeSchedulesByDayRequest struct {
+	EmployeeID uuid.UUID `form:"employee_id" binding:"required"`
+	Date       string    `form:"date"        binding:"required" example:"2026-02-01"`
+}
+
 type Shift struct {
 	ScheduleID        uuid.UUID  `json:"schedule_id"`
 	EmployeeID        uuid.UUID  `json:"employee_id"`
@@ -80,6 +85,18 @@ type Shift struct {
 type GetSchedulesByLocationInRangeResponse struct {
 	Date   string  `json:"date"`
 	Shifts []Shift `json:"shifts"`
+}
+
+type EmployeeScheduleByDay struct {
+	ScheduleID      uuid.UUID  `json:"schedule_id"`
+	EmployeeID      uuid.UUID  `json:"employee_id"`
+	LocationID      uuid.UUID  `json:"location_id"`
+	LocationName    string     `json:"location_name"`
+	StartTime       time.Time  `json:"start_time"`
+	EndTime         time.Time  `json:"end_time"`
+	ShiftName       string     `json:"shift_name"`
+	LocationShiftID *uuid.UUID `json:"location_shift_id,omitempty"`
+	IsCustom        bool       `json:"is_custom"`
 }
 
 type GetScheduleByIdResponse struct {
@@ -346,6 +363,11 @@ type ScheduleRepository interface {
 		locationID uuid.UUID,
 		startDate, endDate time.Time,
 	) ([]GetSchedulesByLocationInRangeResponse, error)
+	GetEmployeeSchedulesByDay(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		date time.Time,
+	) ([]EmployeeScheduleByDay, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,
@@ -431,6 +453,10 @@ type ScheduleService interface {
 		locationID uuid.UUID,
 		req *GetSchedulesByLocationInRangeRequest,
 	) ([]GetSchedulesByLocationInRangeResponse, error)
+	GetEmployeeSchedulesByDay(
+		ctx context.Context,
+		req *GetEmployeeSchedulesByDayRequest,
+	) ([]EmployeeScheduleByDay, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,

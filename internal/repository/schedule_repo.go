@@ -99,6 +99,36 @@ func (r *ScheduleRepository) GetSchedulesByLocationInRange(
 	return response, nil
 }
 
+func (r *ScheduleRepository) GetEmployeeSchedulesByDay(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	date time.Time,
+) ([]domain.EmployeeScheduleByDay, error) {
+	rows, err := r.store.GetEmployeeSchedulesByDay(ctx, db.GetEmployeeSchedulesByDayParams{
+		EmployeeID: employeeID,
+		Date:       conv.PgDateFromTime(date),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeScheduleByDay, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeScheduleByDay{
+			ScheduleID:      row.ScheduleID,
+			EmployeeID:      row.EmployeeID,
+			LocationID:      row.LocationID,
+			LocationName:    row.LocationName,
+			StartTime:       conv.TimeFromPgTimestamptz(row.StartDatetime),
+			EndTime:         conv.TimeFromPgTimestamptz(row.EndDatetime),
+			ShiftName:       row.ShiftName,
+			LocationShiftID: row.LocationShiftID,
+			IsCustom:        row.IsCustom,
+		})
+	}
+	return result, nil
+}
+
 func (r *ScheduleRepository) GetScheduleByID(
 	ctx context.Context,
 	scheduleID uuid.UUID,

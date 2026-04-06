@@ -46,6 +46,24 @@ WHERE s.location_id = sqlc.arg(location_id)
   AND DATE(s.start_datetime) BETWEEN sqlc.arg(start_date)::date AND sqlc.arg(end_date)::date
 ORDER BY day, s.start_datetime;
 
+-- name: GetEmployeeSchedulesByDay :many
+SELECT
+    s.id AS schedule_id,
+    s.employee_id,
+    s.location_id,
+    l.name AS location_name,
+    s.start_datetime,
+    s.end_datetime,
+    COALESCE(s.shift_name_snapshot, ls.shift_name, 'Custom Shift') AS shift_name,
+    ls.id AS location_shift_id,
+    s.is_custom
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
+WHERE s.employee_id = sqlc.arg(employee_id)
+  AND DATE(s.start_datetime AT TIME ZONE l.timezone) = sqlc.arg(date)::date
+ORDER BY s.start_datetime;
+
 
 -- name: GetScheduleById :one
 SELECT s.*,

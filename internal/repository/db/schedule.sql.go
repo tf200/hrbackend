@@ -168,6 +168,72 @@ func (q *Queries) GetEmployeeSchedules(ctx context.Context, arg GetEmployeeSched
 	return items, nil
 }
 
+const getEmployeeSchedulesByDay = `-- name: GetEmployeeSchedulesByDay :many
+SELECT
+    s.id AS schedule_id,
+    s.employee_id,
+    s.location_id,
+    l.name AS location_name,
+    s.start_datetime,
+    s.end_datetime,
+    COALESCE(s.shift_name_snapshot, ls.shift_name, 'Custom Shift') AS shift_name,
+    ls.id AS location_shift_id,
+    s.is_custom
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
+WHERE s.employee_id = $1
+  AND DATE(s.start_datetime AT TIME ZONE l.timezone) = $2::date
+ORDER BY s.start_datetime
+`
+
+type GetEmployeeSchedulesByDayParams struct {
+	EmployeeID uuid.UUID   `json:"employee_id"`
+	Date       pgtype.Date `json:"date"`
+}
+
+type GetEmployeeSchedulesByDayRow struct {
+	ScheduleID      uuid.UUID          `json:"schedule_id"`
+	EmployeeID      uuid.UUID          `json:"employee_id"`
+	LocationID      uuid.UUID          `json:"location_id"`
+	LocationName    string             `json:"location_name"`
+	StartDatetime   pgtype.Timestamptz `json:"start_datetime"`
+	EndDatetime     pgtype.Timestamptz `json:"end_datetime"`
+	ShiftName       string             `json:"shift_name"`
+	LocationShiftID *uuid.UUID         `json:"location_shift_id"`
+	IsCustom        bool               `json:"is_custom"`
+}
+
+func (q *Queries) GetEmployeeSchedulesByDay(ctx context.Context, arg GetEmployeeSchedulesByDayParams) ([]GetEmployeeSchedulesByDayRow, error) {
+	rows, err := q.db.Query(ctx, getEmployeeSchedulesByDay, arg.EmployeeID, arg.Date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetEmployeeSchedulesByDayRow{}
+	for rows.Next() {
+		var i GetEmployeeSchedulesByDayRow
+		if err := rows.Scan(
+			&i.ScheduleID,
+			&i.EmployeeID,
+			&i.LocationID,
+			&i.LocationName,
+			&i.StartDatetime,
+			&i.EndDatetime,
+			&i.ShiftName,
+			&i.LocationShiftID,
+			&i.IsCustom,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getScheduleById = `-- name: GetScheduleById :one
 SELECT s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.created_by_employee_id, s.created_at, s.updated_at,
     e.first_name AS employee_first_name,

@@ -18,5 +18,8 @@ permissions-sync:
 seed-admin:
     go run ./scripts/seed_admin
 
+seed-mock:
+    go run ./scripts/seed_mock
+
 lines:
     golines -w .
