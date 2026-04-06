@@ -14,5 +14,5 @@ cd "${REMOTE_DIR}"
 git pull origin "${DEPLOY_BRANCH}"
 docker compose stop "${SERVICE_NAME}"
 docker compose rm -f "${SERVICE_NAME}"
-docker compose up -d "${SERVICE_NAME}"
+docker compose up -d --build "${SERVICE_NAME}"
 EOF
