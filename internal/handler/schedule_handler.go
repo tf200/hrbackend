@@ -13,42 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func RegisterScheduleRoutes(
-	rg *gin.RouterGroup,
-	handler *ScheduleHandler,
-	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
-) {
-	rg.POST("/schedules", auth, requirePermission("SCHEDULE.CREATE"), handler.CreateSchedule)
-	rg.GET(
-		"/locations/:id/schedules",
-		auth,
-		requirePermission("SCHEDULE.VIEW"),
-		handler.GetSchedulesByLocationInRange,
-	)
-	rg.GET(
-		"/schedules/by-employee-day",
-		auth,
-		requirePermission("SCHEDULE.VIEW"),
-		handler.GetEmployeeSchedulesByDay,
-	)
-	rg.GET("/schedules/:id", auth, requirePermission("SCHEDULE.VIEW"), handler.GetScheduleByID)
-	rg.PUT("/schedules/:id", auth, requirePermission("SCHEDULE.UPDATE"), handler.UpdateSchedule)
-	rg.DELETE("/schedules/:id", auth, requirePermission("SCHEDULE.DELETE"), handler.DeleteSchedule)
-	rg.POST(
-		"/schedules/auto_generate",
-		auth,
-		requirePermission("SCHEDULE.CREATE"),
-		handler.AutoGenerateSchedules,
-	)
-	rg.POST(
-		"/schedules/save_generated",
-		auth,
-		requirePermission("SCHEDULE.CREATE"),
-		handler.SaveGeneratedSchedules,
-	)
-}
-
 type ScheduleHandler struct {
 	service domain.ScheduleService
 }
@@ -58,7 +22,7 @@ func NewScheduleHandler(service domain.ScheduleService) *ScheduleHandler {
 }
 
 func (h *ScheduleHandler) CreateSchedule(ctx *gin.Context) {
-	var req domain.CreateScheduleRequest
+	var req createScheduleRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -70,7 +34,11 @@ func (h *ScheduleHandler) CreateSchedule(ctx *gin.Context) {
 		return
 	}
 
-	schedules, err := h.service.CreateSchedule(ctx.Request.Context(), employeeID, &req)
+	schedules, err := h.service.CreateSchedule(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateScheduleRequest(req),
+	)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -89,7 +57,7 @@ func (h *ScheduleHandler) GetSchedulesByLocationInRange(ctx *gin.Context) {
 		return
 	}
 
-	var req domain.GetSchedulesByLocationInRangeRequest
+	var req getSchedulesByLocationInRangeRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -98,7 +66,7 @@ func (h *ScheduleHandler) GetSchedulesByLocationInRange(ctx *gin.Context) {
 	response, err := h.service.GetSchedulesByLocationInRange(
 		ctx.Request.Context(),
 		locationID,
-		&req,
+		toGetSchedulesByLocationInRangeRequest(req),
 	)
 	if err != nil {
 		ctx.JSON(
@@ -112,13 +80,22 @@ func (h *ScheduleHandler) GetSchedulesByLocationInRange(ctx *gin.Context) {
 }
 
 func (h *ScheduleHandler) GetEmployeeSchedulesByDay(ctx *gin.Context) {
-	var req domain.GetEmployeeSchedulesByDayRequest
+	var req getEmployeeSchedulesByDayRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	response, err := h.service.GetEmployeeSchedulesByDay(ctx.Request.Context(), &req)
+	domainReq, err := toGetEmployeeSchedulesByDayRequest(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response, err := h.service.GetEmployeeSchedulesByDay(
+		ctx.Request.Context(),
+		domainReq,
+	)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -156,7 +133,7 @@ func (h *ScheduleHandler) UpdateSchedule(ctx *gin.Context) {
 		return
 	}
 
-	var req domain.UpdateScheduleRequest
+	var req updateScheduleRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -168,7 +145,12 @@ func (h *ScheduleHandler) UpdateSchedule(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.UpdateSchedule(ctx.Request.Context(), scheduleID, employeeID, &req)
+	item, err := h.service.UpdateSchedule(
+		ctx.Request.Context(),
+		scheduleID,
+		employeeID,
+		toUpdateScheduleRequest(req),
+	)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
@@ -199,13 +181,16 @@ func (h *ScheduleHandler) DeleteSchedule(ctx *gin.Context) {
 }
 
 func (h *ScheduleHandler) AutoGenerateSchedules(ctx *gin.Context) {
-	var req domain.AutoGenerateSchedulesRequest
+	var req autoGenerateSchedulesRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	generatedSchedule, err := h.service.AutoGenerateSchedules(ctx.Request.Context(), &req)
+	generatedSchedule, err := h.service.AutoGenerateSchedules(
+		ctx.Request.Context(),
+		toAutoGenerateSchedulesRequest(req),
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrWeekNotEmpty) {
 			ctx.JSON(http.StatusConflict, httpapi.Fail(err.Error(), ""))
@@ -226,7 +211,7 @@ func (h *ScheduleHandler) AutoGenerateSchedules(ctx *gin.Context) {
 }
 
 func (h *ScheduleHandler) SaveGeneratedSchedules(ctx *gin.Context) {
-	var req domain.SaveGeneratedSchedulesRequest
+	var req saveGeneratedSchedulesRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -241,7 +226,7 @@ func (h *ScheduleHandler) SaveGeneratedSchedules(ctx *gin.Context) {
 	if err := h.service.SaveGeneratedSchedules(
 		ctx.Request.Context(),
 		employeeID,
-		&req,
+		toSaveGeneratedSchedulesRequest(req),
 	); err != nil {
 		if errors.Is(err, domain.ErrScheduleAutogenUnavailable) {
 			ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail(err.Error(), ""))
