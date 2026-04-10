@@ -263,6 +263,14 @@ type CreateShiftSwapRequest struct {
 	ExpiresAt           *time.Time
 }
 
+type CreateAdminShiftSwapRequest struct {
+	RequesterEmployeeID uuid.UUID
+	RecipientEmployeeID uuid.UUID
+	RequesterScheduleID uuid.UUID
+	RecipientScheduleID uuid.UUID
+	Note                *string
+}
+
 type CreateShiftSwapResponse struct {
 	ID                  uuid.UUID
 	RequesterEmployeeID uuid.UUID
@@ -479,6 +487,11 @@ type ScheduleService interface {
 		requesterEmployeeID uuid.UUID,
 		req *CreateShiftSwapRequest,
 	) (*CreateShiftSwapResponse, error)
+	CreateAdminShiftSwapRequest(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		req *CreateAdminShiftSwapRequest,
+	) (*ShiftSwapResponse, error)
 	RespondToShiftSwapRequest(
 		ctx context.Context,
 		recipientEmployeeID, swapID uuid.UUID,

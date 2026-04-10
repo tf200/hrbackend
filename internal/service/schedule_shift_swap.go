@@ -86,6 +86,143 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 	return resp, nil
 }
 
+func (s *ScheduleService) CreateAdminShiftSwapRequest(
+	ctx context.Context,
+	adminEmployeeID uuid.UUID,
+	req *domain.CreateAdminShiftSwapRequest,
+) (*domain.ShiftSwapResponse, error) {
+	if req == nil || adminEmployeeID == uuid.Nil {
+		return nil, domain.ErrShiftSwapInvalidRequest
+	}
+	if req.RequesterEmployeeID == uuid.Nil || req.RecipientEmployeeID == uuid.Nil ||
+		req.RequesterScheduleID == uuid.Nil || req.RecipientScheduleID == uuid.Nil {
+		return nil, domain.ErrShiftSwapInvalidRequest
+	}
+	if req.RequesterEmployeeID == req.RecipientEmployeeID ||
+		req.RequesterScheduleID == req.RecipientScheduleID {
+		return nil, domain.ErrShiftSwapInvalidRequest
+	}
+
+	now := time.Now().UTC()
+	var created *domain.ShiftSwapRequestRecord
+
+	err := s.repository.WithTx(ctx, func(tx domain.ScheduleRepository) error {
+		schedules, err := tx.LockSchedulesByIDsForSwap(
+			ctx,
+			[]uuid.UUID{req.RequesterScheduleID, req.RecipientScheduleID},
+		)
+		if err != nil {
+			return err
+		}
+		if len(schedules) != 2 {
+			return domain.ErrScheduleNotFound
+		}
+
+		scheduleByID := map[uuid.UUID]domain.ScheduleSwapValidation{}
+		for _, sched := range schedules {
+			scheduleByID[sched.ID] = sched
+		}
+
+		requesterSchedule, okReq := scheduleByID[req.RequesterScheduleID]
+		recipientSchedule, okRec := scheduleByID[req.RecipientScheduleID]
+		if !okReq || !okRec {
+			return domain.ErrScheduleNotFound
+		}
+		if requesterSchedule.EmployeeID != req.RequesterEmployeeID ||
+			recipientSchedule.EmployeeID != req.RecipientEmployeeID {
+			return domain.ErrShiftSwapScheduleOwnership
+		}
+		if requesterSchedule.StartDatetime.Before(now) || recipientSchedule.StartDatetime.Before(now) {
+			return domain.ErrShiftSwapInvalidRequest
+		}
+
+		excludeIDs := []uuid.UUID{requesterSchedule.ID, recipientSchedule.ID}
+		requesterOverlap, err := tx.CountScheduleOverlapsForEmployee(
+			ctx,
+			req.RequesterEmployeeID,
+			excludeIDs,
+			recipientSchedule.StartDatetime,
+			recipientSchedule.EndDatetime,
+		)
+		if err != nil {
+			return err
+		}
+		if requesterOverlap > 0 {
+			return domain.ErrShiftSwapConflict
+		}
+
+		recipientOverlap, err := tx.CountScheduleOverlapsForEmployee(
+			ctx,
+			req.RecipientEmployeeID,
+			excludeIDs,
+			requesterSchedule.StartDatetime,
+			requesterSchedule.EndDatetime,
+		)
+		if err != nil {
+			return err
+		}
+		if recipientOverlap > 0 {
+			return domain.ErrShiftSwapConflict
+		}
+
+		createReq := domain.CreateShiftSwapRequest{
+			RecipientEmployeeID: req.RecipientEmployeeID,
+			RequesterScheduleID: req.RequesterScheduleID,
+			RecipientScheduleID: req.RecipientScheduleID,
+			ExpiresAt:           nil,
+		}
+		created, err = tx.CreateShiftSwapRequest(ctx, createReq, req.RequesterEmployeeID)
+		if err != nil {
+			return err
+		}
+
+		if _, err := tx.UpdateShiftSwapStatusAfterRecipientResponse(
+			ctx,
+			created.ID,
+			req.RecipientEmployeeID,
+			"pending_admin",
+			nil,
+		); err != nil {
+			return domain.ErrShiftSwapStateInvalid
+		}
+
+		var note *string
+		if req.Note != nil && strings.TrimSpace(*req.Note) != "" {
+			trimmed := strings.TrimSpace(*req.Note)
+			note = &trimmed
+		}
+		if _, err := tx.MarkShiftSwapConfirmed(ctx, created.ID, note, adminEmployeeID); err != nil {
+			return domain.ErrShiftSwapStateInvalid
+		}
+
+		if err := tx.UpdateScheduleEmployeeAssignment(
+			ctx,
+			requesterSchedule.ID,
+			req.RecipientEmployeeID,
+		); err != nil {
+			return err
+		}
+		if err := tx.UpdateScheduleEmployeeAssignment(
+			ctx,
+			recipientSchedule.ID,
+			req.RequesterEmployeeID,
+		); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	details, err := s.repository.GetShiftSwapRequestDetailsByID(ctx, created.ID)
+	if err != nil {
+		return nil, err
+	}
+	return details, nil
+}
+
 func (s *ScheduleService) RespondToShiftSwapRequest(
 	ctx context.Context,
 	recipientEmployeeID, swapID uuid.UUID,

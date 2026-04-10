@@ -16,6 +16,14 @@ type createShiftSwapRequest struct {
 	ExpiresAt           *time.Time `json:"expires_at,omitempty"`
 }
 
+type createAdminShiftSwapRequest struct {
+	RequesterEmployeeID uuid.UUID `json:"requester_employee_id" binding:"required"`
+	RecipientEmployeeID uuid.UUID `json:"recipient_employee_id" binding:"required"`
+	RequesterScheduleID uuid.UUID `json:"requester_schedule_id" binding:"required"`
+	RecipientScheduleID uuid.UUID `json:"recipient_schedule_id" binding:"required"`
+	Note                *string   `json:"note,omitempty"`
+}
+
 type respondShiftSwapRequest struct {
 	Decision string  `json:"decision"       binding:"required,oneof=accept reject"`
 	Note     *string `json:"note,omitempty"`

@@ -25,6 +25,12 @@ func RegisterShiftSwapRoutes(
 		handler.CreateShiftSwapRequest,
 	)
 	rg.POST(
+		"/shift-swaps/admin",
+		auth,
+		requirePermission("SCHEDULE_SWAP.APPROVE"),
+		handler.CreateAdminShiftSwapRequest,
+	)
+	rg.POST(
 		"/shift-swaps/:id/respond",
 		auth,
 		requirePermission("SCHEDULE_SWAP.RESPOND"),
@@ -89,6 +95,41 @@ func (h *ShiftSwapHandler) CreateShiftSwapRequest(ctx *gin.Context) {
 	ctx.JSON(
 		http.StatusCreated,
 		httpapi.OK(toCreateShiftSwapResponse(item), "Shift swap request created successfully"),
+	)
+}
+
+func (h *ShiftSwapHandler) CreateAdminShiftSwapRequest(ctx *gin.Context) {
+	var req createAdminShiftSwapRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	item, err := h.service.CreateAdminShiftSwapRequest(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		&domain.CreateAdminShiftSwapRequest{
+			RequesterEmployeeID: req.RequesterEmployeeID,
+			RecipientEmployeeID: req.RecipientEmployeeID,
+			RequesterScheduleID: req.RequesterScheduleID,
+			RecipientScheduleID: req.RecipientScheduleID,
+			Note:                req.Note,
+		},
+	)
+	if err != nil {
+		ctx.JSON(mapShiftSwapErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toShiftSwapResponse(*item), "Admin shift swap created and confirmed successfully"),
 	)
 }
 
