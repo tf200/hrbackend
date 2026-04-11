@@ -69,6 +69,12 @@ type GetEmployeeSchedulesByDayRequest struct {
 	Date       string    `form:"date"        binding:"required" example:"2026-02-01"`
 }
 
+type GetEmployeeSchedulesTimelineRequest struct {
+	EmployeeID uuid.UUID `form:"employee_id" binding:"required"`
+	StartDate  string    `form:"start_date"  binding:"required" example:"2026-02-01"`
+	EndDate    string    `form:"end_date"    binding:"required" example:"2026-02-29"`
+}
+
 type Shift struct {
 	ScheduleID        uuid.UUID  `json:"schedule_id"`
 	EmployeeID        uuid.UUID  `json:"employee_id"`
@@ -97,6 +103,33 @@ type EmployeeScheduleByDay struct {
 	ShiftName       string     `json:"shift_name"`
 	LocationShiftID *uuid.UUID `json:"location_shift_id,omitempty"`
 	IsCustom        bool       `json:"is_custom"`
+}
+
+type EmployeeScheduleTimelineShift struct {
+	ScheduleID   uuid.UUID `json:"schedule_id"`
+	LocationID   uuid.UUID `json:"location_id"`
+	LocationName string    `json:"location_name"`
+}
+
+type EmployeeScheduleTimelineItem struct {
+	ItemType  string                         `json:"item_type"`
+	StartTime time.Time                      `json:"start_time"`
+	EndTime   time.Time                      `json:"end_time"`
+	Shift     *EmployeeScheduleTimelineShift `json:"shift"`
+	Event     any                            `json:"event"`
+}
+
+type EmployeeScheduleTimelineDay struct {
+	Date  string                         `json:"date"`
+	Items []EmployeeScheduleTimelineItem `json:"items"`
+}
+
+type EmployeeScheduleTimelineEntry struct {
+	ScheduleID   uuid.UUID
+	StartTime    time.Time
+	EndTime      time.Time
+	LocationID   uuid.UUID
+	LocationName string
 }
 
 type GetScheduleByIdResponse struct {
@@ -376,6 +409,11 @@ type ScheduleRepository interface {
 		employeeID uuid.UUID,
 		date time.Time,
 	) ([]EmployeeScheduleByDay, error)
+	GetEmployeeSchedulesTimelineEntries(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		periodStart, periodEnd time.Time,
+	) ([]EmployeeScheduleTimelineEntry, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,
@@ -465,6 +503,10 @@ type ScheduleService interface {
 		ctx context.Context,
 		req *GetEmployeeSchedulesByDayRequest,
 	) ([]EmployeeScheduleByDay, error)
+	GetEmployeeSchedulesTimeline(
+		ctx context.Context,
+		req *GetEmployeeSchedulesTimelineRequest,
+	) ([]EmployeeScheduleTimelineDay, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,

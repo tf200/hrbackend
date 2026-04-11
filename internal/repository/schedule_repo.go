@@ -129,6 +129,33 @@ func (r *ScheduleRepository) GetEmployeeSchedulesByDay(
 	return result, nil
 }
 
+func (r *ScheduleRepository) GetEmployeeSchedulesTimelineEntries(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	periodStart, periodEnd time.Time,
+) ([]domain.EmployeeScheduleTimelineEntry, error) {
+	rows, err := r.store.GetEmployeeSchedules(ctx, db.GetEmployeeSchedulesParams{
+		EmployeeID:  employeeID,
+		PeriodStart: conv.PgTimestamptzFromTime(periodStart),
+		PeriodEnd:   conv.PgTimestamptzFromTime(periodEnd),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeScheduleTimelineEntry, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeScheduleTimelineEntry{
+			ScheduleID:   row.ID,
+			StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
+			EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
+			LocationID:   row.LocationID,
+			LocationName: row.LocationName,
+		})
+	}
+	return result, nil
+}
+
 func (r *ScheduleRepository) GetScheduleByID(
 	ctx context.Context,
 	scheduleID uuid.UUID,

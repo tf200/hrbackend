@@ -218,6 +218,101 @@ func (s *ScheduleService) GetEmployeeSchedulesByDay(
 	return rows, nil
 }
 
+func (s *ScheduleService) GetEmployeeSchedulesTimeline(
+	ctx context.Context,
+	req *domain.GetEmployeeSchedulesTimelineRequest,
+) ([]domain.EmployeeScheduleTimelineDay, error) {
+	if req.EmployeeID == uuid.Nil {
+		return nil, fmt.Errorf("employee_id is required")
+	}
+
+	startDate, err := time.Parse("2006-01-02", req.StartDate)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetEmployeeSchedulesTimeline",
+			"invalid start_date format",
+			err,
+			zap.String("start_date", req.StartDate),
+		)
+		return nil, fmt.Errorf("invalid start_date format, expected YYYY-MM-DD")
+	}
+
+	endDate, err := time.Parse("2006-01-02", req.EndDate)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetEmployeeSchedulesTimeline",
+			"invalid end_date format",
+			err,
+			zap.String("end_date", req.EndDate),
+		)
+		return nil, fmt.Errorf("invalid end_date format, expected YYYY-MM-DD")
+	}
+
+	if endDate.Before(startDate) {
+		s.logError(
+			ctx,
+			"GetEmployeeSchedulesTimeline",
+			"end_date is before start_date",
+			nil,
+			zap.String("start_date", req.StartDate),
+			zap.String("end_date", req.EndDate),
+		)
+		return nil, fmt.Errorf("end_date must be on or after start_date")
+	}
+
+	periodStart := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	periodEnd := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC).
+		AddDate(0, 0, 1)
+
+	entries, err := s.repository.GetEmployeeSchedulesTimelineEntries(
+		ctx,
+		req.EmployeeID,
+		periodStart,
+		periodEnd,
+	)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetEmployeeSchedulesTimeline",
+			"failed to list employee schedules for period",
+			err,
+			zap.String("employee_id", req.EmployeeID.String()),
+			zap.String("start_date", req.StartDate),
+			zap.String("end_date", req.EndDate),
+		)
+		return nil, fmt.Errorf("failed to list employee schedules for period: %w", err)
+	}
+
+	itemMap := make(map[string][]domain.EmployeeScheduleTimelineItem, len(entries))
+	for _, entry := range entries {
+		key := entry.StartTime.UTC().Format("2006-01-02")
+		itemMap[key] = append(itemMap[key], domain.EmployeeScheduleTimelineItem{
+			ItemType:  "shift",
+			StartTime: entry.StartTime,
+			EndTime:   entry.EndTime,
+			Shift: &domain.EmployeeScheduleTimelineShift{
+				ScheduleID:   entry.ScheduleID,
+				LocationID:   entry.LocationID,
+				LocationName: entry.LocationName,
+			},
+			Event: nil,
+		})
+	}
+
+	response := make([]domain.EmployeeScheduleTimelineDay, 0)
+	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
+		key := day.Format("2006-01-02")
+		response = append(response, domain.EmployeeScheduleTimelineDay{
+			Date:  key,
+			Items: append([]domain.EmployeeScheduleTimelineItem{}, itemMap[key]...),
+		})
+	}
+
+	return response, nil
+}
+
 func (s *ScheduleService) GetScheduleByID(
 	ctx context.Context,
 	scheduleID uuid.UUID,

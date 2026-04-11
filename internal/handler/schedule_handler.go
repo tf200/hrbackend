@@ -107,6 +107,34 @@ func (h *ScheduleHandler) GetEmployeeSchedulesByDay(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Schedules retrieved successfully"))
 }
 
+func (h *ScheduleHandler) GetEmployeeSchedulesTimeline(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	var req getEmployeeSchedulesTimelineRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response, err := h.service.GetEmployeeSchedulesTimeline(
+		ctx.Request.Context(),
+		toGetEmployeeSchedulesTimelineRequest(req, employeeID),
+	)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get employee schedules timeline: %v", err), ""),
+		)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Schedules retrieved successfully"))
+}
+
 func (h *ScheduleHandler) GetScheduleByID(ctx *gin.Context) {
 	scheduleID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

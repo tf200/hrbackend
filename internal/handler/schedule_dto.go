@@ -34,6 +34,11 @@ type getEmployeeSchedulesByDayRequest struct {
 	Date       string `form:"date"        binding:"required"`
 }
 
+type getEmployeeSchedulesTimelineRequest struct {
+	StartDate string `form:"start_date" binding:"required"`
+	EndDate   string `form:"end_date"   binding:"required"`
+}
+
 var uuidExtractRegex = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
 
 type updateScheduleRequest struct {
@@ -104,6 +109,17 @@ func toGetEmployeeSchedulesByDayRequest(
 		EmployeeID: employeeID,
 		Date:       strings.TrimSpace(req.Date),
 	}, nil
+}
+
+func toGetEmployeeSchedulesTimelineRequest(
+	req getEmployeeSchedulesTimelineRequest,
+	employeeID uuid.UUID,
+) *domain.GetEmployeeSchedulesTimelineRequest {
+	return &domain.GetEmployeeSchedulesTimelineRequest{
+		EmployeeID: employeeID,
+		StartDate:  strings.TrimSpace(req.StartDate),
+		EndDate:    strings.TrimSpace(req.EndDate),
+	}
 }
 
 func normalizeUUIDValue(value string) string {
