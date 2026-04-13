@@ -519,6 +519,70 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 		},
 	)
 
+	// Add ZZP (Freelance/Self-employed) employees
+	zzpLocationAlias := locationAliases[0]
+	for zzpIdx := 0; zzpIdx < 3; zzpIdx++ {
+		zzpAlias := fmt.Sprintf("zzp_contractor_%02d", zzpIdx+1)
+		zzpSeed := seed.EmployeeSeed{
+			Alias:                 zzpAlias,
+			FirstName:             gofakeit.FirstName(),
+			LastName:              gofakeit.LastName(),
+			UserEmail:             fmt.Sprintf("%s+%s@example.com", sanitizeEmailPart(zzpAlias), emailSuffix),
+			UserPassword:          passwordValue,
+			Bsn:                   gofakeit.Numerify("#########"),
+			Street:                gofakeit.StreetName(),
+			HouseNumber:           fmt.Sprintf("%d", gofakeit.Number(1, 300)),
+			PostalCode:            gofakeit.Zip(),
+			City:                  gofakeit.City(),
+			Position:              strPtr(fmt.Sprintf("Freelance Consultant %d", zzpIdx+1)),
+			Gender:                randomGender(),
+			LocationAlias:         strPtr(zzpLocationAlias),
+			DepartmentAlias:       nil,
+			ManagerAlias:          nil,
+			EmployeeNumber:        strPtr(fmt.Sprintf("ZZP-%05d", 1000+zzpIdx)),
+			EmploymentNumber:      strPtr(fmt.Sprintf("FLC-%05d", 5000+zzpIdx)),
+			RoleName:              strPtr("freelancer"),
+			PrivatePhoneNumber:    strPtr(gofakeit.Phone()),
+			WorkPhoneNumber:       strPtr(gofakeit.Phone()),
+			ContractStartDate:     timePtr(time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			ContractEndDate:       nil,
+			ContractHours:         float64Ptr(float64([]int{20, 25, 30}[gofakeit.Number(0, 2)])),
+			ContractType:          "ZZP",
+			ContractRate:          float64Ptr(float64(gofakeit.Number(25, 55))),
+			IrregularHoursProfile: "none",
+		}
+		result.Employees = append(result.Employees, zzpSeed)
+
+		// Add time entries for ZZP employees
+		if zzpIdx < 2 {
+			scheduleAlias := fmt.Sprintf("%s_schedule", zzpAlias)
+			timeEntryAlias := fmt.Sprintf("%s_entry", zzpAlias)
+			result.Schedules = append(result.Schedules,
+				buildPresetScheduleSeed(
+					scheduleAlias,
+					zzpAlias,
+					zzpLocationAlias,
+					"hr_head",
+					1,
+					time.Date(2026, time.July, 8+zzpIdx, 0, 0, 0, 0, time.UTC),
+				),
+			)
+			result.TimeEntries = append(result.TimeEntries,
+				buildApprovedTimeEntrySeed(
+					timeEntryAlias,
+					scheduleAlias,
+					zzpAlias,
+					"hr_head",
+					"09:00",
+					"17:00",
+					30,
+					"normal",
+					strPtr("Freelance project work"),
+				),
+			)
+		}
+	}
+
 	return result
 }
 
