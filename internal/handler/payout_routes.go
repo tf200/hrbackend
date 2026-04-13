@@ -26,6 +26,18 @@ func RegisterPayoutRoutes(
 		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
 		handler.GetPayrollMonthSummary,
 	)
+	rg.GET(
+		"/payroll-month-summary/details",
+		auth,
+		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		handler.GetPayrollMonthDetail,
+	)
+	rg.GET(
+		"/payroll-month-summary/export-pdf",
+		auth,
+		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		handler.ExportPayrollMonthSummaryPDF,
+	)
 	rg.POST(
 		"/pay-periods/close",
 		auth,

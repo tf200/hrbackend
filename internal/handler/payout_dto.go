@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"hrbackend/internal/domain"
@@ -52,6 +53,11 @@ type payrollMonthSummaryRequest struct {
 	httpapi.PageRequest
 	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
+}
+
+type payrollMonthDetailRequest struct {
+	EmployeeID string `form:"employee_id" binding:"required"`
+	Month      string `form:"month"       binding:"required,datetime=2006-01"`
 }
 
 type previewPayrollRequest struct {
@@ -165,6 +171,15 @@ type payrollMonthSummaryResponse struct {
 	PayPeriodStatus      *string                             `json:"pay_period_status,omitempty"`
 	PaidAt               *time.Time                          `json:"paid_at,omitempty"`
 	MultiplierSummaries  []payrollMonthMultiplierSummaryItem `json:"multiplier_summaries"`
+}
+
+type payrollMonthDetailResponse struct {
+	EmployeeID   uuid.UUID               `json:"employee_id"`
+	EmployeeName string                  `json:"employee_name"`
+	Month        string                  `json:"month"`
+	DataSource   string                  `json:"data_source"`
+	PayPeriod    *payPeriodResponse      `json:"pay_period,omitempty"`
+	Preview      *payrollPreviewResponse `json:"preview,omitempty"`
 }
 
 type payrollMonthMultiplierSummaryItem struct {
@@ -445,6 +460,46 @@ func toPayrollMonthSummaryResponses(
 		results[i] = toPayrollMonthSummaryResponse(item)
 	}
 	return results
+}
+
+func toPayrollMonthDetailRequest(req payrollMonthDetailRequest) (uuid.UUID, time.Time, error) {
+	employeeRaw := strings.TrimSpace(req.EmployeeID)
+	employeeRaw = strings.TrimPrefix(employeeRaw, "[")
+	employeeRaw = strings.TrimSuffix(employeeRaw, "]")
+	employeeRaw = strings.TrimSpace(employeeRaw)
+	employeeRaw = strings.Trim(employeeRaw, "\"")
+
+	employeeID, err := uuid.Parse(employeeRaw)
+	if err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+
+	month, err := time.Parse(payoutMonthLayout, req.Month)
+	if err != nil {
+		return uuid.Nil, time.Time{}, err
+	}
+	monthStart := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	return employeeID, monthStart, nil
+}
+
+func toPayrollMonthDetailResponse(item *domain.PayrollMonthDetail) payrollMonthDetailResponse {
+	res := payrollMonthDetailResponse{
+		EmployeeID:   item.EmployeeID,
+		EmployeeName: item.EmployeeName,
+		Month:        item.Month.Format(payoutMonthLayout),
+		DataSource:   item.DataSource,
+	}
+
+	if item.PayPeriod != nil {
+		payPeriod := toPayPeriodResponse(item.PayPeriod)
+		res.PayPeriod = &payPeriod
+	}
+	if item.Preview != nil {
+		preview := toPayrollPreviewResponse(item.Preview)
+		res.Preview = &preview
+	}
+
+	return res
 }
 
 func parsePayoutSalaryMonth(value *string) (*time.Time, error) {

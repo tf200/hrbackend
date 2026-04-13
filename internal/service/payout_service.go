@@ -559,6 +559,111 @@ func (s *PayoutService) GetPayrollMonthSummary(
 	}, nil
 }
 
+func (s *PayoutService) GetPayrollMonthDetail(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	month time.Time,
+) (*domain.PayrollMonthDetail, error) {
+	if employeeID == uuid.Nil || month.IsZero() {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	monthStart := time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, -1)
+
+	employee, err := s.repository.GetPayrollPreviewEmployee(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	payPeriods, err := s.repository.ListPayPeriodsByEmployeesAndRange(
+		ctx,
+		[]uuid.UUID{employeeID},
+		monthStart,
+		monthEnd,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pay periods for detail: %w", err)
+	}
+
+	var selectedPayPeriod *domain.PayPeriod
+	for _, period := range payPeriods {
+		if period.EmployeeID != employeeID {
+			continue
+		}
+		if period.PeriodStart.Equal(monthStart) && period.PeriodEnd.Equal(monthEnd) {
+			item, getErr := s.repository.GetPayPeriodByID(ctx, period.ID)
+			if getErr != nil {
+				return nil, getErr
+			}
+			selectedPayPeriod = item
+			break
+		}
+	}
+
+	if selectedPayPeriod != nil {
+		return &domain.PayrollMonthDetail{
+			EmployeeID:   employeeID,
+			EmployeeName: strings.TrimSpace(employee.FirstName + " " + employee.LastName),
+			Month:        monthStart,
+			DataSource:   "locked",
+			PayPeriod:    selectedPayPeriod,
+		}, nil
+	}
+
+	// For live preview, use approved entries (not just unpaid entries)
+	approvedEntries, err := s.repository.ListPayrollMonthApprovedTimeEntries(
+		ctx,
+		[]uuid.UUID{employeeID},
+		monthStart,
+		monthEnd,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list approved payroll entries for detail: %w", err)
+	}
+
+	preview, err := s.buildPayrollPreview(ctx, employee, domain.PayrollPreviewParams{
+		EmployeeID:  employeeID,
+		PeriodStart: monthStart,
+		PeriodEnd:   monthEnd,
+	}, approvedEntries)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.PayrollMonthDetail{
+		EmployeeID:   employeeID,
+		EmployeeName: strings.TrimSpace(employee.FirstName + " " + employee.LastName),
+		Month:        monthStart,
+		DataSource:   "live",
+		Preview:      preview,
+	}, nil
+}
+
+func (s *PayoutService) ExportPayrollMonthPDF(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	month time.Time,
+) ([]byte, string, error) {
+	detail, err := s.GetPayrollMonthDetail(ctx, employeeID, month)
+	if err != nil {
+		return nil, "", err
+	}
+
+	pdfBytes, err := buildPayrollMonthDetailPDF(detail)
+	if err != nil {
+		return nil, "", err
+	}
+
+	filename := fmt.Sprintf(
+		"salary_%s_%s.pdf",
+		strings.ReplaceAll(strings.ToLower(detail.EmployeeName), " ", "_"),
+		detail.Month.Format("2006-01"),
+	)
+
+	return pdfBytes, filename, nil
+}
+
 func (s *PayoutService) MarkPayPeriodPaidByAdmin(
 	ctx context.Context,
 	adminEmployeeID, payPeriodID uuid.UUID,

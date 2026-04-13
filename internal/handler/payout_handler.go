@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"errors"
 	"net/http"
 
@@ -192,6 +193,60 @@ func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 		page.TotalCount,
 	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month summary retrieved successfully"))
+}
+
+func (h *PayoutHandler) GetPayrollMonthDetail(ctx *gin.Context) {
+	var req payrollMonthDetailRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID, month, err := toPayrollMonthDetailRequest(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	detail, err := h.service.GetPayrollMonthDetail(ctx.Request.Context(), employeeID, month)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayrollMonthDetailResponse(detail), "Payroll month detail retrieved successfully"),
+	)
+}
+
+func (h *PayoutHandler) ExportPayrollMonthSummaryPDF(ctx *gin.Context) {
+	var req payrollMonthDetailRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID, month, err := toPayrollMonthDetailRequest(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	pdfBytes, filename, err := h.service.ExportPayrollMonthPDF(ctx.Request.Context(), employeeID, month)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	ctx.DataFromReader(
+		http.StatusOK,
+		int64(len(pdfBytes)),
+		"application/pdf",
+		bytes.NewReader(pdfBytes),
+		nil,
+	)
 }
 
 func (h *PayoutHandler) ClosePayPeriod(ctx *gin.Context) {

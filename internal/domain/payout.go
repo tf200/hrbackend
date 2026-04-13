@@ -221,6 +221,15 @@ type PayrollMonthSummaryRow struct {
 	MultiplierSummaries  []PayrollMultiplierSummary
 }
 
+type PayrollMonthDetail struct {
+	EmployeeID   uuid.UUID
+	EmployeeName string
+	Month        time.Time
+	DataSource   string
+	PayPeriod    *PayPeriod
+	Preview      *PayrollPreview
+}
+
 type PayrollMultiplierSummary struct {
 	RatePercent   float64
 	WorkedMinutes float64
@@ -430,4 +439,14 @@ type PayoutService interface {
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
 	) (*PayrollMonthSummaryPage, error)
+	GetPayrollMonthDetail(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		month time.Time,
+	) (*PayrollMonthDetail, error)
+	ExportPayrollMonthPDF(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		month time.Time,
+	) ([]byte, string, error)
 }
