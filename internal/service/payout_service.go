@@ -426,6 +426,18 @@ func (s *PayoutService) GetPayrollMonthSummary(
 		s.logError(ctx, "GetPayrollMonthSummary", "failed to list payroll month employees", err)
 		return nil, fmt.Errorf("failed to list payroll month employees: %w", err)
 	}
+	if normalized.ContractType != nil {
+		employees, err = s.filterPayrollMonthEmployeesByContractType(
+			ctx,
+			employees,
+			*normalized.ContractType,
+		)
+		if err != nil {
+			return nil, err
+		}
+		totalCount = int64(len(employees))
+	}
+
 	if len(employees) == 0 {
 		return &domain.PayrollMonthSummaryPage{
 			Items:      []domain.PayrollMonthSummaryRow{},
@@ -464,6 +476,11 @@ func (s *PayoutService) GetPayrollMonthSummary(
 		return nil, fmt.Errorf("failed to list locked multiplier summaries: %w", err)
 	}
 	lockedMultiplierByPeriod := buildLockedMultiplierSummaryMap(lockedMultiplierRows)
+	lockedShiftCountByPeriod, err := s.buildLockedShiftCountMap(ctx, lockedPayPeriods)
+	if err != nil {
+		s.logError(ctx, "GetPayrollMonthSummary", "failed to build locked shift counts", err)
+		return nil, fmt.Errorf("failed to build locked shift counts: %w", err)
+	}
 
 	approvedEntries, err := s.repository.ListPayrollMonthApprovedTimeEntries(
 		ctx,
@@ -480,6 +497,7 @@ func (s *PayoutService) GetPayrollMonthSummary(
 		)
 		return nil, fmt.Errorf("failed to list approved payroll month time entries: %w", err)
 	}
+	liveShiftCountByEmployee := buildLiveShiftCountMap(approvedEntries)
 
 	pendingRows, err := s.repository.ListPayrollMonthPendingSummaries(
 		ctx,
@@ -538,6 +556,7 @@ func (s *PayoutService) GetPayrollMonthSummary(
 			if live, ok := liveSummaries[employee.EmployeeID]; ok {
 				applyLivePayrollMonthSummary(&row, live)
 			}
+			row.ShiftCount = liveShiftCountByEmployee[employee.EmployeeID]
 		} else if hasLockedSnapshot {
 			row.IsLocked = true
 			row.DataSource = "locked"
@@ -546,8 +565,10 @@ func (s *PayoutService) GetPayrollMonthSummary(
 				lockedPayPeriod,
 				lockedMultiplierByPeriod[lockedPayPeriod.ID],
 			)
+			row.ShiftCount = lockedShiftCountByPeriod[lockedPayPeriod.ID]
 		} else if live, ok := liveSummaries[employee.EmployeeID]; ok {
 			applyLivePayrollMonthSummary(&row, live)
+			row.ShiftCount = liveShiftCountByEmployee[employee.EmployeeID]
 		}
 
 		items = append(items, row)
@@ -786,6 +807,15 @@ func normalizePayrollMonthSummaryParams(
 		return domain.PayrollMonthSummaryParams{}, time.Time{}, time.Time{}, false, domain.ErrPayoutRequestInvalidRequest
 	}
 
+	if params.ContractType != nil {
+		contractType := strings.ToLower(strings.TrimSpace(*params.ContractType))
+		if contractType != "loondienst" && contractType != "zzp" {
+			return domain.PayrollMonthSummaryParams{}, time.Time{}, time.Time{}, false, domain.ErrPayoutRequestInvalidRequest
+		}
+		normalizedContractType := strings.ToUpper(contractType)
+		params.ContractType = &normalizedContractType
+	}
+
 	month := time.Date(
 		params.Month.UTC().Year(),
 		params.Month.UTC().Month(),
@@ -802,6 +832,30 @@ func normalizePayrollMonthSummaryParams(
 
 	params.Month = month
 	return params, month, monthEnd, currentMonth, nil
+}
+
+func (s *PayoutService) filterPayrollMonthEmployeesByContractType(
+	ctx context.Context,
+	employees []domain.PayrollMonthEmployee,
+	contractType string,
+) ([]domain.PayrollMonthEmployee, error) {
+	if len(employees) == 0 {
+		return employees, nil
+	}
+
+	normalizedType := strings.ToLower(strings.TrimSpace(contractType))
+	filtered := make([]domain.PayrollMonthEmployee, 0, len(employees))
+	for _, employee := range employees {
+		detail, err := s.repository.GetPayrollPreviewEmployee(ctx, employee.EmployeeID)
+		if err != nil {
+			return nil, err
+		}
+		if strings.ToLower(strings.TrimSpace(detail.ContractType)) == normalizedType {
+			filtered = append(filtered, employee)
+		}
+	}
+
+	return filtered, nil
 }
 
 func (s *PayoutService) buildPayrollPreview(
@@ -824,7 +878,7 @@ func (s *PayoutService) buildPayrollPreview(
 	}
 
 	for _, entry := range entries {
-		if entry.ContractType != "loondienst" {
+		if !isPayrollEligibleContractType(entry.ContractType) {
 			return nil, domain.ErrPayoutRequestInvalidRequest
 		}
 		if entry.ContractRate == nil || *entry.ContractRate <= 0 {
@@ -1048,6 +1102,15 @@ func roundCurrency(v float64) float64 {
 	return math.Round(v*100) / 100
 }
 
+func isPayrollEligibleContractType(contractType string) bool {
+	switch strings.ToLower(strings.TrimSpace(contractType)) {
+	case "loondienst", "zzp":
+		return true
+	default:
+		return false
+	}
+}
+
 type payrollMonthLiveSummary struct {
 	WorkedMinutes        int32
 	PaidMinutes          float64
@@ -1071,7 +1134,7 @@ func buildPayrollMonthLiveSummaries(
 
 	accumulators := make(map[uuid.UUID]*liveAccumulator)
 	for _, entry := range entries {
-		if entry.ContractType != "loondienst" {
+		if !isPayrollEligibleContractType(entry.ContractType) {
 			return nil, domain.ErrPayoutRequestInvalidRequest
 		}
 		if entry.ContractRate == nil || *entry.ContractRate <= 0 {
@@ -1144,6 +1207,37 @@ func buildLockedMultiplierSummaryMap(
 		})
 	}
 	return grouped
+}
+
+func buildLiveShiftCountMap(entries []domain.PayrollPreviewTimeEntry) map[uuid.UUID]int32 {
+	counts := make(map[uuid.UUID]int32)
+	for _, entry := range entries {
+		counts[entry.EmployeeID]++
+	}
+	return counts
+}
+
+func (s *PayoutService) buildLockedShiftCountMap(
+	ctx context.Context,
+	payPeriods []domain.PayPeriod,
+) (map[uuid.UUID]int32, error) {
+	counts := make(map[uuid.UUID]int32, len(payPeriods))
+	for _, period := range payPeriods {
+		lineItems, err := s.repository.ListPayPeriodLineItems(ctx, period.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		uniqueTimeEntryIDs := make(map[uuid.UUID]struct{})
+		for _, item := range lineItems {
+			if item.TimeEntryID == nil {
+				continue
+			}
+			uniqueTimeEntryIDs[*item.TimeEntryID] = struct{}{}
+		}
+		counts[period.ID] = int32(len(uniqueTimeEntryIDs))
+	}
+	return counts, nil
 }
 
 func sortedMultiplierSummaries(

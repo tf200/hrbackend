@@ -193,6 +193,7 @@ type PayrollMonthSummaryParams struct {
 	Limit          int32
 	Offset         int32
 	EmployeeSearch *string
+	ContractType   *string
 }
 
 type PayrollMonthSummaryPage struct {
@@ -213,6 +214,7 @@ type PayrollMonthSummaryRow struct {
 	BaseGrossAmount      float64
 	IrregularGrossAmount float64
 	GrossAmount          float64
+	ShiftCount           int32
 	PendingEntryCount    int32
 	PendingWorkedMinutes int32
 	PayPeriodID          *uuid.UUID

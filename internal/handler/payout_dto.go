@@ -165,6 +165,7 @@ type payrollMonthSummaryResponse struct {
 	BaseGrossAmount      float64                             `json:"base_gross_amount"`
 	IrregularGrossAmount float64                             `json:"irregular_gross_amount"`
 	GrossAmount          float64                             `json:"gross_amount"`
+	ShiftCount           int32                               `json:"shift_count"`
 	PendingEntryCount    int32                               `json:"pending_entry_count"`
 	PendingWorkedMinutes int32                               `json:"pending_worked_minutes"`
 	PayPeriodID          *uuid.UUID                          `json:"pay_period_id,omitempty"`
@@ -277,6 +278,7 @@ func toPayrollMonthSummaryParams(
 		Limit:          req.PageSize,
 		Offset:         (req.Page - 1) * req.PageSize,
 		EmployeeSearch: req.EmployeeSearch,
+		ContractType:   nil,
 	}, nil
 }
 
@@ -443,6 +445,7 @@ func toPayrollMonthSummaryResponse(item domain.PayrollMonthSummaryRow) payrollMo
 		BaseGrossAmount:      item.BaseGrossAmount,
 		IrregularGrossAmount: item.IrregularGrossAmount,
 		GrossAmount:          item.GrossAmount,
+		ShiftCount:           item.ShiftCount,
 		PendingEntryCount:    item.PendingEntryCount,
 		PendingWorkedMinutes: item.PendingWorkedMinutes,
 		PayPeriodID:          item.PayPeriodID,

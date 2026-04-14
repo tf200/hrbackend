@@ -27,6 +27,12 @@ func RegisterPayoutRoutes(
 		handler.GetPayrollMonthSummary,
 	)
 	rg.GET(
+		"/payroll-month-summary/zzp",
+		auth,
+		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		handler.GetZZPPayrollMonthSummary,
+	)
+	rg.GET(
 		"/payroll-month-summary/details",
 		auth,
 		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),

@@ -195,6 +195,37 @@ func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month summary retrieved successfully"))
 }
 
+func (h *PayoutHandler) GetZZPPayrollMonthSummary(ctx *gin.Context) {
+	var req payrollMonthSummaryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPayrollMonthSummaryParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	contractType := "ZZP"
+	params.ContractType = &contractType
+
+	page, err := h.service.GetPayrollMonthSummary(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toPayrollMonthSummaryResponses(page.Items),
+		page.TotalCount,
+	)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "ZZP payroll month summary retrieved successfully"))
+}
+
 func (h *PayoutHandler) GetPayrollMonthDetail(ctx *gin.Context) {
 	var req payrollMonthDetailRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {

@@ -541,7 +541,7 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			ManagerAlias:          nil,
 			EmployeeNumber:        strPtr(fmt.Sprintf("ZZP-%05d", 1000+zzpIdx)),
 			EmploymentNumber:      strPtr(fmt.Sprintf("FLC-%05d", 5000+zzpIdx)),
-			RoleName:              strPtr("freelancer"),
+			RoleName:              strPtr("admin"),
 			PrivatePhoneNumber:    strPtr(gofakeit.Phone()),
 			WorkPhoneNumber:       strPtr(gofakeit.Phone()),
 			ContractStartDate:     timePtr(time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)),
