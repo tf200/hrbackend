@@ -28,6 +28,7 @@ type generatedDataset struct {
 	TimeEntries                 []seed.TimeEntrySeed
 	PayPeriods                  []seed.PayPeriodSeed
 	EmployeeHandbookAssignments []seed.EmployeeHandbookAssignmentSeed
+	PerformanceAssessments      []seed.PerformanceSeed
 }
 
 type departmentTemplate struct {
@@ -131,6 +132,7 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	result.TimeEntries = make([]seed.TimeEntrySeed, 0, len(departments)*6)
 	result.PayPeriods = make([]seed.PayPeriodSeed, 0, 2)
 	result.EmployeeHandbookAssignments = make([]seed.EmployeeHandbookAssignmentSeed, 0, len(departments)*3)
+	result.PerformanceAssessments = make([]seed.PerformanceSeed, 0, 6)
 	ortOverrides := map[string]ortSampleOverride{
 		"finance_head":        {IrregularHoursProfile: "roster"},
 		"care_staff_01":       {IrregularHoursProfile: "non_roster"},
@@ -249,6 +251,7 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 				shiftAAlias := fmt.Sprintf("%s_shift_a", employeeAlias)
 				shiftBAlias := fmt.Sprintf("%s_shift_b", employeeAlias)
 				swapShiftAlias := fmt.Sprintf("%s_swap_shift", employeeAlias)
+				swapShiftExtraAlias := fmt.Sprintf("%s_swap_shift_extra", employeeAlias)
 				baseDay := 7 + (empIdx * 2)
 				shiftASlot := int16(1 + ((deptIdx + empIdx) % 2))
 				shiftBSlot := int16(2 + ((deptIdx + empIdx) % 2))
@@ -276,6 +279,14 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 						headAlias,
 						1,
 						time.Date(2026, time.July, 20+deptIdx, 0, 0, 0, 0, time.UTC),
+					),
+					buildPresetScheduleSeed(
+						swapShiftExtraAlias,
+						employeeAlias,
+						locationAlias,
+						headAlias,
+						2,
+						time.Date(2026, time.July, 25+deptIdx, 0, 0, 0, 0, time.UTC),
 					),
 				)
 				result.TimeEntries = append(result.TimeEntries,
@@ -435,6 +446,18 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			nil,
 		),
 		buildShiftSwapRequestSeed(
+			"planning_swap_waiting_admin_approval",
+			"planning_staff_02",
+			"planning_staff_01",
+			"planning_staff_02_swap_shift_extra",
+			"planning_staff_01_swap_shift_extra",
+			"pending_admin",
+			timePtr(time.Date(2026, time.July, 23, 12, 0, 0, 0, time.UTC)),
+			strPtr("Agreed on both sides, waiting for admin approval"),
+			nil,
+			nil,
+		),
+		buildShiftSwapRequestSeed(
 			"finance_swap_recipient_rejected",
 			"finance_staff_01",
 			"finance_staff_02",
@@ -445,6 +468,18 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			strPtr("I need to keep my current assignment"),
 			nil,
 			nil,
+		),
+		buildShiftSwapRequestSeed(
+			"finance_swap_fully_approved",
+			"finance_staff_02",
+			"finance_staff_01",
+			"finance_staff_02_swap_shift_extra",
+			"finance_staff_01_swap_shift_extra",
+			"confirmed",
+			timePtr(time.Date(2026, time.July, 24, 12, 0, 0, 0, time.UTC)),
+			strPtr("Both parties agreed to the swap"),
+			strPtr("hr_head"),
+			strPtr("Approved after both employees confirmed the change"),
 		),
 		buildShiftSwapRequestSeed(
 			"hr_swap_pending_recipient",
@@ -581,6 +616,15 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 				),
 			)
 		}
+	}
+
+	for i, employee := range result.Employees {
+		if i >= 6 {
+			break
+		}
+		result.PerformanceAssessments = append(result.PerformanceAssessments, seed.PerformanceSeed{
+			EmployeeAlias: employee.Alias,
+		})
 	}
 
 	return result

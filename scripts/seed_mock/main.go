@@ -38,6 +38,7 @@ type seedConfig struct {
 	PayPeriods                  []seed.PayPeriodSeed
 	Handbooks                   []seed.HandbookTemplateSeed
 	EmployeeHandbookAssignments []seed.EmployeeHandbookAssignmentSeed
+	PerformanceAssessments      []seed.PerformanceSeed
 }
 
 func main() {
@@ -112,6 +113,9 @@ func main() {
 		"employee_handbook_assignments": seed.EmployeeHandbookAssignmentsSeeder{
 			Assignments: cfg.EmployeeHandbookAssignments,
 		},
+		"performance": seed.PerformanceSeeder{
+			Assessments: cfg.PerformanceAssessments,
+		},
 	}
 	dependencies := map[string][]string{
 		"app_organization_profile":      {},
@@ -131,6 +135,7 @@ func main() {
 		"pay_periods":                   {"employees", "time_entries"},
 		"handbooks":                     {"departments", "employees"},
 		"employee_handbook_assignments": {"employees", "handbooks"},
+		"performance":                   {"employees"},
 	}
 	runOrder := []string{
 		"app_organization_profile",
@@ -150,6 +155,7 @@ func main() {
 		"late_arrivals",
 		"handbooks",
 		"employee_handbook_assignments",
+		"performance",
 	}
 	state := seed.NewState()
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{})
@@ -345,6 +351,7 @@ func loadConfigFromEnv() (seedConfig, error) {
 			},
 		},
 		EmployeeHandbookAssignments: dataset.EmployeeHandbookAssignments,
+		PerformanceAssessments:      dataset.PerformanceAssessments,
 	}, nil
 }
 

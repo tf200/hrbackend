@@ -37,6 +37,11 @@ DROP TABLE IF EXISTS calendar_event_reminders;
 DROP TABLE IF EXISTS calendar_event_attendees;
 DROP TABLE IF EXISTS calendar_events;
 
+-- Performance tables
+DROP TABLE IF EXISTS performance_work_assignments;
+DROP TABLE IF EXISTS performance_assessment_scores;
+DROP TABLE IF EXISTS performance_assessments;
+
 -- Leave management tables
 DROP TABLE IF EXISTS leave_payout_requests;
 DROP TABLE IF EXISTS leave_requests;
@@ -113,6 +118,8 @@ DROP TYPE IF EXISTS attendee_response_enum;
 DROP TYPE IF EXISTS calendar_event_work_approval_status_enum;
 DROP TYPE IF EXISTS calendar_event_status_enum;
 DROP TYPE IF EXISTS calendar_event_kind_enum;
+DROP TYPE IF EXISTS performance_work_assignment_status_enum;
+DROP TYPE IF EXISTS performance_assessment_status_enum;
 DROP TYPE IF EXISTS time_entry_hour_type_enum;
 DROP TYPE IF EXISTS time_entry_status_enum;
 DROP TYPE IF EXISTS payout_request_status_enum;
