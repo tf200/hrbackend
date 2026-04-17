@@ -42,13 +42,22 @@ type seedConfig struct {
 }
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	cfg, err := loadConfigFromEnv()
 	if err != nil {
 		exitErr(err)
 	}
+
+	timeout := 5 * time.Minute
+	if timeoutValue := strings.TrimSpace(os.Getenv("SEED_TIMEOUT")); timeoutValue != "" {
+		parsedTimeout, err := time.ParseDuration(timeoutValue)
+		if err != nil {
+			exitErr(fmt.Errorf("SEED_TIMEOUT must be a valid duration: %w", err))
+		}
+		timeout = parsedTimeout
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	pool, err := pgxpool.New(ctx, cfg.DBSource)
 	if err != nil {

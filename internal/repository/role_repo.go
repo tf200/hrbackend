@@ -5,6 +5,8 @@ import (
 
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
+
+	"github.com/google/uuid"
 )
 
 type RoleRepository struct {
@@ -47,6 +49,40 @@ func (r *RoleRepository) ListAllPermissions(ctx context.Context) ([]domain.Permi
 			PermissionID:       row.ID,
 			PermissionName:     row.Name,
 			PermissionResource: row.Resource,
+			GroupKey:           row.GroupKey,
+			SectionKey:         row.SectionKey,
+			DisplayName:        row.DisplayName,
+			Description:        row.Description,
+			SortOrder:          row.SortOrder,
+		})
+	}
+
+	return items, nil
+}
+
+func (r *RoleRepository) ListRolePermissions(
+	ctx context.Context,
+	roleID uuid.UUID,
+) ([]domain.RolePermission, error) {
+	if _, err := r.queries.GetRoleByID(ctx, roleID); err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrRoleNotFound
+		}
+		return nil, err
+	}
+
+	rows, err := r.queries.ListRolePermissions(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.RolePermission, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.RolePermission{
+			PermissionID:       row.PermissionID,
+			PermissionName:     row.PermissionName,
+			PermissionResource: row.PermissionResource,
+			PermissionMethod:   row.PermissionMethod,
 			GroupKey:           row.GroupKey,
 			SectionKey:         row.SectionKey,
 			DisplayName:        row.DisplayName,

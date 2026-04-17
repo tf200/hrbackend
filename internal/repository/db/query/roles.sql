@@ -27,6 +27,12 @@ SELECT id
 FROM roles
 WHERE name = 'admin';
 
+-- name: GetRoleByID :one
+/* Returns a single role by ID. */
+SELECT *
+FROM roles
+WHERE id = $1;
+
 -- name: ListRoles :many
 /* Returns every role ordered by id with count of permissions and employees. */
 SELECT 
@@ -52,15 +58,21 @@ ORDER BY group_key, section_key, sort_order, name;
 
 /* ---------- 3. ROLE-PERMISSION MAPPING ---------- */
 
--- name: ListAllRolePermissions :many
+-- name: ListRolePermissions :many
 /* Returns all permissions attached to a single role. */
-SELECT p.id   AS permission_id,
+SELECT p.id AS permission_id,
        p.name AS permission_name,
-       p.resource
+       p.resource AS permission_resource,
+       p.method AS permission_method,
+       p.group_key,
+       p.section_key,
+       p.display_name,
+       p.description,
+       p.sort_order
 FROM role_permissions rp
 JOIN permissions p ON p.id = rp.permission_id
 WHERE rp.role_id = $1
-ORDER BY p.id;
+ORDER BY p.group_key, p.section_key, p.sort_order, p.name;
 
 
 -- name: AddPermissionsToRole :exec

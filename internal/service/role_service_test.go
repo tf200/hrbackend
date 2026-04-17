@@ -105,6 +105,67 @@ func TestRoleServiceListAllPermissionsHandlesEmptyResults(t *testing.T) {
 	}
 }
 
+func TestRoleServiceListRolePermissions(t *testing.T) {
+	expected := []domain.RolePermission{
+		{
+			PermissionID:       uuid.New(),
+			PermissionName:     "ROLE.VIEW",
+			PermissionResource: "ROLE",
+			PermissionMethod:   "VIEW",
+			GroupKey:           "role",
+			SectionKey:         "view",
+			DisplayName:        "Role View",
+			SortOrder:          10,
+		},
+	}
+	repo := &fakeRoleRepository{rolePermissions: expected}
+	service := &RoleService{repository: repo}
+
+	items, err := service.ListRolePermissions(context.Background(), uuid.New())
+	if err != nil {
+		t.Fatalf("ListRolePermissions returned error: %v", err)
+	}
+	if len(items) != len(expected) {
+		t.Fatalf("expected %d permissions, got %d", len(expected), len(items))
+	}
+	if items[0].PermissionMethod != "VIEW" {
+		t.Fatalf("expected permission method VIEW, got %s", items[0].PermissionMethod)
+	}
+}
+
+func TestRoleServiceListRolePermissionsReturnsRepositoryError(t *testing.T) {
+	expectedErr := errors.New("boom")
+	repo := &fakeRoleRepository{rolePermissionsErr: expectedErr}
+	service := &RoleService{repository: repo}
+
+	_, err := service.ListRolePermissions(context.Background(), uuid.New())
+	if !errors.Is(err, expectedErr) {
+		t.Fatalf("expected error %v, got %v", expectedErr, err)
+	}
+}
+
+func TestRoleServiceListRolePermissionsReturnsRoleNotFound(t *testing.T) {
+	repo := &fakeRoleRepository{rolePermissionsErr: domain.ErrRoleNotFound}
+	service := &RoleService{repository: repo}
+
+	_, err := service.ListRolePermissions(context.Background(), uuid.New())
+	if !errors.Is(err, domain.ErrRoleNotFound) {
+		t.Fatalf("expected ErrRoleNotFound, got %v", err)
+	}
+}
+
+func TestRoleServiceListRolePermissionsHandlesEmptyResults(t *testing.T) {
+	service := &RoleService{repository: &fakeRoleRepository{}}
+
+	items, err := service.ListRolePermissions(context.Background(), uuid.New())
+	if err != nil {
+		t.Fatalf("ListRolePermissions returned error: %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("expected no permissions, got %d", len(items))
+	}
+}
+
 func TestHumanizePermissionKey(t *testing.T) {
 	tests := map[string]string{
 		"employee":        "Employee",
@@ -121,10 +182,12 @@ func TestHumanizePermissionKey(t *testing.T) {
 }
 
 type fakeRoleRepository struct {
-	roles          []domain.RoleSummary
-	rolesErr       error
-	permissions    []domain.PermissionCatalogItem
-	permissionsErr error
+	roles              []domain.RoleSummary
+	rolesErr           error
+	permissions        []domain.PermissionCatalogItem
+	permissionsErr     error
+	rolePermissions    []domain.RolePermission
+	rolePermissionsErr error
 }
 
 func (f *fakeRoleRepository) ListRoles(_ context.Context) ([]domain.RoleSummary, error) {
@@ -143,4 +206,15 @@ func (f *fakeRoleRepository) ListAllPermissions(
 	}
 
 	return f.permissions, nil
+}
+
+func (f *fakeRoleRepository) ListRolePermissions(
+	_ context.Context,
+	_ uuid.UUID,
+) ([]domain.RolePermission, error) {
+	if f.rolePermissionsErr != nil {
+		return nil, f.rolePermissionsErr
+	}
+
+	return f.rolePermissions, nil
 }

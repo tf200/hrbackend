@@ -110,6 +110,8 @@ type Querier interface {
 	GetOrganisationCounts(ctx context.Context, id uuid.UUID) (GetOrganisationCountsRow, error)
 	GetPayPeriodByEmployeePeriod(ctx context.Context, arg GetPayPeriodByEmployeePeriodParams) (GetPayPeriodByEmployeePeriodRow, error)
 	GetPayPeriodByID(ctx context.Context, id uuid.UUID) (GetPayPeriodByIDRow, error)
+	// Returns a single role by ID.
+	GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error)
 	GetScheduleById(ctx context.Context, id uuid.UUID) (GetScheduleByIdRow, error)
 	GetScheduleForSwapValidation(ctx context.Context, id uuid.UUID) (GetScheduleForSwapValidationRow, error)
 	GetSchedulesByLocationInRange(ctx context.Context, arg GetSchedulesByLocationInRangeParams) ([]GetSchedulesByLocationInRangeRow, error)
@@ -132,9 +134,6 @@ type Querier interface {
 	// ---------- 2. PERMISSIONS ----------
 	// Returns every permission ordered by id.
 	ListAllPermissions(ctx context.Context) ([]Permission, error)
-	// ---------- 3. ROLE-PERMISSION MAPPING ----------
-	// Returns all permissions attached to a single role.
-	ListAllRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListAllRolePermissionsRow, error)
 	ListAssignedSchedulesForEmployeeOnDate(ctx context.Context, arg ListAssignedSchedulesForEmployeeOnDateParams) ([]ListAssignedSchedulesForEmployeeOnDateRow, error)
 	ListDepartmentsPaginated(ctx context.Context, arg ListDepartmentsPaginatedParams) ([]ListDepartmentsPaginatedRow, error)
 	ListEducations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeEducation, error)
@@ -181,6 +180,9 @@ type Querier interface {
 	ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingEntriesByEmployeeIDsParams) ([]ListPayrollMonthPendingEntriesByEmployeeIDsRow, error)
 	ListPayrollMonthPendingSummariesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingSummariesByEmployeeIDsParams) ([]ListPayrollMonthPendingSummariesByEmployeeIDsRow, error)
 	ListPayrollPreviewTimeEntries(ctx context.Context, arg ListPayrollPreviewTimeEntriesParams) ([]ListPayrollPreviewTimeEntriesRow, error)
+	// ---------- 3. ROLE-PERMISSION MAPPING ----------
+	// Returns all permissions attached to a single role.
+	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListRolePermissionsRow, error)
 	// Returns every role ordered by id with count of permissions and employees.
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)

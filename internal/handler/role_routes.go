@@ -10,4 +10,5 @@ func RegisterRoleRoutes(
 ) {
 	rg.GET("/permissions", auth, requirePermission("ROLE.VIEW"), handler.ListAllPermissions)
 	rg.GET("/roles", auth, requirePermission("ROLE.VIEW"), handler.ListRoles)
+	rg.GET("/roles/:id/permissions", auth, requirePermission("ROLE.VIEW"), handler.ListRolePermissions)
 }

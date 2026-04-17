@@ -23,6 +23,18 @@ type permissionCatalogItemResponse struct {
 	SortOrder          int32     `json:"sort_order"`
 }
 
+type rolePermissionResponse struct {
+	PermissionID       uuid.UUID `json:"permission_id"`
+	PermissionName     string    `json:"permission_name"`
+	PermissionResource string    `json:"permission_resource"`
+	PermissionMethod   string    `json:"permission_method"`
+	GroupKey           string    `json:"group_key"`
+	SectionKey         string    `json:"section_key"`
+	DisplayName        string    `json:"display_name"`
+	Description        *string   `json:"description"`
+	SortOrder          int32     `json:"sort_order"`
+}
+
 type permissionCatalogSectionResponse struct {
 	SectionKey   string                          `json:"section_key"`
 	SectionLabel string                          `json:"section_label"`
@@ -83,6 +95,25 @@ func toPermissionCatalogResponses(
 			GroupKey:   item.GroupKey,
 			GroupLabel: item.GroupLabel,
 			Sections:   sections,
+		}
+	}
+
+	return results
+}
+
+func toRolePermissionResponses(items []domain.RolePermission) []rolePermissionResponse {
+	results := make([]rolePermissionResponse, len(items))
+	for i, item := range items {
+		results[i] = rolePermissionResponse{
+			PermissionID:       item.PermissionID,
+			PermissionName:     item.PermissionName,
+			PermissionResource: item.PermissionResource,
+			PermissionMethod:   item.PermissionMethod,
+			GroupKey:           item.GroupKey,
+			SectionKey:         item.SectionKey,
+			DisplayName:        item.DisplayName,
+			Description:        item.Description,
+			SortOrder:          item.SortOrder,
 		}
 	}
 

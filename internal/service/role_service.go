@@ -6,6 +6,7 @@ import (
 
 	"hrbackend/internal/domain"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -99,6 +100,27 @@ func (s *RoleService) ListAllPermissions(ctx context.Context) ([]domain.Permissi
 	}
 
 	return response, nil
+}
+
+func (s *RoleService) ListRolePermissions(
+	ctx context.Context,
+	roleID uuid.UUID,
+) ([]domain.RolePermission, error) {
+	items, err := s.repository.ListRolePermissions(ctx, roleID)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.LogError(
+				ctx,
+				"RoleService.ListRolePermissions",
+				"failed to list role permissions",
+				err,
+				zap.String("role_id", roleID.String()),
+			)
+		}
+		return nil, err
+	}
+
+	return items, nil
 }
 
 func humanizePermissionKey(key string) string {

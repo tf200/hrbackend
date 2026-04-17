@@ -175,6 +175,20 @@ func (q *Queries) GetAdminRoleId(ctx context.Context) (uuid.UUID, error) {
 	return id, err
 }
 
+const getRoleByID = `-- name: GetRoleByID :one
+SELECT id, name, description
+FROM roles
+WHERE id = $1
+`
+
+// Returns a single role by ID.
+func (q *Queries) GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error) {
+	row := q.db.QueryRow(ctx, getRoleByID, id)
+	var i Role
+	err := row.Scan(&i.ID, &i.Name, &i.Description)
+	return i, err
+}
+
 const getUserRoles = `-- name: GetUserRoles :many
 
 SELECT r.id, r.name
@@ -239,45 +253,6 @@ func (q *Queries) ListAllPermissions(ctx context.Context) ([]Permission, error) 
 			&i.Description,
 			&i.SortOrder,
 		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listAllRolePermissions = `-- name: ListAllRolePermissions :many
-
-SELECT p.id   AS permission_id,
-       p.name AS permission_name,
-       p.resource
-FROM role_permissions rp
-JOIN permissions p ON p.id = rp.permission_id
-WHERE rp.role_id = $1
-ORDER BY p.id
-`
-
-type ListAllRolePermissionsRow struct {
-	PermissionID   uuid.UUID `json:"permission_id"`
-	PermissionName string    `json:"permission_name"`
-	Resource       string    `json:"resource"`
-}
-
-// ---------- 3. ROLE-PERMISSION MAPPING ----------
-// Returns all permissions attached to a single role.
-func (q *Queries) ListAllRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListAllRolePermissionsRow, error) {
-	rows, err := q.db.Query(ctx, listAllRolePermissions, roleID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListAllRolePermissionsRow{}
-	for rows.Next() {
-		var i ListAllRolePermissionsRow
-		if err := rows.Scan(&i.PermissionID, &i.PermissionName, &i.Resource); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -380,6 +355,67 @@ func (q *Queries) ListInheritedUserPermissions(ctx context.Context, userID uuid.
 	for rows.Next() {
 		var i ListInheritedUserPermissionsRow
 		if err := rows.Scan(&i.PermissionID, &i.PermissionName, &i.Resource); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRolePermissions = `-- name: ListRolePermissions :many
+
+SELECT p.id AS permission_id,
+       p.name AS permission_name,
+       p.resource AS permission_resource,
+       p.method AS permission_method,
+       p.group_key,
+       p.section_key,
+       p.display_name,
+       p.description,
+       p.sort_order
+FROM role_permissions rp
+JOIN permissions p ON p.id = rp.permission_id
+WHERE rp.role_id = $1
+ORDER BY p.group_key, p.section_key, p.sort_order, p.name
+`
+
+type ListRolePermissionsRow struct {
+	PermissionID       uuid.UUID `json:"permission_id"`
+	PermissionName     string    `json:"permission_name"`
+	PermissionResource string    `json:"permission_resource"`
+	PermissionMethod   string    `json:"permission_method"`
+	GroupKey           string    `json:"group_key"`
+	SectionKey         string    `json:"section_key"`
+	DisplayName        string    `json:"display_name"`
+	Description        *string   `json:"description"`
+	SortOrder          int32     `json:"sort_order"`
+}
+
+// ---------- 3. ROLE-PERMISSION MAPPING ----------
+// Returns all permissions attached to a single role.
+func (q *Queries) ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListRolePermissionsRow, error) {
+	rows, err := q.db.Query(ctx, listRolePermissions, roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListRolePermissionsRow{}
+	for rows.Next() {
+		var i ListRolePermissionsRow
+		if err := rows.Scan(
+			&i.PermissionID,
+			&i.PermissionName,
+			&i.PermissionResource,
+			&i.PermissionMethod,
+			&i.GroupKey,
+			&i.SectionKey,
+			&i.DisplayName,
+			&i.Description,
+			&i.SortOrder,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
