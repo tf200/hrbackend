@@ -793,6 +793,92 @@ func (ns NullPayoutRequestStatusEnum) Value() (driver.Value, error) {
 	return string(ns.PayoutRequestStatusEnum), nil
 }
 
+type PerformanceAssessmentStatusEnum string
+
+const (
+	PerformanceAssessmentStatusEnumDraft     PerformanceAssessmentStatusEnum = "draft"
+	PerformanceAssessmentStatusEnumCompleted PerformanceAssessmentStatusEnum = "completed"
+)
+
+func (e *PerformanceAssessmentStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PerformanceAssessmentStatusEnum(s)
+	case string:
+		*e = PerformanceAssessmentStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PerformanceAssessmentStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullPerformanceAssessmentStatusEnum struct {
+	PerformanceAssessmentStatusEnum PerformanceAssessmentStatusEnum `json:"performance_assessment_status_enum"`
+	Valid                           bool                            `json:"valid"` // Valid is true if PerformanceAssessmentStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPerformanceAssessmentStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.PerformanceAssessmentStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PerformanceAssessmentStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPerformanceAssessmentStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PerformanceAssessmentStatusEnum), nil
+}
+
+type PerformanceWorkAssignmentStatusEnum string
+
+const (
+	PerformanceWorkAssignmentStatusEnumOpen           PerformanceWorkAssignmentStatusEnum = "open"
+	PerformanceWorkAssignmentStatusEnumSubmitted      PerformanceWorkAssignmentStatusEnum = "submitted"
+	PerformanceWorkAssignmentStatusEnumApproved       PerformanceWorkAssignmentStatusEnum = "approved"
+	PerformanceWorkAssignmentStatusEnumRevisionNeeded PerformanceWorkAssignmentStatusEnum = "revision_needed"
+)
+
+func (e *PerformanceWorkAssignmentStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PerformanceWorkAssignmentStatusEnum(s)
+	case string:
+		*e = PerformanceWorkAssignmentStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PerformanceWorkAssignmentStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullPerformanceWorkAssignmentStatusEnum struct {
+	PerformanceWorkAssignmentStatusEnum PerformanceWorkAssignmentStatusEnum `json:"performance_work_assignment_status_enum"`
+	Valid                               bool                                `json:"valid"` // Valid is true if PerformanceWorkAssignmentStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPerformanceWorkAssignmentStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.PerformanceWorkAssignmentStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PerformanceWorkAssignmentStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPerformanceWorkAssignmentStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PerformanceWorkAssignmentStatusEnum), nil
+}
+
 type PermissionOverrideEffect string
 
 const (
@@ -1430,6 +1516,50 @@ type PayPeriodLineItem struct {
 	Metadata              []byte                    `json:"metadata"`
 	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
 	UpdatedAt             pgtype.Timestamptz        `json:"updated_at"`
+}
+
+type PerformanceAssessment struct {
+	ID             uuid.UUID                       `json:"id"`
+	EmployeeID     uuid.UUID                       `json:"employee_id"`
+	AssessmentDate pgtype.Date                     `json:"assessment_date"`
+	TotalScore     *float64                        `json:"total_score"`
+	Status         PerformanceAssessmentStatusEnum `json:"status"`
+	Notes          *string                         `json:"notes"`
+	CreatedAt      pgtype.Timestamptz              `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz              `json:"updated_at"`
+}
+
+type PerformanceAssessmentScore struct {
+	ID           uuid.UUID          `json:"id"`
+	AssessmentID uuid.UUID          `json:"assessment_id"`
+	DomainID     string             `json:"domain_id"`
+	ItemID       string             `json:"item_id"`
+	Rating       float64            `json:"rating"`
+	Remarks      *string            `json:"remarks"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PerformanceWorkAssignment struct {
+	ID                    uuid.UUID                           `json:"id"`
+	AssessmentID          uuid.UUID                           `json:"assessment_id"`
+	EmployeeID            uuid.UUID                           `json:"employee_id"`
+	QuestionID            string                              `json:"question_id"`
+	DomainID              string                              `json:"domain_id"`
+	QuestionText          string                              `json:"question_text"`
+	Score                 float64                             `json:"score"`
+	AssignmentDescription string                              `json:"assignment_description"`
+	ImprovementNotes      *string                             `json:"improvement_notes"`
+	Expectations          *string                             `json:"expectations"`
+	Advice                *string                             `json:"advice"`
+	DueDate               pgtype.Date                         `json:"due_date"`
+	Status                PerformanceWorkAssignmentStatusEnum `json:"status"`
+	SubmittedAt           pgtype.Timestamptz                  `json:"submitted_at"`
+	SubmissionText        *string                             `json:"submission_text"`
+	Feedback              *string                             `json:"feedback"`
+	ReviewedAt            pgtype.Timestamptz                  `json:"reviewed_at"`
+	CreatedAt             pgtype.Timestamptz                  `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz                  `json:"updated_at"`
 }
 
 type Permission struct {

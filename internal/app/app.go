@@ -142,8 +142,14 @@ func buildRouter(
 	organizationRepo := repository.NewOrganizationRepository(store)
 	organizationService := service.NewOrganizationService(organizationRepo, logger)
 
+	settingsRepo := repository.NewSettingsRepository(store)
+	settingsService := service.NewSettingsService(settingsRepo, logger)
+
 	departmentRepo := repository.NewDepartmentRepository(store)
 	departmentService := service.NewDepartmentService(departmentRepo, logger)
+
+	roleRepo := repository.NewRoleRepository(store)
+	roleService := service.NewRoleService(roleRepo, logger)
 
 	scheduleRepo := repository.NewScheduleRepository(store)
 	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, logger)
@@ -166,7 +172,9 @@ func buildRouter(
 	authHandler := handler.NewAuthHandler(authService)
 	employeeHandler := handler.NewEmployeeHandler(employeeService)
 	organizationHandler := handler.NewOrganizationHandler(organizationService)
+	settingsHandler := handler.NewSettingsHandler(settingsService)
 	departmentHandler := handler.NewDepartmentHandler(departmentService)
+	roleHandler := handler.NewRoleHandler(roleService)
 	scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	shiftSwapHandler := handler.NewShiftSwapHandler(scheduleService)
 	leaveHandler := handler.NewLeaveHandler(leaveService)
@@ -182,7 +190,9 @@ func buildRouter(
 	handler.RegisterAuthRoutes(api, authHandler, auth)
 	handler.RegisterEmployeeRoutes(api, employeeHandler, auth, requirePermission)
 	handler.RegisterOrganizationRoutes(api, organizationHandler, auth, requirePermission)
+	handler.RegisterSettingsRoutes(api, settingsHandler, auth, requirePermission)
 	handler.RegisterDepartmentRoutes(api, departmentHandler, auth, requirePermission)
+	handler.RegisterRoleRoutes(api, roleHandler, auth, requirePermission)
 	handler.RegisterScheduleRoutes(api, scheduleHandler, auth, requirePermission)
 	handler.RegisterShiftSwapRoutes(api, shiftSwapHandler, auth, requirePermission)
 	handler.RegisterLeaveRoutes(api, leaveHandler, auth, requirePermission)

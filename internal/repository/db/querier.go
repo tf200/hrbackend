@@ -86,6 +86,7 @@ type Querier interface {
 	// Returns the ID of the admin role.
 	GetAdminRoleId(ctx context.Context) (uuid.UUID, error)
 	GetAllAdminUsers(ctx context.Context) ([]CustomUser, error)
+	GetAppOrganizationProfile(ctx context.Context) (GetAppOrganizationProfileRow, error)
 	GetCurrentMonthTimeEntryStats(ctx context.Context) (GetCurrentMonthTimeEntryStatsRow, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEmployeeContractDetails(ctx context.Context, id uuid.UUID) (GetEmployeeContractDetailsRow, error)
@@ -207,6 +208,7 @@ type Querier interface {
 	SearchEmployeesByNameOrEmail(ctx context.Context, search *string) ([]SearchEmployeesByNameOrEmailRow, error)
 	SetEmployeeProfilePicture(ctx context.Context, arg SetEmployeeProfilePictureParams) (CustomUser, error)
 	SyncEmployeeProfileContractFromLatestChange(ctx context.Context, id uuid.UUID) (EmployeeProfile, error)
+	UpdateAppOrganizationProfile(ctx context.Context, arg UpdateAppOrganizationProfileParams) (UpdateAppOrganizationProfileRow, error)
 	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (Department, error)
 	UpdateEmployeeCertification(ctx context.Context, arg UpdateEmployeeCertificationParams) (Certification, error)
 	UpdateEmployeeEducation(ctx context.Context, arg UpdateEmployeeEducationParams) (EmployeeEducation, error)
