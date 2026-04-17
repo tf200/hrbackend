@@ -1506,6 +1506,7 @@ type PayPeriodLineItem struct {
 	ID                    uuid.UUID                 `json:"id"`
 	PayPeriodID           uuid.UUID                 `json:"pay_period_id"`
 	TimeEntryID           *uuid.UUID                `json:"time_entry_id"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
 	WorkDate              pgtype.Date               `json:"work_date"`
 	LineType              string                    `json:"line_type"`
 	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`

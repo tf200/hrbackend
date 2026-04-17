@@ -58,6 +58,9 @@ DROP TABLE IF EXISTS late_arrivals;
 -- Payroll tables
 DROP TABLE IF EXISTS pay_period_line_items;
 
+-- Time entry audit table
+DROP TABLE IF EXISTS time_entry_update_audits;
+
 -- Time entry table
 DROP TABLE IF EXISTS time_entries;
 

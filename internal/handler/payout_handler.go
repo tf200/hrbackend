@@ -233,13 +233,18 @@ func (h *PayoutHandler) GetPayrollMonthDetail(ctx *gin.Context) {
 		return
 	}
 
-	employeeID, month, err := toPayrollMonthDetailRequest(req)
+	employeeID, month, contractType, err := toPayrollMonthDetailRequest(req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	detail, err := h.service.GetPayrollMonthDetail(ctx.Request.Context(), employeeID, month)
+	detail, err := h.service.GetPayrollMonthDetail(
+		ctx.Request.Context(),
+		employeeID,
+		month,
+		contractType,
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -258,13 +263,18 @@ func (h *PayoutHandler) ExportPayrollMonthSummaryPDF(ctx *gin.Context) {
 		return
 	}
 
-	employeeID, month, err := toPayrollMonthDetailRequest(req)
+	employeeID, month, contractType, err := toPayrollMonthDetailRequest(req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	pdfBytes, filename, err := h.service.ExportPayrollMonthPDF(ctx.Request.Context(), employeeID, month)
+	pdfBytes, filename, err := h.service.ExportPayrollMonthPDF(
+		ctx.Request.Context(),
+		employeeID,
+		month,
+		contractType,
+	)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return

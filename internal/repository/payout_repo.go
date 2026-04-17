@@ -464,6 +464,38 @@ func (r *PayoutRepository) ListPayrollMonthPendingSummaries(
 	return items, nil
 }
 
+func (r *PayoutRepository) ListPayrollMonthPendingEntries(
+	ctx context.Context,
+	employeeIDs []uuid.UUID,
+	monthStart, monthEnd time.Time,
+) ([]domain.PayrollMonthPendingEntry, error) {
+	if len(employeeIDs) == 0 {
+		return []domain.PayrollMonthPendingEntry{}, nil
+	}
+
+	rows, err := r.store.ListPayrollMonthPendingEntriesByEmployeeIDs(
+		ctx,
+		db.ListPayrollMonthPendingEntriesByEmployeeIDsParams{
+			EmployeeIds: employeeIDs,
+			MonthStart:  conv.PgDateFromTime(monthStart),
+			MonthEnd:    conv.PgDateFromTime(monthEnd),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.PayrollMonthPendingEntry, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.PayrollMonthPendingEntry{
+			EmployeeID:    row.EmployeeID,
+			WorkedMinutes: row.WorkedMinutes,
+			ContractType:  string(row.ContractType),
+		})
+	}
+	return items, nil
+}
+
 type payoutTxRepo struct {
 	queries *db.Queries
 }
@@ -767,6 +799,7 @@ func (r *payoutTxRepo) CreatePayPeriodLineItem(
 	row, err := r.queries.CreatePayPeriodLineItem(ctx, db.CreatePayPeriodLineItemParams{
 		PayPeriodID:           payPeriodID,
 		TimeEntryID:           item.TimeEntryID,
+		ContractType:          db.EmployeeContractTypeEnum(item.ContractType),
 		WorkDate:              conv.PgDateFromTime(item.WorkDate),
 		LineType:              item.LineType,
 		IrregularHoursProfile: db.IrregularHoursProfileEnum(item.IrregularHoursProfile),
@@ -957,6 +990,7 @@ func toDomainPayPeriodLineItem(row db.PayPeriodLineItem) domain.PayPeriodLineIte
 		ID:                    row.ID,
 		PayPeriodID:           row.PayPeriodID,
 		TimeEntryID:           row.TimeEntryID,
+		ContractType:          string(row.ContractType),
 		WorkDate:              conv.TimeFromPgDate(row.WorkDate),
 		LineType:              row.LineType,
 		IrregularHoursProfile: string(row.IrregularHoursProfile),

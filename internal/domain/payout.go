@@ -119,6 +119,7 @@ type PayrollPreview struct {
 
 type PayrollPreviewLineItem struct {
 	TimeEntryID           uuid.UUID
+	ContractType          string
 	WorkDate              time.Time
 	HourType              string
 	StartTime             string
@@ -171,6 +172,7 @@ type PayPeriodLineItem struct {
 	ID                    uuid.UUID
 	PayPeriodID           uuid.UUID
 	TimeEntryID           *uuid.UUID
+	ContractType          string
 	WorkDate              time.Time
 	LineType              string
 	IrregularHoursProfile string
@@ -249,6 +251,12 @@ type PayrollMonthPendingSummary struct {
 	EmployeeID           uuid.UUID
 	PendingEntryCount    int32
 	PendingWorkedMinutes int32
+}
+
+type PayrollMonthPendingEntry struct {
+	EmployeeID     uuid.UUID
+	WorkedMinutes  int32
+	ContractType   string
 }
 
 type PayrollLockedMultiplierSummary struct {
@@ -395,6 +403,11 @@ type PayoutRepository interface {
 		employeeIDs []uuid.UUID,
 		monthStart, monthEnd time.Time,
 	) ([]PayrollMonthPendingSummary, error)
+	ListPayrollMonthPendingEntries(
+		ctx context.Context,
+		employeeIDs []uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollMonthPendingEntry, error)
 }
 
 type PayoutService interface {
@@ -445,10 +458,12 @@ type PayoutService interface {
 		ctx context.Context,
 		employeeID uuid.UUID,
 		month time.Time,
+		contractType *string,
 	) (*PayrollMonthDetail, error)
 	ExportPayrollMonthPDF(
 		ctx context.Context,
 		employeeID uuid.UUID,
 		month time.Time,
+		contractType *string,
 	) ([]byte, string, error)
 }

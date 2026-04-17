@@ -1191,6 +1191,7 @@ CREATE TABLE pay_period_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pay_period_id UUID NOT NULL REFERENCES pay_periods(id) ON DELETE CASCADE,
     time_entry_id UUID NULL REFERENCES time_entries(id) ON DELETE SET NULL,
+    contract_type employee_contract_type_enum NOT NULL DEFAULT 'none',
     work_date DATE NOT NULL,
     line_type TEXT NOT NULL,
     irregular_hours_profile irregular_hours_profile_enum NOT NULL DEFAULT 'none',

@@ -164,6 +164,57 @@ func TestPreviewPayrollSundayOverridesAllWindows(t *testing.T) {
 	}
 }
 
+func TestPreviewPayrollZZPDoesNotReceiveORT(t *testing.T) {
+	repo := &fakePayoutRepository{
+		employee: &domain.EmployeeDetail{
+			ID:        mustUUID("aaaa5555-5555-5555-5555-555555555555"),
+			FirstName: "Zara",
+			LastName:  "Pieters",
+		},
+		entries: []domain.PayrollPreviewTimeEntry{
+			{
+				ID:                    mustUUID("bbbb6666-6666-6666-6666-666666666666"),
+				EmployeeID:            mustUUID("aaaa5555-5555-5555-5555-555555555555"),
+				EmployeeName:          "Zara Pieters",
+				EntryDate:             dateUTC(2026, 4, 5),
+				StartTime:             "20:00",
+				EndTime:               "23:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "ZZP",
+				ContractRate:          ptrFloat(30),
+				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
+			},
+		},
+	}
+
+	service := &PayoutService{repository: repo}
+	preview, err := service.PreviewPayroll(context.Background(), domain.PayrollPreviewParams{
+		EmployeeID:  repo.employee.ID,
+		PeriodStart: dateUTC(2026, 4, 1),
+		PeriodEnd:   dateUTC(2026, 4, 30),
+	})
+	if err != nil {
+		t.Fatalf("PreviewPayroll returned error: %v", err)
+	}
+
+	if preview.BaseGrossAmount != 90 {
+		t.Fatalf("expected base gross 90.00, got %.2f", preview.BaseGrossAmount)
+	}
+	if preview.IrregularGrossAmount != 0 {
+		t.Fatalf("expected irregular gross 0, got %.2f", preview.IrregularGrossAmount)
+	}
+	if len(preview.LineItems) != 1 {
+		t.Fatalf("expected one line item, got %d", len(preview.LineItems))
+	}
+	if preview.LineItems[0].AppliedRatePercent != 0 {
+		t.Fatalf("expected ZZP applied rate 0, got %.2f", preview.LineItems[0].AppliedRatePercent)
+	}
+	if preview.LineItems[0].PremiumAmount != 0 {
+		t.Fatalf("expected ZZP premium amount 0, got %.2f", preview.LineItems[0].PremiumAmount)
+	}
+}
+
 func TestClosePayPeriodCreatesDraftAndAssignsEntries(t *testing.T) {
 	txRepo := &fakePayoutTxRepository{
 		entries: []domain.PayrollPreviewTimeEntry{
@@ -355,15 +406,18 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 				IrregularGrossAmount: 1,
 				GrossAmount:          2,
 			},
-		},
-		monthLockedMultipliers: []domain.PayrollLockedMultiplierSummary{
-			{
-				PayPeriodID:   payPeriodID,
-				RatePercent:   25,
-				WorkedMinutes: 60,
-				PaidMinutes:   60,
-				BaseAmount:    10,
-				PremiumAmount: 2.5,
+			},
+			monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
+				payPeriodID: []domain.PayPeriodLineItem{
+					{
+						PayPeriodID:        payPeriodID,
+					TimeEntryID:        uuidPtr(mustUUID("a1a1a1a1-5656-5656-5656-565656565656")),
+					ContractType:       "loondienst",
+					AppliedRatePercent: 25,
+					MinutesWorked:      60,
+					BaseAmount:         10,
+					PremiumAmount:      2.5,
+				},
 			},
 		},
 		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
@@ -381,8 +435,8 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
 		},
-		monthPendingSummaries: []domain.PayrollMonthPendingSummary{
-			{EmployeeID: employeeID, PendingEntryCount: 1, PendingWorkedMinutes: 30},
+		monthPendingEntries: []domain.PayrollMonthPendingEntry{
+			{EmployeeID: employeeID, WorkedMinutes: 30, ContractType: "loondienst"},
 		},
 	}
 
@@ -449,23 +503,27 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 				IrregularGrossAmount: 30,
 				GrossAmount:          130,
 			},
-		},
-		monthLockedMultipliers: []domain.PayrollLockedMultiplierSummary{
-			{
-				PayPeriodID:   payPeriodID,
-				RatePercent:   25,
-				WorkedMinutes: 120,
-				PaidMinutes:   120,
-				BaseAmount:    50,
-				PremiumAmount: 12.5,
 			},
-			{
-				PayPeriodID:   payPeriodID,
-				RatePercent:   45,
-				WorkedMinutes: 90,
-				PaidMinutes:   90,
-				BaseAmount:    50,
-				PremiumAmount: 17.5,
+			monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
+				payPeriodID: []domain.PayPeriodLineItem{
+					{
+						PayPeriodID:        payPeriodID,
+					TimeEntryID:        uuidPtr(mustUUID("11111111-7878-7878-7878-787878787878")),
+					ContractType:       "loondienst",
+					AppliedRatePercent: 25,
+					MinutesWorked:      120,
+					BaseAmount:         50,
+					PremiumAmount:      12.5,
+				},
+				{
+					PayPeriodID:        payPeriodID,
+					TimeEntryID:        uuidPtr(mustUUID("22222222-7878-7878-7878-787878787878")),
+					ContractType:       "loondienst",
+					AppliedRatePercent: 45,
+					MinutesWorked:      90,
+					BaseAmount:         50,
+					PremiumAmount:      17.5,
+				},
 			},
 		},
 		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
@@ -521,8 +579,9 @@ func TestGetPayrollMonthSummaryIncludesPendingOnlyEmployee(t *testing.T) {
 			{EmployeeID: employeeID, EmployeeName: "Mila de Boer"},
 		},
 		monthEmployeeTotalCount: 1,
-		monthPendingSummaries: []domain.PayrollMonthPendingSummary{
-			{EmployeeID: employeeID, PendingEntryCount: 2, PendingWorkedMinutes: 180},
+		monthPendingEntries: []domain.PayrollMonthPendingEntry{
+			{EmployeeID: employeeID, WorkedMinutes: 120, ContractType: "loondienst"},
+			{EmployeeID: employeeID, WorkedMinutes: 60, ContractType: "loondienst"},
 		},
 	}
 
@@ -547,6 +606,160 @@ func TestGetPayrollMonthSummaryIncludesPendingOnlyEmployee(t *testing.T) {
 	}
 }
 
+func TestGetPayrollMonthSummaryZZPFilterSplitsMixedMonthTotals(t *testing.T) {
+	monthStart := dateUTC(2026, 4, 1)
+	employeeID := mustUUID("cdcd1212-1212-1212-1212-121212121212")
+
+	repo := &fakePayoutRepository{
+		monthEmployees: []domain.PayrollMonthEmployee{
+			{EmployeeID: employeeID, EmployeeName: "Mixed Employee"},
+		},
+		monthEmployeeTotalCount: 1,
+		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
+			{
+				ID:                    mustUUID("cdcd0001-1212-1212-1212-121212121212"),
+				EmployeeID:            employeeID,
+				EmployeeName:          "Mixed Employee",
+				EntryDate:             monthStart.AddDate(0, 0, 1),
+				StartTime:             "20:00",
+				EndTime:               "22:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "loondienst",
+				ContractRate:          ptrFloat(10),
+				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
+			},
+			{
+				ID:                    mustUUID("cdcd0002-1212-1212-1212-121212121212"),
+				EmployeeID:            employeeID,
+				EmployeeName:          "Mixed Employee",
+				EntryDate:             monthStart.AddDate(0, 0, 2),
+				StartTime:             "20:00",
+				EndTime:               "22:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "ZZP",
+				ContractRate:          ptrFloat(20),
+				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
+			},
+		},
+		monthPendingEntries: []domain.PayrollMonthPendingEntry{
+			{EmployeeID: employeeID, WorkedMinutes: 30, ContractType: "ZZP"},
+		},
+	}
+
+	service := &PayoutService{repository: repo}
+	page, err := service.GetPayrollMonthSummary(context.Background(), domain.PayrollMonthSummaryParams{
+		Month:        monthStart,
+		Limit:        20,
+		ContractType: ptrString("ZZP"),
+	})
+	if err != nil {
+		t.Fatalf("GetPayrollMonthSummary returned error: %v", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("expected 1 filtered row, got %d", len(page.Items))
+	}
+
+	row := page.Items[0]
+	if row.BaseGrossAmount != 40 || row.IrregularGrossAmount != 0 || row.GrossAmount != 40 {
+		t.Fatalf("unexpected ZZP totals: %#v", row)
+	}
+	if row.ShiftCount != 1 {
+		t.Fatalf("expected one ZZP shift, got %d", row.ShiftCount)
+	}
+	if row.PendingEntryCount != 1 || row.PendingWorkedMinutes != 30 {
+		t.Fatalf("unexpected ZZP pending totals: %#v", row)
+	}
+	if len(row.MultiplierSummaries) != 1 || row.MultiplierSummaries[0].RatePercent != 0 {
+		t.Fatalf("expected zero-rate ZZP multiplier bucket, got %#v", row.MultiplierSummaries)
+	}
+}
+
+func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T) {
+	monthStart := dateUTC(2026, 3, 1)
+	monthEnd := monthStart.AddDate(0, 1, -1)
+	employeeID := mustUUID("eded1212-1212-1212-1212-121212121212")
+	payPeriodID := mustUUID("eded3434-3434-3434-3434-343434343434")
+	zzpEntryID := mustUUID("eded0001-3434-3434-3434-343434343434")
+	loonEntryID := mustUUID("eded0002-3434-3434-3434-343434343434")
+
+	repo := &fakePayoutRepository{
+		employee: &domain.EmployeeDetail{
+			ID:        employeeID,
+			FirstName: "Locked",
+			LastName:  "Employee",
+		},
+		monthPayPeriods: []domain.PayPeriod{
+			{
+				ID:                   payPeriodID,
+				EmployeeID:           employeeID,
+				EmployeeName:         "Locked Employee",
+				PeriodStart:          monthStart,
+				PeriodEnd:            monthEnd,
+				Status:               domain.PayPeriodStatusDraft,
+				BaseGrossAmount:      60,
+				IrregularGrossAmount: 5,
+				GrossAmount:          65,
+			},
+			},
+			payPeriodByID: map[uuid.UUID]*domain.PayPeriod{
+				payPeriodID: &domain.PayPeriod{
+					ID:                   payPeriodID,
+					EmployeeID:           employeeID,
+				EmployeeName:         "Locked Employee",
+				PeriodStart:          monthStart,
+				PeriodEnd:            monthEnd,
+				Status:               domain.PayPeriodStatusDraft,
+				BaseGrossAmount:      60,
+				IrregularGrossAmount: 5,
+				GrossAmount:          65,
+			},
+			},
+			monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
+				payPeriodID: []domain.PayPeriodLineItem{
+					{
+					PayPeriodID:        payPeriodID,
+					TimeEntryID:        &zzpEntryID,
+					ContractType:       "ZZP",
+					AppliedRatePercent: 0,
+					MinutesWorked:      120,
+					BaseAmount:         40,
+				},
+				{
+					PayPeriodID:        payPeriodID,
+					TimeEntryID:        &loonEntryID,
+					ContractType:       "loondienst",
+					AppliedRatePercent: 25,
+					MinutesWorked:      120,
+					BaseAmount:         20,
+					PremiumAmount:      5,
+				},
+			},
+		},
+	}
+
+	service := &PayoutService{repository: repo}
+	detail, err := service.GetPayrollMonthDetail(
+		context.Background(),
+		employeeID,
+		monthStart,
+		ptrString("ZZP"),
+	)
+	if err != nil {
+		t.Fatalf("GetPayrollMonthDetail returned error: %v", err)
+	}
+	if detail.DataSource != "locked" || detail.PayPeriod == nil {
+		t.Fatalf("expected locked pay period detail, got %#v", detail)
+	}
+	if detail.PayPeriod.GrossAmount != 40 || detail.PayPeriod.IrregularGrossAmount != 0 {
+		t.Fatalf("unexpected filtered pay period totals: %#v", detail.PayPeriod)
+	}
+	if len(detail.PayPeriod.LineItems) != 1 || detail.PayPeriod.LineItems[0].ContractType != "ZZP" {
+		t.Fatalf("expected one ZZP line item, got %#v", detail.PayPeriod.LineItems)
+	}
+}
+
 type fakePayoutRepository struct {
 	employee                *domain.EmployeeDetail
 	entries                 []domain.PayrollPreviewTimeEntry
@@ -555,9 +768,10 @@ type fakePayoutRepository struct {
 	monthEmployees          []domain.PayrollMonthEmployee
 	monthEmployeeTotalCount int64
 	monthPayPeriods         []domain.PayPeriod
-	monthLockedMultipliers  []domain.PayrollLockedMultiplierSummary
+	payPeriodByID           map[uuid.UUID]*domain.PayPeriod
+	monthPayPeriodLineItems map[uuid.UUID][]domain.PayPeriodLineItem
 	monthApprovedEntries    []domain.PayrollPreviewTimeEntry
-	monthPendingSummaries   []domain.PayrollMonthPendingSummary
+	monthPendingEntries     []domain.PayrollMonthPendingEntry
 }
 
 func (f *fakePayoutRepository) WithTx(
@@ -608,9 +822,12 @@ func (f *fakePayoutRepository) ListNationalHolidays(
 
 func (f *fakePayoutRepository) GetPayPeriodByID(
 	_ context.Context,
-	_ uuid.UUID,
+	payPeriodID uuid.UUID,
 ) (*domain.PayPeriod, error) {
-	panic("unexpected call")
+	if f.payPeriodByID == nil || f.payPeriodByID[payPeriodID] == nil {
+		panic("unexpected call")
+	}
+	return f.payPeriodByID[payPeriodID], nil
 }
 
 func (f *fakePayoutRepository) ListPayPeriods(
@@ -622,9 +839,9 @@ func (f *fakePayoutRepository) ListPayPeriods(
 
 func (f *fakePayoutRepository) ListPayPeriodLineItems(
 	_ context.Context,
-	_ uuid.UUID,
+	payPeriodID uuid.UUID,
 ) ([]domain.PayPeriodLineItem, error) {
-	panic("unexpected call")
+	return f.monthPayPeriodLineItems[payPeriodID], nil
 }
 
 func (f *fakePayoutRepository) ListPayrollMonthEmployees(
@@ -647,7 +864,7 @@ func (f *fakePayoutRepository) ListPayrollMonthLockedMultiplierSummaries(
 	_ context.Context,
 	_ []uuid.UUID,
 ) ([]domain.PayrollLockedMultiplierSummary, error) {
-	return f.monthLockedMultipliers, nil
+	panic("unexpected call")
 }
 
 func (f *fakePayoutRepository) ListPayrollMonthApprovedTimeEntries(
@@ -663,7 +880,15 @@ func (f *fakePayoutRepository) ListPayrollMonthPendingSummaries(
 	_ []uuid.UUID,
 	_, _ time.Time,
 ) ([]domain.PayrollMonthPendingSummary, error) {
-	return f.monthPendingSummaries, nil
+	panic("unexpected call")
+}
+
+func (f *fakePayoutRepository) ListPayrollMonthPendingEntries(
+	_ context.Context,
+	_ []uuid.UUID,
+	_, _ time.Time,
+) ([]domain.PayrollMonthPendingEntry, error) {
+	return f.monthPendingEntries, nil
 }
 
 type fakePayoutTxRepository struct {
@@ -830,6 +1055,14 @@ func (f *fakePayoutTxRepository) MarkPayPeriodPaid(
 }
 
 func ptrFloat(v float64) *float64 {
+	return &v
+}
+
+func ptrString(v string) *string {
+	return &v
+}
+
+func uuidPtr(v uuid.UUID) *uuid.UUID {
 	return &v
 }
 

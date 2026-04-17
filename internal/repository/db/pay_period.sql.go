@@ -95,6 +95,7 @@ const createPayPeriodLineItem = `-- name: CreatePayPeriodLineItem :one
 INSERT INTO pay_period_line_items (
     pay_period_id,
     time_entry_id,
+    contract_type,
     work_date,
     line_type,
     irregular_hours_profile,
@@ -113,14 +114,16 @@ INSERT INTO pay_period_line_items (
     $7,
     $8,
     $9,
-    COALESCE($10, '{}'::jsonb)
+    $10,
+    COALESCE($11, '{}'::jsonb)
 )
-RETURNING id, pay_period_id, time_entry_id, work_date, line_type, irregular_hours_profile, applied_rate_percent, minutes_worked, base_amount, premium_amount, metadata, created_at, updated_at
+RETURNING id, pay_period_id, time_entry_id, contract_type, work_date, line_type, irregular_hours_profile, applied_rate_percent, minutes_worked, base_amount, premium_amount, metadata, created_at, updated_at
 `
 
 type CreatePayPeriodLineItemParams struct {
 	PayPeriodID           uuid.UUID                 `json:"pay_period_id"`
 	TimeEntryID           *uuid.UUID                `json:"time_entry_id"`
+	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
 	WorkDate              pgtype.Date               `json:"work_date"`
 	LineType              string                    `json:"line_type"`
 	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
@@ -135,6 +138,7 @@ func (q *Queries) CreatePayPeriodLineItem(ctx context.Context, arg CreatePayPeri
 	row := q.db.QueryRow(ctx, createPayPeriodLineItem,
 		arg.PayPeriodID,
 		arg.TimeEntryID,
+		arg.ContractType,
 		arg.WorkDate,
 		arg.LineType,
 		arg.IrregularHoursProfile,
@@ -149,6 +153,7 @@ func (q *Queries) CreatePayPeriodLineItem(ctx context.Context, arg CreatePayPeri
 		&i.ID,
 		&i.PayPeriodID,
 		&i.TimeEntryID,
+		&i.ContractType,
 		&i.WorkDate,
 		&i.LineType,
 		&i.IrregularHoursProfile,
@@ -296,6 +301,7 @@ SELECT
     id,
     pay_period_id,
     time_entry_id,
+    contract_type,
     work_date,
     line_type,
     irregular_hours_profile,
@@ -324,6 +330,7 @@ func (q *Queries) ListPayPeriodLineItemsByPayPeriodID(ctx context.Context, payPe
 			&i.ID,
 			&i.PayPeriodID,
 			&i.TimeEntryID,
+			&i.ContractType,
 			&i.WorkDate,
 			&i.LineType,
 			&i.IrregularHoursProfile,

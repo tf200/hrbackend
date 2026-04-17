@@ -152,3 +152,44 @@ WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
   AND te.entry_date <= sqlc.arg('month_end')
 GROUP BY te.employee_id
 ORDER BY te.employee_id ASC;
+
+-- name: ListPayrollMonthPendingEntriesByEmployeeIDs :many
+SELECT
+    te.employee_id,
+    GREATEST(
+        0,
+        (
+            CASE
+                WHEN te.end_time > te.start_time THEN
+                    EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
+                ELSE
+                    EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
+            END
+        ) / 60 - te.break_minutes
+    )::INT AS worked_minutes,
+    COALESCE(cc.contract_type, ep.contract_type) AS contract_type
+FROM time_entries te
+JOIN employee_profile ep ON ep.id = te.employee_id
+LEFT JOIN LATERAL (
+    SELECT
+        c.contract_type
+    FROM employee_contract_changes c
+    WHERE c.employee_id = te.employee_id
+      AND c.effective_from <= te.entry_date
+    ORDER BY c.effective_from DESC, c.created_at DESC
+    LIMIT 1
+) cc ON TRUE
+WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+  AND te.status IN (
+      'draft'::time_entry_status_enum,
+      'submitted'::time_entry_status_enum
+  )
+  AND te.hour_type IN (
+      'normal'::time_entry_hour_type_enum,
+      'overtime'::time_entry_hour_type_enum,
+      'travel'::time_entry_hour_type_enum,
+      'training'::time_entry_hour_type_enum
+  )
+  AND te.entry_date >= sqlc.arg('month_start')
+  AND te.entry_date <= sqlc.arg('month_end')
+ORDER BY te.employee_id ASC, te.entry_date ASC, te.start_time ASC, te.created_at ASC;

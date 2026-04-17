@@ -87,6 +87,7 @@ RETURNING *;
 INSERT INTO pay_period_line_items (
     pay_period_id,
     time_entry_id,
+    contract_type,
     work_date,
     line_type,
     irregular_hours_profile,
@@ -98,6 +99,7 @@ INSERT INTO pay_period_line_items (
 ) VALUES (
     sqlc.arg('pay_period_id'),
     sqlc.narg('time_entry_id'),
+    sqlc.arg('contract_type'),
     sqlc.arg('work_date'),
     sqlc.arg('line_type'),
     sqlc.arg('irregular_hours_profile'),
@@ -175,6 +177,7 @@ SELECT
     id,
     pay_period_id,
     time_entry_id,
+    contract_type,
     work_date,
     line_type,
     irregular_hours_profile,

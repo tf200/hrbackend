@@ -178,6 +178,7 @@ type Querier interface {
 	ListPayoutRequestsPaginated(ctx context.Context, arg ListPayoutRequestsPaginatedParams) ([]ListPayoutRequestsPaginatedRow, error)
 	ListPayrollMonthApprovedTimeEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthApprovedTimeEntriesByEmployeeIDsParams) ([]ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow, error)
 	ListPayrollMonthEmployeesPaginated(ctx context.Context, arg ListPayrollMonthEmployeesPaginatedParams) ([]ListPayrollMonthEmployeesPaginatedRow, error)
+	ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingEntriesByEmployeeIDsParams) ([]ListPayrollMonthPendingEntriesByEmployeeIDsRow, error)
 	ListPayrollMonthPendingSummariesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingSummariesByEmployeeIDsParams) ([]ListPayrollMonthPendingSummariesByEmployeeIDsRow, error)
 	ListPayrollPreviewTimeEntries(ctx context.Context, arg ListPayrollPreviewTimeEntriesParams) ([]ListPayrollPreviewTimeEntriesRow, error)
 	// Returns every role ordered by id with count of permissions and employees.

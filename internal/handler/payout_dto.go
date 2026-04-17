@@ -56,8 +56,9 @@ type payrollMonthSummaryRequest struct {
 }
 
 type payrollMonthDetailRequest struct {
-	EmployeeID string `form:"employee_id" binding:"required"`
-	Month      string `form:"month"       binding:"required,datetime=2006-01"`
+	EmployeeID   string  `form:"employee_id"   binding:"required"`
+	Month        string  `form:"month"         binding:"required,datetime=2006-01"`
+	ContractType *string `form:"contract_type" binding:"omitempty,oneof=loondienst ZZP"`
 }
 
 type previewPayrollRequest struct {
@@ -465,7 +466,7 @@ func toPayrollMonthSummaryResponses(
 	return results
 }
 
-func toPayrollMonthDetailRequest(req payrollMonthDetailRequest) (uuid.UUID, time.Time, error) {
+func toPayrollMonthDetailRequest(req payrollMonthDetailRequest) (uuid.UUID, time.Time, *string, error) {
 	employeeRaw := strings.TrimSpace(req.EmployeeID)
 	employeeRaw = strings.TrimPrefix(employeeRaw, "[")
 	employeeRaw = strings.TrimSuffix(employeeRaw, "]")
@@ -474,15 +475,21 @@ func toPayrollMonthDetailRequest(req payrollMonthDetailRequest) (uuid.UUID, time
 
 	employeeID, err := uuid.Parse(employeeRaw)
 	if err != nil {
-		return uuid.Nil, time.Time{}, err
+		return uuid.Nil, time.Time{}, nil, err
 	}
 
 	month, err := time.Parse(payoutMonthLayout, req.Month)
 	if err != nil {
-		return uuid.Nil, time.Time{}, err
+		return uuid.Nil, time.Time{}, nil, err
 	}
 	monthStart := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
-	return employeeID, monthStart, nil
+
+	contractType, err := normalizePayrollContractType(req.ContractType)
+	if err != nil {
+		return uuid.Nil, time.Time{}, nil, err
+	}
+
+	return employeeID, monthStart, contractType, nil
 }
 
 func toPayrollMonthDetailResponse(item *domain.PayrollMonthDetail) payrollMonthDetailResponse {
@@ -515,6 +522,24 @@ func parsePayoutSalaryMonth(value *string) (*time.Time, error) {
 	}
 	firstDay := time.Date(parsed.Year(), parsed.Month(), 1, 0, 0, 0, 0, time.UTC)
 	return &firstDay, nil
+}
+
+func normalizePayrollContractType(value *string) (*string, error) {
+	if value == nil {
+		return nil, nil
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(*value))
+	switch normalized {
+	case "loondienst":
+		value := "LOONDIENST"
+		return &value, nil
+	case "zzp":
+		value := "ZZP"
+		return &value, nil
+	default:
+		return nil, fmt.Errorf("invalid contract_type, expected loondienst or ZZP")
+	}
 }
 
 func formatPayoutSalaryMonth(value *time.Time) *string {
