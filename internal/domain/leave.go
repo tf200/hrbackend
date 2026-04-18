@@ -40,6 +40,22 @@ type LeaveRequestListItem struct {
 	EmployeeName string
 }
 
+type LeaveCalendarRecord struct {
+	LeaveRequestID uuid.UUID
+	LeaveType      string
+	Status         string
+	StartDate      time.Time
+	EndDate        time.Time
+	Reason         *string
+}
+
+type LeaveCalendarEmployee struct {
+	EmployeeID     uuid.UUID
+	EmployeeName   string
+	DepartmentName *string
+	LeaveRecords   []LeaveCalendarRecord
+}
+
 type LeaveRequestPage struct {
 	Items      []LeaveRequestListItem
 	TotalCount int64
@@ -115,6 +131,13 @@ type ListLeaveRequestsParams struct {
 	Limit          int32
 	Offset         int32
 	Status         *string
+	EmployeeSearch *string
+}
+
+type ListLeaveCalendarParams struct {
+	Month          time.Time
+	DepartmentID   *uuid.UUID
+	LeaveTypes     []string
 	EmployeeSearch *string
 }
 
@@ -205,6 +228,10 @@ type LeaveRepository interface {
 		ctx context.Context,
 		params ListLeaveRequestsParams,
 	) (*LeaveRequestPage, error)
+	ListLeaveCalendar(
+		ctx context.Context,
+		params ListLeaveCalendarParams,
+	) ([]LeaveCalendarEmployee, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (*LeaveRequestStats, error)
 	GetLeaveRequestStats(ctx context.Context) (*LeaveRequestStats, error)
 	ListLeaveBalances(
@@ -252,6 +279,10 @@ type LeaveService interface {
 		ctx context.Context,
 		params ListLeaveRequestsParams,
 	) (*LeaveRequestPage, error)
+	ListLeaveCalendar(
+		ctx context.Context,
+		params ListLeaveCalendarParams,
+	) ([]LeaveCalendarEmployee, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (*LeaveRequestStats, error)
 	GetLeaveRequestStats(ctx context.Context) (*LeaveRequestStats, error)
 	ListLeaveBalances(

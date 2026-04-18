@@ -1,16 +1,19 @@
 package handler
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"hrbackend/internal/domain"
 	"hrbackend/internal/httpapi"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 const leaveDateLayout = "2006-01-02"
+const leaveMonthLayout = "2006-01"
 
 type createLeaveRequestRequest struct {
 	LeaveType string  `json:"leave_type" binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
@@ -58,6 +61,13 @@ type listLeaveRequestsRequest struct {
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 
+type listLeaveCalendarRequest struct {
+	Month          string     `form:"month"           binding:"required,datetime=2006-01"`
+	DepartmentID   *uuid.UUID `form:"department_id"`
+	LeaveTypes     []string   `form:"leave_types"`
+	EmployeeSearch *string    `form:"employee_search" binding:"omitempty,max=120"`
+}
+
 type listLeaveBalancesRequest struct {
 	httpapi.PageRequest
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
@@ -98,6 +108,22 @@ type leaveRequestResponse struct {
 type leaveRequestListItemResponse struct {
 	leaveRequestResponse
 	EmployeeName string `json:"employee_name"`
+}
+
+type leaveCalendarRecordResponse struct {
+	LeaveRequestID uuid.UUID `json:"leave_request_id"`
+	LeaveType      string    `json:"leave_type"`
+	Status         string    `json:"status"`
+	StartDate      time.Time `json:"start_date"`
+	EndDate        time.Time `json:"end_date"`
+	Reason         *string   `json:"reason,omitempty"`
+}
+
+type leaveCalendarEmployeeResponse struct {
+	EmployeeID     uuid.UUID                     `json:"employee_id"`
+	EmployeeName   string                        `json:"employee_name"`
+	DepartmentName *string                       `json:"department_name,omitempty"`
+	LeaveRecords   []leaveCalendarRecordResponse `json:"leave_records"`
 }
 
 type leaveRequestStatsResponse struct {
@@ -257,6 +283,32 @@ func toListLeaveRequestsParams(req listLeaveRequestsRequest) domain.ListLeaveReq
 	}
 }
 
+func bindListLeaveCalendarRequest(ctx *gin.Context) (listLeaveCalendarRequest, error) {
+	var req listLeaveCalendarRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		return listLeaveCalendarRequest{}, err
+	}
+	req.LeaveTypes = ctx.QueryArray("leave_types")
+	if err := req.validate(); err != nil {
+		return listLeaveCalendarRequest{}, err
+	}
+	return req, nil
+}
+
+func toListLeaveCalendarParams(req listLeaveCalendarRequest) domain.ListLeaveCalendarParams {
+	month, err := time.Parse(leaveMonthLayout, req.Month)
+	if err != nil {
+		return domain.ListLeaveCalendarParams{}
+	}
+
+	return domain.ListLeaveCalendarParams{
+		Month:          time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC),
+		DepartmentID:   req.DepartmentID,
+		LeaveTypes:     req.LeaveTypes,
+		EmployeeSearch: req.EmployeeSearch,
+	}
+}
+
 func toListLeaveBalancesParams(req listLeaveBalancesRequest) domain.ListLeaveBalancesParams {
 	return domain.ListLeaveBalancesParams{
 		Limit:          req.PageSize,
@@ -316,6 +368,29 @@ func toLeaveRequestListItemResponse(item domain.LeaveRequestListItem) leaveReque
 	return leaveRequestListItemResponse{
 		leaveRequestResponse: toLeaveRequestResponse(&item.LeaveRequest),
 		EmployeeName:         item.EmployeeName,
+	}
+}
+
+func toLeaveCalendarEmployeeResponse(
+	item domain.LeaveCalendarEmployee,
+) leaveCalendarEmployeeResponse {
+	records := make([]leaveCalendarRecordResponse, len(item.LeaveRecords))
+	for i, record := range item.LeaveRecords {
+		records[i] = leaveCalendarRecordResponse{
+			LeaveRequestID: record.LeaveRequestID,
+			LeaveType:      record.LeaveType,
+			Status:         record.Status,
+			StartDate:      record.StartDate,
+			EndDate:        record.EndDate,
+			Reason:         record.Reason,
+		}
+	}
+
+	return leaveCalendarEmployeeResponse{
+		EmployeeID:     item.EmployeeID,
+		EmployeeName:   item.EmployeeName,
+		DepartmentName: item.DepartmentName,
+		LeaveRecords:   records,
 	}
 }
 
@@ -386,4 +461,15 @@ func parseLeaveDatePtr(value *string) (*time.Time, error) {
 	}
 	utc := parsed.UTC()
 	return &utc, nil
+}
+
+func (r listLeaveCalendarRequest) validate() error {
+	for _, leaveType := range r.LeaveTypes {
+		switch strings.TrimSpace(leaveType) {
+		case "vacation", "personal", "sick", "pregnancy", "unpaid", "other":
+		default:
+			return fmt.Errorf("Field validation for 'LeaveTypes' failed on the 'oneof' tag")
+		}
+	}
+	return nil
 }

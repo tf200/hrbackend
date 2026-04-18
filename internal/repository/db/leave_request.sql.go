@@ -151,6 +151,108 @@ func (q *Queries) GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UU
 	return i, err
 }
 
+const listLeaveCalendarRows = `-- name: ListLeaveCalendarRows :many
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    d.name AS department_name,
+    lr.id AS leave_request_id,
+    lr.leave_type,
+    lr.status,
+    lr.start_date,
+    lr.end_date,
+    lr.reason
+FROM leave_requests lr
+JOIN employee_profile ep ON ep.id = lr.employee_id
+LEFT JOIN departments d ON d.id = ep.department_id
+WHERE lr.start_date < $1::date
+  AND lr.end_date >= $2::date
+  AND lr.status = ANY(ARRAY[
+    'approved'::leave_request_status_enum,
+    'pending'::leave_request_status_enum
+  ])
+  AND (
+    $3::uuid IS NULL
+    OR ep.department_id = $3::uuid
+  )
+  AND (
+    $4::text IS NULL
+    OR $4::text = ''
+    OR ep.first_name ILIKE '%' || $4::text || '%'
+    OR ep.last_name ILIKE '%' || $4::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || $4::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || $4::text || '%'
+  )
+  AND (
+    COALESCE(array_length($5::leave_request_type_enum[], 1), 0) = 0
+    OR lr.leave_type = ANY($5::leave_request_type_enum[])
+  )
+ORDER BY
+    ep.first_name ASC,
+    ep.last_name ASC,
+    lr.start_date ASC,
+    lr.id ASC
+`
+
+type ListLeaveCalendarRowsParams struct {
+	MonthEndExclusive pgtype.Date            `json:"month_end_exclusive"`
+	MonthStart        pgtype.Date            `json:"month_start"`
+	DepartmentID      *uuid.UUID             `json:"department_id"`
+	EmployeeSearch    *string                `json:"employee_search"`
+	LeaveTypes        []LeaveRequestTypeEnum `json:"leave_types"`
+}
+
+type ListLeaveCalendarRowsRow struct {
+	EmployeeID        uuid.UUID              `json:"employee_id"`
+	EmployeeFirstName string                 `json:"employee_first_name"`
+	EmployeeLastName  string                 `json:"employee_last_name"`
+	DepartmentName    *string                `json:"department_name"`
+	LeaveRequestID    uuid.UUID              `json:"leave_request_id"`
+	LeaveType         LeaveRequestTypeEnum   `json:"leave_type"`
+	Status            LeaveRequestStatusEnum `json:"status"`
+	StartDate         pgtype.Date            `json:"start_date"`
+	EndDate           pgtype.Date            `json:"end_date"`
+	Reason            *string                `json:"reason"`
+}
+
+func (q *Queries) ListLeaveCalendarRows(ctx context.Context, arg ListLeaveCalendarRowsParams) ([]ListLeaveCalendarRowsRow, error) {
+	rows, err := q.db.Query(ctx, listLeaveCalendarRows,
+		arg.MonthEndExclusive,
+		arg.MonthStart,
+		arg.DepartmentID,
+		arg.EmployeeSearch,
+		arg.LeaveTypes,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLeaveCalendarRowsRow{}
+	for rows.Next() {
+		var i ListLeaveCalendarRowsRow
+		if err := rows.Scan(
+			&i.EmployeeID,
+			&i.EmployeeFirstName,
+			&i.EmployeeLastName,
+			&i.DepartmentName,
+			&i.LeaveRequestID,
+			&i.LeaveType,
+			&i.Status,
+			&i.StartDate,
+			&i.EndDate,
+			&i.Reason,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLeaveRequestsPaginated = `-- name: ListLeaveRequestsPaginated :many
 SELECT
     lr.id,

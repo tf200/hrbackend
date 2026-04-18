@@ -325,6 +325,40 @@ func (s *LeaveService) ListLeaveRequests(
 	return s.repository.ListLeaveRequests(ctx, params)
 }
 
+func (s *LeaveService) ListLeaveCalendar(
+	ctx context.Context,
+	params domain.ListLeaveCalendarParams,
+) ([]domain.LeaveCalendarEmployee, error) {
+	if params.Month.IsZero() {
+		return nil, domain.ErrLeaveRequestInvalidRequest
+	}
+
+	params.Month = time.Date(
+		params.Month.UTC().Year(),
+		params.Month.UTC().Month(),
+		1,
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+
+	if len(params.LeaveTypes) > 0 {
+		normalized := make([]string, 0, len(params.LeaveTypes))
+		for _, leaveType := range params.LeaveTypes {
+			trimmed := strings.TrimSpace(leaveType)
+			if !isValidLeaveType(trimmed) {
+				return nil, domain.ErrLeaveRequestInvalidRequest
+			}
+			normalized = append(normalized, trimmed)
+		}
+		params.LeaveTypes = normalized
+	}
+
+	return s.repository.ListLeaveCalendar(ctx, params)
+}
+
 func (s *LeaveService) GetMyLeaveRequestStats(
 	ctx context.Context,
 	employeeID uuid.UUID,

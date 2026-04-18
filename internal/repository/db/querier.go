@@ -158,6 +158,7 @@ type Querier interface {
 	ListLateArrivalsPaginated(ctx context.Context, arg ListLateArrivalsPaginatedParams) ([]ListLateArrivalsPaginatedRow, error)
 	ListLeaveBalancesForEmployeeFromYearForUpdate(ctx context.Context, arg ListLeaveBalancesForEmployeeFromYearForUpdateParams) ([]LeaveBalance, error)
 	ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveBalancesPaginatedParams) ([]ListLeaveBalancesPaginatedRow, error)
+	ListLeaveCalendarRows(ctx context.Context, arg ListLeaveCalendarRowsParams) ([]ListLeaveCalendarRowsRow, error)
 	ListLeaveRequestsPaginated(ctx context.Context, arg ListLeaveRequestsPaginatedParams) ([]ListLeaveRequestsPaginatedRow, error)
 	ListLocations(ctx context.Context, organisationID uuid.UUID) ([]Location, error)
 	ListLocationsPaginated(ctx context.Context, arg ListLocationsPaginatedParams) ([]ListLocationsPaginatedRow, error)

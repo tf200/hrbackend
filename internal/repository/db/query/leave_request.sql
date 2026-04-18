@@ -124,6 +124,49 @@ WHERE (
 ORDER BY lr.requested_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+-- name: ListLeaveCalendarRows :many
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    d.name AS department_name,
+    lr.id AS leave_request_id,
+    lr.leave_type,
+    lr.status,
+    lr.start_date,
+    lr.end_date,
+    lr.reason
+FROM leave_requests lr
+JOIN employee_profile ep ON ep.id = lr.employee_id
+LEFT JOIN departments d ON d.id = ep.department_id
+WHERE lr.start_date < sqlc.arg('month_end_exclusive')::date
+  AND lr.end_date >= sqlc.arg('month_start')::date
+  AND lr.status = ANY(ARRAY[
+    'approved'::leave_request_status_enum,
+    'pending'::leave_request_status_enum
+  ])
+  AND (
+    sqlc.narg('department_id')::uuid IS NULL
+    OR ep.department_id = sqlc.narg('department_id')::uuid
+  )
+  AND (
+    sqlc.narg('employee_search')::text IS NULL
+    OR sqlc.narg('employee_search')::text = ''
+    OR ep.first_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR ep.last_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+  )
+  AND (
+    COALESCE(array_length(sqlc.slice('leave_types')::leave_request_type_enum[], 1), 0) = 0
+    OR lr.leave_type = ANY(sqlc.slice('leave_types')::leave_request_type_enum[])
+  )
+ORDER BY
+    ep.first_name ASC,
+    ep.last_name ASC,
+    lr.start_date ASC,
+    lr.id ASC;
+
 -- name: LockLeaveRequestByID :one
 SELECT *
 FROM leave_requests

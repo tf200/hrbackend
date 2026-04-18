@@ -55,6 +55,12 @@ func RegisterLeaveRoutes(
 		handler.ListLeaveRequests,
 	)
 	rg.GET(
+		"/leave-requests/calendar",
+		auth,
+		requirePermission("LEAVE.REQUEST.VIEW_ALL"),
+		handler.ListLeaveCalendar,
+	)
+	rg.GET(
 		"/leave-requests/my",
 		auth,
 		requirePermission("LEAVE.REQUEST.VIEW"),
@@ -335,6 +341,27 @@ func (h *LeaveHandler) ListLeaveRequests(ctx *gin.Context) {
 
 	response := httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Leave requests retrieved successfully"))
+}
+
+func (h *LeaveHandler) ListLeaveCalendar(ctx *gin.Context) {
+	req, err := bindListLeaveCalendarRequest(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	items, err := h.service.ListLeaveCalendar(ctx.Request.Context(), toListLeaveCalendarParams(req))
+	if err != nil {
+		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	results := make([]leaveCalendarEmployeeResponse, len(items))
+	for i, item := range items {
+		results[i] = toLeaveCalendarEmployeeResponse(item)
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(results, "Leave calendar retrieved successfully"))
 }
 
 func (h *LeaveHandler) GetMyLeaveRequestStats(ctx *gin.Context) {

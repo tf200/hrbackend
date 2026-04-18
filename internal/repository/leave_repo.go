@@ -175,6 +175,24 @@ func (r *LeaveRepository) ListLeaveRequests(
 	return page, nil
 }
 
+func (r *LeaveRepository) ListLeaveCalendar(
+	ctx context.Context,
+	params domain.ListLeaveCalendarParams,
+) ([]domain.LeaveCalendarEmployee, error) {
+	rows, err := r.store.ListLeaveCalendarRows(ctx, db.ListLeaveCalendarRowsParams{
+		MonthStart:        conv.PgDateFromTime(params.Month),
+		MonthEndExclusive: conv.PgDateFromTime(params.Month.AddDate(0, 1, 0)),
+		DepartmentID:      params.DepartmentID,
+		EmployeeSearch:    trimStringPtr(params.EmployeeSearch),
+		LeaveTypes:        toDBLeaveTypes(params.LeaveTypes),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toDomainLeaveCalendar(rows), nil
+}
+
 func (r *LeaveRepository) GetMyLeaveRequestStats(
 	ctx context.Context,
 	employeeID uuid.UUID,
@@ -677,8 +695,59 @@ func toDomainLeaveBalance(
 	}
 }
 
+func toDomainLeaveCalendar(rows []db.ListLeaveCalendarRowsRow) []domain.LeaveCalendarEmployee {
+	items := make([]domain.LeaveCalendarEmployee, 0, len(rows))
+	byEmployee := make(map[uuid.UUID]int, len(rows))
+
+	for _, row := range rows {
+		idx, ok := byEmployee[row.EmployeeID]
+		if !ok {
+			items = append(items, domain.LeaveCalendarEmployee{
+				EmployeeID:     row.EmployeeID,
+				EmployeeName:   strings.TrimSpace(row.EmployeeFirstName + " " + row.EmployeeLastName),
+				DepartmentName: row.DepartmentName,
+				LeaveRecords:   make([]domain.LeaveCalendarRecord, 0, 1),
+			})
+			idx = len(items) - 1
+			byEmployee[row.EmployeeID] = idx
+		}
+
+		items[idx].LeaveRecords = append(items[idx].LeaveRecords, domain.LeaveCalendarRecord{
+			LeaveRequestID: row.LeaveRequestID,
+			LeaveType:      string(row.LeaveType),
+			Status:         string(row.Status),
+			StartDate:      conv.TimeFromPgDate(row.StartDate),
+			EndDate:        conv.TimeFromPgDate(row.EndDate),
+			Reason:         row.Reason,
+		})
+	}
+
+	return items
+}
+
 func stringPtr(v string) *string {
 	return &v
+}
+
+func toDBLeaveTypes(values []string) []db.LeaveRequestTypeEnum {
+	if len(values) == 0 {
+		return nil
+	}
+
+	items := make([]db.LeaveRequestTypeEnum, 0, len(values))
+	for _, value := range values {
+		dbValue, ok := toDBLeaveType(value)
+		if !ok {
+			continue
+		}
+		items = append(items, dbValue)
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	return items
 }
 
 func toDBLeaveType(value string) (db.LeaveRequestTypeEnum, bool) {
