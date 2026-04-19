@@ -65,8 +65,8 @@ type listEmployeesRequest struct {
 	httpapi.PageRequest
 	IncludeArchived     *bool      `form:"is_archived"`
 	IncludeOutOfService *bool      `form:"out_of_service"`
-	LocationID          *uuid.UUID `form:"location_id"`
-	ContractType        *string    `form:"contract_type"  binding:"omitempty,oneof=loondienst ZZP none"`
+	LocationID          *uuid.UUID `form:"location_id,parser=encoding.TextUnmarshaler"`
+	ContractType        *string    `form:"contract_type" binding:"omitempty,oneof=loondienst ZZP none"`
 	Search              *string    `form:"search"`
 }
 

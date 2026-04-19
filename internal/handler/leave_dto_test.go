@@ -31,6 +31,29 @@ func TestBindListLeaveCalendarRequestReadsRepeatedLeaveTypes(t *testing.T) {
 	}
 }
 
+func TestBindListLeaveCalendarRequestBindsDepartmentID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/leave-requests/calendar?month=2026-04&department_id=a5514673-7217-476b-bbe3-07db2a725e12",
+		nil,
+	)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = req
+
+	got, err := bindListLeaveCalendarRequest(ctx)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if got.DepartmentID == nil {
+		t.Fatalf("expected department id to be set")
+	}
+	if got.DepartmentID.String() != "a5514673-7217-476b-bbe3-07db2a725e12" {
+		t.Fatalf("unexpected department id: %s", got.DepartmentID.String())
+	}
+}
+
 func TestBindListLeaveCalendarRequestRejectsInvalidLeaveType(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

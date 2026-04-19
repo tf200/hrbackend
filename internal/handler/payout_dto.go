@@ -62,9 +62,9 @@ type payrollMonthDetailRequest struct {
 }
 
 type previewPayrollRequest struct {
-	EmployeeID  uuid.UUID `form:"employee_id"  binding:"required"`
-	PeriodStart string    `form:"period_start" binding:"required,datetime=2006-01-02"`
-	PeriodEnd   string    `form:"period_end"   binding:"required,datetime=2006-01-02"`
+	EmployeeID  uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler" binding:"required"`
+	PeriodStart string    `form:"period_start"                                 binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string    `form:"period_end"                                   binding:"required,datetime=2006-01-02"`
 }
 
 type previewMyPayrollRequest struct {

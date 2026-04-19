@@ -66,14 +66,14 @@ type waiveEmployeeHandbookRequest struct {
 
 type listEmployeeHandbookAssignmentsRequest struct {
 	httpapi.PageRequest
-	DepartmentID *uuid.UUID `form:"department_id"`
+	DepartmentID *uuid.UUID `form:"department_id,parser=encoding.TextUnmarshaler"`
 	Search       *string    `form:"search"`
 	Status       *string    `form:"status"`
 }
 
 type listEligibleEmployeesRequest struct {
 	httpapi.PageRequest
-	DepartmentID *uuid.UUID `form:"department_id"`
+	DepartmentID *uuid.UUID `form:"department_id,parser=encoding.TextUnmarshaler"`
 	Search       *string    `form:"search"`
 }
 

@@ -36,9 +36,9 @@ type adminDecisionShiftSwapRequest struct {
 
 type listShiftSwapRequestsRequest struct {
 	httpapi.PageRequest
-	Status     *string    `form:"status"      binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`
-	Filter     *string    `form:"filter"      binding:"omitempty,oneof=open to_approve history"`
-	EmployeeID *uuid.UUID `form:"employee_id"`
+	Status     *string    `form:"status"                                              binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`
+	Filter     *string    `form:"filter"                                              binding:"omitempty,oneof=open to_approve history"`
+	EmployeeID *uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler"`
 }
 
 type createShiftSwapResponse struct {

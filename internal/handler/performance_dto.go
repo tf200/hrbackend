@@ -29,7 +29,7 @@ type createPerformanceAssessmentScoreRequest struct {
 
 type listPerformanceAssessmentsRequest struct {
 	httpapi.PageRequest
-	EmployeeID *uuid.UUID `form:"employee_id"`
+	EmployeeID *uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler"`
 	Status     *string    `form:"status"`
 	FromDate   *string    `form:"from_date" binding:"omitempty,datetime=2006-01-02"`
 	ToDate     *string    `form:"to_date"   binding:"omitempty,datetime=2006-01-02"`
@@ -37,7 +37,7 @@ type listPerformanceAssessmentsRequest struct {
 
 type listPerformanceWorkAssignmentsRequest struct {
 	httpapi.PageRequest
-	EmployeeID *uuid.UUID `form:"employee_id"`
+	EmployeeID *uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler"`
 	Status     *string    `form:"status"`
 	DueBefore  *string    `form:"due_before" binding:"omitempty,datetime=2006-01-02"`
 	DueAfter   *string    `form:"due_after"  binding:"omitempty,datetime=2006-01-02"`

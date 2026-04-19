@@ -223,6 +223,9 @@ func buildRouter(
 	handbookRepo := repository.NewHandbookRepository(store)
 	handbookService := service.NewHandbookService(handbookRepo, logger)
 
+	trainingRepo := repository.NewTrainingRepository(store)
+	trainingService := service.NewTrainingService(trainingRepo, logger)
+
 	authHandler := handler.NewAuthHandler(authService)
 	employeeHandler := handler.NewEmployeeHandler(employeeService)
 	organizationHandler := handler.NewOrganizationHandler(organizationService)
@@ -236,6 +239,7 @@ func buildRouter(
 	timeEntryHandler := handler.NewTimeEntryHandler(timeEntryService)
 	performanceHandler := handler.NewPerformanceHandler(performanceService)
 	handbookHandler := handler.NewHandbookHandler(handbookService)
+	trainingHandler := handler.NewTrainingHandler(trainingService)
 
 	api := router.Group("/api")
 	auth := authMiddleware.Handle()
@@ -254,6 +258,7 @@ func buildRouter(
 	handler.RegisterTimeEntryRoutes(api, timeEntryHandler, auth, requirePermission)
 	handler.RegisterPerformanceRoutes(api, performanceHandler, auth, requirePermission)
 	handler.RegisterHandbookRoutes(api, handbookHandler, auth, requirePermission)
+	handler.RegisterTrainingRoutes(api, trainingHandler, auth, requirePermission)
 
 	return router
 }

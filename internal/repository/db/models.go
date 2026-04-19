@@ -1099,6 +1099,50 @@ func (ns NullTimeEntryStatusEnum) Value() (driver.Value, error) {
 	return string(ns.TimeEntryStatusEnum), nil
 }
 
+type TrainingAssignmentStatusEnum string
+
+const (
+	TrainingAssignmentStatusEnumAssigned   TrainingAssignmentStatusEnum = "assigned"
+	TrainingAssignmentStatusEnumInProgress TrainingAssignmentStatusEnum = "in_progress"
+	TrainingAssignmentStatusEnumCompleted  TrainingAssignmentStatusEnum = "completed"
+	TrainingAssignmentStatusEnumCancelled  TrainingAssignmentStatusEnum = "cancelled"
+)
+
+func (e *TrainingAssignmentStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TrainingAssignmentStatusEnum(s)
+	case string:
+		*e = TrainingAssignmentStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TrainingAssignmentStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullTrainingAssignmentStatusEnum struct {
+	TrainingAssignmentStatusEnum TrainingAssignmentStatusEnum `json:"training_assignment_status_enum"`
+	Valid                        bool                         `json:"valid"` // Valid is true if TrainingAssignmentStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTrainingAssignmentStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.TrainingAssignmentStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TrainingAssignmentStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTrainingAssignmentStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TrainingAssignmentStatusEnum), nil
+}
+
 type AppOrganizationProfile struct {
 	Singleton             bool               `json:"singleton"`
 	Name                  string             `json:"name"`
@@ -1306,6 +1350,23 @@ type EmployeeProfile struct {
 	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
 	ContractRate          *float64                  `json:"contract_rate"`
 	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+}
+
+type EmployeeTrainingAssignment struct {
+	ID                   uuid.UUID                    `json:"id"`
+	EmployeeID           uuid.UUID                    `json:"employee_id"`
+	TrainingID           uuid.UUID                    `json:"training_id"`
+	AssignedByEmployeeID *uuid.UUID                   `json:"assigned_by_employee_id"`
+	Status               TrainingAssignmentStatusEnum `json:"status"`
+	AssignedAt           pgtype.Timestamptz           `json:"assigned_at"`
+	DueAt                pgtype.Timestamptz           `json:"due_at"`
+	StartedAt            pgtype.Timestamptz           `json:"started_at"`
+	CompletedAt          pgtype.Timestamptz           `json:"completed_at"`
+	CancelledAt          pgtype.Timestamptz           `json:"cancelled_at"`
+	CancellationReason   *string                      `json:"cancellation_reason"`
+	CompletionNotes      *string                      `json:"completion_notes"`
+	CreatedAt            pgtype.Timestamptz           `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz           `json:"updated_at"`
 }
 
 type HandbookStep struct {
@@ -1670,6 +1731,18 @@ type TimeEntryUpdateAudit struct {
 	BeforeSnapshot  []byte             `json:"before_snapshot"`
 	AfterSnapshot   []byte             `json:"after_snapshot"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+}
+
+type TrainingCatalogItem struct {
+	ID                       uuid.UUID          `json:"id"`
+	Title                    string             `json:"title"`
+	Description              *string            `json:"description"`
+	Category                 *string            `json:"category"`
+	EstimatedDurationMinutes *int32             `json:"estimated_duration_minutes"`
+	IsActive                 bool               `json:"is_active"`
+	CreatedByEmployeeID      *uuid.UUID         `json:"created_by_employee_id"`
+	CreatedAt                pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
 }
 
 type UserPermissionOverride struct {

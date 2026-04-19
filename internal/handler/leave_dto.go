@@ -62,10 +62,10 @@ type listLeaveRequestsRequest struct {
 }
 
 type listLeaveCalendarRequest struct {
-	Month          string     `form:"month"           binding:"required,datetime=2006-01"`
-	DepartmentID   *uuid.UUID `form:"department_id"`
+	Month          string     `form:"month"                                               binding:"required,datetime=2006-01"`
+	DepartmentID   *uuid.UUID `form:"department_id,parser=encoding.TextUnmarshaler"`
 	LeaveTypes     []string   `form:"leave_types"`
-	EmployeeSearch *string    `form:"employee_search" binding:"omitempty,max=120"`
+	EmployeeSearch *string    `form:"employee_search"                                     binding:"omitempty,max=120"`
 }
 
 type listLeaveBalancesRequest struct {

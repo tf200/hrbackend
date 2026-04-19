@@ -64,6 +64,7 @@ type Querier interface {
 	CreateTemp2FaSecret(ctx context.Context, arg CreateTemp2FaSecretParams) (int64, error)
 	CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (CreateTimeEntryRow, error)
 	CreateTimeEntryUpdateAudit(ctx context.Context, arg CreateTimeEntryUpdateAuditParams) error
+	CreateTrainingCatalogItem(ctx context.Context, arg CreateTrainingCatalogItemParams) (TrainingCatalogItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CustomUser, error)
 	DeleteDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	DeleteEmployeeCertification(ctx context.Context, id uuid.UUID) (Certification, error)
