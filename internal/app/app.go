@@ -21,6 +21,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -40,7 +41,13 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("setup logger: %w", err)
 	}
 
-	pool, err := pgxpool.New(ctx, cfg.DbSource)
+	poolConfig, err := pgxpool.ParseConfig(cfg.DbSource)
+	if err != nil {
+		return nil, fmt.Errorf("parse db config: %w", err)
+	}
+	poolConfig.AfterConnect = registerPostgresTypes
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("connect db: %w", err)
 	}
@@ -68,6 +75,53 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 		TaskQueue: taskQueue,
 		logger:    logger,
 	}, nil
+}
+
+func registerPostgresTypes(ctx context.Context, conn *pgx.Conn) error {
+	for _, typeName := range postgresEnumTypeNames {
+		typ, err := conn.LoadType(ctx, typeName)
+		if err != nil {
+			return fmt.Errorf("load postgres type %q: %w", typeName, err)
+		}
+		conn.TypeMap().RegisterType(typ)
+
+		arrayType, err := conn.LoadType(ctx, "_"+typeName)
+		if err != nil {
+			return fmt.Errorf("load postgres array type %q: %w", "_"+typeName, err)
+		}
+		conn.TypeMap().RegisterType(arrayType)
+	}
+
+	return nil
+}
+
+var postgresEnumTypeNames = []string{
+	"location_type_enum",
+	"permission_override_effect",
+	"notification_type_enum",
+	"gender_enum",
+	"employee_contract_type_enum",
+	"irregular_hours_profile_enum",
+	"training_assignment_status_enum",
+	"handbook_step_kind_enum",
+	"handbook_assignment_status_enum",
+	"handbook_step_status_enum",
+	"handbook_template_status_enum",
+	"handbook_assignment_event_enum",
+	"time_entry_status_enum",
+	"time_entry_hour_type_enum",
+	"shift_swap_status_enum",
+	"leave_request_type_enum",
+	"leave_request_status_enum",
+	"payout_request_status_enum",
+	"pay_period_status_enum",
+	"calendar_event_kind_enum",
+	"calendar_event_status_enum",
+	"calendar_event_work_approval_status_enum",
+	"attendee_response_enum",
+	"reminder_channel_enum",
+	"performance_assessment_status_enum",
+	"performance_work_assignment_status_enum",
 }
 
 func (a *App) Close(_ context.Context) error {

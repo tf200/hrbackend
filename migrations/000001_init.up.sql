@@ -567,6 +567,59 @@ CREATE TABLE employee_experience (
 CREATE INDEX experience_employee_id_idx ON employee_experience(employee_id);
 
 -- ==========================================
+-- EMPLOYEE TRAINING
+-- ==========================================
+
+CREATE TYPE training_assignment_status_enum AS ENUM (
+    'assigned',
+    'in_progress',
+    'completed',
+    'cancelled'
+);
+
+CREATE TABLE training_catalog_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    description TEXT NULL,
+    category VARCHAR(100) NULL,
+    estimated_duration_minutes INT NULL CHECK (estimated_duration_minutes > 0),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_training_catalog_items_active ON training_catalog_items(is_active);
+CREATE INDEX idx_training_catalog_items_title ON training_catalog_items(title);
+
+CREATE TABLE employee_training_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    training_id UUID NOT NULL REFERENCES training_catalog_items(id) ON DELETE RESTRICT,
+    assigned_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    status training_assignment_status_enum NOT NULL DEFAULT 'assigned',
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    due_at TIMESTAMPTZ NULL,
+    started_at TIMESTAMPTZ NULL,
+    completed_at TIMESTAMPTZ NULL,
+    cancelled_at TIMESTAMPTZ NULL,
+    cancellation_reason TEXT NULL,
+    completion_notes TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_employee_training_assignments_employee_assigned_at
+    ON employee_training_assignments(employee_id, assigned_at DESC);
+
+CREATE INDEX idx_employee_training_assignments_training_id
+    ON employee_training_assignments(training_id);
+
+CREATE UNIQUE INDEX uq_employee_training_one_non_cancelled
+    ON employee_training_assignments(employee_id, training_id)
+    WHERE status IN ('assigned', 'in_progress', 'completed');
+
+-- ==========================================
 -- EMPLOYEE HANDBOOKS (ONBOARDING)
 -- ==========================================
 
