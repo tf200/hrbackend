@@ -189,6 +189,7 @@ type Querier interface {
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)
 	ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntriesPaginatedParams) ([]ListTimeEntriesPaginatedRow, error)
+	ListTrainingCatalogItemsPaginated(ctx context.Context, arg ListTrainingCatalogItemsPaginatedParams) ([]ListTrainingCatalogItemsPaginatedRow, error)
 	ListUserIDsByEmployeeIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error)
 	// Returns explicit allow/deny overrides configured for a user.
 	ListUserPermissionOverrides(ctx context.Context, userID uuid.UUID) ([]ListUserPermissionOverridesRow, error)

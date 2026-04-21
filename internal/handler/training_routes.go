@@ -11,6 +11,11 @@ func RegisterTrainingRoutes(
 	training := rg.Group("/training")
 	training.Use(auth)
 
+	training.GET(
+		"/catalog",
+		requirePermission("TRAINING.CATALOG.VIEW"),
+		handler.ListTrainingCatalogItems,
+	)
 	training.POST(
 		"/catalog",
 		requirePermission("TRAINING.CATALOG.CREATE"),

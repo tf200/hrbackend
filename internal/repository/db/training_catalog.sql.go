@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createTrainingCatalogItem = `-- name: CreateTrainingCatalogItem :one
@@ -53,4 +54,78 @@ func (q *Queries) CreateTrainingCatalogItem(ctx context.Context, arg CreateTrain
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listTrainingCatalogItemsPaginated = `-- name: ListTrainingCatalogItemsPaginated :many
+SELECT tci.id, tci.title, tci.description, tci.category, tci.estimated_duration_minutes, tci.is_active, tci.created_by_employee_id, tci.created_at, tci.updated_at,
+       COUNT(*) OVER() AS total_count
+FROM training_catalog_items tci
+WHERE (
+    $1::text IS NULL
+    OR tci.title ILIKE '%' || $1::text || '%'
+    OR COALESCE(tci.description, '') ILIKE '%' || $1::text || '%'
+    OR COALESCE(tci.category, '') ILIKE '%' || $1::text || '%'
+)
+AND (
+    $2::boolean IS NULL
+    OR tci.is_active = $2::boolean
+)
+ORDER BY tci.created_at DESC
+LIMIT $4 OFFSET $3
+`
+
+type ListTrainingCatalogItemsPaginatedParams struct {
+	Search   *string `json:"search"`
+	IsActive *bool   `json:"is_active"`
+	Offset   int32   `json:"offset"`
+	Limit    int32   `json:"limit"`
+}
+
+type ListTrainingCatalogItemsPaginatedRow struct {
+	ID                       uuid.UUID          `json:"id"`
+	Title                    string             `json:"title"`
+	Description              *string            `json:"description"`
+	Category                 *string            `json:"category"`
+	EstimatedDurationMinutes *int32             `json:"estimated_duration_minutes"`
+	IsActive                 bool               `json:"is_active"`
+	CreatedByEmployeeID      *uuid.UUID         `json:"created_by_employee_id"`
+	CreatedAt                pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
+	TotalCount               int64              `json:"total_count"`
+}
+
+func (q *Queries) ListTrainingCatalogItemsPaginated(ctx context.Context, arg ListTrainingCatalogItemsPaginatedParams) ([]ListTrainingCatalogItemsPaginatedRow, error) {
+	rows, err := q.db.Query(ctx, listTrainingCatalogItemsPaginated,
+		arg.Search,
+		arg.IsActive,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTrainingCatalogItemsPaginatedRow{}
+	for rows.Next() {
+		var i ListTrainingCatalogItemsPaginatedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Category,
+			&i.EstimatedDurationMinutes,
+			&i.IsActive,
+			&i.CreatedByEmployeeID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

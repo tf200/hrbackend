@@ -48,6 +48,31 @@ func (h *TrainingHandler) CreateTrainingCatalogItem(ctx *gin.Context) {
 	)
 }
 
+func (h *TrainingHandler) ListTrainingCatalogItems(ctx *gin.Context) {
+	var req listTrainingCatalogItemsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	page, err := h.service.ListTrainingCatalogItems(
+		ctx.Request.Context(),
+		toListTrainingCatalogItemsParams(req),
+	)
+	if err != nil {
+		ctx.JSON(mapTrainingErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toTrainingCatalogItemResponses(page.Items),
+		page.TotalCount,
+	)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Training catalog items retrieved successfully"))
+}
+
 func mapTrainingErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, domain.ErrTrainingInvalidRequest):

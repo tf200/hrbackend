@@ -33,11 +33,27 @@ type CreateTrainingCatalogItemParams struct {
 	CreatedByEmployeeID      *uuid.UUID
 }
 
+type ListTrainingCatalogItemsParams struct {
+	Limit    int32
+	Offset   int32
+	Search   *string
+	IsActive *bool
+}
+
+type TrainingCatalogItemPage struct {
+	Items      []TrainingCatalogItem
+	TotalCount int64
+}
+
 type TrainingRepository interface {
 	CreateTrainingCatalogItem(
 		ctx context.Context,
 		params CreateTrainingCatalogItemParams,
 	) (*TrainingCatalogItem, error)
+	ListTrainingCatalogItems(
+		ctx context.Context,
+		params ListTrainingCatalogItemsParams,
+	) (*TrainingCatalogItemPage, error)
 }
 
 type TrainingService interface {
@@ -45,4 +61,8 @@ type TrainingService interface {
 		ctx context.Context,
 		params CreateTrainingCatalogItemParams,
 	) (*TrainingCatalogItem, error)
+	ListTrainingCatalogItems(
+		ctx context.Context,
+		params ListTrainingCatalogItemsParams,
+	) (*TrainingCatalogItemPage, error)
 }

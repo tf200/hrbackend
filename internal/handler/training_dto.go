@@ -4,9 +4,16 @@ import (
 	"time"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/httpapi"
 
 	"github.com/google/uuid"
 )
+
+type listTrainingCatalogItemsRequest struct {
+	httpapi.PageRequest
+	Search   *string `form:"search"`
+	IsActive *bool   `form:"is_active"`
+}
 
 type createTrainingCatalogItemRequest struct {
 	Title                    string  `json:"title" binding:"required"`
@@ -45,6 +52,17 @@ func toCreateTrainingCatalogItemParams(
 	}
 }
 
+func toListTrainingCatalogItemsParams(
+	req listTrainingCatalogItemsRequest,
+) domain.ListTrainingCatalogItemsParams {
+	return domain.ListTrainingCatalogItemsParams{
+		Limit:    req.PageSize,
+		Offset:   (req.Page - 1) * req.PageSize,
+		Search:   req.Search,
+		IsActive: req.IsActive,
+	}
+}
+
 func toTrainingCatalogItemResponse(item *domain.TrainingCatalogItem) trainingCatalogItemResponse {
 	return trainingCatalogItemResponse{
 		ID:                       item.ID,
@@ -57,4 +75,12 @@ func toTrainingCatalogItemResponse(item *domain.TrainingCatalogItem) trainingCat
 		CreatedAt:                item.CreatedAt,
 		UpdatedAt:                item.UpdatedAt,
 	}
+}
+
+func toTrainingCatalogItemResponses(items []domain.TrainingCatalogItem) []trainingCatalogItemResponse {
+	results := make([]trainingCatalogItemResponse, len(items))
+	for i := range items {
+		results[i] = toTrainingCatalogItemResponse(&items[i])
+	}
+	return results
 }

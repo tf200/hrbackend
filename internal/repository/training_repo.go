@@ -34,6 +34,47 @@ func (r *TrainingRepository) CreateTrainingCatalogItem(
 	return toDomainTrainingCatalogItem(item), nil
 }
 
+func (r *TrainingRepository) ListTrainingCatalogItems(
+	ctx context.Context,
+	params domain.ListTrainingCatalogItemsParams,
+) (*domain.TrainingCatalogItemPage, error) {
+	rows, err := r.queries.ListTrainingCatalogItemsPaginated(
+		ctx,
+		db.ListTrainingCatalogItemsPaginatedParams{
+			Search:   params.Search,
+			IsActive: params.IsActive,
+			Offset:   params.Offset,
+			Limit:    params.Limit,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	page := &domain.TrainingCatalogItemPage{
+		Items: make([]domain.TrainingCatalogItem, 0, len(rows)),
+	}
+	if len(rows) > 0 {
+		page.TotalCount = rows[0].TotalCount
+	}
+
+	for _, row := range rows {
+		page.Items = append(page.Items, domain.TrainingCatalogItem{
+			ID:                       row.ID,
+			Title:                    row.Title,
+			Description:              row.Description,
+			Category:                 row.Category,
+			EstimatedDurationMinutes: row.EstimatedDurationMinutes,
+			IsActive:                 row.IsActive,
+			CreatedByEmployeeID:      row.CreatedByEmployeeID,
+			CreatedAt:                conv.TimeFromPgTimestamptz(row.CreatedAt),
+			UpdatedAt:                conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		})
+	}
+
+	return page, nil
+}
+
 func toDomainTrainingCatalogItem(item db.TrainingCatalogItem) *domain.TrainingCatalogItem {
 	return &domain.TrainingCatalogItem{
 		ID:                       item.ID,
