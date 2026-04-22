@@ -238,6 +238,80 @@ func (q *Queries) ListPayrollMonthApprovedTimeEntriesByEmployeeIDs(ctx context.C
 	return items, nil
 }
 
+const listPayrollMonthEmployeesAll = `-- name: ListPayrollMonthEmployeesAll :many
+WITH month_employees AS (
+    SELECT DISTINCT pp.employee_id
+    FROM pay_periods pp
+    WHERE pp.period_start = $2
+      AND pp.period_end = $3
+
+    UNION
+
+    SELECT DISTINCT te.employee_id
+    FROM time_entries te
+    WHERE te.entry_date >= $2
+      AND te.entry_date <= $3
+      AND te.hour_type IN (
+          'normal'::time_entry_hour_type_enum,
+          'overtime'::time_entry_hour_type_enum,
+          'travel'::time_entry_hour_type_enum,
+          'training'::time_entry_hour_type_enum
+      )
+      AND te.status IN (
+          'approved'::time_entry_status_enum,
+          'draft'::time_entry_status_enum,
+          'submitted'::time_entry_status_enum
+      )
+)
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name
+FROM month_employees me
+JOIN employee_profile ep ON ep.id = me.employee_id
+WHERE (
+    $1::text IS NULL
+    OR $1::text = ''
+    OR ep.first_name ILIKE '%' || $1::text || '%'
+    OR ep.last_name ILIKE '%' || $1::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || $1::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || $1::text || '%'
+)
+ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC
+`
+
+type ListPayrollMonthEmployeesAllParams struct {
+	EmployeeSearch *string     `json:"employee_search"`
+	MonthStart     pgtype.Date `json:"month_start"`
+	MonthEnd       pgtype.Date `json:"month_end"`
+}
+
+type ListPayrollMonthEmployeesAllRow struct {
+	EmployeeID        uuid.UUID `json:"employee_id"`
+	EmployeeFirstName string    `json:"employee_first_name"`
+	EmployeeLastName  string    `json:"employee_last_name"`
+}
+
+func (q *Queries) ListPayrollMonthEmployeesAll(ctx context.Context, arg ListPayrollMonthEmployeesAllParams) ([]ListPayrollMonthEmployeesAllRow, error) {
+	rows, err := q.db.Query(ctx, listPayrollMonthEmployeesAll, arg.EmployeeSearch, arg.MonthStart, arg.MonthEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPayrollMonthEmployeesAllRow{}
+	for rows.Next() {
+		var i ListPayrollMonthEmployeesAllRow
+		if err := rows.Scan(&i.EmployeeID, &i.EmployeeFirstName, &i.EmployeeLastName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPayrollMonthEmployeesPaginated = `-- name: ListPayrollMonthEmployeesPaginated :many
 WITH month_employees AS (
     SELECT DISTINCT pp.employee_id

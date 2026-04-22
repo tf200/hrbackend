@@ -184,6 +184,50 @@ type payrollMonthDetailResponse struct {
 	Preview      *payrollPreviewResponse `json:"preview,omitempty"`
 }
 
+type payrollMonthORTOverviewEmployeeResponse struct {
+	EmployeeID        uuid.UUID                           `json:"employee_id"`
+	EmployeeName      string                              `json:"employee_name"`
+	Month             string                              `json:"month"`
+	IsCurrentMonth    bool                                `json:"is_current_month"`
+	IsLocked          bool                                `json:"is_locked"`
+	HasLockedSnapshot bool                                `json:"has_locked_snapshot"`
+	DataSource        string                              `json:"data_source"`
+	WorkedMinutes     float64                             `json:"worked_minutes"`
+	PaidMinutes       float64                             `json:"paid_minutes"`
+	BaseAmount        float64                             `json:"base_amount"`
+	PremiumAmount     float64                             `json:"premium_amount"`
+	PayPeriodID       *uuid.UUID                          `json:"pay_period_id,omitempty"`
+	PayPeriodStatus   *string                             `json:"pay_period_status,omitempty"`
+	PaidAt            *time.Time                          `json:"paid_at,omitempty"`
+	Distribution      []payrollMonthMultiplierSummaryItem `json:"distribution"`
+}
+
+type payrollMonthORTOverviewResponse struct {
+	Month        string                                    `json:"month"`
+	Distribution []payrollMonthMultiplierSummaryItem       `json:"distribution"`
+	Next         *string                                   `json:"next"`
+	Previous     *string                                   `json:"previous"`
+	Count        int64                                     `json:"count"`
+	PageSize     int32                                     `json:"page_size"`
+	Results      []payrollMonthORTOverviewEmployeeResponse `json:"results"`
+}
+
+type ortRuleResponse struct {
+	Order                 int32   `json:"order"`
+	RatePercent           float64 `json:"rate_percent"`
+	Label                 string  `json:"label"`
+	Description           string  `json:"description"`
+	ContractType          string  `json:"contract_type"`
+	IrregularHoursProfile *string `json:"irregular_hours_profile,omitempty"`
+	DayType               string  `json:"day_type"`
+	TimeFrom              *string `json:"time_from,omitempty"`
+	TimeTo                *string `json:"time_to,omitempty"`
+}
+
+type ortRulesResponse struct {
+	Rules []ortRuleResponse `json:"rules"`
+}
+
 type payrollMonthMultiplierSummaryItem struct {
 	RatePercent   float64 `json:"rate_percent"`
 	WorkedMinutes float64 `json:"worked_minutes"`
@@ -280,6 +324,22 @@ func toPayrollMonthSummaryParams(
 		Offset:         (req.Page - 1) * req.PageSize,
 		EmployeeSearch: req.EmployeeSearch,
 		ContractType:   nil,
+	}, nil
+}
+
+func toPayrollMonthORTOverviewParams(
+	req payrollMonthSummaryRequest,
+) (domain.PayrollMonthORTOverviewParams, error) {
+	month, err := time.Parse(payoutMonthLayout, req.Month)
+	if err != nil {
+		return domain.PayrollMonthORTOverviewParams{}, err
+	}
+
+	return domain.PayrollMonthORTOverviewParams{
+		Month:          month.UTC(),
+		Limit:          req.PageSize,
+		Offset:         (req.Page - 1) * req.PageSize,
+		EmployeeSearch: req.EmployeeSearch,
 	}, nil
 }
 
@@ -464,6 +524,87 @@ func toPayrollMonthSummaryResponses(
 		results[i] = toPayrollMonthSummaryResponse(item)
 	}
 	return results
+}
+
+func toPayrollMonthMultiplierSummaryItems(
+	items []domain.PayrollMultiplierSummary,
+) []payrollMonthMultiplierSummaryItem {
+	results := make([]payrollMonthMultiplierSummaryItem, len(items))
+	for i, item := range items {
+		results[i] = payrollMonthMultiplierSummaryItem{
+			RatePercent:   item.RatePercent,
+			WorkedMinutes: item.WorkedMinutes,
+			PaidMinutes:   item.PaidMinutes,
+			BaseAmount:    item.BaseAmount,
+			PremiumAmount: item.PremiumAmount,
+		}
+	}
+	return results
+}
+
+func toPayrollMonthORTOverviewEmployeeResponse(
+	item domain.PayrollMonthORTOverviewRow,
+) payrollMonthORTOverviewEmployeeResponse {
+	return payrollMonthORTOverviewEmployeeResponse{
+		EmployeeID:        item.EmployeeID,
+		EmployeeName:      item.EmployeeName,
+		Month:             item.Month.UTC().Format(payoutMonthLayout),
+		IsCurrentMonth:    item.IsCurrentMonth,
+		IsLocked:          item.IsLocked,
+		HasLockedSnapshot: item.HasLockedSnapshot,
+		DataSource:        item.DataSource,
+		WorkedMinutes:     item.WorkedMinutes,
+		PaidMinutes:       item.PaidMinutes,
+		BaseAmount:        item.BaseAmount,
+		PremiumAmount:     item.PremiumAmount,
+		PayPeriodID:       item.PayPeriodID,
+		PayPeriodStatus:   item.PayPeriodStatus,
+		PaidAt:            item.PaidAt,
+		Distribution:      toPayrollMonthMultiplierSummaryItems(item.Distribution),
+	}
+}
+
+func toPayrollMonthORTOverviewEmployeeResponses(
+	items []domain.PayrollMonthORTOverviewRow,
+) []payrollMonthORTOverviewEmployeeResponse {
+	results := make([]payrollMonthORTOverviewEmployeeResponse, len(items))
+	for i, item := range items {
+		results[i] = toPayrollMonthORTOverviewEmployeeResponse(item)
+	}
+	return results
+}
+
+func toPayrollMonthORTOverviewResponse(
+	page *domain.PayrollMonthORTOverviewPage,
+	paged httpapi.PageResponse[payrollMonthORTOverviewEmployeeResponse],
+) payrollMonthORTOverviewResponse {
+	return payrollMonthORTOverviewResponse{
+		Month:        page.Month.UTC().Format(payoutMonthLayout),
+		Distribution: toPayrollMonthMultiplierSummaryItems(page.Distribution),
+		Next:         paged.Next,
+		Previous:     paged.Previous,
+		Count:        paged.Count,
+		PageSize:     paged.PageSize,
+		Results:      paged.Results,
+	}
+}
+
+func toORTRulesResponse(item *domain.ORTRulesResponse) ortRulesResponse {
+	rules := make([]ortRuleResponse, len(item.Rules))
+	for i, rule := range item.Rules {
+		rules[i] = ortRuleResponse{
+			Order:                 rule.Order,
+			RatePercent:           rule.RatePercent,
+			Label:                 rule.Label,
+			Description:           rule.Description,
+			ContractType:          rule.ContractType,
+			IrregularHoursProfile: rule.IrregularHoursProfile,
+			DayType:               rule.DayType,
+			TimeFrom:              rule.TimeFrom,
+			TimeTo:                rule.TimeTo,
+		}
+	}
+	return ortRulesResponse{Rules: rules}
 }
 
 func toPayrollMonthDetailRequest(req payrollMonthDetailRequest) (uuid.UUID, time.Time, *string, error) {

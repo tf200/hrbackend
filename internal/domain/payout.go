@@ -198,9 +198,27 @@ type PayrollMonthSummaryParams struct {
 	ContractType   *string
 }
 
+type PayrollMonthORTOverviewParams struct {
+	Month          time.Time
+	Limit          int32
+	Offset         int32
+	EmployeeSearch *string
+}
+
 type PayrollMonthSummaryPage struct {
 	Items      []PayrollMonthSummaryRow
 	TotalCount int64
+}
+
+type PayrollMonthORTOverviewPage struct {
+	Month        time.Time
+	Distribution []PayrollMultiplierSummary
+	Items        []PayrollMonthORTOverviewRow
+	TotalCount   int64
+}
+
+type ORTRulesResponse struct {
+	Rules []ORTRule
 }
 
 type PayrollMonthSummaryRow struct {
@@ -225,6 +243,24 @@ type PayrollMonthSummaryRow struct {
 	MultiplierSummaries  []PayrollMultiplierSummary
 }
 
+type PayrollMonthORTOverviewRow struct {
+	EmployeeID        uuid.UUID
+	EmployeeName      string
+	Month             time.Time
+	IsCurrentMonth    bool
+	IsLocked          bool
+	HasLockedSnapshot bool
+	DataSource        string
+	WorkedMinutes     float64
+	PaidMinutes       float64
+	BaseAmount        float64
+	PremiumAmount     float64
+	PayPeriodID       *uuid.UUID
+	PayPeriodStatus   *string
+	PaidAt            *time.Time
+	Distribution      []PayrollMultiplierSummary
+}
+
 type PayrollMonthDetail struct {
 	EmployeeID   uuid.UUID
 	EmployeeName string
@@ -242,6 +278,18 @@ type PayrollMultiplierSummary struct {
 	PremiumAmount float64
 }
 
+type ORTRule struct {
+	Order                 int32
+	RatePercent           float64
+	Label                 string
+	Description           string
+	ContractType          string
+	IrregularHoursProfile *string
+	DayType               string
+	TimeFrom              *string
+	TimeTo                *string
+}
+
 type PayrollMonthEmployee struct {
 	EmployeeID   uuid.UUID
 	EmployeeName string
@@ -254,9 +302,9 @@ type PayrollMonthPendingSummary struct {
 }
 
 type PayrollMonthPendingEntry struct {
-	EmployeeID     uuid.UUID
-	WorkedMinutes  int32
-	ContractType   string
+	EmployeeID    uuid.UUID
+	WorkedMinutes int32
+	ContractType  string
 }
 
 type PayrollLockedMultiplierSummary struct {
@@ -384,6 +432,11 @@ type PayoutRepository interface {
 		params PayrollMonthSummaryParams,
 		monthStart, monthEnd time.Time,
 	) ([]PayrollMonthEmployee, int64, error)
+	ListPayrollMonthEmployeesAll(
+		ctx context.Context,
+		params PayrollMonthORTOverviewParams,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollMonthEmployee, error)
 	ListPayPeriodsByEmployeesAndRange(
 		ctx context.Context,
 		employeeIDs []uuid.UUID,
@@ -454,6 +507,11 @@ type PayoutService interface {
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
 	) (*PayrollMonthSummaryPage, error)
+	GetPayrollMonthORTOverview(
+		ctx context.Context,
+		params PayrollMonthORTOverviewParams,
+	) (*PayrollMonthORTOverviewPage, error)
+	GetORTRules(ctx context.Context) (*ORTRulesResponse, error)
 	GetPayrollMonthDetail(
 		ctx context.Context,
 		employeeID uuid.UUID,

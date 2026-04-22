@@ -167,6 +167,16 @@ func (h *PayoutHandler) PreviewMyPayroll(ctx *gin.Context) {
 	)
 }
 
+func (h *PayoutHandler) GetORTRules(ctx *gin.Context) {
+	rules, err := h.service.GetORTRules(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toORTRulesResponse(rules), "ORT rules retrieved successfully"))
+}
+
 func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 	var req payrollMonthSummaryRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -193,6 +203,35 @@ func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 		page.TotalCount,
 	)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month summary retrieved successfully"))
+}
+
+func (h *PayoutHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
+	var req payrollMonthSummaryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPayrollMonthORTOverviewParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	page, err := h.service.GetPayrollMonthORTOverview(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	paged := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toPayrollMonthORTOverviewEmployeeResponses(page.Items),
+		page.TotalCount,
+	)
+	response := toPayrollMonthORTOverviewResponse(page, paged)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month ORT overview retrieved successfully"))
 }
 
 func (h *PayoutHandler) GetZZPPayrollMonthSummary(ctx *gin.Context) {

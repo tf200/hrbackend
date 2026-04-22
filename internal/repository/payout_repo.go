@@ -321,6 +321,33 @@ func (r *PayoutRepository) ListPayrollMonthEmployees(
 	return items, totalCount, nil
 }
 
+func (r *PayoutRepository) ListPayrollMonthEmployeesAll(
+	ctx context.Context,
+	params domain.PayrollMonthORTOverviewParams,
+	monthStart, monthEnd time.Time,
+) ([]domain.PayrollMonthEmployee, error) {
+	rows, err := r.store.ListPayrollMonthEmployeesAll(
+		ctx,
+		db.ListPayrollMonthEmployeesAllParams{
+			EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+			MonthStart:     conv.PgDateFromTime(monthStart),
+			MonthEnd:       conv.PgDateFromTime(monthEnd),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.PayrollMonthEmployee, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.PayrollMonthEmployee{
+			EmployeeID:   row.EmployeeID,
+			EmployeeName: fullName(row.EmployeeFirstName, row.EmployeeLastName),
+		})
+	}
+	return items, nil
+}
+
 func (r *PayoutRepository) ListPayPeriodsByEmployeesAndRange(
 	ctx context.Context,
 	employeeIDs []uuid.UUID,

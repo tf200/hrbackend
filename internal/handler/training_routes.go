@@ -16,6 +16,21 @@ func RegisterTrainingRoutes(
 		requirePermission("TRAINING.CATALOG.VIEW"),
 		handler.ListTrainingCatalogItems,
 	)
+	training.GET(
+		"/assignments",
+		requirePermission("TRAINING.ASSIGNMENTS.VIEW"),
+		handler.ListTrainingAssignments,
+	)
+	training.POST(
+		"/assignments",
+		requirePermission("TRAINING.ASSIGN"),
+		handler.AssignTrainingToEmployee,
+	)
+	training.POST(
+		"/assignments/:assignment_id/cancel",
+		requirePermission("TRAINING.ASSIGN"),
+		handler.CancelTrainingAssignment,
+	)
 	training.POST(
 		"/catalog",
 		requirePermission("TRAINING.CATALOG.CREATE"),

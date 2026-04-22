@@ -41,6 +41,47 @@ WHERE (
 ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+-- name: ListPayrollMonthEmployeesAll :many
+WITH month_employees AS (
+    SELECT DISTINCT pp.employee_id
+    FROM pay_periods pp
+    WHERE pp.period_start = sqlc.arg('month_start')
+      AND pp.period_end = sqlc.arg('month_end')
+
+    UNION
+
+    SELECT DISTINCT te.employee_id
+    FROM time_entries te
+    WHERE te.entry_date >= sqlc.arg('month_start')
+      AND te.entry_date <= sqlc.arg('month_end')
+      AND te.hour_type IN (
+          'normal'::time_entry_hour_type_enum,
+          'overtime'::time_entry_hour_type_enum,
+          'travel'::time_entry_hour_type_enum,
+          'training'::time_entry_hour_type_enum
+      )
+      AND te.status IN (
+          'approved'::time_entry_status_enum,
+          'draft'::time_entry_status_enum,
+          'submitted'::time_entry_status_enum
+      )
+)
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name
+FROM month_employees me
+JOIN employee_profile ep ON ep.id = me.employee_id
+WHERE (
+    sqlc.narg('employee_search')::text IS NULL
+    OR sqlc.narg('employee_search')::text = ''
+    OR ep.first_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR ep.last_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+)
+ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC;
+
 -- name: ListPayPeriodsByEmployeeIDsAndRange :many
 SELECT
     pp.id,

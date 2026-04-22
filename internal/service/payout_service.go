@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"hrbackend/internal/domain"
+	"hrbackend/pkg/ptr"
 
 	"github.com/goccy/go-json"
 	"github.com/google/uuid"
@@ -235,6 +236,103 @@ func (s *PayoutService) PreviewMyPayroll(
 		PeriodStart: periodStart,
 		PeriodEnd:   periodEnd,
 	})
+}
+
+func (s *PayoutService) GetORTRules(_ context.Context) (*domain.ORTRulesResponse, error) {
+	loondienst := "loondienst"
+	nonLoondienst := "non_loondienst"
+	roster := domain.IrregularHoursProfileRoster
+	nonRoster := domain.IrregularHoursProfileNonRoster
+
+	return &domain.ORTRulesResponse{
+		Rules: []domain.ORTRule{
+			{
+				Order:        1,
+				RatePercent:  45,
+				Label:        "Public holiday",
+				Description:  "Public holidays apply 45% ORT for all hours.",
+				ContractType: loondienst,
+				DayType:      "public_holiday",
+			},
+			{
+				Order:        2,
+				RatePercent:  45,
+				Label:        "Sunday",
+				Description:  "Sundays apply 45% ORT for all hours.",
+				ContractType: loondienst,
+				DayType:      "sunday",
+			},
+			{
+				Order:        3,
+				RatePercent:  45,
+				Label:        "Night hours",
+				Description:  "Any day from 22:00 to before 06:00 applies 45% ORT.",
+				ContractType: loondienst,
+				DayType:      "any",
+				TimeFrom:     ptr.String("22:00"),
+				TimeTo:       ptr.String("06:00"),
+			},
+			{
+				Order:        4,
+				RatePercent:  30,
+				Label:        "Saturday daytime",
+				Description:  "Saturdays from 06:00 to before 22:00 apply 30% ORT.",
+				ContractType: loondienst,
+				DayType:      "saturday",
+				TimeFrom:     ptr.String("06:00"),
+				TimeTo:       ptr.String("22:00"),
+			},
+			{
+				Order:                 5,
+				RatePercent:           25,
+				Label:                 "Roster early morning",
+				Description:           "Roster profile from 06:00 to before 07:00 applies 25% ORT.",
+				ContractType:          loondienst,
+				IrregularHoursProfile: &roster,
+				DayType:               "any",
+				TimeFrom:              ptr.String("06:00"),
+				TimeTo:                ptr.String("07:00"),
+			},
+			{
+				Order:                 6,
+				RatePercent:           25,
+				Label:                 "Roster evening",
+				Description:           "Roster profile from 19:00 to before 22:00 applies 25% ORT.",
+				ContractType:          loondienst,
+				IrregularHoursProfile: &roster,
+				DayType:               "any",
+				TimeFrom:              ptr.String("19:00"),
+				TimeTo:                ptr.String("22:00"),
+			},
+			{
+				Order:                 7,
+				RatePercent:           25,
+				Label:                 "Non-roster evening",
+				Description:           "Non-roster profile from 20:00 to before 22:00 applies 25% ORT.",
+				ContractType:          loondienst,
+				IrregularHoursProfile: &nonRoster,
+				DayType:               "any",
+				TimeFrom:              ptr.String("20:00"),
+				TimeTo:                ptr.String("22:00"),
+			},
+			{
+				Order:        8,
+				RatePercent:  0,
+				Label:        "Default loondienst fallback",
+				Description:  "Hours not covered by any ORT window apply 0% ORT for loondienst.",
+				ContractType: loondienst,
+				DayType:      "any",
+			},
+			{
+				Order:        9,
+				RatePercent:  0,
+				Label:        "Non-loondienst fallback",
+				Description:  "Non-loondienst contract types, including ZZP, apply 0% ORT.",
+				ContractType: nonLoondienst,
+				DayType:      "any",
+			},
+		},
+	}, nil
 }
 
 func (s *PayoutService) PreviewPayroll(
@@ -591,6 +689,152 @@ func (s *PayoutService) GetPayrollMonthSummary(
 	}, nil
 }
 
+func (s *PayoutService) GetPayrollMonthORTOverview(
+	ctx context.Context,
+	params domain.PayrollMonthORTOverviewParams,
+) (*domain.PayrollMonthORTOverviewPage, error) {
+	normalized, monthStart, monthEnd, isCurrentMonth, err := normalizePayrollMonthORTOverviewParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	employees, err := s.repository.ListPayrollMonthEmployeesAll(ctx, normalized, monthStart, monthEnd)
+	if err != nil {
+		s.logError(ctx, "GetPayrollMonthORTOverview", "failed to list payroll month employees", err)
+		return nil, fmt.Errorf("failed to list payroll month employees: %w", err)
+	}
+	if len(employees) == 0 {
+		return &domain.PayrollMonthORTOverviewPage{
+			Month:        normalized.Month,
+			Distribution: []domain.PayrollMultiplierSummary{},
+			Items:        []domain.PayrollMonthORTOverviewRow{},
+			TotalCount:   0,
+		}, nil
+	}
+
+	employeeIDs := make([]uuid.UUID, 0, len(employees))
+	for _, employee := range employees {
+		employeeIDs = append(employeeIDs, employee.EmployeeID)
+	}
+
+	lockedPayPeriods, err := s.repository.ListPayPeriodsByEmployeesAndRange(ctx, employeeIDs, monthStart, monthEnd)
+	if err != nil {
+		s.logError(ctx, "GetPayrollMonthORTOverview", "failed to list locked pay periods", err)
+		return nil, fmt.Errorf("failed to list pay periods for payroll month ORT overview: %w", err)
+	}
+
+	lockedByEmployee := make(map[uuid.UUID]domain.PayPeriod, len(lockedPayPeriods))
+	payPeriodIDs := make([]uuid.UUID, 0, len(lockedPayPeriods))
+	for _, payPeriod := range lockedPayPeriods {
+		lockedByEmployee[payPeriod.EmployeeID] = payPeriod
+		payPeriodIDs = append(payPeriodIDs, payPeriod.ID)
+	}
+
+	lockedDistributionByPeriod := make(map[uuid.UUID][]domain.PayrollMultiplierSummary, len(payPeriodIDs))
+	if len(payPeriodIDs) > 0 {
+		lockedSummaries, err := s.repository.ListPayrollMonthLockedMultiplierSummaries(ctx, payPeriodIDs)
+		if err != nil {
+			s.logError(
+				ctx,
+				"GetPayrollMonthORTOverview",
+				"failed to list locked pay period multiplier summaries",
+				err,
+			)
+			return nil, fmt.Errorf("failed to list locked payroll month multiplier summaries: %w", err)
+		}
+		lockedDistributionByPeriod = buildLockedORTDistributionMap(lockedSummaries)
+	}
+
+	approvedEntries, err := s.repository.ListPayrollMonthApprovedTimeEntries(ctx, employeeIDs, monthStart, monthEnd)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetPayrollMonthORTOverview",
+			"failed to list approved payroll time entries",
+			err,
+		)
+		return nil, fmt.Errorf("failed to list approved payroll month time entries: %w", err)
+	}
+
+	liveSummaries := make(map[uuid.UUID]payrollMonthLiveSummary)
+	if len(approvedEntries) > 0 {
+		holidaySet, err := s.loadHolidaySet(ctx, monthStart, monthEnd)
+		if err != nil {
+			return nil, err
+		}
+		liveSummaries, err = buildPayrollMonthLiveSummaries(approvedEntries, holidaySet)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	totalBuckets := make(map[float64]*domain.PayrollMultiplierSummary)
+	items := make([]domain.PayrollMonthORTOverviewRow, 0, len(employees))
+	for _, employee := range employees {
+		row := domain.PayrollMonthORTOverviewRow{
+			EmployeeID:     employee.EmployeeID,
+			EmployeeName:   employee.EmployeeName,
+			Month:          normalized.Month,
+			IsCurrentMonth: isCurrentMonth,
+		}
+
+		lockedPayPeriod, hasLockedSnapshot := lockedByEmployee[employee.EmployeeID]
+		if hasLockedSnapshot {
+			row.HasLockedSnapshot = true
+			row.PayPeriodID = &lockedPayPeriod.ID
+			status := lockedPayPeriod.Status
+			row.PayPeriodStatus = &status
+			row.PaidAt = lockedPayPeriod.PaidAt
+		}
+
+		switch {
+		case isCurrentMonth:
+			live, ok := liveSummaries[employee.EmployeeID]
+			if !ok {
+				continue
+			}
+			row.DataSource = "live"
+			row.Distribution = positiveMultiplierSummaries(live.MultiplierSummaries)
+		case hasLockedSnapshot:
+			row.IsLocked = true
+			row.DataSource = "locked"
+			row.Distribution = lockedDistributionByPeriod[lockedPayPeriod.ID]
+		default:
+			live, ok := liveSummaries[employee.EmployeeID]
+			if !ok {
+				continue
+			}
+			row.DataSource = "live"
+			row.Distribution = positiveMultiplierSummaries(live.MultiplierSummaries)
+		}
+
+		if len(row.Distribution) == 0 {
+			continue
+		}
+
+		applyORTOverviewTotals(&row)
+		addMultiplierSummaries(totalBuckets, row.Distribution)
+		items = append(items, row)
+	}
+
+	totalCount := int64(len(items))
+	start := int(normalized.Offset)
+	if start > len(items) {
+		start = len(items)
+	}
+	end := start + int(normalized.Limit)
+	if end > len(items) {
+		end = len(items)
+	}
+
+	return &domain.PayrollMonthORTOverviewPage{
+		Month:        normalized.Month,
+		Distribution: sortedMultiplierSummaries(totalBuckets),
+		Items:        items[start:end],
+		TotalCount:   totalCount,
+	}, nil
+}
+
 func (s *PayoutService) GetPayrollMonthDetail(
 	ctx context.Context,
 	employeeID uuid.UUID,
@@ -851,6 +1095,31 @@ func normalizePayrollMonthSummaryParams(
 		return domain.PayrollMonthSummaryParams{}, time.Time{}, time.Time{}, false, err
 	}
 	params.ContractType = normalizedContractType
+
+	month := time.Date(
+		params.Month.UTC().Year(),
+		params.Month.UTC().Month(),
+		1,
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	monthEnd := month.AddDate(0, 1, -1)
+	now := time.Now().UTC()
+	currentMonth := now.Year() == month.Year() && now.Month() == month.Month()
+
+	params.Month = month
+	return params, month, monthEnd, currentMonth, nil
+}
+
+func normalizePayrollMonthORTOverviewParams(
+	params domain.PayrollMonthORTOverviewParams,
+) (domain.PayrollMonthORTOverviewParams, time.Time, time.Time, bool, error) {
+	if params.Month.IsZero() {
+		return domain.PayrollMonthORTOverviewParams{}, time.Time{}, time.Time{}, false, domain.ErrPayoutRequestInvalidRequest
+	}
 
 	month := time.Date(
 		params.Month.UTC().Year(),
@@ -1407,6 +1676,76 @@ func sortedMultiplierSummaries(
 		items = append(items, *buckets[rate])
 	}
 	return items
+}
+
+func positiveMultiplierSummaries(
+	items []domain.PayrollMultiplierSummary,
+) []domain.PayrollMultiplierSummary {
+	filtered := make([]domain.PayrollMultiplierSummary, 0, len(items))
+	for _, item := range items {
+		if item.RatePercent <= 0 {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	return filtered
+}
+
+func addMultiplierSummaries(
+	buckets map[float64]*domain.PayrollMultiplierSummary,
+	items []domain.PayrollMultiplierSummary,
+) {
+	for _, item := range items {
+		bucket := buckets[item.RatePercent]
+		if bucket == nil {
+			bucket = &domain.PayrollMultiplierSummary{RatePercent: item.RatePercent}
+			buckets[item.RatePercent] = bucket
+		}
+		bucket.WorkedMinutes = roundCurrency(bucket.WorkedMinutes + item.WorkedMinutes)
+		bucket.PaidMinutes = roundCurrency(bucket.PaidMinutes + item.PaidMinutes)
+		bucket.BaseAmount = roundCurrency(bucket.BaseAmount + item.BaseAmount)
+		bucket.PremiumAmount = roundCurrency(bucket.PremiumAmount + item.PremiumAmount)
+	}
+}
+
+func buildLockedORTDistributionMap(
+	summaries []domain.PayrollLockedMultiplierSummary,
+) map[uuid.UUID][]domain.PayrollMultiplierSummary {
+	bucketsByPeriod := make(map[uuid.UUID]map[float64]*domain.PayrollMultiplierSummary)
+	for _, item := range summaries {
+		if item.RatePercent <= 0 {
+			continue
+		}
+		buckets := bucketsByPeriod[item.PayPeriodID]
+		if buckets == nil {
+			buckets = make(map[float64]*domain.PayrollMultiplierSummary)
+			bucketsByPeriod[item.PayPeriodID] = buckets
+		}
+		bucket := buckets[item.RatePercent]
+		if bucket == nil {
+			bucket = &domain.PayrollMultiplierSummary{RatePercent: item.RatePercent}
+			buckets[item.RatePercent] = bucket
+		}
+		bucket.WorkedMinutes = roundCurrency(bucket.WorkedMinutes + item.WorkedMinutes)
+		bucket.PaidMinutes = roundCurrency(bucket.PaidMinutes + item.PaidMinutes)
+		bucket.BaseAmount = roundCurrency(bucket.BaseAmount + item.BaseAmount)
+		bucket.PremiumAmount = roundCurrency(bucket.PremiumAmount + item.PremiumAmount)
+	}
+
+	result := make(map[uuid.UUID][]domain.PayrollMultiplierSummary, len(bucketsByPeriod))
+	for payPeriodID, buckets := range bucketsByPeriod {
+		result[payPeriodID] = sortedMultiplierSummaries(buckets)
+	}
+	return result
+}
+
+func applyORTOverviewTotals(row *domain.PayrollMonthORTOverviewRow) {
+	for _, item := range row.Distribution {
+		row.WorkedMinutes = roundCurrency(row.WorkedMinutes + item.WorkedMinutes)
+		row.PaidMinutes = roundCurrency(row.PaidMinutes + item.PaidMinutes)
+		row.BaseAmount = roundCurrency(row.BaseAmount + item.BaseAmount)
+		row.PremiumAmount = roundCurrency(row.PremiumAmount + item.PremiumAmount)
+	}
 }
 
 func applyLivePayrollMonthSummary(

@@ -12,6 +12,108 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const assignTrainingToEmployee = `-- name: AssignTrainingToEmployee :one
+WITH target_employee AS (
+    SELECT ep.id
+    FROM employee_profile ep
+    WHERE ep.id = $3
+    LIMIT 1
+), target_training AS (
+    SELECT tci.id
+    FROM training_catalog_items tci
+    WHERE tci.id = $4
+      AND is_active = TRUE
+    LIMIT 1
+)
+INSERT INTO employee_training_assignments (
+    employee_id,
+    training_id,
+    assigned_by_employee_id,
+    due_at
+)
+SELECT
+    te.id,
+    tt.id,
+    $1,
+    $2
+FROM target_employee te
+CROSS JOIN target_training tt
+RETURNING id, employee_id, training_id, assigned_by_employee_id, status, assigned_at, due_at, started_at, completed_at, cancelled_at, cancellation_reason, completion_notes, created_at, updated_at
+`
+
+type AssignTrainingToEmployeeParams struct {
+	AssignedByEmployeeID *uuid.UUID         `json:"assigned_by_employee_id"`
+	DueAt                pgtype.Timestamptz `json:"due_at"`
+	EmployeeID           uuid.UUID          `json:"employee_id"`
+	TrainingID           uuid.UUID          `json:"training_id"`
+}
+
+func (q *Queries) AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error) {
+	row := q.db.QueryRow(ctx, assignTrainingToEmployee,
+		arg.AssignedByEmployeeID,
+		arg.DueAt,
+		arg.EmployeeID,
+		arg.TrainingID,
+	)
+	var i EmployeeTrainingAssignment
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.TrainingID,
+		&i.AssignedByEmployeeID,
+		&i.Status,
+		&i.AssignedAt,
+		&i.DueAt,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.CancelledAt,
+		&i.CancellationReason,
+		&i.CompletionNotes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const cancelTrainingAssignment = `-- name: CancelTrainingAssignment :one
+UPDATE employee_training_assignments
+SET
+    status = 'cancelled',
+    cancelled_at = NOW(),
+    cancellation_reason = $1,
+    updated_at = NOW()
+WHERE id = $2
+  AND status IN ('assigned', 'in_progress')
+RETURNING id, employee_id, training_id, assigned_by_employee_id, status, assigned_at, due_at, started_at, completed_at, cancelled_at, cancellation_reason, completion_notes, created_at, updated_at
+`
+
+type CancelTrainingAssignmentParams struct {
+	CancellationReason *string   `json:"cancellation_reason"`
+	ID                 uuid.UUID `json:"id"`
+}
+
+func (q *Queries) CancelTrainingAssignment(ctx context.Context, arg CancelTrainingAssignmentParams) (EmployeeTrainingAssignment, error) {
+	row := q.db.QueryRow(ctx, cancelTrainingAssignment, arg.CancellationReason, arg.ID)
+	var i EmployeeTrainingAssignment
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.TrainingID,
+		&i.AssignedByEmployeeID,
+		&i.Status,
+		&i.AssignedAt,
+		&i.DueAt,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.CancelledAt,
+		&i.CancellationReason,
+		&i.CompletionNotes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createTrainingCatalogItem = `-- name: CreateTrainingCatalogItem :one
 INSERT INTO training_catalog_items (
     title,
@@ -54,6 +156,171 @@ func (q *Queries) CreateTrainingCatalogItem(ctx context.Context, arg CreateTrain
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getTrainingAssignmentByID = `-- name: GetTrainingAssignmentByID :one
+SELECT id, employee_id, training_id, assigned_by_employee_id, status, assigned_at, due_at, started_at, completed_at, cancelled_at, cancellation_reason, completion_notes, created_at, updated_at
+FROM employee_training_assignments
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetTrainingAssignmentByID(ctx context.Context, id uuid.UUID) (EmployeeTrainingAssignment, error) {
+	row := q.db.QueryRow(ctx, getTrainingAssignmentByID, id)
+	var i EmployeeTrainingAssignment
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.TrainingID,
+		&i.AssignedByEmployeeID,
+		&i.Status,
+		&i.AssignedAt,
+		&i.DueAt,
+		&i.StartedAt,
+		&i.CompletedAt,
+		&i.CancelledAt,
+		&i.CancellationReason,
+		&i.CompletionNotes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listTrainingAssignmentsPaginated = `-- name: ListTrainingAssignmentsPaginated :many
+SELECT
+    eta.id AS assignment_id,
+    eta.employee_id,
+    ep.employee_number,
+    ep.employment_number,
+    ep.first_name,
+    ep.last_name,
+    ep.department_id,
+    d.name AS department_name,
+    eta.training_id,
+    tci.title AS training_title,
+    tci.category AS training_category,
+    eta.status::text AS status,
+    eta.assigned_at,
+    eta.due_at,
+    eta.started_at,
+    eta.completed_at,
+    eta.assigned_by_employee_id,
+    NULLIF(TRIM(CONCAT_WS(' ', assigner.first_name, assigner.last_name)), '')::text AS assigned_by_name,
+    CASE WHEN (
+        eta.due_at IS NOT NULL
+        AND eta.due_at < NOW()
+        AND eta.status NOT IN ('completed', 'cancelled')
+    ) THEN TRUE ELSE FALSE END AS is_overdue,
+    COUNT(*) OVER() AS total_count
+FROM employee_training_assignments eta
+JOIN employee_profile ep ON ep.id = eta.employee_id
+JOIN training_catalog_items tci ON tci.id = eta.training_id
+LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN employee_profile assigner ON assigner.id = eta.assigned_by_employee_id
+WHERE (
+    $1::text IS NULL
+    OR ep.first_name ILIKE '%' || $1::text || '%'
+    OR ep.last_name ILIKE '%' || $1::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || $1::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || $1::text || '%'
+    OR COALESCE(ep.employee_number, '') ILIKE '%' || $1::text || '%'
+    OR COALESCE(ep.employment_number, '') ILIKE '%' || $1::text || '%'
+)
+AND (
+    $2::uuid IS NULL
+    OR ep.department_id = $2::uuid
+)
+AND (
+    $3::uuid IS NULL
+    OR eta.training_id = $3::uuid
+)
+AND (
+    ($4::text IS NULL AND eta.status <> 'cancelled')
+    OR eta.status::text = $4::text
+)
+ORDER BY eta.assigned_at DESC, eta.id
+LIMIT $6 OFFSET $5
+`
+
+type ListTrainingAssignmentsPaginatedParams struct {
+	EmployeeSearch *string    `json:"employee_search"`
+	DepartmentID   *uuid.UUID `json:"department_id"`
+	TrainingID     *uuid.UUID `json:"training_id"`
+	StatusFilter   *string    `json:"status_filter"`
+	Offset         int32      `json:"offset"`
+	Limit          int32      `json:"limit"`
+}
+
+type ListTrainingAssignmentsPaginatedRow struct {
+	AssignmentID         uuid.UUID          `json:"assignment_id"`
+	EmployeeID           uuid.UUID          `json:"employee_id"`
+	EmployeeNumber       *string            `json:"employee_number"`
+	EmploymentNumber     *string            `json:"employment_number"`
+	FirstName            string             `json:"first_name"`
+	LastName             string             `json:"last_name"`
+	DepartmentID         *uuid.UUID         `json:"department_id"`
+	DepartmentName       *string            `json:"department_name"`
+	TrainingID           uuid.UUID          `json:"training_id"`
+	TrainingTitle        string             `json:"training_title"`
+	TrainingCategory     *string            `json:"training_category"`
+	Status               string             `json:"status"`
+	AssignedAt           pgtype.Timestamptz `json:"assigned_at"`
+	DueAt                pgtype.Timestamptz `json:"due_at"`
+	StartedAt            pgtype.Timestamptz `json:"started_at"`
+	CompletedAt          pgtype.Timestamptz `json:"completed_at"`
+	AssignedByEmployeeID *uuid.UUID         `json:"assigned_by_employee_id"`
+	AssignedByName       string             `json:"assigned_by_name"`
+	IsOverdue            bool               `json:"is_overdue"`
+	TotalCount           int64              `json:"total_count"`
+}
+
+func (q *Queries) ListTrainingAssignmentsPaginated(ctx context.Context, arg ListTrainingAssignmentsPaginatedParams) ([]ListTrainingAssignmentsPaginatedRow, error) {
+	rows, err := q.db.Query(ctx, listTrainingAssignmentsPaginated,
+		arg.EmployeeSearch,
+		arg.DepartmentID,
+		arg.TrainingID,
+		arg.StatusFilter,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTrainingAssignmentsPaginatedRow{}
+	for rows.Next() {
+		var i ListTrainingAssignmentsPaginatedRow
+		if err := rows.Scan(
+			&i.AssignmentID,
+			&i.EmployeeID,
+			&i.EmployeeNumber,
+			&i.EmploymentNumber,
+			&i.FirstName,
+			&i.LastName,
+			&i.DepartmentID,
+			&i.DepartmentName,
+			&i.TrainingID,
+			&i.TrainingTitle,
+			&i.TrainingCategory,
+			&i.Status,
+			&i.AssignedAt,
+			&i.DueAt,
+			&i.StartedAt,
+			&i.CompletedAt,
+			&i.AssignedByEmployeeID,
+			&i.AssignedByName,
+			&i.IsOverdue,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listTrainingCatalogItemsPaginated = `-- name: ListTrainingCatalogItemsPaginated :many

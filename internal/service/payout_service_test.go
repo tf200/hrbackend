@@ -215,6 +215,29 @@ func TestPreviewPayrollZZPDoesNotReceiveORT(t *testing.T) {
 	}
 }
 
+func TestGetORTRulesReturnsFlatOrderedRuleCatalog(t *testing.T) {
+	service := &PayoutService{}
+
+	response, err := service.GetORTRules(context.Background())
+	if err != nil {
+		t.Fatalf("GetORTRules returned error: %v", err)
+	}
+
+	if len(response.Rules) != 9 {
+		t.Fatalf("expected 9 ORT rules, got %d", len(response.Rules))
+	}
+	if response.Rules[0].RatePercent != 45 || response.Rules[0].DayType != "public_holiday" {
+		t.Fatalf("unexpected first rule: %#v", response.Rules[0])
+	}
+	if response.Rules[4].IrregularHoursProfile == nil ||
+		*response.Rules[4].IrregularHoursProfile != domain.IrregularHoursProfileRoster {
+		t.Fatalf("expected roster rule at index 4, got %#v", response.Rules[4])
+	}
+	if response.Rules[7].RatePercent != 0 || response.Rules[8].RatePercent != 0 {
+		t.Fatalf("expected explicit 0%% fallback rules, got %#v %#v", response.Rules[7], response.Rules[8])
+	}
+}
+
 func TestClosePayPeriodCreatesDraftAndAssignsEntries(t *testing.T) {
 	txRepo := &fakePayoutTxRepository{
 		entries: []domain.PayrollPreviewTimeEntry{
@@ -406,11 +429,11 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 				IrregularGrossAmount: 1,
 				GrossAmount:          2,
 			},
-			},
-			monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
-				payPeriodID: []domain.PayPeriodLineItem{
-					{
-						PayPeriodID:        payPeriodID,
+		},
+		monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
+			payPeriodID: []domain.PayPeriodLineItem{
+				{
+					PayPeriodID:        payPeriodID,
 					TimeEntryID:        uuidPtr(mustUUID("a1a1a1a1-5656-5656-5656-565656565656")),
 					ContractType:       "loondienst",
 					AppliedRatePercent: 25,
@@ -503,11 +526,11 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 				IrregularGrossAmount: 30,
 				GrossAmount:          130,
 			},
-			},
-			monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
-				payPeriodID: []domain.PayPeriodLineItem{
-					{
-						PayPeriodID:        payPeriodID,
+		},
+		monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
+			payPeriodID: []domain.PayPeriodLineItem{
+				{
+					PayPeriodID:        payPeriodID,
 					TimeEntryID:        uuidPtr(mustUUID("11111111-7878-7878-7878-787878787878")),
 					ContractType:       "loondienst",
 					AppliedRatePercent: 25,
@@ -676,6 +699,217 @@ func TestGetPayrollMonthSummaryZZPFilterSplitsMixedMonthTotals(t *testing.T) {
 	}
 }
 
+func TestGetPayrollMonthORTOverviewCurrentMonthAggregatesAllFilteredEmployees(t *testing.T) {
+	now := time.Now().UTC()
+	monthStart := dateUTC(now.Year(), now.Month(), 1)
+	employeeOneID := mustUUID("10101010-1212-1212-1212-121212121212")
+	employeeTwoID := mustUUID("20202020-1212-1212-1212-121212121212")
+	employeeThreeID := mustUUID("30303030-1212-1212-1212-121212121212")
+
+	repo := &fakePayoutRepository{
+		monthEmployees: []domain.PayrollMonthEmployee{
+			{EmployeeID: employeeOneID, EmployeeName: "Adam ORT"},
+			{EmployeeID: employeeTwoID, EmployeeName: "Bella ORT"},
+			{EmployeeID: employeeThreeID, EmployeeName: "Chris NoORT"},
+		},
+		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
+			{
+				ID:                    mustUUID("10101010-3434-3434-3434-343434343434"),
+				EmployeeID:            employeeOneID,
+				EmployeeName:          "Adam ORT",
+				EntryDate:             sundayForMonth(monthStart),
+				StartTime:             "12:00",
+				EndTime:               "14:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "loondienst",
+				ContractRate:          ptrFloat(10),
+				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
+			},
+			{
+				ID:                    mustUUID("20202020-3434-3434-3434-343434343434"),
+				EmployeeID:            employeeTwoID,
+				EmployeeName:          "Bella ORT",
+				EntryDate:             saturdayForMonth(monthStart),
+				StartTime:             "10:00",
+				EndTime:               "12:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "loondienst",
+				ContractRate:          ptrFloat(10),
+				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
+			},
+			{
+				ID:                    mustUUID("30303030-3434-3434-3434-343434343434"),
+				EmployeeID:            employeeThreeID,
+				EmployeeName:          "Chris NoORT",
+				EntryDate:             monthStart.AddDate(0, 0, 1),
+				StartTime:             "10:00",
+				EndTime:               "12:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "loondienst",
+				ContractRate:          ptrFloat(10),
+				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
+			},
+		},
+	}
+
+	service := &PayoutService{repository: repo}
+	page, err := service.GetPayrollMonthORTOverview(context.Background(), domain.PayrollMonthORTOverviewParams{
+		Month:  monthStart,
+		Limit:  1,
+		Offset: 0,
+	})
+	if err != nil {
+		t.Fatalf("GetPayrollMonthORTOverview returned error: %v", err)
+	}
+
+	if page.TotalCount != 2 {
+		t.Fatalf("expected 2 ORT employees, got %d", page.TotalCount)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("expected 1 paginated row, got %d", len(page.Items))
+	}
+	if page.Items[0].EmployeeID != employeeOneID {
+		t.Fatalf("expected first paginated employee %s, got %s", employeeOneID, page.Items[0].EmployeeID)
+	}
+	if page.Items[0].DataSource != "live" || !page.Items[0].IsCurrentMonth {
+		t.Fatalf("expected live current-month row, got %#v", page.Items[0])
+	}
+	if len(page.Items[0].Distribution) != 1 || page.Items[0].Distribution[0].RatePercent != 45 {
+		t.Fatalf("expected one 45%% bucket, got %#v", page.Items[0].Distribution)
+	}
+	if len(page.Distribution) != 2 {
+		t.Fatalf("expected 2 month-level distribution buckets, got %d", len(page.Distribution))
+	}
+	if page.Distribution[0].RatePercent != 30 || page.Distribution[1].RatePercent != 45 {
+		t.Fatalf("unexpected month-level rates: %#v", page.Distribution)
+	}
+}
+
+func TestGetPayrollMonthORTOverviewPastMonthUsesLockedSnapshot(t *testing.T) {
+	monthStart := dateUTC(2026, 3, 1)
+	monthEnd := monthStart.AddDate(0, 1, -1)
+	employeeID := mustUUID("40404040-1212-1212-1212-121212121212")
+	payPeriodID := mustUUID("40404040-5656-5656-5656-565656565656")
+
+	repo := &fakePayoutRepository{
+		monthEmployees: []domain.PayrollMonthEmployee{
+			{EmployeeID: employeeID, EmployeeName: "Locked Employee"},
+		},
+		monthPayPeriods: []domain.PayPeriod{
+			{
+				ID:           payPeriodID,
+				EmployeeID:   employeeID,
+				EmployeeName: "Locked Employee",
+				PeriodStart:  monthStart,
+				PeriodEnd:    monthEnd,
+				Status:       domain.PayPeriodStatusPaid,
+			},
+		},
+		monthLockedSummaries: []domain.PayrollLockedMultiplierSummary{
+			{
+				PayPeriodID:   payPeriodID,
+				RatePercent:   0,
+				WorkedMinutes: 120,
+				PaidMinutes:   120,
+				BaseAmount:    20,
+				PremiumAmount: 0,
+			},
+			{
+				PayPeriodID:   payPeriodID,
+				RatePercent:   25,
+				WorkedMinutes: 60,
+				PaidMinutes:   60,
+				BaseAmount:    10,
+				PremiumAmount: 2.5,
+			},
+		},
+		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
+			{
+				ID:                    mustUUID("40404040-7878-7878-7878-787878787878"),
+				EmployeeID:            employeeID,
+				EmployeeName:          "Locked Employee",
+				EntryDate:             monthStart.AddDate(0, 0, 2),
+				StartTime:             "12:00",
+				EndTime:               "14:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "loondienst",
+				ContractRate:          ptrFloat(10),
+				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
+			},
+		},
+	}
+
+	service := &PayoutService{repository: repo}
+	page, err := service.GetPayrollMonthORTOverview(context.Background(), domain.PayrollMonthORTOverviewParams{
+		Month: monthStart,
+		Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("GetPayrollMonthORTOverview returned error: %v", err)
+	}
+
+	if len(page.Items) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(page.Items))
+	}
+	row := page.Items[0]
+	if row.DataSource != "locked" || !row.IsLocked || !row.HasLockedSnapshot {
+		t.Fatalf("expected locked row, got %#v", row)
+	}
+	if len(row.Distribution) != 1 || row.Distribution[0].RatePercent != 25 {
+		t.Fatalf("expected one locked 25%% bucket, got %#v", row.Distribution)
+	}
+}
+
+func TestGetPayrollMonthORTOverviewPastMonthFallsBackToLiveWithoutLockedSnapshot(t *testing.T) {
+	monthStart := dateUTC(2026, 2, 1)
+	employeeID := mustUUID("50505050-1212-1212-1212-121212121212")
+
+	repo := &fakePayoutRepository{
+		monthEmployees: []domain.PayrollMonthEmployee{
+			{EmployeeID: employeeID, EmployeeName: "Fallback Employee"},
+		},
+		monthApprovedEntries: []domain.PayrollPreviewTimeEntry{
+			{
+				ID:                    mustUUID("50505050-7878-7878-7878-787878787878"),
+				EmployeeID:            employeeID,
+				EmployeeName:          "Fallback Employee",
+				EntryDate:             sundayForMonth(monthStart),
+				StartTime:             "12:00",
+				EndTime:               "14:00",
+				BreakMinutes:          0,
+				HourType:              domain.TimeEntryHourTypeNormal,
+				ContractType:          "loondienst",
+				ContractRate:          ptrFloat(10),
+				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
+			},
+		},
+	}
+
+	service := &PayoutService{repository: repo}
+	page, err := service.GetPayrollMonthORTOverview(context.Background(), domain.PayrollMonthORTOverviewParams{
+		Month: monthStart,
+		Limit: 20,
+	})
+	if err != nil {
+		t.Fatalf("GetPayrollMonthORTOverview returned error: %v", err)
+	}
+
+	if len(page.Items) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(page.Items))
+	}
+	row := page.Items[0]
+	if row.DataSource != "live" || row.IsLocked || row.HasLockedSnapshot {
+		t.Fatalf("expected live fallback row, got %#v", row)
+	}
+	if len(row.Distribution) != 1 || row.Distribution[0].RatePercent != 45 {
+		t.Fatalf("expected one live 45%% bucket, got %#v", row.Distribution)
+	}
+}
+
 func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T) {
 	monthStart := dateUTC(2026, 3, 1)
 	monthEnd := monthStart.AddDate(0, 1, -1)
@@ -702,11 +936,11 @@ func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T)
 				IrregularGrossAmount: 5,
 				GrossAmount:          65,
 			},
-			},
-			payPeriodByID: map[uuid.UUID]*domain.PayPeriod{
-				payPeriodID: &domain.PayPeriod{
-					ID:                   payPeriodID,
-					EmployeeID:           employeeID,
+		},
+		payPeriodByID: map[uuid.UUID]*domain.PayPeriod{
+			payPeriodID: &domain.PayPeriod{
+				ID:                   payPeriodID,
+				EmployeeID:           employeeID,
 				EmployeeName:         "Locked Employee",
 				PeriodStart:          monthStart,
 				PeriodEnd:            monthEnd,
@@ -715,10 +949,10 @@ func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T)
 				IrregularGrossAmount: 5,
 				GrossAmount:          65,
 			},
-			},
-			monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
-				payPeriodID: []domain.PayPeriodLineItem{
-					{
+		},
+		monthPayPeriodLineItems: map[uuid.UUID][]domain.PayPeriodLineItem{
+			payPeriodID: []domain.PayPeriodLineItem{
+				{
 					PayPeriodID:        payPeriodID,
 					TimeEntryID:        &zzpEntryID,
 					ContractType:       "ZZP",
@@ -768,6 +1002,7 @@ type fakePayoutRepository struct {
 	monthEmployees          []domain.PayrollMonthEmployee
 	monthEmployeeTotalCount int64
 	monthPayPeriods         []domain.PayPeriod
+	monthLockedSummaries    []domain.PayrollLockedMultiplierSummary
 	payPeriodByID           map[uuid.UUID]*domain.PayPeriod
 	monthPayPeriodLineItems map[uuid.UUID][]domain.PayPeriodLineItem
 	monthApprovedEntries    []domain.PayrollPreviewTimeEntry
@@ -852,6 +1087,14 @@ func (f *fakePayoutRepository) ListPayrollMonthEmployees(
 	return f.monthEmployees, f.monthEmployeeTotalCount, nil
 }
 
+func (f *fakePayoutRepository) ListPayrollMonthEmployeesAll(
+	_ context.Context,
+	_ domain.PayrollMonthORTOverviewParams,
+	_, _ time.Time,
+) ([]domain.PayrollMonthEmployee, error) {
+	return f.monthEmployees, nil
+}
+
 func (f *fakePayoutRepository) ListPayPeriodsByEmployeesAndRange(
 	_ context.Context,
 	_ []uuid.UUID,
@@ -864,7 +1107,7 @@ func (f *fakePayoutRepository) ListPayrollMonthLockedMultiplierSummaries(
 	_ context.Context,
 	_ []uuid.UUID,
 ) ([]domain.PayrollLockedMultiplierSummary, error) {
-	panic("unexpected call")
+	return f.monthLockedSummaries, nil
 }
 
 func (f *fakePayoutRepository) ListPayrollMonthApprovedTimeEntries(
@@ -1052,6 +1295,24 @@ func (f *fakePayoutTxRepository) MarkPayPeriodPaid(
 		Status: domain.PayPeriodStatusPaid,
 		PaidAt: &paidAt,
 	}, nil
+}
+
+func saturdayForMonth(monthStart time.Time) time.Time {
+	for day := monthStart; day.Month() == monthStart.Month(); day = day.AddDate(0, 0, 1) {
+		if day.Weekday() == time.Saturday {
+			return day
+		}
+	}
+	panic("no saturday found in month")
+}
+
+func sundayForMonth(monthStart time.Time) time.Time {
+	for day := monthStart; day.Month() == monthStart.Month(); day = day.AddDate(0, 0, 1) {
+		if day.Weekday() == time.Sunday {
+			return day
+		}
+	}
+	panic("no sunday found in month")
 }
 
 func ptrFloat(v float64) *float64 {

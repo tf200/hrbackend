@@ -21,10 +21,22 @@ func RegisterPayoutRoutes(
 		handler.PreviewPayroll,
 	)
 	rg.GET(
+		"/payroll/ort-rules",
+		auth,
+		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		handler.GetORTRules,
+	)
+	rg.GET(
 		"/payroll-month-summary",
 		auth,
 		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
 		handler.GetPayrollMonthSummary,
+	)
+	rg.GET(
+		"/payroll-month-summary/ort-overview",
+		auth,
+		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		handler.GetPayrollMonthORTOverview,
 	)
 	rg.GET(
 		"/payroll-month-summary/zzp",

@@ -185,6 +185,8 @@ WITH seeded(name, sort_order) AS (
         ('PERFORMANCE.STATS.VIEW', 640),
         ('TRAINING.CATALOG.CREATE', 650),
         ('TRAINING.CATALOG.VIEW', 660),
+        ('TRAINING.ASSIGN', 670),
+        ('TRAINING.ASSIGNMENTS.VIEW', 680),
         ('SCHEDULE.CREATE', 380),
         ('SCHEDULE.DELETE', 390),
         ('SCHEDULE.UPDATE', 400),
@@ -298,6 +300,8 @@ WHERE p.name IN (
     'PERFORMANCE.STATS.VIEW',
     'TRAINING.CATALOG.CREATE',
     'TRAINING.CATALOG.VIEW',
+    'TRAINING.ASSIGN',
+    'TRAINING.ASSIGNMENTS.VIEW',
     'SCHEDULE.CREATE',
     'SCHEDULE.DELETE',
     'SCHEDULE.UPDATE',
@@ -621,7 +625,7 @@ CREATE INDEX idx_employee_training_assignments_training_id
 
 CREATE UNIQUE INDEX uq_employee_training_one_non_cancelled
     ON employee_training_assignments(employee_id, training_id)
-    WHERE status IN ('assigned', 'in_progress', 'completed');
+    WHERE status IN ('assigned', 'in_progress');
 
 -- ==========================================
 -- EMPLOYEE HANDBOOKS (ONBOARDING)

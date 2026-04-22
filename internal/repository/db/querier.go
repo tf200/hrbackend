@@ -25,6 +25,8 @@ type Querier interface {
 	ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryParams) (ApproveTimeEntryRow, error)
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	AssignTimeEntriesToPayPeriod(ctx context.Context, arg AssignTimeEntriesToPayPeriodParams) error
+	AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error)
+	CancelTrainingAssignment(ctx context.Context, arg CancelTrainingAssignmentParams) (EmployeeTrainingAssignment, error)
 	CheckAllShiftsExist(ctx context.Context, arg CheckAllShiftsExistParams) (bool, error)
 	// ---------- 6. CHECK UTILITIES ----------
 	// Returns true/false whether the user has the named permission.
@@ -123,6 +125,7 @@ type Querier interface {
 	GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]LocationShift, error)
 	GetTemp2FaSecret(ctx context.Context, id uuid.UUID) (*string, error)
 	GetTimeEntryByID(ctx context.Context, id uuid.UUID) (GetTimeEntryByIDRow, error)
+	GetTrainingAssignmentByID(ctx context.Context, id uuid.UUID) (EmployeeTrainingAssignment, error)
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	GetUserIDByEmployeeID(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
@@ -178,6 +181,7 @@ type Querier interface {
 	ListPayPeriodsPaginated(ctx context.Context, arg ListPayPeriodsPaginatedParams) ([]ListPayPeriodsPaginatedRow, error)
 	ListPayoutRequestsPaginated(ctx context.Context, arg ListPayoutRequestsPaginatedParams) ([]ListPayoutRequestsPaginatedRow, error)
 	ListPayrollMonthApprovedTimeEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthApprovedTimeEntriesByEmployeeIDsParams) ([]ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow, error)
+	ListPayrollMonthEmployeesAll(ctx context.Context, arg ListPayrollMonthEmployeesAllParams) ([]ListPayrollMonthEmployeesAllRow, error)
 	ListPayrollMonthEmployeesPaginated(ctx context.Context, arg ListPayrollMonthEmployeesPaginatedParams) ([]ListPayrollMonthEmployeesPaginatedRow, error)
 	ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingEntriesByEmployeeIDsParams) ([]ListPayrollMonthPendingEntriesByEmployeeIDsRow, error)
 	ListPayrollMonthPendingSummariesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingSummariesByEmployeeIDsParams) ([]ListPayrollMonthPendingSummariesByEmployeeIDsRow, error)
@@ -189,6 +193,7 @@ type Querier interface {
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)
 	ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntriesPaginatedParams) ([]ListTimeEntriesPaginatedRow, error)
+	ListTrainingAssignmentsPaginated(ctx context.Context, arg ListTrainingAssignmentsPaginatedParams) ([]ListTrainingAssignmentsPaginatedRow, error)
 	ListTrainingCatalogItemsPaginated(ctx context.Context, arg ListTrainingCatalogItemsPaginatedParams) ([]ListTrainingCatalogItemsPaginatedRow, error)
 	ListUserIDsByEmployeeIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error)
 	// Returns explicit allow/deny overrides configured for a user.
