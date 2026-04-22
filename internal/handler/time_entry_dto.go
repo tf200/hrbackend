@@ -6,6 +6,7 @@ import (
 
 	"hrbackend/internal/domain"
 	"hrbackend/internal/httpapi"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 )
@@ -159,7 +160,7 @@ func toCreateTimeEntryByAdminParams(
 func toDecideTimeEntryParams(req decideTimeEntryByAdminRequest) domain.DecideTimeEntryParams {
 	return domain.DecideTimeEntryParams{
 		Decision:        strings.TrimSpace(req.Decision),
-		RejectionReason: trimStringPtr(req.RejectionReason),
+		RejectionReason: ptr.TrimString(req.RejectionReason),
 	}
 }
 
@@ -180,16 +181,16 @@ func toUpdateTimeEntryByAdminParams(
 	return domain.UpdateTimeEntryByAdminParams{
 		ScheduleID:          req.ScheduleID,
 		EntryDate:           entryDate,
-		StartTime:           trimStringPtr(req.StartTime),
-		EndTime:             trimStringPtr(req.EndTime),
+		StartTime:           ptr.TrimString(req.StartTime),
+		EndTime:             ptr.TrimString(req.EndTime),
 		BreakMinutes:        req.BreakMinutes,
-		HourType:            trimStringPtr(req.HourType),
-		ProjectName:         trimStringPtr(req.ProjectName),
-		ProjectNumber:       trimStringPtr(req.ProjectNumber),
-		ClientName:          trimStringPtr(req.ClientName),
-		ActivityCategory:    trimStringPtr(req.ActivityCategory),
-		ActivityDescription: trimStringPtr(req.ActivityDescription),
-		Notes:               trimStringPtr(req.Notes),
+		HourType:            ptr.TrimString(req.HourType),
+		ProjectName:         ptr.TrimString(req.ProjectName),
+		ProjectNumber:       ptr.TrimString(req.ProjectNumber),
+		ClientName:          ptr.TrimString(req.ClientName),
+		ActivityCategory:    ptr.TrimString(req.ActivityCategory),
+		ActivityDescription: ptr.TrimString(req.ActivityDescription),
+		Notes:               ptr.TrimString(req.Notes),
 		Status:              status,
 	}, req.AdminUpdateNote, nil
 }
@@ -259,17 +260,6 @@ func toTimeEntryStatsResponse(stats *domain.TimeEntryStats) timeEntryStatsRespon
 		TotalApproved:         stats.TotalApproved,
 		TotalConcepts:         stats.TotalConcepts,
 	}
-}
-
-func trimStringPtr(value *string) *string {
-	if value == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
 }
 
 func parseTimeEntryDatePtr(value *string) (*time.Time, error) {

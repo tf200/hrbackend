@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"hrbackend/internal/domain"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 )
@@ -79,11 +80,11 @@ func toCreateScheduleRequest(req createScheduleRequest) *domain.CreateScheduleRe
 		EmployeeIDs:     req.EmployeeIDs,
 		LocationID:      req.LocationID,
 		IsCustom:        req.IsCustom,
-		Recurrence:      trimStringPtr(req.Recurrence),
+		Recurrence:      ptr.TrimString(req.Recurrence),
 		StartDatetime:   req.StartDatetime,
 		EndDatetime:     req.EndDatetime,
 		LocationShiftID: req.LocationShiftID,
-		ShiftDate:       trimStringPtr(req.ShiftDate),
+		ShiftDate:       ptr.TrimString(req.ShiftDate),
 	}
 }
 
@@ -142,7 +143,7 @@ func toUpdateScheduleRequest(req updateScheduleRequest) *domain.UpdateScheduleRe
 		StartDatetime:   req.StartDatetime,
 		EndDatetime:     req.EndDatetime,
 		LocationShiftID: req.LocationShiftID,
-		ShiftDate:       trimStringPtr(req.ShiftDate),
+		ShiftDate:       ptr.TrimString(req.ShiftDate),
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
 	"hrbackend/pkg/conv"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -136,7 +137,7 @@ func (r *LeaveRepository) ListLeaveRequests(
 	status := toDBNullLeaveStatus(params.Status)
 	rows, err := r.store.ListLeaveRequestsPaginated(ctx, db.ListLeaveRequestsPaginatedParams{
 		Status:         status,
-		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
 	})
@@ -183,7 +184,7 @@ func (r *LeaveRepository) ListLeaveCalendar(
 		MonthStart:        conv.PgDateFromTime(params.Month),
 		MonthEndExclusive: conv.PgDateFromTime(params.Month.AddDate(0, 1, 0)),
 		DepartmentID:      params.DepartmentID,
-		EmployeeSearch:    trimStringPtr(params.EmployeeSearch),
+		EmployeeSearch:    ptr.TrimString(params.EmployeeSearch),
 		LeaveTypes:        toDBLeaveTypes(params.LeaveTypes),
 	})
 	if err != nil {
@@ -229,7 +230,7 @@ func (r *LeaveRepository) ListLeaveBalances(
 	params domain.ListLeaveBalancesParams,
 ) (*domain.LeaveBalancePage, error) {
 	rows, err := r.store.ListLeaveBalancesPaginated(ctx, db.ListLeaveBalancesPaginatedParams{
-		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Year:           params.Year,
 		Limit:          params.Limit,
 		Offset:         params.Offset,
@@ -789,17 +790,6 @@ func toDBNullLeaveStatus(value *string) db.NullLeaveRequestStatusEnum {
 		LeaveRequestStatusEnum: parsed,
 		Valid:                  true,
 	}
-}
-
-func trimStringPtr(value *string) *string {
-	if value == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
 }
 
 func timePtrFromPgTimestamptz(value pgtype.Timestamptz) *time.Time {

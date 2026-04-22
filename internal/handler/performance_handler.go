@@ -6,6 +6,7 @@ import (
 
 	"hrbackend/internal/domain"
 	"hrbackend/internal/httpapi"
+	"hrbackend/pkg/ptr"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -221,7 +222,7 @@ func (h *PerformanceHandler) SendUpcomingInvitations(ctx *gin.Context) {
 	sentCount, err := h.service.SendUpcomingInvitations(
 		ctx.Request.Context(),
 		req.EmployeeIDs,
-		trimStringPtr(req.Message),
+		ptr.TrimString(req.Message),
 	)
 	if err != nil {
 		ctx.JSON(mapPerformanceErrorStatus(err), httpapi.Fail(err.Error(), ""))

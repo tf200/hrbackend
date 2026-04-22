@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"hrbackend/internal/domain"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -59,7 +60,7 @@ func (s *TrainingService) CancelTrainingAssignment(
 		return nil, domain.ErrTrainingInvalidRequest
 	}
 
-	params.CancellationReason = trimStringPtr(params.CancellationReason)
+	params.CancellationReason = ptr.TrimString(params.CancellationReason)
 
 	assignment, err := s.repository.CancelTrainingAssignment(ctx, params)
 	if err != nil {
@@ -82,7 +83,7 @@ func (s *TrainingService) ListTrainingAssignments(
 	ctx context.Context,
 	params domain.ListTrainingAssignmentsParams,
 ) (*domain.TrainingAssignmentPage, error) {
-	params.EmployeeSearch = trimStringPtr(params.EmployeeSearch)
+	params.EmployeeSearch = ptr.TrimString(params.EmployeeSearch)
 
 	if params.Status != nil {
 		normalized := strings.TrimSpace(strings.ToLower(*params.Status))
@@ -119,8 +120,8 @@ func (s *TrainingService) CreateTrainingCatalogItem(
 	params domain.CreateTrainingCatalogItemParams,
 ) (*domain.TrainingCatalogItem, error) {
 	params.Title = strings.TrimSpace(params.Title)
-	params.Description = trimStringPtr(params.Description)
-	params.Category = trimStringPtr(params.Category)
+	params.Description = ptr.TrimString(params.Description)
+	params.Category = ptr.TrimString(params.Category)
 
 	if params.Title == "" {
 		return nil, domain.ErrTrainingInvalidRequest
@@ -150,7 +151,7 @@ func (s *TrainingService) ListTrainingCatalogItems(
 	ctx context.Context,
 	params domain.ListTrainingCatalogItemsParams,
 ) (*domain.TrainingCatalogItemPage, error) {
-	params.Search = trimStringPtr(params.Search)
+	params.Search = ptr.TrimString(params.Search)
 
 	page, err := s.repository.ListTrainingCatalogItems(ctx, params)
 	if err != nil {

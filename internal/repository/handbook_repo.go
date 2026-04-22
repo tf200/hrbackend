@@ -12,6 +12,7 @@ import (
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
 	"hrbackend/pkg/conv"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -158,7 +159,7 @@ func (r *HandbookRepository) CreateHandbookTemplateForDepartment(
 			DepartmentID:        params.DepartmentID,
 			Title:               params.Title,
 			Description:         params.Description,
-			CreatedByEmployeeID: uuidPtrOrNil(actorEmployeeID),
+			CreatedByEmployeeID: ptr.UUIDOrNil(actorEmployeeID),
 		},
 	)
 	if err != nil {
@@ -178,7 +179,7 @@ func (r *HandbookRepository) CloneHandbookTemplateToDraft(
 ) (*domain.HandbookTemplate, error) {
 	row, err := r.store.CloneHandbookTemplateToDraft(ctx, db.CloneHandbookTemplateToDraftParams{
 		SourceTemplateID:    params.SourceTemplateID,
-		CreatedByEmployeeID: uuidPtrOrNil(actorEmployeeID),
+		CreatedByEmployeeID: ptr.UUIDOrNil(actorEmployeeID),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -243,7 +244,7 @@ func (r *HandbookRepository) PublishHandbookTemplate(
 ) (*domain.HandbookTemplate, error) {
 	row, err := r.store.PublishHandbookTemplate(ctx, db.PublishHandbookTemplateParams{
 		TemplateID:            params.TemplateID,
-		PublishedByEmployeeID: uuidPtrOrNil(actorEmployeeID),
+		PublishedByEmployeeID: ptr.UUIDOrNil(actorEmployeeID),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -379,7 +380,7 @@ func (r *HandbookRepository) CreateEmployeeHandbookFromTemplate(
 		db.CreateEmployeeHandbookFromTemplateParams{
 			EmployeeID:           params.EmployeeID,
 			TemplateID:           params.TemplateID,
-			AssignedByEmployeeID: uuidPtrOrNil(actorEmployeeID),
+			AssignedByEmployeeID: ptr.UUIDOrNil(actorEmployeeID),
 		},
 	)
 	if err != nil {
@@ -746,13 +747,6 @@ func handbookTimePtrFromPgTimestamptz(value pgtype.Timestamptz) *time.Time {
 	}
 	t := value.Time
 	return &t
-}
-
-func uuidPtrOrNil(id uuid.UUID) *uuid.UUID {
-	if id == uuid.Nil {
-		return nil
-	}
-	return &id
 }
 
 func normalizeAssignmentStatus(status *string) *string {

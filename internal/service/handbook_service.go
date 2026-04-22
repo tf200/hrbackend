@@ -9,6 +9,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"hrbackend/internal/domain"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 )
@@ -492,7 +493,7 @@ func (s *HandbookService) AssignTemplateToEmployee(
 					TemplateID:         previousActive.TemplateID,
 					TemplateVersion:    previousActive.TemplateVersion,
 					Event:              "reassigned",
-					ActorEmployeeID:    uuidPtrOrNil(actorEmployeeID),
+					ActorEmployeeID:    ptr.UUIDOrNil(actorEmployeeID),
 					Metadata:           metadata,
 				},
 			); err != nil {
@@ -515,7 +516,7 @@ func (s *HandbookService) AssignTemplateToEmployee(
 			TemplateID:         assigned.TemplateID,
 			TemplateVersion:    assigned.TemplateVersion,
 			Event:              "assigned",
-			ActorEmployeeID:    uuidPtrOrNil(actorEmployeeID),
+			ActorEmployeeID:    ptr.UUIDOrNil(actorEmployeeID),
 			Metadata:           metadata,
 		})
 	})
@@ -566,7 +567,7 @@ func (s *HandbookService) WaiveEmployeeHandbook(
 			TemplateID:         handbook.TemplateID,
 			TemplateVersion:    handbook.TemplateVersion,
 			Event:              "waived",
-			ActorEmployeeID:    uuidPtrOrNil(actorEmployeeID),
+			ActorEmployeeID:    ptr.UUIDOrNil(actorEmployeeID),
 			Metadata:           payload,
 		})
 	})
@@ -624,7 +625,7 @@ func (s *HandbookService) ListEligibleEmployees(
 		params.DepartmentID = profile.DepartmentID
 	}
 
-	params.Search = trimStringPtr(params.Search)
+	params.Search = ptr.TrimString(params.Search)
 	return s.repository.ListEligibleEmployeesForHandbookAssignment(ctx, params)
 }
 
@@ -641,7 +642,7 @@ func (s *HandbookService) ListEmployeeHandbookAssignments(
 		}
 		params.Status = &normalized
 	}
-	params.Search = trimStringPtr(params.Search)
+	params.Search = ptr.TrimString(params.Search)
 	return s.repository.ListEmployeeHandbookAssignments(ctx, params)
 }
 
@@ -746,24 +747,6 @@ func marshalJSONPayload(v any) ([]byte, error) {
 		return []byte(`{}`), nil
 	}
 	return json.Marshal(v)
-}
-
-func uuidPtrOrNil(id uuid.UUID) *uuid.UUID {
-	if id == uuid.Nil {
-		return nil
-	}
-	return &id
-}
-
-func trimStringPtr(value *string) *string {
-	if value == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
 }
 
 func activeHandbookIDString(item *domain.MyActiveHandbook) string {

@@ -8,6 +8,7 @@ import (
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
 	"hrbackend/pkg/conv"
+	"hrbackend/pkg/ptr"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -120,7 +121,7 @@ func (r *TrainingRepository) ListTrainingAssignments(
 			StartedAt:            timePtrFromPgTimestamptz(row.StartedAt),
 			CompletedAt:          timePtrFromPgTimestamptz(row.CompletedAt),
 			AssignedByEmployeeID: row.AssignedByEmployeeID,
-			AssignedByName:       trimStringPtr(&row.AssignedByName),
+			AssignedByName:       ptr.TrimString(&row.AssignedByName),
 			IsOverdue:            row.IsOverdue,
 		})
 	}

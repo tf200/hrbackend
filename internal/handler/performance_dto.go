@@ -6,6 +6,7 @@ import (
 
 	"hrbackend/internal/domain"
 	"hrbackend/internal/httpapi"
+	"hrbackend/pkg/ptr"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -137,14 +138,14 @@ func toCreatePerformanceAssessmentParams(
 			DomainID: strings.TrimSpace(score.DomainID),
 			ItemID:   strings.TrimSpace(score.ItemID),
 			Rating:   score.Rating,
-			Remarks:  trimStringPtr(score.Remarks),
+			Remarks:  ptr.TrimString(score.Remarks),
 		}
 	}
 
 	return domain.CreatePerformanceAssessmentParams{
 		EmployeeID:     req.EmployeeID,
 		AssessmentDate: assessmentDate.UTC(),
-		Notes:          trimStringPtr(req.Notes),
+		Notes:          ptr.TrimString(req.Notes),
 		Scores:         scores,
 	}, nil
 }
@@ -165,7 +166,7 @@ func toListPerformanceAssessmentsParams(
 		Limit:      req.PageSize,
 		Offset:     (req.Page - 1) * req.PageSize,
 		EmployeeID: req.EmployeeID,
-		Status:     trimStringPtr(req.Status),
+		Status:     ptr.TrimString(req.Status),
 		FromDate:   fromDate,
 		ToDate:     toDate,
 	}, nil
@@ -187,7 +188,7 @@ func toListPerformanceWorkAssignmentsParams(
 		Limit:      req.PageSize,
 		Offset:     (req.Page - 1) * req.PageSize,
 		EmployeeID: req.EmployeeID,
-		Status:     trimStringPtr(req.Status),
+		Status:     ptr.TrimString(req.Status),
 		DueBefore:  dueBefore,
 		DueAfter:   dueAfter,
 	}, nil
@@ -198,7 +199,7 @@ func toDecidePerformanceWorkAssignmentParams(
 ) domain.DecidePerformanceWorkAssignmentParams {
 	return domain.DecidePerformanceWorkAssignmentParams{
 		Decision: strings.TrimSpace(strings.ToLower(req.Decision)),
-		Feedback: trimStringPtr(req.Feedback),
+		Feedback: ptr.TrimString(req.Feedback),
 	}
 }
 

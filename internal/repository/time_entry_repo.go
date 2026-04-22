@@ -9,6 +9,7 @@ import (
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
 	"hrbackend/pkg/conv"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -102,7 +103,7 @@ func (r *TimeEntryRepository) ListTimeEntries(
 ) (*domain.TimeEntryPage, error) {
 	rows, err := r.store.ListTimeEntriesPaginated(ctx, db.ListTimeEntriesPaginatedParams{
 		Status:         toDBNullTimeEntryStatus(params.Status),
-		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
 	})

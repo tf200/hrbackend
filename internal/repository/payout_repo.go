@@ -9,6 +9,7 @@ import (
 	"hrbackend/internal/domain"
 	db "hrbackend/internal/repository/db"
 	"hrbackend/pkg/conv"
+	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -86,7 +87,7 @@ func (r *PayoutRepository) ListPayoutRequests(
 ) (*domain.PayoutRequestPage, error) {
 	rows, err := r.store.ListPayoutRequestsPaginated(ctx, db.ListPayoutRequestsPaginatedParams{
 		Status:         toDBNullPayoutStatus(params.Status),
-		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
 	})
@@ -236,7 +237,7 @@ func (r *PayoutRepository) ListPayPeriods(
 ) (*domain.PayPeriodPage, error) {
 	rows, err := r.store.ListPayPeriodsPaginated(ctx, db.ListPayPeriodsPaginatedParams{
 		Status:         toDBNullPayPeriodStatus(params.Status),
-		EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Offset:         params.Offset,
 		Limit:          params.Limit,
 	})
@@ -296,7 +297,7 @@ func (r *PayoutRepository) ListPayrollMonthEmployees(
 	rows, err := r.store.ListPayrollMonthEmployeesPaginated(
 		ctx,
 		db.ListPayrollMonthEmployeesPaginatedParams{
-			EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+			EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 			Offset:         params.Offset,
 			Limit:          params.Limit,
 			MonthStart:     conv.PgDateFromTime(monthStart),
@@ -329,7 +330,7 @@ func (r *PayoutRepository) ListPayrollMonthEmployeesAll(
 	rows, err := r.store.ListPayrollMonthEmployeesAll(
 		ctx,
 		db.ListPayrollMonthEmployeesAllParams{
-			EmployeeSearch: trimStringPtr(params.EmployeeSearch),
+			EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 			MonthStart:     conv.PgDateFromTime(monthStart),
 			MonthEnd:       conv.PgDateFromTime(monthEnd),
 		},
