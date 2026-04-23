@@ -114,6 +114,8 @@ var postgresEnumTypeNames = []string{
 	"leave_request_type_enum",
 	"leave_request_status_enum",
 	"payout_request_status_enum",
+	"expense_request_category_enum",
+	"expense_request_status_enum",
 	"pay_period_status_enum",
 	"calendar_event_kind_enum",
 	"calendar_event_status_enum",
@@ -214,6 +216,9 @@ func buildRouter(
 	payoutRepo := repository.NewPayoutRepository(store)
 	payoutService := service.NewPayoutService(payoutRepo, logger)
 
+	expenseRepo := repository.NewExpenseRepository(store)
+	expenseService := service.NewExpenseService(expenseRepo, logger)
+
 	timeEntryRepo := repository.NewTimeEntryRepository(store)
 	timeEntryService := service.NewTimeEntryService(timeEntryRepo, logger)
 
@@ -236,6 +241,7 @@ func buildRouter(
 	shiftSwapHandler := handler.NewShiftSwapHandler(scheduleService)
 	leaveHandler := handler.NewLeaveHandler(leaveService)
 	payoutHandler := handler.NewPayoutHandler(payoutService)
+	expenseHandler := handler.NewExpenseHandler(expenseService)
 	timeEntryHandler := handler.NewTimeEntryHandler(timeEntryService)
 	performanceHandler := handler.NewPerformanceHandler(performanceService)
 	handbookHandler := handler.NewHandbookHandler(handbookService)
@@ -255,6 +261,7 @@ func buildRouter(
 	handler.RegisterShiftSwapRoutes(api, shiftSwapHandler, auth, requirePermission)
 	handler.RegisterLeaveRoutes(api, leaveHandler, auth, requirePermission)
 	handler.RegisterPayoutRoutes(api, payoutHandler, auth, requirePermission)
+	handler.RegisterExpenseRoutes(api, expenseHandler, auth, requirePermission)
 	handler.RegisterTimeEntryRoutes(api, timeEntryHandler, auth, requirePermission)
 	handler.RegisterPerformanceRoutes(api, performanceHandler, auth, requirePermission)
 	handler.RegisterHandbookRoutes(api, handbookHandler, auth, requirePermission)

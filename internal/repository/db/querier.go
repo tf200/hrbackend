@@ -21,11 +21,13 @@ type Querier interface {
 	AddUserPermissionOverrides(ctx context.Context, arg AddUserPermissionOverridesParams) error
 	ApplyLeaveBalanceDeduction(ctx context.Context, arg ApplyLeaveBalanceDeductionParams) (LeaveBalance, error)
 	ApplyLeaveBalanceTotalAdjustment(ctx context.Context, arg ApplyLeaveBalanceTotalAdjustmentParams) (LeaveBalance, error)
+	ApproveExpenseRequest(ctx context.Context, arg ApproveExpenseRequestParams) (ExpenseRequest, error)
 	ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutRequestParams) (LeavePayoutRequest, error)
 	ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryParams) (ApproveTimeEntryRow, error)
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	AssignTimeEntriesToPayPeriod(ctx context.Context, arg AssignTimeEntriesToPayPeriodParams) error
 	AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error)
+	CancelExpenseRequest(ctx context.Context, id uuid.UUID) (ExpenseRequest, error)
 	CancelTrainingAssignment(ctx context.Context, arg CancelTrainingAssignmentParams) (EmployeeTrainingAssignment, error)
 	CheckAllShiftsExist(ctx context.Context, arg CheckAllShiftsExistParams) (bool, error)
 	// ---------- 6. CHECK UTILITIES ----------
@@ -46,6 +48,7 @@ type Querier interface {
 	CreateEmployeeHandbookAssignmentHistory(ctx context.Context, arg CreateEmployeeHandbookAssignmentHistoryParams) (EmployeeHandbookAssignmentHistory, error)
 	CreateEmployeeHandbookFromTemplate(ctx context.Context, arg CreateEmployeeHandbookFromTemplateParams) (CreateEmployeeHandbookFromTemplateRow, error)
 	CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeProfileParams) (EmployeeProfile, error)
+	CreateExpenseRequest(ctx context.Context, arg CreateExpenseRequestParams) (ExpenseRequest, error)
 	CreateHandbookStep(ctx context.Context, arg CreateHandbookStepParams) (HandbookStep, error)
 	CreateHandbookTemplateForDepartment(ctx context.Context, arg CreateHandbookTemplateForDepartmentParams) (HandbookTemplate, error)
 	CreateLateArrival(ctx context.Context, arg CreateLateArrivalParams) (LateArrival, error)
@@ -103,6 +106,7 @@ type Querier interface {
 	GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByUserIDRow, error)
 	GetEmployeeSchedules(ctx context.Context, arg GetEmployeeSchedulesParams) ([]GetEmployeeSchedulesRow, error)
 	GetEmployeeSchedulesByDay(ctx context.Context, arg GetEmployeeSchedulesByDayParams) ([]GetEmployeeSchedulesByDayRow, error)
+	GetExpenseRequestByID(ctx context.Context, id uuid.UUID) (GetExpenseRequestByIDRow, error)
 	GetGlobalOrganisationCounts(ctx context.Context) (GetGlobalOrganisationCountsRow, error)
 	GetHandbookStepByID(ctx context.Context, id uuid.UUID) (HandbookStep, error)
 	GetHandbookTemplateByID(ctx context.Context, id uuid.UUID) (HandbookTemplate, error)
@@ -154,6 +158,7 @@ type Querier interface {
 	ListEmployeeProfile(ctx context.Context, arg ListEmployeeProfileParams) ([]ListEmployeeProfileRow, error)
 	ListEmployeesEligibleForDepartmentHandbookSeed(ctx context.Context, arg ListEmployeesEligibleForDepartmentHandbookSeedParams) ([]uuid.UUID, error)
 	ListEmployeesWithContractHours(ctx context.Context, dollar_1 []uuid.UUID) ([]ListEmployeesWithContractHoursRow, error)
+	ListExpenseRequestsPaginated(ctx context.Context, arg ListExpenseRequestsPaginatedParams) ([]ListExpenseRequestsPaginatedRow, error)
 	ListHandbookStepsByTemplate(ctx context.Context, templateID uuid.UUID) ([]HandbookStep, error)
 	ListHandbookTemplatesByDepartment(ctx context.Context, departmentID uuid.UUID) ([]HandbookTemplate, error)
 	// ---------- 5. USER-PERMISSION OVERRIDES ----------
@@ -167,6 +172,7 @@ type Querier interface {
 	ListLocations(ctx context.Context, organisationID uuid.UUID) ([]Location, error)
 	ListLocationsPaginated(ctx context.Context, arg ListLocationsPaginatedParams) ([]ListLocationsPaginatedRow, error)
 	ListLockedPayPeriodMultiplierSummaries(ctx context.Context, payPeriodIds []uuid.UUID) ([]ListLockedPayPeriodMultiplierSummariesRow, error)
+	ListMyExpenseRequestsPaginated(ctx context.Context, arg ListMyExpenseRequestsPaginatedParams) ([]ListMyExpenseRequestsPaginatedRow, error)
 	ListMyLateArrivalsPaginated(ctx context.Context, arg ListMyLateArrivalsPaginatedParams) ([]ListMyLateArrivalsPaginatedRow, error)
 	ListMyLeaveBalancesPaginated(ctx context.Context, arg ListMyLeaveBalancesPaginatedParams) ([]ListMyLeaveBalancesPaginatedRow, error)
 	ListMyLeaveRequestsPaginated(ctx context.Context, arg ListMyLeaveRequestsPaginatedParams) ([]ListMyLeaveRequestsPaginatedRow, error)
@@ -198,6 +204,7 @@ type Querier interface {
 	ListUserIDsByEmployeeIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error)
 	// Returns explicit allow/deny overrides configured for a user.
 	ListUserPermissionOverrides(ctx context.Context, userID uuid.UUID) ([]ListUserPermissionOverridesRow, error)
+	LockExpenseRequestByID(ctx context.Context, id uuid.UUID) (ExpenseRequest, error)
 	LockLeaveBalanceByEmployeeYear(ctx context.Context, arg LockLeaveBalanceByEmployeeYearParams) (LeaveBalance, error)
 	LockLeaveRequestByID(ctx context.Context, id uuid.UUID) (LeaveRequest, error)
 	LockPayPeriodByID(ctx context.Context, id uuid.UUID) (PayPeriod, error)
@@ -208,10 +215,12 @@ type Querier interface {
 	LockTimeEntryByID(ctx context.Context, id uuid.UUID) (TimeEntry, error)
 	MarkEmployeeHandbookCompleted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	MarkEmployeeHandbookStarted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
+	MarkExpenseRequestReimbursed(ctx context.Context, arg MarkExpenseRequestReimbursedParams) (ExpenseRequest, error)
 	MarkPayPeriodPaid(ctx context.Context, id uuid.UUID) (PayPeriod, error)
 	MarkPayoutRequestPaid(ctx context.Context, arg MarkPayoutRequestPaidParams) (LeavePayoutRequest, error)
 	MarkShiftSwapConfirmed(ctx context.Context, arg MarkShiftSwapConfirmedParams) (ShiftSwapRequest, error)
 	PublishHandbookTemplate(ctx context.Context, arg PublishHandbookTemplateParams) (HandbookTemplate, error)
+	RejectExpenseRequest(ctx context.Context, arg RejectExpenseRequestParams) (ExpenseRequest, error)
 	RejectPayoutRequest(ctx context.Context, arg RejectPayoutRequestParams) (LeavePayoutRequest, error)
 	RejectTimeEntry(ctx context.Context, arg RejectTimeEntryParams) (RejectTimeEntryRow, error)
 	// Removes *all* permissions from the given role.
@@ -226,6 +235,7 @@ type Querier interface {
 	UpdateEmployeeExperience(ctx context.Context, arg UpdateEmployeeExperienceParams) (EmployeeExperience, error)
 	UpdateEmployeeIsSubcontractor(ctx context.Context, arg UpdateEmployeeIsSubcontractorParams) (EmployeeProfile, error)
 	UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeProfileParams) (EmployeeProfile, error)
+	UpdateExpenseRequestEditableFields(ctx context.Context, arg UpdateExpenseRequestEditableFieldsParams) (ExpenseRequest, error)
 	UpdateHandbookStepByID(ctx context.Context, arg UpdateHandbookStepByIDParams) (HandbookStep, error)
 	UpdateHandbookStepSortOrder(ctx context.Context, arg UpdateHandbookStepSortOrderParams) error
 	UpdateHandbookTemplateMetadata(ctx context.Context, arg UpdateHandbookTemplateMetadataParams) (HandbookTemplate, error)

@@ -169,11 +169,17 @@ WITH seeded(name, sort_order) AS (
         ('PAYOUT.REQUEST.MARK_PAID', 310),
         ('PAYOUT.REQUEST.VIEW', 320),
         ('PAYOUT.REQUEST.VIEW_ALL', 330),
-        ('PAY_PERIOD.CLOSE', 340),
-        ('PAY_PERIOD.MARK_PAID', 350),
-        ('PAY_PERIOD.MONTH_SUMMARY_VIEW', 360),
-        ('PAY_PERIOD.VIEW_ALL', 370),
-        ('ROLE.VIEW', 375),
+        ('EXPENSE.REQUEST.CREATE', 340),
+        ('EXPENSE.REQUEST.UPDATE', 350),
+        ('EXPENSE.REQUEST.VIEW', 360),
+        ('EXPENSE.REQUEST.VIEW_ALL', 370),
+        ('EXPENSE.REQUEST.DECIDE', 380),
+        ('EXPENSE.REQUEST.MARK_REIMBURSED', 390),
+        ('PAY_PERIOD.CLOSE', 400),
+        ('PAY_PERIOD.MARK_PAID', 410),
+        ('PAY_PERIOD.MONTH_SUMMARY_VIEW', 420),
+        ('PAY_PERIOD.VIEW_ALL', 430),
+        ('ROLE.VIEW', 435),
         ('PERFORMANCE.ASSESSMENT.CREATE', 560),
         ('PERFORMANCE.ASSESSMENT.VIEW', 570),
         ('PERFORMANCE.ASSESSMENT.VIEW_ALL', 580),
@@ -284,6 +290,12 @@ WHERE p.name IN (
     'PAYOUT.REQUEST.MARK_PAID',
     'PAYOUT.REQUEST.VIEW',
     'PAYOUT.REQUEST.VIEW_ALL',
+    'EXPENSE.REQUEST.CREATE',
+    'EXPENSE.REQUEST.UPDATE',
+    'EXPENSE.REQUEST.VIEW',
+    'EXPENSE.REQUEST.VIEW_ALL',
+    'EXPENSE.REQUEST.DECIDE',
+    'EXPENSE.REQUEST.MARK_REIMBURSED',
     'PAY_PERIOD.CLOSE',
     'PAY_PERIOD.MARK_PAID',
     'PAY_PERIOD.MONTH_SUMMARY_VIEW',
@@ -940,6 +952,24 @@ CREATE TYPE payout_request_status_enum AS ENUM (
     'paid'
 );
 
+CREATE TYPE expense_request_category_enum AS ENUM (
+    'travel',
+    'meal',
+    'accommodation',
+    'office_supplies',
+    'training',
+    'client_entertainment',
+    'other'
+);
+
+CREATE TYPE expense_request_status_enum AS ENUM (
+    'pending',
+    'approved',
+    'rejected',
+    'reimbursed',
+    'cancelled'
+);
+
 CREATE TABLE leave_policies (
     leave_type leave_request_type_enum PRIMARY KEY,
     requires_approval BOOLEAN NOT NULL DEFAULT TRUE,
@@ -1219,6 +1249,68 @@ CREATE INDEX idx_leave_payout_requests_status_requested_at_desc
 ON leave_payout_requests(status, requested_at DESC);
 CREATE INDEX idx_leave_payout_requests_balance_year
 ON leave_payout_requests(balance_year);
+
+CREATE TABLE expense_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    category expense_request_category_enum NOT NULL,
+    expense_date DATE NOT NULL,
+    merchant_name TEXT NULL,
+    description TEXT NOT NULL,
+    business_purpose TEXT NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'EUR',
+    claimed_amount DECIMAL(12,2) NOT NULL,
+    approved_amount DECIMAL(12,2) NULL,
+    travel_mode TEXT NULL,
+    travel_from TEXT NULL,
+    travel_to TEXT NULL,
+    distance_km DECIMAL(10,2) NULL,
+    status expense_request_status_enum NOT NULL DEFAULT 'pending',
+    request_note TEXT NULL,
+    decision_note TEXT NULL,
+    decided_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    reimbursed_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    decided_at TIMESTAMPTZ NULL,
+    reimbursed_at TIMESTAMPTZ NULL,
+    cancelled_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT expense_requests_claimed_amount_positive CHECK (claimed_amount > 0),
+    CONSTRAINT expense_requests_approved_amount_non_negative CHECK (
+        approved_amount IS NULL OR approved_amount >= 0
+    ),
+    CONSTRAINT expense_requests_approved_amount_not_over_claimed CHECK (
+        approved_amount IS NULL OR approved_amount <= claimed_amount
+    ),
+    CONSTRAINT expense_requests_currency_uppercase_format CHECK (
+        currency = UPPER(currency) AND currency ~ '^[A-Z]{3}$'
+    ),
+    CONSTRAINT expense_requests_distance_km_non_negative CHECK (
+        distance_km IS NULL OR distance_km >= 0
+    ),
+    CONSTRAINT expense_requests_description_not_blank CHECK (btrim(description) <> ''),
+    CONSTRAINT expense_requests_business_purpose_not_blank CHECK (btrim(business_purpose) <> ''),
+    CONSTRAINT expense_requests_travel_fields_only_for_travel CHECK (
+        category = 'travel'
+        OR (
+            travel_mode IS NULL
+            AND travel_from IS NULL
+            AND travel_to IS NULL
+            AND distance_km IS NULL
+        )
+    )
+);
+
+CREATE INDEX idx_expense_requests_employee_requested_at_desc
+ON expense_requests(employee_id, requested_at DESC);
+CREATE INDEX idx_expense_requests_status_requested_at_desc
+ON expense_requests(status, requested_at DESC);
+CREATE INDEX idx_expense_requests_category
+ON expense_requests(category);
+CREATE INDEX idx_expense_requests_expense_date_desc
+ON expense_requests(expense_date DESC);
 
 CREATE TYPE pay_period_status_enum AS ENUM ('draft', 'paid');
 

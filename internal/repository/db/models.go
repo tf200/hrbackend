@@ -226,6 +226,98 @@ func (ns NullEmployeeContractTypeEnum) Value() (driver.Value, error) {
 	return string(ns.EmployeeContractTypeEnum), nil
 }
 
+type ExpenseRequestCategoryEnum string
+
+const (
+	ExpenseRequestCategoryEnumTravel              ExpenseRequestCategoryEnum = "travel"
+	ExpenseRequestCategoryEnumMeal                ExpenseRequestCategoryEnum = "meal"
+	ExpenseRequestCategoryEnumAccommodation       ExpenseRequestCategoryEnum = "accommodation"
+	ExpenseRequestCategoryEnumOfficeSupplies      ExpenseRequestCategoryEnum = "office_supplies"
+	ExpenseRequestCategoryEnumTraining            ExpenseRequestCategoryEnum = "training"
+	ExpenseRequestCategoryEnumClientEntertainment ExpenseRequestCategoryEnum = "client_entertainment"
+	ExpenseRequestCategoryEnumOther               ExpenseRequestCategoryEnum = "other"
+)
+
+func (e *ExpenseRequestCategoryEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExpenseRequestCategoryEnum(s)
+	case string:
+		*e = ExpenseRequestCategoryEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExpenseRequestCategoryEnum: %T", src)
+	}
+	return nil
+}
+
+type NullExpenseRequestCategoryEnum struct {
+	ExpenseRequestCategoryEnum ExpenseRequestCategoryEnum `json:"expense_request_category_enum"`
+	Valid                      bool                       `json:"valid"` // Valid is true if ExpenseRequestCategoryEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExpenseRequestCategoryEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExpenseRequestCategoryEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExpenseRequestCategoryEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExpenseRequestCategoryEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExpenseRequestCategoryEnum), nil
+}
+
+type ExpenseRequestStatusEnum string
+
+const (
+	ExpenseRequestStatusEnumPending    ExpenseRequestStatusEnum = "pending"
+	ExpenseRequestStatusEnumApproved   ExpenseRequestStatusEnum = "approved"
+	ExpenseRequestStatusEnumRejected   ExpenseRequestStatusEnum = "rejected"
+	ExpenseRequestStatusEnumReimbursed ExpenseRequestStatusEnum = "reimbursed"
+	ExpenseRequestStatusEnumCancelled  ExpenseRequestStatusEnum = "cancelled"
+)
+
+func (e *ExpenseRequestStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExpenseRequestStatusEnum(s)
+	case string:
+		*e = ExpenseRequestStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExpenseRequestStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullExpenseRequestStatusEnum struct {
+	ExpenseRequestStatusEnum ExpenseRequestStatusEnum `json:"expense_request_status_enum"`
+	Valid                    bool                     `json:"valid"` // Valid is true if ExpenseRequestStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExpenseRequestStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExpenseRequestStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExpenseRequestStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExpenseRequestStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExpenseRequestStatusEnum), nil
+}
+
 type GenderEnum string
 
 const (
@@ -1367,6 +1459,35 @@ type EmployeeTrainingAssignment struct {
 	CompletionNotes      *string                      `json:"completion_notes"`
 	CreatedAt            pgtype.Timestamptz           `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz           `json:"updated_at"`
+}
+
+type ExpenseRequest struct {
+	ID                     uuid.UUID                  `json:"id"`
+	EmployeeID             uuid.UUID                  `json:"employee_id"`
+	CreatedByEmployeeID    uuid.UUID                  `json:"created_by_employee_id"`
+	Category               ExpenseRequestCategoryEnum `json:"category"`
+	ExpenseDate            pgtype.Date                `json:"expense_date"`
+	MerchantName           *string                    `json:"merchant_name"`
+	Description            string                     `json:"description"`
+	BusinessPurpose        string                     `json:"business_purpose"`
+	Currency               string                     `json:"currency"`
+	ClaimedAmount          float64                    `json:"claimed_amount"`
+	ApprovedAmount         *float64                   `json:"approved_amount"`
+	TravelMode             *string                    `json:"travel_mode"`
+	TravelFrom             *string                    `json:"travel_from"`
+	TravelTo               *string                    `json:"travel_to"`
+	DistanceKm             *float64                   `json:"distance_km"`
+	Status                 ExpenseRequestStatusEnum   `json:"status"`
+	RequestNote            *string                    `json:"request_note"`
+	DecisionNote           *string                    `json:"decision_note"`
+	DecidedByEmployeeID    *uuid.UUID                 `json:"decided_by_employee_id"`
+	ReimbursedByEmployeeID *uuid.UUID                 `json:"reimbursed_by_employee_id"`
+	RequestedAt            pgtype.Timestamptz         `json:"requested_at"`
+	DecidedAt              pgtype.Timestamptz         `json:"decided_at"`
+	ReimbursedAt           pgtype.Timestamptz         `json:"reimbursed_at"`
+	CancelledAt            pgtype.Timestamptz         `json:"cancelled_at"`
+	CreatedAt              pgtype.Timestamptz         `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz         `json:"updated_at"`
 }
 
 type HandbookStep struct {
