@@ -15,6 +15,7 @@ import (
 	"hrbackend/internal/repository"
 	db "hrbackend/internal/repository/db"
 	"hrbackend/internal/service"
+	"hrbackend/internal/ws"
 	pkgasynq "hrbackend/pkg/asynq"
 	pkgjwt "hrbackend/pkg/jwt"
 	pkglogger "hrbackend/pkg/logger"
@@ -32,6 +33,8 @@ type App struct {
 	Router    *gin.Engine
 	DB        *pgxpool.Pool
 	TaskQueue domain.TaskQueue
+	WSHub     *ws.Hub
+	WSTickets domain.WebSocketTicketStore
 	logger    domain.Logger
 }
 
@@ -66,13 +69,18 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 
 	taskQueue := buildTaskQueue(cfg)
-	router := buildRouter(cfg, logger, store, tokenMaker, taskQueue)
+	wsHub := ws.NewHub()
+	go wsHub.Run()
+	wsTicketStore := newWebSocketTicketStore(cfg)
+	router := buildRouter(cfg, logger, store, tokenMaker, taskQueue, wsHub, wsTicketStore)
 
 	return &App{
 		Config:    cfg,
 		Router:    router,
 		DB:        pool,
 		TaskQueue: taskQueue,
+		WSHub:     wsHub,
+		WSTickets: wsTicketStore,
 		logger:    logger,
 	}, nil
 }
@@ -135,6 +143,16 @@ func (a *App) Close(_ context.Context) error {
 		}
 	}
 
+	if a.WSHub != nil {
+		a.WSHub.Shutdown()
+	}
+
+	if a.WSTickets != nil {
+		if err := a.WSTickets.Close(); err != nil {
+			errs = append(errs, fmt.Sprintf("close websocket tickets: %v", err))
+		}
+	}
+
 	if a.DB != nil {
 		a.DB.Close()
 	}
@@ -158,6 +176,8 @@ func buildRouter(
 	store *db.Store,
 	tokenMaker domain.TokenMaker,
 	taskQueue domain.TaskQueue,
+	wsHub *ws.Hub,
+	wsTicketStore domain.WebSocketTicketStore,
 ) *gin.Engine {
 	setGinMode(cfg.Environment)
 
@@ -232,6 +252,8 @@ func buildRouter(
 	trainingService := service.NewTrainingService(trainingRepo, logger)
 
 	authHandler := handler.NewAuthHandler(authService)
+	wsAuthService := service.NewWebSocketAuthService(wsTicketStore, logger, cfg.WsTicketTTL)
+	wsHandler := handler.NewWebSocketHandler(wsAuthService, wsHub, logger, cfg.WsAllowedOrigins)
 	employeeHandler := handler.NewEmployeeHandler(employeeService)
 	organizationHandler := handler.NewOrganizationHandler(organizationService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
@@ -252,6 +274,7 @@ func buildRouter(
 	requirePermission := permissionMiddleware.Require
 
 	handler.RegisterAuthRoutes(api, authHandler, auth)
+	handler.RegisterWebSocketRoutes(api, wsHandler, auth)
 	handler.RegisterEmployeeRoutes(api, employeeHandler, auth, requirePermission)
 	handler.RegisterOrganizationRoutes(api, organizationHandler, auth, requirePermission)
 	handler.RegisterSettingsRoutes(api, settingsHandler, auth, requirePermission)
