@@ -318,6 +318,7 @@ SELECT
     cu.email        AS email,
     cu.last_login   AS last_login,
     cu.two_factor_enabled AS two_factor_enabled,
+    COALESCE(r.name, '') AS role,
     ep.id           AS employee_id,
     ep.first_name,
     ep.last_name,
@@ -333,6 +334,8 @@ SELECT
     )::json AS permissions
 FROM custom_user cu
 JOIN employee_profile ep ON ep.user_id = cu.id
+LEFT JOIN user_roles ur ON ur.user_id = cu.id
+LEFT JOIN roles r ON r.id = ur.role_id
 WHERE cu.id = $1
 `
 
@@ -341,6 +344,7 @@ type GetEmployeeProfileByUserIDRow struct {
 	Email            string             `json:"email"`
 	LastLogin        pgtype.Timestamptz `json:"last_login"`
 	TwoFactorEnabled bool               `json:"two_factor_enabled"`
+	Role             string             `json:"role"`
 	EmployeeID       uuid.UUID          `json:"employee_id"`
 	FirstName        string             `json:"first_name"`
 	LastName         string             `json:"last_name"`
@@ -355,6 +359,7 @@ func (q *Queries) GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) 
 		&i.Email,
 		&i.LastLogin,
 		&i.TwoFactorEnabled,
+		&i.Role,
 		&i.EmployeeID,
 		&i.FirstName,
 		&i.LastName,

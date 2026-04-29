@@ -765,6 +765,7 @@ func toDomainEmployeeProfile(
 		Email:            row.Email,
 		LastLogin:        conv.TimeFromPgTimestamptz(row.LastLogin),
 		TwoFactorEnabled: row.TwoFactorEnabled,
+		Role:             row.Role,
 		EmployeeID:       row.EmployeeID,
 		FirstName:        row.FirstName,
 		LastName:         row.LastName,

@@ -115,6 +115,7 @@ SELECT
     cu.email        AS email,
     cu.last_login   AS last_login,
     cu.two_factor_enabled AS two_factor_enabled,
+    COALESCE(r.name, '') AS role,
     ep.id           AS employee_id,
     ep.first_name,
     ep.last_name,
@@ -130,6 +131,8 @@ SELECT
     )::json AS permissions
 FROM custom_user cu
 JOIN employee_profile ep ON ep.user_id = cu.id
+LEFT JOIN user_roles ur ON ur.user_id = cu.id
+LEFT JOIN roles r ON r.id = ur.role_id
 WHERE cu.id = $1;
 
 -- name: GetEmployeeProfileByID :one

@@ -97,6 +97,7 @@ type EmployeeProfile struct {
 	Email            string
 	LastLogin        time.Time
 	TwoFactorEnabled bool
+	Role             string
 	EmployeeID       uuid.UUID
 	FirstName        string
 	LastName         string

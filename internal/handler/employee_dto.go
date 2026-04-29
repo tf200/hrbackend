@@ -206,6 +206,7 @@ type employeeProfileResponse struct {
 	Email            string               `json:"email"`
 	LastLogin        time.Time            `json:"last_login"`
 	TwoFactorEnabled bool                 `json:"two_factor_enabled"`
+	Role             string               `json:"role"`
 	EmployeeID       uuid.UUID            `json:"employee_id"`
 	FirstName        string               `json:"first_name"`
 	LastName         string               `json:"last_name"`
@@ -569,6 +570,7 @@ func toEmployeeProfileResponse(profile *domain.EmployeeProfile) employeeProfileR
 		Email:            profile.Email,
 		LastLogin:        profile.LastLogin,
 		TwoFactorEnabled: profile.TwoFactorEnabled,
+		Role:             profile.Role,
 		EmployeeID:       profile.EmployeeID,
 		FirstName:        profile.FirstName,
 		LastName:         profile.LastName,
