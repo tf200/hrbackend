@@ -59,6 +59,9 @@ type Querier interface {
 	CreatePayPeriod(ctx context.Context, arg CreatePayPeriodParams) (PayPeriod, error)
 	CreatePayPeriodLineItem(ctx context.Context, arg CreatePayPeriodLineItemParams) (PayPeriodLineItem, error)
 	CreatePayoutRequest(ctx context.Context, arg CreatePayoutRequestParams) (LeavePayoutRequest, error)
+	CreatePerformanceAssessment(ctx context.Context, arg CreatePerformanceAssessmentParams) (CreatePerformanceAssessmentRow, error)
+	CreatePerformanceAssessmentScore(ctx context.Context, arg CreatePerformanceAssessmentScoreParams) error
+	CreatePerformanceWorkAssignment(ctx context.Context, arg CreatePerformanceWorkAssignmentParams) error
 	// ---------- 1. ROLES ----------
 	// Insert a new role and return the created row.
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
@@ -78,6 +81,7 @@ type Querier interface {
 	DeleteHandbookStepByID(ctx context.Context, id uuid.UUID) error
 	DeleteLocation(ctx context.Context, id uuid.UUID) (Location, error)
 	DeleteOrganisation(ctx context.Context, id uuid.UUID) (Organisation, error)
+	DeletePerformanceAssessment(ctx context.Context, id uuid.UUID) (int64, error)
 	DeleteSchedule(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteShift(ctx context.Context, id uuid.UUID) error
@@ -87,8 +91,10 @@ type Querier interface {
 	EnsureLeaveBalanceForYear(ctx context.Context, arg EnsureLeaveBalanceForYearParams) error
 	ExpirePendingShiftSwapRequests(ctx context.Context) error
 	GetActiveEmployeeHandbookByEmployeeID(ctx context.Context, employeeID uuid.UUID) (GetActiveEmployeeHandbookByEmployeeIDRow, error)
+	GetActiveEmployeeNameForPerformance(ctx context.Context, id uuid.UUID) (GetActiveEmployeeNameForPerformanceRow, error)
 	GetActiveHandbookTemplateByDepartment(ctx context.Context, departmentID uuid.UUID) (HandbookTemplate, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType LeaveRequestTypeEnum) (LeavePolicy, error)
+	GetActivePerformanceQuestion(ctx context.Context, code string) (GetActivePerformanceQuestionRow, error)
 	// Returns the ID of the admin role.
 	GetAdminRoleId(ctx context.Context) (uuid.UUID, error)
 	GetAllAdminUsers(ctx context.Context) ([]CustomUser, error)
@@ -117,6 +123,10 @@ type Querier interface {
 	GetOrganisationCounts(ctx context.Context, id uuid.UUID) (GetOrganisationCountsRow, error)
 	GetPayPeriodByEmployeePeriod(ctx context.Context, arg GetPayPeriodByEmployeePeriodParams) (GetPayPeriodByEmployeePeriodRow, error)
 	GetPayPeriodByID(ctx context.Context, id uuid.UUID) (GetPayPeriodByIDRow, error)
+	GetPerformanceAssessmentByID(ctx context.Context, id uuid.UUID) (GetPerformanceAssessmentByIDRow, error)
+	GetPerformanceStats(ctx context.Context) (GetPerformanceStatsRow, error)
+	GetPerformanceWorkAssignmentByID(ctx context.Context, id uuid.UUID) (GetPerformanceWorkAssignmentByIDRow, error)
+	GetPerformanceWorkAssignmentStatusForUpdate(ctx context.Context, id uuid.UUID) (string, error)
 	// Returns a single role by ID.
 	GetRoleByID(ctx context.Context, id uuid.UUID) (Role, error)
 	GetScheduleById(ctx context.Context, id uuid.UUID) (GetScheduleByIdRow, error)
@@ -192,6 +202,11 @@ type Querier interface {
 	ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingEntriesByEmployeeIDsParams) ([]ListPayrollMonthPendingEntriesByEmployeeIDsRow, error)
 	ListPayrollMonthPendingSummariesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingSummariesByEmployeeIDsParams) ([]ListPayrollMonthPendingSummariesByEmployeeIDsRow, error)
 	ListPayrollPreviewTimeEntries(ctx context.Context, arg ListPayrollPreviewTimeEntriesParams) ([]ListPayrollPreviewTimeEntriesRow, error)
+	ListPerformanceAssessmentCatalog(ctx context.Context) ([]ListPerformanceAssessmentCatalogRow, error)
+	ListPerformanceAssessmentScores(ctx context.Context, assessmentID uuid.UUID) ([]ListPerformanceAssessmentScoresRow, error)
+	ListPerformanceAssessments(ctx context.Context, arg ListPerformanceAssessmentsParams) ([]ListPerformanceAssessmentsRow, error)
+	ListPerformanceUpcoming(ctx context.Context, dollar_1 int32) ([]ListPerformanceUpcomingRow, error)
+	ListPerformanceWorkAssignments(ctx context.Context, arg ListPerformanceWorkAssignmentsParams) ([]ListPerformanceWorkAssignmentsRow, error)
 	// ---------- 3. ROLE-PERMISSION MAPPING ----------
 	// Returns all permissions attached to a single role.
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListRolePermissionsRow, error)
@@ -244,6 +259,7 @@ type Querier interface {
 	UpdateLocation(ctx context.Context, arg UpdateLocationParams) (Location, error)
 	UpdateOrganisation(ctx context.Context, arg UpdateOrganisationParams) (Organisation, error)
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
+	UpdatePerformanceWorkAssignmentDecision(ctx context.Context, arg UpdatePerformanceWorkAssignmentDecisionParams) error
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) (UpdateScheduleRow, error)
 	UpdateScheduleEmployeeAssignment(ctx context.Context, arg UpdateScheduleEmployeeAssignmentParams) error
 	UpdateShift(ctx context.Context, arg UpdateShiftParams) (LocationShift, error)

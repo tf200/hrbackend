@@ -36,12 +36,34 @@ type PerformanceAssessment struct {
 }
 
 type PerformanceAssessmentScore struct {
-	ID           uuid.UUID
-	AssessmentID uuid.UUID
-	DomainID     string
-	ItemID       string
-	Rating       float64
-	Remarks      *string
+	ID            uuid.UUID
+	AssessmentID  uuid.UUID
+	QuestionCode  string
+	DomainCode    string
+	TitleNL       string
+	TitleEN       string
+	DescriptionNL string
+	DescriptionEN string
+	Rating        float64
+	Remarks       *string
+}
+
+type PerformanceDomain struct {
+	Code      string
+	NameNL    string
+	NameEN    string
+	SortOrder int32
+	Questions []PerformanceQuestion
+}
+
+type PerformanceQuestion struct {
+	Code          string
+	DomainCode    string
+	TitleNL       string
+	TitleEN       string
+	DescriptionNL string
+	DescriptionEN string
+	SortOrder     int32
 }
 
 type PerformanceWorkAssignment struct {
@@ -49,9 +71,10 @@ type PerformanceWorkAssignment struct {
 	AssessmentID          uuid.UUID
 	EmployeeID            uuid.UUID
 	EmployeeName          string
-	QuestionID            string
-	DomainID              string
-	QuestionText          string
+	QuestionCode          string
+	DomainCode            string
+	QuestionTextNL        string
+	QuestionTextEN        string
 	Score                 float64
 	AssignmentDescription string
 	ImprovementNotes      *string
@@ -65,14 +88,17 @@ type PerformanceWorkAssignment struct {
 	ReviewedAt            *time.Time
 }
 
+const PerformanceReviewIntervalDays = 42
+
 type PerformanceUpcomingItem struct {
 	EmployeeID         uuid.UUID
 	EmployeeName       string
-	LastAssessmentDate time.Time
+	LastAssessmentDate *time.Time
 	NextAssessmentDate time.Time
 	IsOverdue          bool
 	IsDueSoon          bool
 	DaysUntilDue       int
+	IsFirstReview      bool
 }
 
 type PerformanceStats struct {
@@ -95,10 +121,9 @@ type PerformanceWorkAssignmentPage struct {
 }
 
 type CreatePerformanceAssessmentScoreParams struct {
-	DomainID string
-	ItemID   string
-	Rating   float64
-	Remarks  *string
+	QuestionCode string
+	Rating       float64
+	Remarks      *string
 }
 
 type CreatePerformanceAssessmentParams struct {
@@ -109,12 +134,12 @@ type CreatePerformanceAssessmentParams struct {
 }
 
 type ListPerformanceAssessmentsParams struct {
-	Limit      int32
-	Offset     int32
-	EmployeeID *uuid.UUID
-	Status     *string
-	FromDate   *time.Time
-	ToDate     *time.Time
+	Limit    int32
+	Offset   int32
+	Search   *string
+	Status   *string
+	FromDate *time.Time
+	ToDate   *time.Time
 }
 
 type ListPerformanceWorkAssignmentsParams struct {
@@ -132,6 +157,7 @@ type DecidePerformanceWorkAssignmentParams struct {
 }
 
 type PerformanceRepository interface {
+	ListAssessmentCatalog(ctx context.Context) ([]PerformanceDomain, error)
 	CreateAssessment(ctx context.Context, params CreatePerformanceAssessmentParams) (*PerformanceAssessment, error)
 	ListAssessments(
 		ctx context.Context,
@@ -155,6 +181,7 @@ type PerformanceRepository interface {
 }
 
 type PerformanceService interface {
+	ListAssessmentCatalog(ctx context.Context) ([]PerformanceDomain, error)
 	CreateAssessment(ctx context.Context, params CreatePerformanceAssessmentParams) (*PerformanceAssessment, error)
 	ListAssessments(
 		ctx context.Context,

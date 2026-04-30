@@ -24,6 +24,14 @@ func NewPerformanceService(
 	return &PerformanceService{repository: repository, logger: logger}
 }
 
+func (s *PerformanceService) ListAssessmentCatalog(ctx context.Context) ([]domain.PerformanceDomain, error) {
+	items, err := s.repository.ListAssessmentCatalog(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list assessment catalog: %w", err)
+	}
+	return items, nil
+}
+
 func (s *PerformanceService) CreateAssessment(
 	ctx context.Context,
 	params domain.CreatePerformanceAssessmentParams,
@@ -43,25 +51,43 @@ func (s *PerformanceService) CreateAssessment(
 	normalized.AssessmentDate = performanceDateOnlyUTC(params.AssessmentDate)
 	normalized.Notes = performanceTrimStringPtr(params.Notes)
 
+	catalog, err := s.repository.ListAssessmentCatalog(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list assessment catalog: %w", err)
+	}
+
+	activeQuestions := make(map[string]struct{})
+	for _, domainItem := range catalog {
+		for _, question := range domainItem.Questions {
+			activeQuestions[question.Code] = struct{}{}
+		}
+	}
+	if len(activeQuestions) == 0 {
+		return nil, domain.ErrPerformanceInvalidRequest
+	}
+
 	seen := make(map[string]struct{}, len(params.Scores))
 	for i, score := range params.Scores {
-		domainID := strings.TrimSpace(score.DomainID)
-		itemID := strings.TrimSpace(score.ItemID)
-		if domainID == "" || itemID == "" {
+		questionCode := strings.TrimSpace(score.QuestionCode)
+		if questionCode == "" {
+			return nil, domain.ErrPerformanceInvalidRequest
+		}
+		if _, exists := activeQuestions[questionCode]; !exists {
 			return nil, domain.ErrPerformanceInvalidRequest
 		}
 		if score.Rating < 1 || score.Rating > 10 {
 			return nil, domain.ErrPerformanceInvalidRequest
 		}
-		key := domainID + "::" + itemID
-		if _, exists := seen[key]; exists {
+		if _, exists := seen[questionCode]; exists {
 			return nil, domain.ErrPerformanceInvalidRequest
 		}
-		seen[key] = struct{}{}
+		seen[questionCode] = struct{}{}
 
-		normalized.Scores[i].DomainID = domainID
-		normalized.Scores[i].ItemID = itemID
+		normalized.Scores[i].QuestionCode = questionCode
 		normalized.Scores[i].Remarks = performanceTrimStringPtr(score.Remarks)
+	}
+	if len(seen) != len(activeQuestions) {
+		return nil, domain.ErrPerformanceInvalidRequest
 	}
 
 	assessment, err := s.repository.CreateAssessment(ctx, normalized)

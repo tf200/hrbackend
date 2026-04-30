@@ -20,6 +20,16 @@ func NewPerformanceHandler(service domain.PerformanceService) *PerformanceHandle
 	return &PerformanceHandler{service: service}
 }
 
+func (h *PerformanceHandler) ListAssessmentCatalog(ctx *gin.Context) {
+	items, err := h.service.ListAssessmentCatalog(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(mapPerformanceErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceAssessmentCatalogResponse(items), "Assessment catalog retrieved successfully"))
+}
+
 func (h *PerformanceHandler) CreateAssessment(ctx *gin.Context) {
 	var req createPerformanceAssessmentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {

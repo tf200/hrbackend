@@ -1715,21 +1715,44 @@ type PerformanceAssessment struct {
 type PerformanceAssessmentScore struct {
 	ID           uuid.UUID          `json:"id"`
 	AssessmentID uuid.UUID          `json:"assessment_id"`
-	DomainID     string             `json:"domain_id"`
-	ItemID       string             `json:"item_id"`
+	QuestionCode string             `json:"question_code"`
 	Rating       float64            `json:"rating"`
 	Remarks      *string            `json:"remarks"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
+type PerformanceDomain struct {
+	Code      string             `json:"code"`
+	NameNl    string             `json:"name_nl"`
+	NameEn    string             `json:"name_en"`
+	SortOrder int32              `json:"sort_order"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type PerformanceQuestion struct {
+	Code          string             `json:"code"`
+	DomainCode    string             `json:"domain_code"`
+	TitleNl       string             `json:"title_nl"`
+	TitleEn       string             `json:"title_en"`
+	DescriptionNl string             `json:"description_nl"`
+	DescriptionEn string             `json:"description_en"`
+	SortOrder     int32              `json:"sort_order"`
+	IsActive      bool               `json:"is_active"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
 type PerformanceWorkAssignment struct {
 	ID                    uuid.UUID                           `json:"id"`
 	AssessmentID          uuid.UUID                           `json:"assessment_id"`
 	EmployeeID            uuid.UUID                           `json:"employee_id"`
-	QuestionID            string                              `json:"question_id"`
-	DomainID              string                              `json:"domain_id"`
-	QuestionText          string                              `json:"question_text"`
+	QuestionCode          string                              `json:"question_code"`
+	DomainCode            string                              `json:"domain_code"`
+	QuestionTextNl        string                              `json:"question_text_nl"`
+	QuestionTextEn        string                              `json:"question_text_en"`
 	Score                 float64                             `json:"score"`
 	AssignmentDescription string                              `json:"assignment_description"`
 	ImprovementNotes      *string                             `json:"improvement_notes"`

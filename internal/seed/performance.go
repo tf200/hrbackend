@@ -28,10 +28,12 @@ type performanceEmployee struct {
 }
 
 type performanceScoreSeed struct {
-	DomainID string
-	ItemID   string
-	Rating   float64
-	Remarks  *string
+	DomainCode      string
+	QuestionCode    string
+	Rating          float64
+	Remarks         *string
+	QuestionTitleNL string
+	QuestionTitleEN string
 }
 
 func (s PerformanceSeeder) Name() string {
@@ -83,8 +85,8 @@ func (s PerformanceSeeder) Seed(ctx context.Context, env Env) error {
 			scoreID := performanceDeterministicID(
 				"score",
 				assessmentID.String(),
-				score.DomainID,
-				score.ItemID,
+				score.DomainCode,
+				score.QuestionCode,
 			)
 			if err := upsertPerformanceScore(ctx, tx, scoreID, assessmentID, score); err != nil {
 				return fmt.Errorf("seed performance[%s]: %w", employee.Alias, err)
@@ -97,7 +99,7 @@ func (s PerformanceSeeder) Seed(ctx context.Context, env Env) error {
 			assignmentID := performanceDeterministicID(
 				"assignment",
 				assessmentID.String(),
-				score.ItemID,
+				score.QuestionCode,
 			)
 			if err := upsertPerformanceAssignment(
 				ctx,
@@ -213,12 +215,11 @@ func upsertPerformanceScore(
 		`INSERT INTO performance_assessment_scores (
 			id,
 			assessment_id,
-			domain_id,
-			item_id,
+			question_code,
 			rating,
 			remarks
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (id)
 		DO UPDATE SET
 			rating = EXCLUDED.rating,
@@ -226,8 +227,7 @@ func upsertPerformanceScore(
 			updated_at = NOW()`,
 		id,
 		assessmentID,
-		score.DomainID,
-		score.ItemID,
+		score.QuestionCode,
 		score.Rating,
 		score.Remarks,
 	)
@@ -273,9 +273,10 @@ func upsertPerformanceAssignment(
 			id,
 			assessment_id,
 			employee_id,
-			question_id,
-			domain_id,
-			question_text,
+			question_code,
+			domain_code,
+			question_text_nl,
+			question_text_en,
 			score,
 			assignment_description,
 			due_date,
@@ -285,7 +286,7 @@ func upsertPerformanceAssignment(
 			feedback,
 			reviewed_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::performance_work_assignment_status_enum, $11, $12, $13, $14)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::performance_work_assignment_status_enum, $12, $13, $14, $15)
 		ON CONFLICT (id)
 		DO UPDATE SET
 			status = EXCLUDED.status,
@@ -297,11 +298,12 @@ func upsertPerformanceAssignment(
 		id,
 		assessmentID,
 		employeeID,
-		score.ItemID,
-		score.DomainID,
-		fmt.Sprintf("Reflectiepunt %s", score.ItemID),
+		score.QuestionCode,
+		score.DomainCode,
+		score.QuestionTitleNL,
+		score.QuestionTitleEN,
 		score.Rating,
-		fmt.Sprintf("Werk aan verbetering voor %s (%s)", score.DomainID, score.ItemID),
+		fmt.Sprintf("Werk aan verbetering voor %s (%s)", score.DomainCode, score.QuestionCode),
 		dueDate,
 		status,
 		submittedAt,
@@ -318,13 +320,13 @@ func upsertPerformanceAssignment(
 
 func buildPerformanceScores(seed int) []performanceScoreSeed {
 	items := []performanceScoreSeed{
-		{DomainID: "veilig-stabiel-leefklimaat", ItemID: "vsl-1", Rating: 8},
-		{DomainID: "veilig-stabiel-leefklimaat", ItemID: "vsl-2", Rating: 7},
-		{DomainID: "adl-begeleiding", ItemID: "adl-2", Rating: 6},
-		{DomainID: "stimuleren-ontwikkeling", ItemID: "so-2", Rating: 5, Remarks: strPtr("Meer focus op emotieregulatie.")},
-		{DomainID: "opvoeden-begrenzen", ItemID: "ob-1", Rating: 4, Remarks: strPtr("Nog onvoldoende consistent in begrenzen.")},
-		{DomainID: "individuele-begeleiding", ItemID: "ib-3", Rating: 6},
-		{DomainID: "individuele-begeleiding", ItemID: "ib-5", Rating: 5, Remarks: strPtr("Systemisch werken vraagt meer structuur.")},
+		{DomainCode: "VSL", QuestionCode: "VSL_1", Rating: 8, QuestionTitleNL: "Voorspelbaarheid als fundament", QuestionTitleEN: "Predictability as a foundation"},
+		{DomainCode: "VSL", QuestionCode: "VSL_2", Rating: 7, QuestionTitleNL: "Fysieke en emotionele veiligheid", QuestionTitleEN: "Physical and emotional safety"},
+		{DomainCode: "ADL", QuestionCode: "ADL_2", Rating: 6, QuestionTitleNL: "Zelfzorg en hygiëne", QuestionTitleEN: "Self-care and hygiene"},
+		{DomainCode: "SO", QuestionCode: "SO_2", Rating: 5, Remarks: strPtr("Meer focus op emotieregulatie."), QuestionTitleNL: "Emotieregulatie versterken", QuestionTitleEN: "Strengthening emotion regulation"},
+		{DomainCode: "OB", QuestionCode: "OB_1", Rating: 4, Remarks: strPtr("Nog onvoldoende consistent in begrenzen."), QuestionTitleNL: "Positief en constructief corrigeren", QuestionTitleEN: "Positive and constructive correction"},
+		{DomainCode: "IB", QuestionCode: "IB_3", Rating: 6, QuestionTitleNL: "1-op-1 gesprekken", QuestionTitleEN: "One-on-one conversations"},
+		{DomainCode: "IB", QuestionCode: "IB_5", Rating: 5, Remarks: strPtr("Systemisch werken vraagt meer structuur."), QuestionTitleNL: "Systemisch werken", QuestionTitleEN: "Systemic practice"},
 	}
 
 	for i := range items {
@@ -337,10 +339,10 @@ func buildPerformanceScores(seed int) []performanceScoreSeed {
 	}
 
 	sort.Slice(items, func(i, j int) bool {
-		if items[i].DomainID == items[j].DomainID {
-			return items[i].ItemID < items[j].ItemID
+		if items[i].DomainCode == items[j].DomainCode {
+			return items[i].QuestionCode < items[j].QuestionCode
 		}
-		return items[i].DomainID < items[j].DomainID
+		return items[i].DomainCode < items[j].DomainCode
 	})
 
 	return items

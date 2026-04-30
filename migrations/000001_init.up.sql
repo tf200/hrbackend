@@ -1484,6 +1484,80 @@ CREATE TYPE performance_work_assignment_status_enum AS ENUM (
     'revision_needed'
 );
 
+CREATE TABLE performance_domains (
+    code TEXT PRIMARY KEY,
+    name_nl TEXT NOT NULL,
+    name_en TEXT NOT NULL,
+    sort_order INT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT performance_domains_code_not_blank CHECK (btrim(code) <> ''),
+    CONSTRAINT performance_domains_sort_order_positive CHECK (sort_order > 0),
+    CONSTRAINT performance_domains_sort_order_unique UNIQUE (sort_order)
+);
+
+CREATE TABLE performance_questions (
+    code TEXT PRIMARY KEY,
+    domain_code TEXT NOT NULL REFERENCES performance_domains(code) ON DELETE RESTRICT,
+    title_nl TEXT NOT NULL,
+    title_en TEXT NOT NULL,
+    description_nl TEXT NOT NULL,
+    description_en TEXT NOT NULL,
+    sort_order INT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT performance_questions_code_not_blank CHECK (btrim(code) <> ''),
+    CONSTRAINT performance_questions_sort_order_positive CHECK (sort_order > 0),
+    CONSTRAINT performance_questions_domain_sort_order_unique UNIQUE (domain_code, sort_order)
+);
+
+CREATE INDEX idx_performance_questions_domain_order
+ON performance_questions(domain_code, sort_order);
+
+INSERT INTO performance_domains (code, name_nl, name_en, sort_order) VALUES
+('VSL', 'Veilig en stabiel leefklimaat', 'Safe and stable living environment', 1),
+('ADL', 'ADL-begeleiding', 'Activities of daily living guidance', 2),
+('SO', 'Stimuleren van ontwikkeling', 'Stimulating development', 3),
+('OB', 'Opvoeden en begrenzen', 'Parenting and setting boundaries', 4),
+('IB', 'Individuele begeleiding', 'Individual guidance', 5);
+
+INSERT INTO performance_questions (
+    code,
+    domain_code,
+    title_nl,
+    title_en,
+    description_nl,
+    description_en,
+    sort_order
+) VALUES
+('VSL_1', 'VSL', 'Voorspelbaarheid als fundament', 'Predictability as a foundation', 'consistent dagritme (maaltijden, school, huiswerk, vrije tijd, bedtijd)', 'consistent daily rhythm (meals, school, homework, free time, bedtime)', 1),
+('VSL_2', 'VSL', 'Fysieke en emotionele veiligheid', 'Physical and emotional safety', 'schone, ordelijke omgeving; jeugdigen voelen zich gehoord', 'clean, orderly environment; young people feel heard', 2),
+('VSL_3', 'VSL', 'Structuur door heldere kaders', 'Structure through clear boundaries', 'duidelijke, consistente groepsregels met uitleg', 'clear, consistent group rules with explanation', 3),
+('VSL_4', 'VSL', 'Rust en ruimte voor herstel', 'Calm and space for recovery', 'prikkelniveaus bewaken, conflicten de-escaleren', 'monitoring stimulation levels and de-escalating conflicts', 4),
+('VSL_5', 'VSL', 'Rituelen en groepsgevoel', 'Rituals and group belonging', 'vaste gewoontes die geborgenheid versterken', 'fixed habits that strengthen a sense of safety and belonging', 5),
+('ADL_1', 'ADL', 'Praktische levensvaardigheden', 'Practical life skills', 'koken, boodschappen, budget, huishouden, administratie', 'cooking, shopping, budgeting, household tasks, administration', 1),
+('ADL_2', 'ADL', 'Zelfzorg en hygiëne', 'Self-care and hygiene', 'begeleiden met respect voor privacy/autonomie', 'guidance with respect for privacy and autonomy', 2),
+('ADL_3', 'ADL', 'Gezondheid en welzijn', 'Health and wellbeing', 'gezonde voeding, beweging, slaap, medicatie', 'healthy nutrition, exercise, sleep, medication', 3),
+('ADL_4', 'ADL', 'Dagindeling en tijdmanagement', 'Daily structure and time management', 'plannen van schooltaken, afspraken, vrije tijd', 'planning school tasks, appointments, and free time', 4),
+('ADL_5', 'ADL', 'Vrijetijdsbesteding', 'Leisure activities', 'hobby''s, sport en sociale contacten faciliteren', 'facilitating hobbies, sports, and social contacts', 5),
+('SO_1', 'SO', 'Sociale vaardigheden trainen', 'Training social skills', 'contact maken, conflicten oplossen, samenwerken', 'making contact, resolving conflicts, collaborating', 1),
+('SO_2', 'SO', 'Emotieregulatie versterken', 'Strengthening emotion regulation', 'herkennen, benoemen, uiten van emoties', 'recognizing, naming, and expressing emotions', 2),
+('SO_3', 'SO', 'Zelfredzaamheid vergroten', 'Increasing self-reliance', 'stapsgewijs verantwoordelijkheid geven', 'gradually giving responsibility', 3),
+('SO_4', 'SO', 'Zelfvertrouwen opbouwen', 'Building self-confidence', 'successen benadrukken, positieve bekrachtiging', 'emphasizing successes and positive reinforcement', 4),
+('SO_5', 'SO', 'Cognitieve ontwikkeling ondersteunen', 'Supporting cognitive development', 'huiswerk, schoolcontact, leeromgeving', 'homework, school contact, learning environment', 5),
+('OB_1', 'OB', 'Positief en constructief corrigeren', 'Positive and constructive correction', 'focus op gewenst gedrag', 'focus on desired behavior', 1),
+('OB_2', 'OB', 'Relationeel begrenzen', 'Relational boundary-setting', 'grenzen stellen vanuit verbinding, relatie herstellen', 'setting boundaries from connection and restoring the relationship', 2),
+('OB_3', 'OB', 'Afstemmen op onderliggende behoeftes', 'Responding to underlying needs', 'kijken naar angst, onmacht, aandacht', 'looking at fear, powerlessness, and need for attention', 3),
+('OB_4', 'OB', 'Variëren in opvoedstijlen', 'Varying parenting styles', 'schakelen tussen autoritatief en coachend', 'switching between authoritative and coaching styles', 4),
+('OB_5', 'OB', 'Methodische interventies', 'Methodical interventions', 'Geef me de 5, Nieuwe Autoriteit', 'Give Me the 5, New Authority', 5),
+('IB_1', 'IB', 'Behandelplannen vertalen', 'Translating treatment plans', 'doelen koppelen aan behandeldoelen', 'linking goals to treatment objectives', 1),
+('IB_2', 'IB', 'Persoonlijk ontwikkelingsplan', 'Personal development plan', 'samen haalbare doelen opstellen/evalueren', 'jointly setting and evaluating achievable goals', 2),
+('IB_3', 'IB', '1-op-1 gesprekken', 'One-on-one conversations', 'individuele tijd voor voortgang, zorgen, wensen', 'individual time for progress, concerns, and wishes', 3),
+('IB_4', 'IB', 'Multidisciplinaire samenwerking', 'Multidisciplinary collaboration', 'delen met pedagogen, psychologen, artsen', 'sharing with pedagogues, psychologists, and physicians', 4),
+('IB_5', 'IB', 'Systemisch werken', 'Systemic practice', 'afstemmen op groep, familie en school', 'alignment with group, family, and school', 5);
+
 CREATE TABLE performance_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
@@ -1504,14 +1578,13 @@ ON performance_assessments(status);
 CREATE TABLE performance_assessment_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assessment_id UUID NOT NULL REFERENCES performance_assessments(id) ON DELETE CASCADE,
-    domain_id TEXT NOT NULL,
-    item_id TEXT NOT NULL,
+    question_code TEXT NOT NULL REFERENCES performance_questions(code) ON DELETE RESTRICT,
     rating NUMERIC(4,2) NOT NULL,
     remarks TEXT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT performance_assessment_scores_rating_range CHECK (rating >= 1 AND rating <= 10),
-    CONSTRAINT performance_assessment_scores_unique_item UNIQUE (assessment_id, domain_id, item_id)
+    CONSTRAINT performance_assessment_scores_unique_question UNIQUE (assessment_id, question_code)
 );
 
 CREATE INDEX idx_performance_assessment_scores_assessment
@@ -1521,9 +1594,10 @@ CREATE TABLE performance_work_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assessment_id UUID NOT NULL REFERENCES performance_assessments(id) ON DELETE CASCADE,
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    question_id TEXT NOT NULL,
-    domain_id TEXT NOT NULL,
-    question_text TEXT NOT NULL,
+    question_code TEXT NOT NULL REFERENCES performance_questions(code) ON DELETE RESTRICT,
+    domain_code TEXT NOT NULL REFERENCES performance_domains(code) ON DELETE RESTRICT,
+    question_text_nl TEXT NOT NULL,
+    question_text_en TEXT NOT NULL,
     score NUMERIC(4,2) NOT NULL,
     assignment_description TEXT NOT NULL,
     improvement_notes TEXT NULL,

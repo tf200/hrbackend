@@ -22,18 +22,35 @@ type createPerformanceAssessmentRequest struct {
 }
 
 type createPerformanceAssessmentScoreRequest struct {
-	DomainID string  `json:"domain_id" binding:"required"`
-	ItemID   string  `json:"item_id"   binding:"required"`
-	Rating   float64 `json:"rating"    binding:"required"`
-	Remarks  *string `json:"remarks"`
+	QuestionCode string  `json:"question_code" binding:"required"`
+	Rating       float64 `json:"rating"        binding:"required"`
+	Remarks      *string `json:"remarks"`
+}
+
+type performanceAssessmentCatalogDomainResponse struct {
+	Code      string                                         `json:"code"`
+	NameNL    string                                         `json:"name_nl"`
+	NameEN    string                                         `json:"name_en"`
+	SortOrder int32                                          `json:"sort_order"`
+	Questions []performanceAssessmentCatalogQuestionResponse `json:"questions"`
+}
+
+type performanceAssessmentCatalogQuestionResponse struct {
+	Code          string `json:"code"`
+	DomainCode    string `json:"domain_code"`
+	TitleNL       string `json:"title_nl"`
+	TitleEN       string `json:"title_en"`
+	DescriptionNL string `json:"description_nl"`
+	DescriptionEN string `json:"description_en"`
+	SortOrder     int32  `json:"sort_order"`
 }
 
 type listPerformanceAssessmentsRequest struct {
 	httpapi.PageRequest
-	EmployeeID *uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler"`
-	Status     *string    `form:"status"`
-	FromDate   *string    `form:"from_date" binding:"omitempty,datetime=2006-01-02"`
-	ToDate     *string    `form:"to_date"   binding:"omitempty,datetime=2006-01-02"`
+	Search   *string `form:"search"`
+	Status   *string `form:"status"`
+	FromDate *string `form:"from_date" binding:"omitempty,datetime=2006-01-02"`
+	ToDate   *string `form:"to_date"   binding:"omitempty,datetime=2006-01-02"`
 }
 
 type listPerformanceWorkAssignmentsRequest struct {
@@ -60,8 +77,6 @@ type sendPerformanceUpcomingInvitationsRequest struct {
 
 type performanceAssessmentResponse struct {
 	ID             uuid.UUID `json:"id"`
-	EmployeeID     uuid.UUID `json:"employee_id"`
-	EmployeeName   string    `json:"employee_name"`
 	Employee       gin.H     `json:"employee"`
 	AssessmentDate string    `json:"assessment_date"`
 	TotalScore     *float64  `json:"total_score"`
@@ -71,23 +86,26 @@ type performanceAssessmentResponse struct {
 }
 
 type performanceAssessmentScoreResponse struct {
-	ID           uuid.UUID `json:"id"`
-	AssessmentID uuid.UUID `json:"assessment_id"`
-	DomainID     string    `json:"domain_id"`
-	ItemID       string    `json:"item_id"`
-	Rating       float64   `json:"rating"`
-	Remarks      *string   `json:"remarks"`
+	ID            uuid.UUID `json:"id"`
+	AssessmentID  uuid.UUID `json:"assessment_id"`
+	QuestionCode  string    `json:"question_code"`
+	DomainCode    string    `json:"domain_code"`
+	TitleNL       string    `json:"title_nl"`
+	TitleEN       string    `json:"title_en"`
+	DescriptionNL string    `json:"description_nl"`
+	DescriptionEN string    `json:"description_en"`
+	Rating        float64   `json:"rating"`
+	Remarks       *string   `json:"remarks"`
 }
 
 type performanceWorkAssignmentResponse struct {
 	ID                    uuid.UUID `json:"id"`
 	AssessmentID          uuid.UUID `json:"assessment_id"`
-	EmployeeID            uuid.UUID `json:"employee_id"`
-	EmployeeName          string    `json:"employee_name"`
 	Employee              gin.H     `json:"employee"`
-	QuestionID            string    `json:"question_id"`
-	DomainID              string    `json:"domain_id"`
-	QuestionText          string    `json:"question_text"`
+	QuestionCode          string    `json:"question_code"`
+	DomainCode            string    `json:"domain_code"`
+	QuestionTextNL        string    `json:"question_text_nl"`
+	QuestionTextEN        string    `json:"question_text_en"`
 	Score                 float64   `json:"score"`
 	AssignmentDescription string    `json:"assignment_description"`
 	ImprovementNotes      *string   `json:"improvement_notes"`
@@ -104,11 +122,12 @@ type performanceWorkAssignmentResponse struct {
 type performanceUpcomingResponse struct {
 	EmployeeID         uuid.UUID `json:"employee_id"`
 	EmployeeName       string    `json:"employee_name"`
-	LastAssessmentDate string    `json:"last_assessment_date"`
+	LastAssessmentDate *string   `json:"last_assessment_date"`
 	NextAssessmentDate string    `json:"next_assessment_date"`
 	IsOverdue          bool      `json:"is_overdue"`
 	IsDueSoon          bool      `json:"is_due_soon"`
 	DaysUntilDue       int       `json:"days_until_due"`
+	IsFirstReview      bool      `json:"is_first_review"`
 }
 
 type performanceStatsResponse struct {
@@ -135,10 +154,9 @@ func toCreatePerformanceAssessmentParams(
 	scores := make([]domain.CreatePerformanceAssessmentScoreParams, len(req.Scores))
 	for i, score := range req.Scores {
 		scores[i] = domain.CreatePerformanceAssessmentScoreParams{
-			DomainID: strings.TrimSpace(score.DomainID),
-			ItemID:   strings.TrimSpace(score.ItemID),
-			Rating:   score.Rating,
-			Remarks:  ptr.TrimString(score.Remarks),
+			QuestionCode: strings.TrimSpace(score.QuestionCode),
+			Rating:       score.Rating,
+			Remarks:      ptr.TrimString(score.Remarks),
 		}
 	}
 
@@ -148,6 +166,35 @@ func toCreatePerformanceAssessmentParams(
 		Notes:          ptr.TrimString(req.Notes),
 		Scores:         scores,
 	}, nil
+}
+
+func toPerformanceAssessmentCatalogResponse(
+	items []domain.PerformanceDomain,
+) []performanceAssessmentCatalogDomainResponse {
+	results := make([]performanceAssessmentCatalogDomainResponse, len(items))
+	for i, item := range items {
+		questions := make([]performanceAssessmentCatalogQuestionResponse, len(item.Questions))
+		for j, question := range item.Questions {
+			questions[j] = performanceAssessmentCatalogQuestionResponse{
+				Code:          question.Code,
+				DomainCode:    question.DomainCode,
+				TitleNL:       question.TitleNL,
+				TitleEN:       question.TitleEN,
+				DescriptionNL: question.DescriptionNL,
+				DescriptionEN: question.DescriptionEN,
+				SortOrder:     question.SortOrder,
+			}
+		}
+
+		results[i] = performanceAssessmentCatalogDomainResponse{
+			Code:      item.Code,
+			NameNL:    item.NameNL,
+			NameEN:    item.NameEN,
+			SortOrder: item.SortOrder,
+			Questions: questions,
+		}
+	}
+	return results
 }
 
 func toListPerformanceAssessmentsParams(
@@ -163,12 +210,12 @@ func toListPerformanceAssessmentsParams(
 	}
 
 	return domain.ListPerformanceAssessmentsParams{
-		Limit:      req.PageSize,
-		Offset:     (req.Page - 1) * req.PageSize,
-		EmployeeID: req.EmployeeID,
-		Status:     ptr.TrimString(req.Status),
-		FromDate:   fromDate,
-		ToDate:     toDate,
+		Limit:    req.PageSize,
+		Offset:   (req.Page - 1) * req.PageSize,
+		Search:   ptr.TrimString(req.Search),
+		Status:   ptr.TrimString(req.Status),
+		FromDate: fromDate,
+		ToDate:   toDate,
 	}, nil
 }
 
@@ -206,8 +253,6 @@ func toDecidePerformanceWorkAssignmentParams(
 func toPerformanceAssessmentResponse(item *domain.PerformanceAssessment) performanceAssessmentResponse {
 	return performanceAssessmentResponse{
 		ID:             item.ID,
-		EmployeeID:     item.EmployeeID,
-		EmployeeName:   item.EmployeeName,
 		Employee:       gin.H{"id": item.EmployeeID, "name": item.EmployeeName},
 		AssessmentDate: item.AssessmentDate.Format(performanceDateLayout),
 		TotalScore:     item.TotalScore,
@@ -231,12 +276,16 @@ func toPerformanceAssessmentScoreResponses(
 	results := make([]performanceAssessmentScoreResponse, len(items))
 	for i, item := range items {
 		results[i] = performanceAssessmentScoreResponse{
-			ID:           item.ID,
-			AssessmentID: item.AssessmentID,
-			DomainID:     item.DomainID,
-			ItemID:       item.ItemID,
-			Rating:       item.Rating,
-			Remarks:      item.Remarks,
+			ID:            item.ID,
+			AssessmentID:  item.AssessmentID,
+			QuestionCode:  item.QuestionCode,
+			DomainCode:    item.DomainCode,
+			TitleNL:       item.TitleNL,
+			TitleEN:       item.TitleEN,
+			DescriptionNL: item.DescriptionNL,
+			DescriptionEN: item.DescriptionEN,
+			Rating:        item.Rating,
+			Remarks:       item.Remarks,
 		}
 	}
 	return results
@@ -248,12 +297,11 @@ func toPerformanceWorkAssignmentResponse(
 	return performanceWorkAssignmentResponse{
 		ID:                    item.ID,
 		AssessmentID:          item.AssessmentID,
-		EmployeeID:            item.EmployeeID,
-		EmployeeName:          item.EmployeeName,
 		Employee:              gin.H{"id": item.EmployeeID, "name": item.EmployeeName},
-		QuestionID:            item.QuestionID,
-		DomainID:              item.DomainID,
-		QuestionText:          item.QuestionText,
+		QuestionCode:          item.QuestionCode,
+		DomainCode:            item.DomainCode,
+		QuestionTextNL:        item.QuestionTextNL,
+		QuestionTextEN:        item.QuestionTextEN,
 		Score:                 item.Score,
 		AssignmentDescription: item.AssignmentDescription,
 		ImprovementNotes:      item.ImprovementNotes,
@@ -283,14 +331,20 @@ func toPerformanceUpcomingResponses(
 ) []performanceUpcomingResponse {
 	results := make([]performanceUpcomingResponse, len(items))
 	for i, item := range items {
+		var lastDateStr *string
+		if item.LastAssessmentDate != nil {
+			s := item.LastAssessmentDate.Format(performanceDateLayout)
+			lastDateStr = &s
+		}
 		results[i] = performanceUpcomingResponse{
 			EmployeeID:         item.EmployeeID,
 			EmployeeName:       item.EmployeeName,
-			LastAssessmentDate: item.LastAssessmentDate.Format(performanceDateLayout),
+			LastAssessmentDate: lastDateStr,
 			NextAssessmentDate: item.NextAssessmentDate.Format(performanceDateLayout),
 			IsOverdue:          item.IsOverdue,
 			IsDueSoon:          item.IsDueSoon,
 			DaysUntilDue:       item.DaysUntilDue,
+			IsFirstReview:      item.IsFirstReview,
 		}
 	}
 	return results

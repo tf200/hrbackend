@@ -41,6 +41,8 @@ DROP TABLE IF EXISTS calendar_events;
 DROP TABLE IF EXISTS performance_work_assignments;
 DROP TABLE IF EXISTS performance_assessment_scores;
 DROP TABLE IF EXISTS performance_assessments;
+DROP TABLE IF EXISTS performance_questions;
+DROP TABLE IF EXISTS performance_domains;
 
 -- Leave management tables
 DROP TABLE IF EXISTS leave_payout_requests;
@@ -66,6 +68,9 @@ DROP TABLE IF EXISTS time_entries;
 
 DROP TABLE IF EXISTS pay_periods;
 
+-- Expense management tables
+DROP TABLE IF EXISTS expense_requests;
+
 -- Schedule tables
 DROP TABLE IF EXISTS schedules;
 DROP TABLE IF EXISTS national_holidays;
@@ -83,6 +88,10 @@ DROP TABLE IF EXISTS certification;
 DROP TABLE IF EXISTS employee_education;
 DROP TABLE IF EXISTS employee_contract_changes;
 DROP TABLE IF EXISTS employee_profile CASCADE;
+
+-- Training tables
+DROP TABLE IF EXISTS employee_training_assignments;
+DROP TABLE IF EXISTS training_catalog_items;
 
 -- Department foreign key constraint cleanup (before dropping departments)
 ALTER TABLE IF EXISTS departments DROP CONSTRAINT IF EXISTS departments_department_head_employee_id_fkey;
@@ -141,3 +150,6 @@ DROP TYPE IF EXISTS permission_override_effect;
 DROP TYPE IF EXISTS notification_type_enum;
 DROP TYPE IF EXISTS location_type_enum;
 DROP TYPE IF EXISTS irregular_hours_profile_enum;
+DROP TYPE IF EXISTS expense_request_category_enum;
+DROP TYPE IF EXISTS expense_request_status_enum;
+DROP TYPE IF EXISTS training_assignment_status_enum;
