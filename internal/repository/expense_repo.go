@@ -113,8 +113,8 @@ func (r *ExpenseRepository) ListMyExpenseRequests(
 ) (*domain.ExpenseRequestPage, error) {
 	rows, err := r.store.ListMyExpenseRequestsPaginated(ctx, db.ListMyExpenseRequestsPaginatedParams{
 		EmployeeID: params.EmployeeID,
-		Status:     toDBNullExpenseStatus(params.Status),
-		Category:   toDBNullExpenseCategory(params.Category),
+		Status:     toDBExpenseStatusPtr(params.Status),
+		Category:   toDBExpenseCategoryPtr(params.Category),
 		Limit:      params.Limit,
 		Offset:     params.Offset,
 	})
@@ -169,8 +169,8 @@ func (r *ExpenseRepository) ListExpenseRequests(
 	params domain.ListExpenseRequestsParams,
 ) (*domain.ExpenseRequestPage, error) {
 	rows, err := r.store.ListExpenseRequestsPaginated(ctx, db.ListExpenseRequestsPaginatedParams{
-		Status:         toDBNullExpenseStatus(params.Status),
-		Category:       toDBNullExpenseCategory(params.Category),
+		Status:         toDBExpenseStatusPtr(params.Status),
+		Category:       toDBExpenseCategoryPtr(params.Category),
 		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
@@ -248,18 +248,15 @@ func (r *expenseTxRepo) UpdateExpenseRequestEditableFields(
 ) (*domain.ExpenseRequest, error) {
 	row, err := r.queries.UpdateExpenseRequestEditableFields(ctx, db.UpdateExpenseRequestEditableFieldsParams{
 		ID: expenseRequestID,
-		Category: func() db.NullExpenseRequestCategoryEnum {
+		Category: func() *db.ExpenseRequestCategoryEnum {
 			if params.Category == nil {
-				return db.NullExpenseRequestCategoryEnum{}
+				return nil
 			}
 			category, ok := toDBExpenseCategory(*params.Category)
 			if !ok {
-				return db.NullExpenseRequestCategoryEnum{}
+				return nil
 			}
-			return db.NullExpenseRequestCategoryEnum{
-				ExpenseRequestCategoryEnum: category,
-				Valid:                      true,
-			}
+			return enumPtr(category)
 		}(),
 		ExpenseDate: func() pgtype.Date {
 			if params.ExpenseDate == nil {
@@ -494,32 +491,26 @@ func toDBExpenseStatus(value string) (db.ExpenseRequestStatusEnum, bool) {
 	}
 }
 
-func toDBNullExpenseCategory(value *string) db.NullExpenseRequestCategoryEnum {
+func toDBExpenseCategoryPtr(value *string) *db.ExpenseRequestCategoryEnum {
 	if value == nil {
-		return db.NullExpenseRequestCategoryEnum{}
+		return nil
 	}
 	parsed, ok := toDBExpenseCategory(*value)
 	if !ok {
-		return db.NullExpenseRequestCategoryEnum{}
+		return nil
 	}
-	return db.NullExpenseRequestCategoryEnum{
-		ExpenseRequestCategoryEnum: parsed,
-		Valid:                      true,
-	}
+	return enumPtr(parsed)
 }
 
-func toDBNullExpenseStatus(value *string) db.NullExpenseRequestStatusEnum {
+func toDBExpenseStatusPtr(value *string) *db.ExpenseRequestStatusEnum {
 	if value == nil {
-		return db.NullExpenseRequestStatusEnum{}
+		return nil
 	}
 	parsed, ok := toDBExpenseStatus(*value)
 	if !ok {
-		return db.NullExpenseRequestStatusEnum{}
+		return nil
 	}
-	return db.NullExpenseRequestStatusEnum{
-		ExpenseRequestStatusEnum: parsed,
-		Valid:                    true,
-	}
+	return enumPtr(parsed)
 }
 
 var _ domain.ExpenseRepository = (*ExpenseRepository)(nil)

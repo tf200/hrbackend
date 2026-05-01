@@ -102,7 +102,7 @@ func (r *TimeEntryRepository) ListTimeEntries(
 	params domain.ListTimeEntriesParams,
 ) (*domain.TimeEntryPage, error) {
 	rows, err := r.store.ListTimeEntriesPaginated(ctx, db.ListTimeEntriesPaginatedParams{
-		Status:         toDBNullTimeEntryStatus(params.Status),
+		Status:         toDBTimeEntryStatusPtr(params.Status),
 		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
@@ -158,7 +158,7 @@ func (r *TimeEntryRepository) ListMyTimeEntries(
 ) (*domain.TimeEntryPage, error) {
 	rows, err := r.store.ListMyTimeEntriesPaginated(ctx, db.ListMyTimeEntriesPaginatedParams{
 		EmployeeID: params.EmployeeID,
-		Status:     toDBNullTimeEntryStatus(params.Status),
+		Status:     toDBTimeEntryStatusPtr(params.Status),
 		Limit:      params.Limit,
 		Offset:     params.Offset,
 	})
@@ -398,15 +398,12 @@ func toDBTimeEntryStatus(value string) db.TimeEntryStatusEnum {
 	}
 }
 
-func toDBNullTimeEntryStatus(value *string) db.NullTimeEntryStatusEnum {
+func toDBTimeEntryStatusPtr(value *string) *db.TimeEntryStatusEnum {
 	if value == nil {
-		return db.NullTimeEntryStatusEnum{}
+		return nil
 	}
 
-	return db.NullTimeEntryStatusEnum{
-		TimeEntryStatusEnum: toDBTimeEntryStatus(*value),
-		Valid:               true,
-	}
+	return enumPtr(toDBTimeEntryStatus(*value))
 }
 
 type timeEntryTxRepo struct {
@@ -501,7 +498,7 @@ func (r *timeEntryTxRepo) UpdateTimeEntryByAdmin(
 		StartTime:           startTime,
 		EndTime:             endTime,
 		BreakMinutes:        params.BreakMinutes,
-		HourType:            toDBNullTimeEntryHourType(params.HourType),
+		HourType:            toDBTimeEntryHourTypePtr(params.HourType),
 		ProjectName:         params.ProjectName,
 		ProjectNumber:       params.ProjectNumber,
 		ClientName:          params.ClientName,
@@ -677,15 +674,12 @@ func toNullablePgTime(value *string) (pgtype.Time, error) {
 	return parsed, nil
 }
 
-func toDBNullTimeEntryHourType(value *string) db.NullTimeEntryHourTypeEnum {
+func toDBTimeEntryHourTypePtr(value *string) *db.TimeEntryHourTypeEnum {
 	if value == nil {
-		return db.NullTimeEntryHourTypeEnum{}
+		return nil
 	}
 
-	return db.NullTimeEntryHourTypeEnum{
-		TimeEntryHourTypeEnum: toDBTimeEntryHourType(*value),
-		Valid:                 true,
-	}
+	return enumPtr(toDBTimeEntryHourType(*value))
 }
 
 func shouldSetSubmitted(status *string) bool {

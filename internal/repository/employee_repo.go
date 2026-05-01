@@ -66,7 +66,7 @@ func (r *EmployeeRepository) ListEmployees(
 		IncludeArchived:     params.IncludeArchived,
 		IncludeOutOfService: params.IncludeOutOfService,
 		LocationID:          params.LocationID,
-		ContractType:        nullContractTypeFromPtr(params.ContractType),
+		ContractType:        contractTypePtrFromStringPtr(params.ContractType),
 		Search:              params.Search,
 	})
 	if err != nil {
@@ -98,7 +98,7 @@ func (r *EmployeeRepository) CountEmployees(
 		IncludeArchived:     params.IncludeArchived,
 		IncludeOutOfService: params.IncludeOutOfService,
 		LocationID:          params.LocationID,
-		ContractType:        nullContractTypeFromPtr(params.ContractType),
+		ContractType:        contractTypePtrFromStringPtr(params.ContractType),
 	})
 }
 
@@ -169,9 +169,9 @@ func (r *EmployeeRepository) UpdateEmployee(
 		WorkPhoneNumber:       params.WorkPhoneNumber,
 		DateOfBirth:           pgDateFromPtr(params.DateOfBirth),
 		HomeTelephoneNumber:   params.HomeTelephoneNumber,
-		Gender:                nullGenderEnumFromPtr(params.Gender),
+		Gender:                genderEnumPtrFromStringPtr(params.Gender),
 		LocationID:            params.LocationID,
-		IrregularHoursProfile: nullIrregularHoursProfileFromPtr(params.IrregularHoursProfile),
+		IrregularHoursProfile: irregularHoursProfilePtrFromStringPtr(params.IrregularHoursProfile),
 		HasBorrowed:           params.HasBorrowed,
 		OutOfService:          params.OutOfService,
 		IsArchived:            params.IsArchived,
@@ -248,14 +248,11 @@ func (r *EmployeeRepository) AddContractDetails(
 		ContractHours:     params.ContractHours,
 		ContractStartDate: conv.PgDateFromTime(params.ContractStartDate),
 		ContractEndDate:   conv.PgDateFromTime(params.ContractEndDate),
-		ContractType:      db.NullEmployeeContractTypeEnum{},
+		ContractType:      nil,
 		ContractRate:      params.ContractRate,
-		IrregularHoursProfile: db.NullIrregularHoursProfileEnum{
-			IrregularHoursProfileEnum: irregularHoursProfileFromString(
-				params.IrregularHoursProfile,
-			),
-			Valid: true,
-		},
+		IrregularHoursProfile: enumPtr(irregularHoursProfileFromString(
+			params.IrregularHoursProfile,
+		)),
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -865,12 +862,12 @@ func genderEnumFromString(value string) db.GenderEnum {
 	}
 }
 
-func nullGenderEnumFromPtr(value *string) db.NullGenderEnum {
+func genderEnumPtrFromStringPtr(value *string) *db.GenderEnum {
 	if value == nil {
-		return db.NullGenderEnum{}
+		return nil
 	}
 
-	return db.NullGenderEnum{GenderEnum: genderEnumFromString(*value), Valid: true}
+	return enumPtr(genderEnumFromString(*value))
 }
 
 func contractTypeFromString(value string) db.EmployeeContractTypeEnum {
@@ -884,15 +881,12 @@ func contractTypeFromString(value string) db.EmployeeContractTypeEnum {
 	}
 }
 
-func nullContractTypeFromPtr(value *string) db.NullEmployeeContractTypeEnum {
+func contractTypePtrFromStringPtr(value *string) *db.EmployeeContractTypeEnum {
 	if value == nil {
-		return db.NullEmployeeContractTypeEnum{}
+		return nil
 	}
 
-	return db.NullEmployeeContractTypeEnum{
-		EmployeeContractTypeEnum: contractTypeFromString(*value),
-		Valid:                    true,
-	}
+	return enumPtr(contractTypeFromString(*value))
 }
 
 func irregularHoursProfileFromString(value string) db.IrregularHoursProfileEnum {
@@ -906,15 +900,16 @@ func irregularHoursProfileFromString(value string) db.IrregularHoursProfileEnum 
 	}
 }
 
-func nullIrregularHoursProfileFromPtr(value *string) db.NullIrregularHoursProfileEnum {
+func irregularHoursProfilePtrFromStringPtr(value *string) *db.IrregularHoursProfileEnum {
 	if value == nil {
-		return db.NullIrregularHoursProfileEnum{}
+		return nil
 	}
 
-	return db.NullIrregularHoursProfileEnum{
-		IrregularHoursProfileEnum: irregularHoursProfileFromString(*value),
-		Valid:                     true,
-	}
+	return enumPtr(irregularHoursProfileFromString(*value))
+}
+
+func enumPtr[T any](value T) *T {
+	return &value
 }
 
 func valueOrZero(value *float64) float64 {

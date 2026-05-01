@@ -49,7 +49,7 @@ func NewWebSocketHandler(
 }
 
 func RegisterWebSocketRoutes(rg *gin.RouterGroup, handler *WebSocketHandler, auth gin.HandlerFunc) {
-	rg.POST("/ws/tickets", auth, handler.IssueTicket)
+	rg.POST("/auth/ws-ticket", auth, handler.IssueTicket)
 	rg.GET("/ws", handler.Connect)
 }
 

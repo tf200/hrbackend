@@ -487,7 +487,7 @@ func (r *ScheduleRepository) ListShiftSwapRequests(
 	params domain.ListShiftSwapRequestsParams,
 ) (*domain.ShiftSwapPage, error) {
 	queryArg := db.ListShiftSwapRequestsPaginatedParams{
-		Status:     db.NullShiftSwapStatusEnum{},
+		Status:     nil,
 		EmployeeID: params.EmployeeID,
 		Filter:     params.Filter,
 		Limit:      params.Limit,
@@ -495,10 +495,7 @@ func (r *ScheduleRepository) ListShiftSwapRequests(
 	}
 	if params.Status != nil {
 		if parsed, ok := parseDBShiftSwapStatus(*params.Status); ok {
-			queryArg.Status = db.NullShiftSwapStatusEnum{
-				ShiftSwapStatusEnum: parsed,
-				Valid:               true,
-			}
+			queryArg.Status = enumPtr(parsed)
 		}
 	}
 

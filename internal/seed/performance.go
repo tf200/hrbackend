@@ -91,15 +91,20 @@ func (s PerformanceSeeder) Seed(ctx context.Context, env Env) error {
 			if err := upsertPerformanceScore(ctx, tx, scoreID, assessmentID, score); err != nil {
 				return fmt.Errorf("seed performance[%s]: %w", employee.Alias, err)
 			}
+		}
 
-			if score.Rating > 5 {
-				continue
+		for _, da := range buildDemoAssignments() {
+			assignmentScore := performanceScoreSeed{
+				DomainCode:      da.DomainCode,
+				QuestionCode:    da.QuestionCode,
+				Rating:          da.Rating,
+				QuestionTitleNL: da.TitleNL,
+				QuestionTitleEN: da.TitleEN,
 			}
-
 			assignmentID := performanceDeterministicID(
 				"assignment",
 				assessmentID.String(),
-				score.QuestionCode,
+				da.QuestionCode,
 			)
 			if err := upsertPerformanceAssignment(
 				ctx,
@@ -107,7 +112,7 @@ func (s PerformanceSeeder) Seed(ctx context.Context, env Env) error {
 				assignmentID,
 				assessmentID,
 				employee.ID,
-				score,
+				assignmentScore,
 				assessmentDate.AddDate(0, 0, 14),
 				performanceAssignmentStatusForIndex(i),
 			); err != nil {
@@ -346,6 +351,33 @@ func buildPerformanceScores(seed int) []performanceScoreSeed {
 	})
 
 	return items
+}
+
+type demoAssignment struct {
+	DomainCode   string
+	QuestionCode string
+	Rating       float64
+	TitleNL      string
+	TitleEN      string
+}
+
+func buildDemoAssignments() []demoAssignment {
+	return []demoAssignment{
+		{
+			DomainCode:   "OB",
+			QuestionCode: "OB_1",
+			Rating:       4,
+			TitleNL:      "Positief en constructief corrigeren",
+			TitleEN:      "Positive and constructive correction",
+		},
+		{
+			DomainCode:   "SO",
+			QuestionCode: "SO_2",
+			Rating:       5,
+			TitleNL:      "Emotieregulatie versterken",
+			TitleEN:      "Strengthening emotion regulation",
+		},
+	}
 }
 
 func performanceAssignmentStatusForIndex(i int) string {

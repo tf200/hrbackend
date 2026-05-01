@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -18,8 +17,21 @@ type PerformanceRepository struct {
 	store *db.Store
 }
 
+type performanceTxRepo struct {
+	queries *db.Queries
+}
+
 func NewPerformanceRepository(store *db.Store) domain.PerformanceRepository {
 	return &PerformanceRepository{store: store}
+}
+
+func (r *PerformanceRepository) WithTx(
+	ctx context.Context,
+	fn func(tx domain.PerformanceTxRepository) error,
+) error {
+	return r.store.ExecTx(ctx, func(q *db.Queries) error {
+		return fn(&performanceTxRepo{queries: q})
+	})
 }
 
 func (r *PerformanceRepository) ListAssessmentCatalog(ctx context.Context) ([]domain.PerformanceDomain, error) {
@@ -56,89 +68,6 @@ func (r *PerformanceRepository) ListAssessmentCatalog(ctx context.Context) ([]do
 	}
 
 	return domains, nil
-}
-
-func (r *PerformanceRepository) CreateAssessment(
-	ctx context.Context,
-	params domain.CreatePerformanceAssessmentParams,
-) (*domain.PerformanceAssessment, error) {
-	var created *domain.PerformanceAssessment
-	err := r.store.ExecTx(ctx, func(q *db.Queries) error {
-		employee, err := q.GetActiveEmployeeNameForPerformance(ctx, params.EmployeeID)
-		if err != nil {
-			if isDBNotFound(err) {
-				return domain.ErrPerformanceInvalidRequest
-			}
-			return err
-		}
-
-		row, err := q.CreatePerformanceAssessment(ctx, db.CreatePerformanceAssessmentParams{
-			EmployeeID:     params.EmployeeID,
-			AssessmentDate: conv.PgDateFromTime(params.AssessmentDate),
-			TotalScore:     averageScore(params.Scores),
-			Notes:          params.Notes,
-		})
-		if err != nil {
-			return err
-		}
-
-		assessment := toDomainPerformanceAssessment(
-			row.ID,
-			row.EmployeeID,
-			employee.FirstName,
-			employee.LastName,
-			row.AssessmentDate,
-			row.TotalScore,
-			string(row.Status),
-			row.Notes,
-			row.CreatedAt,
-		)
-
-		for _, score := range params.Scores {
-			question, err := q.GetActivePerformanceQuestion(ctx, score.QuestionCode)
-			if err != nil {
-				if isDBNotFound(err) {
-					return domain.ErrPerformanceInvalidRequest
-				}
-				return err
-			}
-
-			err = q.CreatePerformanceAssessmentScore(ctx, db.CreatePerformanceAssessmentScoreParams{
-				AssessmentID: assessment.ID,
-				QuestionCode: score.QuestionCode,
-				Rating:       score.Rating,
-				Remarks:      score.Remarks,
-			})
-			if err != nil {
-				return err
-			}
-
-			if score.Rating <= 5 {
-				err = q.CreatePerformanceWorkAssignment(ctx, db.CreatePerformanceWorkAssignmentParams{
-					AssessmentID:          assessment.ID,
-					EmployeeID:            params.EmployeeID,
-					QuestionCode:          question.Code,
-					DomainCode:            question.DomainCode,
-					QuestionTextNl:        question.TitleNl,
-					QuestionTextEn:        question.TitleEn,
-					Score:                 score.Rating,
-					AssignmentDescription: formatAssignmentDescription(question.DomainCode, question.Code, score.Rating),
-					AssessmentDate:        conv.PgDateFromTime(params.AssessmentDate),
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		created = &assessment
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return created, nil
 }
 
 func (r *PerformanceRepository) ListAssessments(
@@ -326,42 +255,6 @@ func (r *PerformanceRepository) GetWorkAssignmentByID(
 	return &item, nil
 }
 
-func (r *PerformanceRepository) DecideWorkAssignment(
-	ctx context.Context,
-	id uuid.UUID,
-	params domain.DecidePerformanceWorkAssignmentParams,
-) (*domain.PerformanceWorkAssignment, error) {
-	err := r.store.ExecTx(ctx, func(q *db.Queries) error {
-		currentStatus, err := q.GetPerformanceWorkAssignmentStatusForUpdate(ctx, id)
-		if err != nil {
-			if isDBNotFound(err) {
-				return domain.ErrPerformanceNotFound
-			}
-			return err
-		}
-
-		if currentStatus != domain.PerformanceWorkAssignmentStatusSubmitted {
-			return domain.ErrPerformanceStateInvalid
-		}
-
-		nextStatus := db.PerformanceWorkAssignmentStatusEnumApproved
-		if params.Decision == "request_revision" {
-			nextStatus = db.PerformanceWorkAssignmentStatusEnumRevisionNeeded
-		}
-
-		return q.UpdatePerformanceWorkAssignmentDecision(ctx, db.UpdatePerformanceWorkAssignmentDecisionParams{
-			ID:       id,
-			Status:   nextStatus,
-			Feedback: params.Feedback,
-		})
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return r.GetWorkAssignmentByID(ctx, id)
-}
-
 func (r *PerformanceRepository) ListUpcoming(
 	ctx context.Context,
 	windowDays int,
@@ -411,6 +304,87 @@ func (r *PerformanceRepository) GetStats(ctx context.Context) (*domain.Performan
 	}
 
 	return stats, nil
+}
+
+func (r *performanceTxRepo) GetActiveEmployeeName(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.PerformanceEmployeeName, error) {
+	row, err := r.queries.GetActiveEmployeeNameForPerformance(ctx, employeeID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrPerformanceInvalidRequest
+		}
+		return nil, err
+	}
+
+	return &domain.PerformanceEmployeeName{FirstName: row.FirstName, LastName: row.LastName}, nil
+}
+
+func (r *performanceTxRepo) CreateAssessment(
+	ctx context.Context,
+	params domain.CreatePerformanceAssessmentRecordParams,
+	employeeName domain.PerformanceEmployeeName,
+) (*domain.PerformanceAssessment, error) {
+	row, err := r.queries.CreatePerformanceAssessment(ctx, db.CreatePerformanceAssessmentParams{
+		EmployeeID:     params.EmployeeID,
+		AssessmentDate: conv.PgDateFromTime(params.AssessmentDate),
+		TotalScore:     params.TotalScore,
+		Notes:          params.Notes,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	assessment := toDomainPerformanceAssessment(
+		row.ID,
+		row.EmployeeID,
+		employeeName.FirstName,
+		employeeName.LastName,
+		row.AssessmentDate,
+		row.TotalScore,
+		string(row.Status),
+		row.Notes,
+		row.CreatedAt,
+	)
+	return &assessment, nil
+}
+
+func (r *performanceTxRepo) CreateAssessmentScore(
+	ctx context.Context,
+	assessmentID uuid.UUID,
+	score domain.CreatePerformanceAssessmentScoreParams,
+) error {
+	return r.queries.CreatePerformanceAssessmentScore(ctx, db.CreatePerformanceAssessmentScoreParams{
+		AssessmentID: assessmentID,
+		QuestionCode: score.QuestionCode,
+		Rating:       score.Rating,
+		Remarks:      score.Remarks,
+	})
+}
+
+func (r *performanceTxRepo) GetWorkAssignmentStatusForUpdate(ctx context.Context, id uuid.UUID) (string, error) {
+	status, err := r.queries.GetPerformanceWorkAssignmentStatusForUpdate(ctx, id)
+	if err != nil {
+		if isDBNotFound(err) {
+			return "", domain.ErrPerformanceNotFound
+		}
+		return "", err
+	}
+	return string(status), nil
+}
+
+func (r *performanceTxRepo) UpdateWorkAssignmentDecision(
+	ctx context.Context,
+	id uuid.UUID,
+	status string,
+	feedback *string,
+) error {
+	return r.queries.UpdatePerformanceWorkAssignmentDecision(ctx, db.UpdatePerformanceWorkAssignmentDecisionParams{
+		ID:       id,
+		Status:   db.PerformanceWorkAssignmentStatusEnum(status),
+		Feedback: feedback,
+	})
 }
 
 func toDomainPerformanceAssessment(
@@ -486,27 +460,6 @@ func pgDateFromTimePtr(value *time.Time) pgtype.Date {
 		return pgtype.Date{}
 	}
 	return conv.PgDateFromTime(*value)
-}
-
-func averageScore(scores []domain.CreatePerformanceAssessmentScoreParams) *float64 {
-	if len(scores) == 0 {
-		return nil
-	}
-	var sum float64
-	for _, score := range scores {
-		sum += score.Rating
-	}
-	result := sum / float64(len(scores))
-	return &result
-}
-
-func formatAssignmentDescription(domainCode, questionCode string, score float64) string {
-	return fmt.Sprintf(
-		"Score %.1f op %s (%s). Beschrijf verbeteracties en concrete opvolgstappen.",
-		score,
-		domainCode,
-		questionCode,
-	)
 }
 
 func dateOnlyUTCPerf(value time.Time) time.Time {

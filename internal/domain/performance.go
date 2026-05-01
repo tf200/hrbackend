@@ -66,6 +66,11 @@ type PerformanceQuestion struct {
 	SortOrder     int32
 }
 
+type PerformanceEmployeeName struct {
+	FirstName string
+	LastName  string
+}
+
 type PerformanceWorkAssignment struct {
 	ID                    uuid.UUID
 	AssessmentID          uuid.UUID
@@ -133,6 +138,13 @@ type CreatePerformanceAssessmentParams struct {
 	Scores         []CreatePerformanceAssessmentScoreParams
 }
 
+type CreatePerformanceAssessmentRecordParams struct {
+	EmployeeID     uuid.UUID
+	AssessmentDate time.Time
+	TotalScore     *float64
+	Notes          *string
+}
+
 type ListPerformanceAssessmentsParams struct {
 	Limit    int32
 	Offset   int32
@@ -156,9 +168,21 @@ type DecidePerformanceWorkAssignmentParams struct {
 	Feedback *string
 }
 
+type PerformanceTxRepository interface {
+	GetActiveEmployeeName(ctx context.Context, employeeID uuid.UUID) (*PerformanceEmployeeName, error)
+	CreateAssessment(
+		ctx context.Context,
+		params CreatePerformanceAssessmentRecordParams,
+		employeeName PerformanceEmployeeName,
+	) (*PerformanceAssessment, error)
+	CreateAssessmentScore(ctx context.Context, assessmentID uuid.UUID, score CreatePerformanceAssessmentScoreParams) error
+	GetWorkAssignmentStatusForUpdate(ctx context.Context, id uuid.UUID) (string, error)
+	UpdateWorkAssignmentDecision(ctx context.Context, id uuid.UUID, status string, feedback *string) error
+}
+
 type PerformanceRepository interface {
+	WithTx(ctx context.Context, fn func(tx PerformanceTxRepository) error) error
 	ListAssessmentCatalog(ctx context.Context) ([]PerformanceDomain, error)
-	CreateAssessment(ctx context.Context, params CreatePerformanceAssessmentParams) (*PerformanceAssessment, error)
 	ListAssessments(
 		ctx context.Context,
 		params ListPerformanceAssessmentsParams,
@@ -171,11 +195,6 @@ type PerformanceRepository interface {
 		params ListPerformanceWorkAssignmentsParams,
 	) (*PerformanceWorkAssignmentPage, error)
 	GetWorkAssignmentByID(ctx context.Context, id uuid.UUID) (*PerformanceWorkAssignment, error)
-	DecideWorkAssignment(
-		ctx context.Context,
-		id uuid.UUID,
-		params DecidePerformanceWorkAssignmentParams,
-	) (*PerformanceWorkAssignment, error)
 	ListUpcoming(ctx context.Context, windowDays int) ([]PerformanceUpcomingItem, error)
 	GetStats(ctx context.Context) (*PerformanceStats, error)
 }

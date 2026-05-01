@@ -56,10 +56,10 @@ func (s *PerformanceService) CreateAssessment(
 		return nil, fmt.Errorf("list assessment catalog: %w", err)
 	}
 
-	activeQuestions := make(map[string]struct{})
+	activeQuestions := make(map[string]domain.PerformanceQuestion)
 	for _, domainItem := range catalog {
 		for _, question := range domainItem.Questions {
-			activeQuestions[question.Code] = struct{}{}
+			activeQuestions[question.Code] = question
 		}
 	}
 	if len(activeQuestions) == 0 {
@@ -90,7 +90,32 @@ func (s *PerformanceService) CreateAssessment(
 		return nil, domain.ErrPerformanceInvalidRequest
 	}
 
-	assessment, err := s.repository.CreateAssessment(ctx, normalized)
+	var assessment *domain.PerformanceAssessment
+	err = s.repository.WithTx(ctx, func(tx domain.PerformanceTxRepository) error {
+		employeeName, err := tx.GetActiveEmployeeName(ctx, normalized.EmployeeID)
+		if err != nil {
+			return err
+		}
+
+		created, err := tx.CreateAssessment(ctx, domain.CreatePerformanceAssessmentRecordParams{
+			EmployeeID:     normalized.EmployeeID,
+			AssessmentDate: normalized.AssessmentDate,
+			TotalScore:     averagePerformanceScore(normalized.Scores),
+			Notes:          normalized.Notes,
+		}, *employeeName)
+		if err != nil {
+			return err
+		}
+
+		for _, score := range normalized.Scores {
+			if err := tx.CreateAssessmentScore(ctx, created.ID, score); err != nil {
+				return err
+			}
+		}
+
+		assessment = created
+		return nil
+	})
 	if err != nil {
 		s.logger.LogError(
 			ctx,
@@ -220,12 +245,27 @@ func (s *PerformanceService) DecideWorkAssignment(
 		Feedback: performanceTrimStringPtr(params.Feedback),
 	}
 
-	item, err := s.repository.DecideWorkAssignment(ctx, id, normalized)
+	err := s.repository.WithTx(ctx, func(tx domain.PerformanceTxRepository) error {
+		currentStatus, err := tx.GetWorkAssignmentStatusForUpdate(ctx, id)
+		if err != nil {
+			return err
+		}
+		if currentStatus != domain.PerformanceWorkAssignmentStatusSubmitted {
+			return domain.ErrPerformanceStateInvalid
+		}
+
+		nextStatus := domain.PerformanceWorkAssignmentStatusApproved
+		if normalized.Decision == "request_revision" {
+			nextStatus = domain.PerformanceWorkAssignmentStatusRevisionNeeded
+		}
+
+		return tx.UpdateWorkAssignmentDecision(ctx, id, nextStatus, normalized.Feedback)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return item, nil
+	return s.repository.GetWorkAssignmentByID(ctx, id)
 }
 
 func (s *PerformanceService) ListUpcoming(
@@ -343,6 +383,18 @@ func normalizeListAssignmentsParams(
 	}
 
 	return params, nil
+}
+
+func averagePerformanceScore(scores []domain.CreatePerformanceAssessmentScoreParams) *float64 {
+	if len(scores) == 0 {
+		return nil
+	}
+	var sum float64
+	for _, score := range scores {
+		sum += score.Rating
+	}
+	result := sum / float64(len(scores))
+	return &result
 }
 
 func performanceTrimStringPtr(value *string) *string {

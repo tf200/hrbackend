@@ -88,10 +88,9 @@ func (r *LeaveRepository) ListMyLeaveRequests(
 	ctx context.Context,
 	params domain.ListMyLeaveRequestsParams,
 ) (*domain.LeaveRequestPage, error) {
-	status := toDBNullLeaveStatus(params.Status)
 	rows, err := r.store.ListMyLeaveRequestsPaginated(ctx, db.ListMyLeaveRequestsPaginatedParams{
 		EmployeeID: params.EmployeeID,
-		Status:     status,
+		Status:     toDBLeaveStatusPtr(params.Status),
 		Limit:      params.Limit,
 		Offset:     params.Offset,
 	})
@@ -134,9 +133,8 @@ func (r *LeaveRepository) ListLeaveRequests(
 	ctx context.Context,
 	params domain.ListLeaveRequestsParams,
 ) (*domain.LeaveRequestPage, error) {
-	status := toDBNullLeaveStatus(params.Status)
 	rows, err := r.store.ListLeaveRequestsPaginated(ctx, db.ListLeaveRequestsPaginatedParams{
-		Status:         status,
+		Status:         toDBLeaveStatusPtr(params.Status),
 		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
@@ -339,18 +337,15 @@ func (r *leaveTxRepo) UpdateLeaveRequestEditableFields(
 		ctx,
 		db.UpdateLeaveRequestEditableFieldsParams{
 			ID: leaveRequestID,
-			LeaveType: func() db.NullLeaveRequestTypeEnum {
+			LeaveType: func() *db.LeaveRequestTypeEnum {
 				if params.LeaveType == nil {
-					return db.NullLeaveRequestTypeEnum{}
+					return nil
 				}
 				leaveType, ok := toDBLeaveType(*params.LeaveType)
 				if !ok {
-					return db.NullLeaveRequestTypeEnum{}
+					return nil
 				}
-				return db.NullLeaveRequestTypeEnum{
-					LeaveRequestTypeEnum: leaveType,
-					Valid:                true,
-				}
+				return enumPtr(leaveType)
 			}(),
 			StartDate: func() pgtype.Date {
 				if params.StartDate == nil {
@@ -778,18 +773,15 @@ func toDBLeaveStatus(value string) (db.LeaveRequestStatusEnum, bool) {
 	}
 }
 
-func toDBNullLeaveStatus(value *string) db.NullLeaveRequestStatusEnum {
+func toDBLeaveStatusPtr(value *string) *db.LeaveRequestStatusEnum {
 	if value == nil {
-		return db.NullLeaveRequestStatusEnum{}
+		return nil
 	}
 	parsed, ok := toDBLeaveStatus(*value)
 	if !ok {
-		return db.NullLeaveRequestStatusEnum{}
+		return nil
 	}
-	return db.NullLeaveRequestStatusEnum{
-		LeaveRequestStatusEnum: parsed,
-		Valid:                  true,
-	}
+	return enumPtr(parsed)
 }
 
 func timePtrFromPgTimestamptz(value pgtype.Timestamptz) *time.Time {

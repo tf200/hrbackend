@@ -49,21 +49,6 @@ INSERT INTO performance_assessment_scores (
 )
 VALUES ($1, $2, $3, $4);
 
--- name: CreatePerformanceWorkAssignment :exec
-INSERT INTO performance_work_assignments (
-    assessment_id,
-    employee_id,
-    question_code,
-    domain_code,
-    question_text_nl,
-    question_text_en,
-    score,
-    assignment_description,
-    due_date,
-    status
-)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, (sqlc.arg(assessment_date)::date + INTERVAL '14 day')::date, 'open');
-
 -- name: ListPerformanceAssessments :many
 SELECT
     pa.id,

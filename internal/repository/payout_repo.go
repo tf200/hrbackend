@@ -39,7 +39,7 @@ func (r *PayoutRepository) ListMyPayoutRequests(
 ) (*domain.PayoutRequestPage, error) {
 	rows, err := r.store.ListMyPayoutRequestsPaginated(ctx, db.ListMyPayoutRequestsPaginatedParams{
 		EmployeeID: params.EmployeeID,
-		Status:     toDBNullPayoutStatus(params.Status),
+		Status:     toDBPayoutStatusPtr(params.Status),
 		Limit:      params.Limit,
 		Offset:     params.Offset,
 	})
@@ -86,7 +86,7 @@ func (r *PayoutRepository) ListPayoutRequests(
 	params domain.ListPayoutRequestsParams,
 ) (*domain.PayoutRequestPage, error) {
 	rows, err := r.store.ListPayoutRequestsPaginated(ctx, db.ListPayoutRequestsPaginatedParams{
-		Status:         toDBNullPayoutStatus(params.Status),
+		Status:         toDBPayoutStatusPtr(params.Status),
 		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Limit:          params.Limit,
 		Offset:         params.Offset,
@@ -236,7 +236,7 @@ func (r *PayoutRepository) ListPayPeriods(
 	params domain.ListPayPeriodsParams,
 ) (*domain.PayPeriodPage, error) {
 	rows, err := r.store.ListPayPeriodsPaginated(ctx, db.ListPayPeriodsPaginatedParams{
-		Status:         toDBNullPayPeriodStatus(params.Status),
+		Status:         toDBPayPeriodStatusPtr(params.Status),
 		EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
 		Offset:         params.Offset,
 		Limit:          params.Limit,
@@ -1044,18 +1044,15 @@ func toDBPayoutStatus(value string) (db.PayoutRequestStatusEnum, bool) {
 	}
 }
 
-func toDBNullPayoutStatus(value *string) db.NullPayoutRequestStatusEnum {
+func toDBPayoutStatusPtr(value *string) *db.PayoutRequestStatusEnum {
 	if value == nil {
-		return db.NullPayoutRequestStatusEnum{}
+		return nil
 	}
 	parsed, ok := toDBPayoutStatus(*value)
 	if !ok {
-		return db.NullPayoutRequestStatusEnum{}
+		return nil
 	}
-	return db.NullPayoutRequestStatusEnum{
-		PayoutRequestStatusEnum: parsed,
-		Valid:                   true,
-	}
+	return enumPtr(parsed)
 }
 
 func toDBPayPeriodStatus(value string) (db.PayPeriodStatusEnum, bool) {
@@ -1067,18 +1064,15 @@ func toDBPayPeriodStatus(value string) (db.PayPeriodStatusEnum, bool) {
 	}
 }
 
-func toDBNullPayPeriodStatus(value *string) db.NullPayPeriodStatusEnum {
+func toDBPayPeriodStatusPtr(value *string) *db.PayPeriodStatusEnum {
 	if value == nil {
-		return db.NullPayPeriodStatusEnum{}
+		return nil
 	}
 	parsed, ok := toDBPayPeriodStatus(*value)
 	if !ok {
-		return db.NullPayPeriodStatusEnum{}
+		return nil
 	}
-	return db.NullPayPeriodStatusEnum{
-		PayPeriodStatusEnum: parsed,
-		Valid:               true,
-	}
+	return enumPtr(parsed)
 }
 
 func isPayPeriodUniqueViolation(err error) bool {
