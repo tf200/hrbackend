@@ -207,6 +207,8 @@ type employeeProfileResponse struct {
 	LastLogin        time.Time            `json:"last_login"`
 	TwoFactorEnabled bool                 `json:"two_factor_enabled"`
 	Role             string               `json:"role"`
+	RoleID           uuid.UUID            `json:"role_id"`
+	PortalAccess     string               `json:"portal_access"`
 	EmployeeID       uuid.UUID            `json:"employee_id"`
 	FirstName        string               `json:"first_name"`
 	LastName         string               `json:"last_name"`
@@ -219,6 +221,7 @@ type employeeCountsResponse struct {
 	TotalArchived       int64 `json:"total_archived"`
 	TotalOutOfService   int64 `json:"total_out_of_service"`
 }
+
 
 type setProfilePictureResponse struct {
 	ID             uuid.UUID `json:"id"`
@@ -571,6 +574,8 @@ func toEmployeeProfileResponse(profile *domain.EmployeeProfile) employeeProfileR
 		LastLogin:        profile.LastLogin,
 		TwoFactorEnabled: profile.TwoFactorEnabled,
 		Role:             profile.Role,
+		RoleID:           profile.RoleID,
+		PortalAccess:     profile.PortalAccess,
 		EmployeeID:       profile.EmployeeID,
 		FirstName:        profile.FirstName,
 		LastName:         profile.LastName,
@@ -586,6 +591,7 @@ func toEmployeeCountsResponse(counts *domain.EmployeeCounts) employeeCountsRespo
 		TotalOutOfService:   counts.TotalOutOfService,
 	}
 }
+
 
 func toContractDetailsResponse(details *domain.ContractDetails) contractDetailsResponse {
 	return contractDetailsResponse{

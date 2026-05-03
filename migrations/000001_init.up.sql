@@ -210,8 +210,10 @@ WITH seeded(name, sort_order) AS (
         ('TIME_ENTRY.UPDATE_ALL', 520),
         ('TIME_ENTRY.VIEW', 530),
         ('TIME_ENTRY.VIEW_ALL', 540),
-        ('TIME_ENTRY.DECIDE', 550)
-)
+        ('TIME_ENTRY.DECIDE', 550),
+        ('PORTAL.ADMIN.ACCESS', 700),
+        ('PORTAL.EMPLOYEE.ACCESS', 710)
+    )
 INSERT INTO permissions (
     name,
     resource,
@@ -257,6 +259,7 @@ SELECT ar.id, p.id
 FROM admin_role ar
 CROSS JOIN permissions p
 WHERE p.name IN (
+    'PORTAL.ADMIN.ACCESS',
     'EMPLOYEE.CREATE',
     'EMPLOYEE.DELETE',
     'EMPLOYEE.UPDATE',

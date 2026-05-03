@@ -45,7 +45,34 @@ func (s *EmployeeService) GetEmployeeProfile(
 		s.logError(ctx, "GetEmployeeProfile", err, zap.String("user_id", userID.String()))
 		return nil, err
 	}
+	profile.PortalAccess = computePortalAccess(profile.Permissions)
 	return profile, nil
+}
+
+// computePortalAccess derives portal routing from effective permissions.
+func computePortalAccess(permissions []domain.Permission) string {
+	hasAdmin := false
+	hasEmployee := false
+	for _, p := range permissions {
+		switch p.Name {
+		case domain.PortalPermissionAdmin:
+			hasAdmin = true
+		case domain.PortalPermissionEmployee:
+			hasEmployee = true
+		}
+	}
+
+	switch {
+	case hasAdmin && hasEmployee:
+		return domain.PortalAccessBoth
+	case hasAdmin:
+		return domain.PortalAccessAdmin
+	case hasEmployee:
+		return domain.PortalAccessEmployee
+	default:
+		// Safe fallback — employee portal is the least-privilege default.
+		return domain.PortalAccessEmployee
+	}
 }
 
 func (s *EmployeeService) ListEmployees(

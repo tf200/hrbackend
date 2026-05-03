@@ -319,6 +319,7 @@ SELECT
     cu.last_login   AS last_login,
     cu.two_factor_enabled AS two_factor_enabled,
     COALESCE(r.name, '') AS role,
+    ur.role_id      AS role_id,
     ep.id           AS employee_id,
     ep.first_name,
     ep.last_name,
@@ -345,6 +346,7 @@ type GetEmployeeProfileByUserIDRow struct {
 	LastLogin        pgtype.Timestamptz `json:"last_login"`
 	TwoFactorEnabled bool               `json:"two_factor_enabled"`
 	Role             string             `json:"role"`
+	RoleID           *uuid.UUID         `json:"role_id"`
 	EmployeeID       uuid.UUID          `json:"employee_id"`
 	FirstName        string             `json:"first_name"`
 	LastName         string             `json:"last_name"`
@@ -360,6 +362,7 @@ func (q *Queries) GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) 
 		&i.LastLogin,
 		&i.TwoFactorEnabled,
 		&i.Role,
+		&i.RoleID,
 		&i.EmployeeID,
 		&i.FirstName,
 		&i.LastName,

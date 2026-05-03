@@ -251,6 +251,9 @@ func buildRouter(
 	trainingRepo := repository.NewTrainingRepository(store)
 	trainingService := service.NewTrainingService(trainingRepo, logger)
 
+	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
+	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
+
 	authHandler := handler.NewAuthHandler(authService)
 	wsAuthService := service.NewWebSocketAuthService(wsTicketStore, logger, cfg.WsTicketTTL)
 	wsHandler := handler.NewWebSocketHandler(wsAuthService, wsHub, logger, cfg.WsAllowedOrigins)
@@ -268,6 +271,7 @@ func buildRouter(
 	performanceHandler := handler.NewPerformanceHandler(performanceService)
 	handbookHandler := handler.NewHandbookHandler(handbookService)
 	trainingHandler := handler.NewTrainingHandler(trainingService)
+	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
 
 	api := router.Group("/api")
 	auth := authMiddleware.Handle()
@@ -289,6 +293,7 @@ func buildRouter(
 	handler.RegisterPerformanceRoutes(api, performanceHandler, auth, requirePermission)
 	handler.RegisterHandbookRoutes(api, handbookHandler, auth, requirePermission)
 	handler.RegisterTrainingRoutes(api, trainingHandler, auth, requirePermission)
+	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
 
 	return router
 }

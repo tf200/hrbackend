@@ -757,12 +757,18 @@ func toDomainEmployeeProfile(
 		}
 	}
 
+	var roleID uuid.UUID
+	if row.RoleID != nil {
+		roleID = *row.RoleID
+	}
+
 	return &domain.EmployeeProfile{
 		UserID:           row.UserID,
 		Email:            row.Email,
 		LastLogin:        conv.TimeFromPgTimestamptz(row.LastLogin),
 		TwoFactorEnabled: row.TwoFactorEnabled,
 		Role:             row.Role,
+		RoleID:           roleID,
 		EmployeeID:       row.EmployeeID,
 		FirstName:        row.FirstName,
 		LastName:         row.LastName,

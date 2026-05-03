@@ -33,6 +33,13 @@ seed-admin:
 seed-mock:
     go run ./scripts/seed_mock
 
+seed-employee:
+    go run ./scripts/seed_employee
+
+seed-employee-remote:
+    @if [ -z "${MIGRATION_DB_SOURCE_REMOTE}" ]; then echo "MIGRATION_DB_SOURCE_REMOTE is required"; exit 1; fi
+    MIGRATION_DB_SOURCE="${MIGRATION_DB_SOURCE_REMOTE}" go run ./scripts/seed_employee
+
 seed-admin-remote:
     @if [ -z "${MIGRATION_DB_SOURCE_REMOTE}" ]; then echo "MIGRATION_DB_SOURCE_REMOTE is required"; exit 1; fi
     MIGRATION_DB_SOURCE="${MIGRATION_DB_SOURCE_REMOTE}" go run ./scripts/seed_admin

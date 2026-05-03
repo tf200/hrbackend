@@ -91,6 +91,19 @@ type EmployeeDetail struct {
 	ManagerLastName       *string
 }
 
+// Portal access types for frontend routing.
+const (
+	PortalAccessAdmin    = "admin"
+	PortalAccessEmployee = "employee"
+	PortalAccessBoth     = "both"
+)
+
+// Portal permission names used to compute portal_access.
+const (
+	PortalPermissionAdmin    = "PORTAL.ADMIN.ACCESS"
+	PortalPermissionEmployee = "PORTAL.EMPLOYEE.ACCESS"
+)
+
 // EmployeeProfile is the domain struct for the current user's profile (with permissions).
 type EmployeeProfile struct {
 	UserID           uuid.UUID
@@ -98,10 +111,12 @@ type EmployeeProfile struct {
 	LastLogin        time.Time
 	TwoFactorEnabled bool
 	Role             string
+	RoleID           uuid.UUID
 	EmployeeID       uuid.UUID
 	FirstName        string
 	LastName         string
 	Permissions      []Permission
+	PortalAccess     string
 }
 
 type Permission struct {
@@ -118,6 +133,7 @@ type EmployeeCounts struct {
 	TotalArchived       int64
 	TotalOutOfService   int64
 }
+
 
 // EmployeeSearchResult is the domain struct for search results.
 type EmployeeSearchResult struct {

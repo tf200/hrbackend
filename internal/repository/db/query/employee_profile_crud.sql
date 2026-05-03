@@ -116,6 +116,7 @@ SELECT
     cu.last_login   AS last_login,
     cu.two_factor_enabled AS two_factor_enabled,
     COALESCE(r.name, '') AS role,
+    ur.role_id      AS role_id,
     ep.id           AS employee_id,
     ep.first_name,
     ep.last_name,
