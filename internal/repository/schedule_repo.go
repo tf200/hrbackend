@@ -11,6 +11,7 @@ import (
 	"hrbackend/pkg/conv"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -154,6 +155,149 @@ func (r *ScheduleRepository) GetEmployeeSchedulesTimelineEntries(
 		})
 	}
 	return result, nil
+}
+
+func (r *ScheduleRepository) GetEmployeeNextShift(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	now time.Time,
+) (*domain.EmployeeShiftOverviewNextShift, error) {
+	row, err := r.store.GetEmployeeNextShift(ctx, db.GetEmployeeNextShiftParams{
+		EmployeeID: employeeID,
+		Now:        conv.PgTimestamptzFromTime(now),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &domain.EmployeeShiftOverviewNextShift{
+		ScheduleID:   row.ScheduleID,
+		ShiftName:    row.ShiftName,
+		LocationID:   row.LocationID,
+		LocationName: row.LocationName,
+		Address:      formatLocationAddress(row.Street, row.HouseNumber, row.HouseNumberAddition, row.PostalCode, row.City),
+		StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
+		EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
+		Date:         conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
+		IsCustom:     row.IsCustom,
+		Colleagues:   []domain.EmployeeShiftOverviewColleague{},
+	}, nil
+}
+
+func (r *ScheduleRepository) ListEmployeeShiftColleagues(
+	ctx context.Context,
+	scheduleID, employeeID uuid.UUID,
+) ([]domain.EmployeeShiftOverviewColleague, error) {
+	rows, err := r.store.ListEmployeeShiftColleagues(ctx, db.ListEmployeeShiftColleaguesParams{
+		ScheduleID: scheduleID,
+		EmployeeID: employeeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeShiftOverviewColleague, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeShiftOverviewColleague{
+			EmployeeID: row.EmployeeID,
+			FirstName:  row.FirstName,
+			LastName:   row.LastName,
+		})
+	}
+	return result, nil
+}
+
+func (r *ScheduleRepository) GetEmployeeShiftOverviewStats(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	now, weekStart, weekEnd, monthStart, monthEnd time.Time,
+) (*domain.EmployeeShiftOverviewStats, error) {
+	row, err := r.store.GetEmployeeShiftOverviewStats(ctx, db.GetEmployeeShiftOverviewStatsParams{
+		MonthStart: conv.PgTimestamptzFromTime(monthStart),
+		MonthEnd:   conv.PgTimestamptzFromTime(monthEnd),
+		Now:        conv.PgTimestamptzFromTime(now),
+		WeekStart:  conv.PgTimestamptzFromTime(weekStart),
+		WeekEnd:    conv.PgTimestamptzFromTime(weekEnd),
+		EmployeeID: employeeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.EmployeeShiftOverviewStats{
+		UpcomingCount:  row.UpcomingCount,
+		CompletedCount: row.CompletedCount,
+		PlannedHours:   row.PlannedHours,
+	}, nil
+}
+
+func (r *ScheduleRepository) ListEmployeeWeekShiftCounts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	weekStart, weekEnd time.Time,
+) ([]domain.EmployeeShiftOverviewDayCount, error) {
+	rows, err := r.store.ListEmployeeWeekShiftCounts(ctx, db.ListEmployeeWeekShiftCountsParams{
+		EmployeeID: employeeID,
+		WeekStart:  conv.PgTimestamptzFromTime(weekStart),
+		WeekEnd:    conv.PgTimestamptzFromTime(weekEnd),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeShiftOverviewDayCount, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeShiftOverviewDayCount{
+			Day:        conv.TimeFromPgDate(row.Day),
+			ShiftCount: row.ShiftCount,
+		})
+	}
+	return result, nil
+}
+
+func (r *ScheduleRepository) ListEmployeeMonthShiftCounts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	monthStart, monthEnd time.Time,
+) ([]domain.EmployeeShiftOverviewMonthDayCount, error) {
+	rows, err := r.store.ListEmployeeMonthShiftCounts(ctx, db.ListEmployeeMonthShiftCountsParams{
+		EmployeeID: employeeID,
+		MonthStart: conv.PgTimestamptzFromTime(monthStart),
+		MonthEnd:   conv.PgTimestamptzFromTime(monthEnd),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeShiftOverviewMonthDayCount, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeShiftOverviewMonthDayCount{
+			Day:        int(row.Day),
+			ShiftCount: row.ShiftCount,
+		})
+	}
+	return result, nil
+}
+
+func (r *ScheduleRepository) GetEmployeeScheduleManager(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.EmployeeShiftOverviewManager, error) {
+	row, err := r.store.GetEmployeeScheduleManager(ctx, employeeID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &domain.EmployeeShiftOverviewManager{
+		FirstName: row.FirstName,
+		LastName:  row.LastName,
+	}, nil
 }
 
 func (r *ScheduleRepository) GetScheduleByID(
@@ -594,6 +738,24 @@ func toDomainShiftSwapRequestRecord(row db.ShiftSwapRequest) domain.ShiftSwapReq
 	}
 }
 
+func formatLocationAddress(
+	street string,
+	houseNumber string,
+	houseNumberAddition *string,
+	postalCode string,
+	city string,
+) string {
+	number := strings.TrimSpace(houseNumber)
+	if houseNumberAddition != nil && strings.TrimSpace(*houseNumberAddition) != "" {
+		number = strings.TrimSpace(number + " " + strings.TrimSpace(*houseNumberAddition))
+	}
+
+	return strings.TrimSpace(strings.Join([]string{
+		strings.TrimSpace(street + " " + number),
+		strings.TrimSpace(postalCode + " " + city),
+	}, ", "))
+}
+
 func toDomainShiftSwapDetails(
 	row db.GetShiftSwapRequestDetailsByIDRow,
 	viewerEmployeeID uuid.UUID,
@@ -763,6 +925,62 @@ func parseDBShiftSwapStatus(value string) (db.ShiftSwapStatusEnum, bool) {
 	default:
 		return "", false
 	}
+}
+
+func (r *ScheduleRepository) ListEmployeeUpcomingShifts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	now time.Time,
+) ([]domain.EmployeeUpcomingShift, error) {
+	rows, err := r.store.ListEmployeeUpcomingShifts(ctx, db.ListEmployeeUpcomingShiftsParams{
+		EmployeeID: employeeID,
+		Now:        conv.PgTimestamptzFromTime(now),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeUpcomingShift, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeUpcomingShift{
+			ScheduleID:   row.ScheduleID,
+			ShiftName:    row.ShiftName,
+			IsCustom:     row.IsCustom,
+			LocationID:   row.LocationID,
+			LocationName: row.LocationName,
+			Address:      formatLocationAddress(row.Street, row.HouseNumber, row.HouseNumberAddition, row.PostalCode, row.City),
+			StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
+			EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
+			Date:         conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
+			Colleagues:   nil,
+		})
+	}
+	return result, nil
+}
+
+func (r *ScheduleRepository) ListShiftColleaguesByScheduleIDs(
+	ctx context.Context,
+	scheduleIDs []uuid.UUID,
+	employeeID uuid.UUID,
+) ([]domain.EmployeeUpcomingShiftColleagueRow, error) {
+	rows, err := r.store.ListShiftColleaguesByScheduleIDs(ctx, db.ListShiftColleaguesByScheduleIDsParams{
+		ScheduleIds: scheduleIDs,
+		EmployeeID:  employeeID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeUpcomingShiftColleagueRow, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, domain.EmployeeUpcomingShiftColleagueRow{
+			ScheduleID: row.ScheduleID,
+			EmployeeID: row.EmployeeID,
+			FirstName:  row.FirstName,
+			LastName:   row.LastName,
+		})
+	}
+	return result, nil
 }
 
 func toTimePtr(value pgtype.Timestamptz) *time.Time {

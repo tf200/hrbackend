@@ -135,6 +135,44 @@ func (h *ScheduleHandler) GetEmployeeSchedulesTimeline(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Schedules retrieved successfully"))
 }
 
+func (h *ScheduleHandler) GetMyShiftOverview(ctx *gin.Context) {
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	response, err := h.service.GetMyShiftOverview(ctx.Request.Context(), employeeID)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get shift overview: %v", err), ""),
+		)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Shift overview retrieved successfully"))
+}
+
+func (h *ScheduleHandler) GetMyUpcomingShifts(ctx *gin.Context) {
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	response, err := h.service.GetMyUpcomingShifts(ctx.Request.Context(), employeeID)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get upcoming shifts: %v", err), ""),
+		)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Upcoming shifts retrieved successfully"))
+}
+
 func (h *ScheduleHandler) GetScheduleByID(ctx *gin.Context) {
 	scheduleID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

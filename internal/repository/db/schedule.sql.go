@@ -110,6 +110,94 @@ func (q *Queries) DeleteSchedule(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getEmployeeNextShift = `-- name: GetEmployeeNextShift :one
+SELECT
+    s.id AS schedule_id,
+    s.location_id,
+    l.name AS location_name,
+    l.street,
+    l.house_number,
+    l.house_number_addition,
+    l.postal_code,
+    l.city,
+    s.start_datetime,
+    s.end_datetime,
+    s.is_custom,
+    s.shift_name_snapshot AS shift_name,
+    DATE(s.start_datetime AT TIME ZONE l.timezone) AS shift_date
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
+WHERE s.employee_id = $1
+  AND s.start_datetime > $2
+ORDER BY s.start_datetime
+LIMIT 1
+`
+
+type GetEmployeeNextShiftParams struct {
+	EmployeeID uuid.UUID          `json:"employee_id"`
+	Now        pgtype.Timestamptz `json:"now"`
+}
+
+type GetEmployeeNextShiftRow struct {
+	ScheduleID          uuid.UUID          `json:"schedule_id"`
+	LocationID          uuid.UUID          `json:"location_id"`
+	LocationName        string             `json:"location_name"`
+	Street              string             `json:"street"`
+	HouseNumber         string             `json:"house_number"`
+	HouseNumberAddition *string            `json:"house_number_addition"`
+	PostalCode          string             `json:"postal_code"`
+	City                string             `json:"city"`
+	StartDatetime       pgtype.Timestamptz `json:"start_datetime"`
+	EndDatetime         pgtype.Timestamptz `json:"end_datetime"`
+	IsCustom            bool               `json:"is_custom"`
+	ShiftName           *string            `json:"shift_name"`
+	ShiftDate           pgtype.Date        `json:"shift_date"`
+}
+
+func (q *Queries) GetEmployeeNextShift(ctx context.Context, arg GetEmployeeNextShiftParams) (GetEmployeeNextShiftRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeeNextShift, arg.EmployeeID, arg.Now)
+	var i GetEmployeeNextShiftRow
+	err := row.Scan(
+		&i.ScheduleID,
+		&i.LocationID,
+		&i.LocationName,
+		&i.Street,
+		&i.HouseNumber,
+		&i.HouseNumberAddition,
+		&i.PostalCode,
+		&i.City,
+		&i.StartDatetime,
+		&i.EndDatetime,
+		&i.IsCustom,
+		&i.ShiftName,
+		&i.ShiftDate,
+	)
+	return i, err
+}
+
+const getEmployeeScheduleManager = `-- name: GetEmployeeScheduleManager :one
+SELECT
+    mgr.first_name,
+    mgr.last_name
+FROM employee_profile employee
+JOIN employee_profile mgr ON mgr.id = employee.manager_employee_id
+WHERE employee.id = $1
+LIMIT 1
+`
+
+type GetEmployeeScheduleManagerRow struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+func (q *Queries) GetEmployeeScheduleManager(ctx context.Context, employeeID uuid.UUID) (GetEmployeeScheduleManagerRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeeScheduleManager, employeeID)
+	var i GetEmployeeScheduleManagerRow
+	err := row.Scan(&i.FirstName, &i.LastName)
+	return i, err
+}
+
 const getEmployeeSchedules = `-- name: GetEmployeeSchedules :many
 SELECT 
     s.id,
@@ -232,6 +320,60 @@ func (q *Queries) GetEmployeeSchedulesByDay(ctx context.Context, arg GetEmployee
 		return nil, err
 	}
 	return items, nil
+}
+
+const getEmployeeShiftOverviewStats = `-- name: GetEmployeeShiftOverviewStats :one
+SELECT
+    COUNT(*) FILTER (
+        WHERE start_datetime >= $1
+          AND start_datetime < $2
+          AND start_datetime > $3
+    )::bigint AS upcoming_count,
+    COUNT(*) FILTER (
+        WHERE start_datetime >= $1
+          AND start_datetime < $2
+          AND end_datetime <= $3
+    )::bigint AS completed_count,
+    COALESCE(SUM(
+        EXTRACT(EPOCH FROM (end_datetime - start_datetime)) / 3600.0
+    ) FILTER (
+        WHERE start_datetime >= $4
+          AND start_datetime < $5
+          AND start_datetime > $3
+    ), 0)::float8 AS planned_hours
+FROM schedules
+WHERE employee_id = $6
+  AND start_datetime >= LEAST($4, $1)
+  AND start_datetime < GREATEST($5, $2)
+`
+
+type GetEmployeeShiftOverviewStatsParams struct {
+	MonthStart pgtype.Timestamptz `json:"month_start"`
+	MonthEnd   pgtype.Timestamptz `json:"month_end"`
+	Now        pgtype.Timestamptz `json:"now"`
+	WeekStart  pgtype.Timestamptz `json:"week_start"`
+	WeekEnd    pgtype.Timestamptz `json:"week_end"`
+	EmployeeID uuid.UUID          `json:"employee_id"`
+}
+
+type GetEmployeeShiftOverviewStatsRow struct {
+	UpcomingCount  int64   `json:"upcoming_count"`
+	CompletedCount int64   `json:"completed_count"`
+	PlannedHours   float64 `json:"planned_hours"`
+}
+
+func (q *Queries) GetEmployeeShiftOverviewStats(ctx context.Context, arg GetEmployeeShiftOverviewStatsParams) (GetEmployeeShiftOverviewStatsRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeeShiftOverviewStats,
+		arg.MonthStart,
+		arg.MonthEnd,
+		arg.Now,
+		arg.WeekStart,
+		arg.WeekEnd,
+		arg.EmployeeID,
+	)
+	var i GetEmployeeShiftOverviewStatsRow
+	err := row.Scan(&i.UpcomingCount, &i.CompletedCount, &i.PlannedHours)
+	return i, err
 }
 
 const getScheduleById = `-- name: GetScheduleById :one
@@ -360,6 +502,277 @@ func (q *Queries) GetSchedulesByLocationInRange(ctx context.Context, arg GetSche
 			&i.Day,
 			&i.EmployeeFirstName,
 			&i.EmployeeLastName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEmployeeMonthShiftCounts = `-- name: ListEmployeeMonthShiftCounts :many
+SELECT
+    EXTRACT(DAY FROM s.start_datetime AT TIME ZONE l.timezone)::int AS day,
+    COUNT(*)::bigint AS shift_count
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+WHERE s.employee_id = $1
+  AND s.start_datetime >= $2
+  AND s.start_datetime < $3
+GROUP BY day
+ORDER BY day
+`
+
+type ListEmployeeMonthShiftCountsParams struct {
+	EmployeeID uuid.UUID          `json:"employee_id"`
+	MonthStart pgtype.Timestamptz `json:"month_start"`
+	MonthEnd   pgtype.Timestamptz `json:"month_end"`
+}
+
+type ListEmployeeMonthShiftCountsRow struct {
+	Day        int32 `json:"day"`
+	ShiftCount int64 `json:"shift_count"`
+}
+
+func (q *Queries) ListEmployeeMonthShiftCounts(ctx context.Context, arg ListEmployeeMonthShiftCountsParams) ([]ListEmployeeMonthShiftCountsRow, error) {
+	rows, err := q.db.Query(ctx, listEmployeeMonthShiftCounts, arg.EmployeeID, arg.MonthStart, arg.MonthEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmployeeMonthShiftCountsRow{}
+	for rows.Next() {
+		var i ListEmployeeMonthShiftCountsRow
+		if err := rows.Scan(&i.Day, &i.ShiftCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEmployeeShiftColleagues = `-- name: ListEmployeeShiftColleagues :many
+SELECT
+    colleague.id AS employee_id,
+    colleague.first_name,
+    colleague.last_name
+FROM schedules base
+JOIN schedules shared
+  ON shared.location_id = base.location_id
+ AND shared.start_datetime = base.start_datetime
+ AND shared.end_datetime = base.end_datetime
+ AND (
+    shared.location_shift_id IS NOT DISTINCT FROM base.location_shift_id
+ )
+JOIN employee_profile colleague ON colleague.id = shared.employee_id
+WHERE base.id = $1
+  AND shared.employee_id <> $2
+ORDER BY colleague.first_name, colleague.last_name
+`
+
+type ListEmployeeShiftColleaguesParams struct {
+	ScheduleID uuid.UUID `json:"schedule_id"`
+	EmployeeID uuid.UUID `json:"employee_id"`
+}
+
+type ListEmployeeShiftColleaguesRow struct {
+	EmployeeID uuid.UUID `json:"employee_id"`
+	FirstName  string    `json:"first_name"`
+	LastName   string    `json:"last_name"`
+}
+
+func (q *Queries) ListEmployeeShiftColleagues(ctx context.Context, arg ListEmployeeShiftColleaguesParams) ([]ListEmployeeShiftColleaguesRow, error) {
+	rows, err := q.db.Query(ctx, listEmployeeShiftColleagues, arg.ScheduleID, arg.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmployeeShiftColleaguesRow{}
+	for rows.Next() {
+		var i ListEmployeeShiftColleaguesRow
+		if err := rows.Scan(&i.EmployeeID, &i.FirstName, &i.LastName); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEmployeeUpcomingShifts = `-- name: ListEmployeeUpcomingShifts :many
+SELECT
+    s.id AS schedule_id,
+    s.location_id,
+    l.name AS location_name,
+    l.street,
+    l.house_number,
+    l.house_number_addition,
+    l.postal_code,
+    l.city,
+    s.start_datetime,
+    s.end_datetime,
+    s.is_custom,
+    COALESCE(s.shift_name_snapshot, ls.shift_name, 'Custom Shift') AS shift_name,
+    DATE(s.start_datetime AT TIME ZONE l.timezone) AS shift_date
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
+WHERE s.employee_id = $1
+  AND s.start_datetime > $2
+ORDER BY s.start_datetime
+`
+
+type ListEmployeeUpcomingShiftsParams struct {
+	EmployeeID uuid.UUID          `json:"employee_id"`
+	Now        pgtype.Timestamptz `json:"now"`
+}
+
+type ListEmployeeUpcomingShiftsRow struct {
+	ScheduleID          uuid.UUID          `json:"schedule_id"`
+	LocationID          uuid.UUID          `json:"location_id"`
+	LocationName        string             `json:"location_name"`
+	Street              string             `json:"street"`
+	HouseNumber         string             `json:"house_number"`
+	HouseNumberAddition *string            `json:"house_number_addition"`
+	PostalCode          string             `json:"postal_code"`
+	City                string             `json:"city"`
+	StartDatetime       pgtype.Timestamptz `json:"start_datetime"`
+	EndDatetime         pgtype.Timestamptz `json:"end_datetime"`
+	IsCustom            bool               `json:"is_custom"`
+	ShiftName           string             `json:"shift_name"`
+	ShiftDate           pgtype.Date        `json:"shift_date"`
+}
+
+func (q *Queries) ListEmployeeUpcomingShifts(ctx context.Context, arg ListEmployeeUpcomingShiftsParams) ([]ListEmployeeUpcomingShiftsRow, error) {
+	rows, err := q.db.Query(ctx, listEmployeeUpcomingShifts, arg.EmployeeID, arg.Now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmployeeUpcomingShiftsRow{}
+	for rows.Next() {
+		var i ListEmployeeUpcomingShiftsRow
+		if err := rows.Scan(
+			&i.ScheduleID,
+			&i.LocationID,
+			&i.LocationName,
+			&i.Street,
+			&i.HouseNumber,
+			&i.HouseNumberAddition,
+			&i.PostalCode,
+			&i.City,
+			&i.StartDatetime,
+			&i.EndDatetime,
+			&i.IsCustom,
+			&i.ShiftName,
+			&i.ShiftDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEmployeeWeekShiftCounts = `-- name: ListEmployeeWeekShiftCounts :many
+SELECT
+    DATE(s.start_datetime AT TIME ZONE l.timezone) AS day,
+    COUNT(*)::bigint AS shift_count
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+WHERE s.employee_id = $1
+  AND s.start_datetime >= $2
+  AND s.start_datetime < $3
+GROUP BY day
+ORDER BY day
+`
+
+type ListEmployeeWeekShiftCountsParams struct {
+	EmployeeID uuid.UUID          `json:"employee_id"`
+	WeekStart  pgtype.Timestamptz `json:"week_start"`
+	WeekEnd    pgtype.Timestamptz `json:"week_end"`
+}
+
+type ListEmployeeWeekShiftCountsRow struct {
+	Day        pgtype.Date `json:"day"`
+	ShiftCount int64       `json:"shift_count"`
+}
+
+func (q *Queries) ListEmployeeWeekShiftCounts(ctx context.Context, arg ListEmployeeWeekShiftCountsParams) ([]ListEmployeeWeekShiftCountsRow, error) {
+	rows, err := q.db.Query(ctx, listEmployeeWeekShiftCounts, arg.EmployeeID, arg.WeekStart, arg.WeekEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEmployeeWeekShiftCountsRow{}
+	for rows.Next() {
+		var i ListEmployeeWeekShiftCountsRow
+		if err := rows.Scan(&i.Day, &i.ShiftCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listShiftColleaguesByScheduleIDs = `-- name: ListShiftColleaguesByScheduleIDs :many
+SELECT
+    s.id AS schedule_id,
+    colleague.id AS employee_id,
+    colleague.first_name,
+    colleague.last_name
+FROM schedules s
+JOIN schedules shared
+  ON shared.location_id = s.location_id
+ AND shared.start_datetime = s.start_datetime
+ AND shared.end_datetime = s.end_datetime
+ AND (shared.location_shift_id IS NOT DISTINCT FROM s.location_shift_id)
+JOIN employee_profile colleague ON colleague.id = shared.employee_id
+WHERE s.id = ANY($1::uuid[])
+  AND shared.employee_id <> $2
+ORDER BY s.id, colleague.first_name, colleague.last_name
+`
+
+type ListShiftColleaguesByScheduleIDsParams struct {
+	ScheduleIds []uuid.UUID `json:"schedule_ids"`
+	EmployeeID  uuid.UUID   `json:"employee_id"`
+}
+
+type ListShiftColleaguesByScheduleIDsRow struct {
+	ScheduleID uuid.UUID `json:"schedule_id"`
+	EmployeeID uuid.UUID `json:"employee_id"`
+	FirstName  string    `json:"first_name"`
+	LastName   string    `json:"last_name"`
+}
+
+func (q *Queries) ListShiftColleaguesByScheduleIDs(ctx context.Context, arg ListShiftColleaguesByScheduleIDsParams) ([]ListShiftColleaguesByScheduleIDsRow, error) {
+	rows, err := q.db.Query(ctx, listShiftColleaguesByScheduleIDs, arg.ScheduleIds, arg.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListShiftColleaguesByScheduleIDsRow{}
+	for rows.Next() {
+		var i ListShiftColleaguesByScheduleIDsRow
+		if err := rows.Scan(
+			&i.ScheduleID,
+			&i.EmployeeID,
+			&i.FirstName,
+			&i.LastName,
 		); err != nil {
 			return nil, err
 		}

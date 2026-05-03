@@ -313,6 +313,130 @@ func (s *ScheduleService) GetEmployeeSchedulesTimeline(
 	return response, nil
 }
 
+func (s *ScheduleService) GetMyShiftOverview(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.EmployeeShiftOverviewResponse, error) {
+	if employeeID == uuid.Nil {
+		return nil, fmt.Errorf("employee_id is required")
+	}
+
+	now := time.Now()
+	weekStart := startOfISOWeek(now)
+	weekEnd := weekStart.AddDate(0, 0, 7)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	monthEnd := monthStart.AddDate(0, 1, 0)
+
+	nextShift, err := s.repository.GetEmployeeNextShift(ctx, employeeID, now)
+	if err != nil {
+		s.logError(ctx, "GetMyShiftOverview", "failed to get next shift", err)
+		return nil, fmt.Errorf("failed to get next shift: %w", err)
+	}
+	if nextShift != nil {
+		colleagues, colleagueErr := s.repository.ListEmployeeShiftColleagues(
+			ctx,
+			nextShift.ScheduleID,
+			employeeID,
+		)
+		if colleagueErr != nil {
+			s.logError(ctx, "GetMyShiftOverview", "failed to list shift colleagues", colleagueErr)
+			return nil, fmt.Errorf("failed to list shift colleagues: %w", colleagueErr)
+		}
+		nextShift.Colleagues = colleagues
+	}
+
+	stats, err := s.repository.GetEmployeeShiftOverviewStats(
+		ctx,
+		employeeID,
+		now,
+		weekStart,
+		weekEnd,
+		monthStart,
+		monthEnd,
+	)
+	if err != nil {
+		s.logError(ctx, "GetMyShiftOverview", "failed to get overview stats", err)
+		return nil, fmt.Errorf("failed to get overview stats: %w", err)
+	}
+
+	weekCounts, err := s.repository.ListEmployeeWeekShiftCounts(ctx, employeeID, weekStart, weekEnd)
+	if err != nil {
+		s.logError(ctx, "GetMyShiftOverview", "failed to list week shift counts", err)
+		return nil, fmt.Errorf("failed to list week shift counts: %w", err)
+	}
+
+	monthCounts, err := s.repository.ListEmployeeMonthShiftCounts(ctx, employeeID, monthStart, monthEnd)
+	if err != nil {
+		s.logError(ctx, "GetMyShiftOverview", "failed to list month shift counts", err)
+		return nil, fmt.Errorf("failed to list month shift counts: %w", err)
+	}
+
+	manager, err := s.repository.GetEmployeeScheduleManager(ctx, employeeID)
+	if err != nil {
+		s.logError(ctx, "GetMyShiftOverview", "failed to get schedule manager", err)
+		return nil, fmt.Errorf("failed to get schedule manager: %w", err)
+	}
+
+	return &domain.EmployeeShiftOverviewResponse{
+		NextShift:      nextShift,
+		UpcomingCount:  stats.UpcomingCount,
+		CompletedCount: stats.CompletedCount,
+		PlannedHours:   stats.PlannedHours,
+		Week:           buildEmployeeShiftOverviewWeek(weekStart, weekCounts),
+		Month:          buildEmployeeShiftOverviewMonth(monthStart, monthEnd, monthCounts),
+		Manager:        manager,
+	}, nil
+}
+
+func (s *ScheduleService) GetMyUpcomingShifts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.EmployeeUpcomingShiftsResponse, error) {
+	if employeeID == uuid.Nil {
+		return nil, fmt.Errorf("employee_id is required")
+	}
+
+	shifts, err := s.repository.ListEmployeeUpcomingShifts(ctx, employeeID, time.Now())
+	if err != nil {
+		s.logError(ctx, "GetMyUpcomingShifts", "failed to list upcoming shifts", err)
+		return nil, fmt.Errorf("failed to list upcoming shifts: %w", err)
+	}
+
+	if len(shifts) > 0 {
+		scheduleIDs := make([]uuid.UUID, len(shifts))
+		for i, shift := range shifts {
+			scheduleIDs[i] = shift.ScheduleID
+		}
+
+		colleagueRows, err := s.repository.ListShiftColleaguesByScheduleIDs(ctx, scheduleIDs, employeeID)
+		if err != nil {
+			s.logError(ctx, "GetMyUpcomingShifts", "failed to list shift colleagues", err)
+			return nil, fmt.Errorf("failed to list shift colleagues: %w", err)
+		}
+
+		colleaguesBySchedule := make(map[uuid.UUID][]domain.EmployeeShiftOverviewColleague, len(shifts))
+		for _, row := range colleagueRows {
+			colleaguesBySchedule[row.ScheduleID] = append(colleaguesBySchedule[row.ScheduleID], domain.EmployeeShiftOverviewColleague{
+				EmployeeID: row.EmployeeID,
+				FirstName:  row.FirstName,
+				LastName:   row.LastName,
+			})
+		}
+
+		for i := range shifts {
+			if coll, ok := colleaguesBySchedule[shifts[i].ScheduleID]; ok {
+				shifts[i].Colleagues = coll
+			} else {
+				shifts[i].Colleagues = []domain.EmployeeShiftOverviewColleague{}
+			}
+		}
+	}
+
+	return &domain.EmployeeUpcomingShiftsResponse{
+		Shifts: shifts,
+	}, nil
+}
+
 func (s *ScheduleService) GetScheduleByID(
 	ctx context.Context,
 	scheduleID uuid.UUID,
@@ -323,6 +447,64 @@ func (s *ScheduleService) GetScheduleByID(
 		return nil, fmt.Errorf("failed to get schedule by ID: %w", err)
 	}
 	return item, nil
+}
+
+func startOfISOWeek(t time.Time) time.Time {
+	day := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	offset := (int(day.Weekday()) + 6) % 7
+	return day.AddDate(0, 0, -offset)
+}
+
+func buildEmployeeShiftOverviewWeek(
+	weekStart time.Time,
+	counts []domain.EmployeeShiftOverviewDayCount,
+) domain.EmployeeShiftOverviewWeek {
+	countByDate := make(map[string]int64, len(counts))
+	for _, count := range counts {
+		countByDate[count.Day.Format("2006-01-02")] = count.ShiftCount
+	}
+
+	days := make([]domain.EmployeeShiftOverviewWeekDay, 0, 7)
+	for i := 0; i < 7; i++ {
+		day := weekStart.AddDate(0, 0, i)
+		key := day.Format("2006-01-02")
+		days = append(days, domain.EmployeeShiftOverviewWeekDay{
+			Date:       key,
+			ShiftCount: countByDate[key],
+		})
+	}
+
+	return domain.EmployeeShiftOverviewWeek{
+		StartDate: weekStart.Format("2006-01-02"),
+		EndDate:   weekStart.AddDate(0, 0, 6).Format("2006-01-02"),
+		Days:      days,
+	}
+}
+
+func buildEmployeeShiftOverviewMonth(
+	monthStart time.Time,
+	monthEnd time.Time,
+	counts []domain.EmployeeShiftOverviewMonthDayCount,
+) domain.EmployeeShiftOverviewMonth {
+	countByDay := make(map[int]int64, len(counts))
+	for _, count := range counts {
+		countByDay[count.Day] = count.ShiftCount
+	}
+
+	dayCount := monthEnd.AddDate(0, 0, -1).Day()
+	days := make([]domain.EmployeeShiftOverviewMonthDay, 0, dayCount)
+	for day := 1; day <= dayCount; day++ {
+		days = append(days, domain.EmployeeShiftOverviewMonthDay{
+			Day:        day,
+			ShiftCount: countByDay[day],
+		})
+	}
+
+	return domain.EmployeeShiftOverviewMonth{
+		Year:  monthStart.Year(),
+		Month: int(monthStart.Month()),
+		Days:  days,
+	}
 }
 
 func (s *ScheduleService) UpdateSchedule(

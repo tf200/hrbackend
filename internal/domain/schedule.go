@@ -132,6 +132,102 @@ type EmployeeScheduleTimelineEntry struct {
 	LocationName string
 }
 
+type EmployeeShiftOverviewResponse struct {
+	NextShift      *EmployeeShiftOverviewNextShift `json:"next_shift"`
+	UpcomingCount  int64                           `json:"upcoming_count"`
+	CompletedCount int64                           `json:"completed_count"`
+	PlannedHours   float64                         `json:"planned_hours"`
+	Week           EmployeeShiftOverviewWeek       `json:"week"`
+	Month          EmployeeShiftOverviewMonth      `json:"month"`
+	Manager        *EmployeeShiftOverviewManager   `json:"manager"`
+}
+
+type EmployeeShiftOverviewNextShift struct {
+	ScheduleID   uuid.UUID                        `json:"schedule_id"`
+	ShiftName    *string                          `json:"shift_name"`
+	LocationID   uuid.UUID                        `json:"location_id"`
+	LocationName string                           `json:"location_name"`
+	Address      string                           `json:"address"`
+	StartTime    time.Time                        `json:"start_time"`
+	EndTime      time.Time                        `json:"end_time"`
+	Date         string                           `json:"date"`
+	IsCustom     bool                             `json:"is_custom"`
+	Colleagues   []EmployeeShiftOverviewColleague `json:"colleagues"`
+}
+
+type EmployeeShiftOverviewColleague struct {
+	EmployeeID uuid.UUID `json:"employee_id"`
+	FirstName  string    `json:"first_name"`
+	LastName   string    `json:"last_name"`
+}
+
+type EmployeeShiftOverviewWeek struct {
+	StartDate string                         `json:"start_date"`
+	EndDate   string                         `json:"end_date"`
+	Days      []EmployeeShiftOverviewWeekDay `json:"days"`
+}
+
+type EmployeeShiftOverviewWeekDay struct {
+	Date       string `json:"date"`
+	ShiftCount int64  `json:"shift_count"`
+}
+
+type EmployeeShiftOverviewMonth struct {
+	Year  int                             `json:"year"`
+	Month int                             `json:"month"`
+	Days  []EmployeeShiftOverviewMonthDay `json:"days"`
+}
+
+type EmployeeShiftOverviewMonthDay struct {
+	Day        int   `json:"day"`
+	ShiftCount int64 `json:"shift_count"`
+}
+
+type EmployeeShiftOverviewManager struct {
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+type EmployeeShiftOverviewStats struct {
+	UpcomingCount  int64
+	CompletedCount int64
+	PlannedHours   float64
+}
+
+type EmployeeShiftOverviewDayCount struct {
+	Day        time.Time
+	ShiftCount int64
+}
+
+type EmployeeShiftOverviewMonthDayCount struct {
+	Day        int
+	ShiftCount int64
+}
+
+type EmployeeUpcomingShift struct {
+	ScheduleID   uuid.UUID                        `json:"schedule_id"`
+	ShiftName    string                           `json:"shift_name"`
+	IsCustom     bool                             `json:"is_custom"`
+	LocationID   uuid.UUID                        `json:"location_id"`
+	LocationName string                           `json:"location_name"`
+	Address      string                           `json:"address"`
+	StartTime    time.Time                        `json:"start_time"`
+	EndTime      time.Time                        `json:"end_time"`
+	Date         string                           `json:"date"`
+	Colleagues   []EmployeeShiftOverviewColleague `json:"colleagues"`
+}
+
+type EmployeeUpcomingShiftsResponse struct {
+	Shifts []EmployeeUpcomingShift `json:"shifts"`
+}
+
+type EmployeeUpcomingShiftColleagueRow struct {
+	ScheduleID uuid.UUID
+	EmployeeID uuid.UUID
+	FirstName  string
+	LastName   string
+}
+
 type GetScheduleByIdResponse struct {
 	ID                uuid.UUID  `json:"id"`
 	EmployeeID        uuid.UUID  `json:"employee_id"`
@@ -414,6 +510,44 @@ type ScheduleRepository interface {
 		employeeID uuid.UUID,
 		periodStart, periodEnd time.Time,
 	) ([]EmployeeScheduleTimelineEntry, error)
+	GetEmployeeNextShift(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		now time.Time,
+	) (*EmployeeShiftOverviewNextShift, error)
+	ListEmployeeShiftColleagues(
+		ctx context.Context,
+		scheduleID, employeeID uuid.UUID,
+	) ([]EmployeeShiftOverviewColleague, error)
+	GetEmployeeShiftOverviewStats(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		now, weekStart, weekEnd, monthStart, monthEnd time.Time,
+	) (*EmployeeShiftOverviewStats, error)
+	ListEmployeeWeekShiftCounts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		weekStart, weekEnd time.Time,
+	) ([]EmployeeShiftOverviewDayCount, error)
+	ListEmployeeMonthShiftCounts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]EmployeeShiftOverviewMonthDayCount, error)
+	GetEmployeeScheduleManager(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*EmployeeShiftOverviewManager, error)
+	ListEmployeeUpcomingShifts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		now time.Time,
+	) ([]EmployeeUpcomingShift, error)
+	ListShiftColleaguesByScheduleIDs(
+		ctx context.Context,
+		scheduleIDs []uuid.UUID,
+		employeeID uuid.UUID,
+	) ([]EmployeeUpcomingShiftColleagueRow, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,
@@ -507,6 +641,14 @@ type ScheduleService interface {
 		ctx context.Context,
 		req *GetEmployeeSchedulesTimelineRequest,
 	) ([]EmployeeScheduleTimelineDay, error)
+	GetMyShiftOverview(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*EmployeeShiftOverviewResponse, error)
+	GetMyUpcomingShifts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*EmployeeUpcomingShiftsResponse, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,
