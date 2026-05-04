@@ -73,6 +73,7 @@ func (s PerformanceSeeder) Seed(ctx context.Context, env Env) error {
 			tx,
 			assessmentID,
 			employee.ID,
+			employee.ID, // reviewer is the same employee for seed data
 			assessmentDate,
 			averagePerformanceScore(scores),
 			"completed",
@@ -172,6 +173,7 @@ func upsertPerformanceAssessment(
 	tx pgx.Tx,
 	id uuid.UUID,
 	employeeID uuid.UUID,
+	reviewerEmployeeID uuid.UUID,
 	assessmentDate time.Time,
 	totalScore float64,
 	status string,
@@ -182,12 +184,13 @@ func upsertPerformanceAssessment(
 		`INSERT INTO performance_assessments (
 			id,
 			employee_id,
+			reviewer_employee_id,
 			assessment_date,
 			total_score,
 			status,
 			notes
 		)
-		VALUES ($1, $2, $3, $4, $5::performance_assessment_status_enum, $6)
+		VALUES ($1, $2, $3, $4, $5, $6::performance_assessment_status_enum, $7)
 		ON CONFLICT (id)
 		DO UPDATE SET
 			total_score = EXCLUDED.total_score,
@@ -196,6 +199,7 @@ func upsertPerformanceAssessment(
 			updated_at = NOW()`,
 		id,
 		employeeID,
+		reviewerEmployeeID,
 		assessmentDate,
 		totalScore,
 		status,

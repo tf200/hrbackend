@@ -1007,6 +1007,11 @@ type fakePayoutRepository struct {
 	monthPayPeriodLineItems map[uuid.UUID][]domain.PayPeriodLineItem
 	monthApprovedEntries    []domain.PayrollPreviewTimeEntry
 	monthPendingEntries     []domain.PayrollMonthPendingEntry
+
+	// Salary page fakes
+	pendingEntryDetails []domain.PayrollPendingEntryDetail
+	leavePayoutsByMonth []domain.PayoutRequest
+	extraLeaveRemaining int32
 }
 
 func (f *fakePayoutRepository) WithTx(
@@ -1132,6 +1137,30 @@ func (f *fakePayoutRepository) ListPayrollMonthPendingEntries(
 	_, _ time.Time,
 ) ([]domain.PayrollMonthPendingEntry, error) {
 	return f.monthPendingEntries, nil
+}
+
+func (f *fakePayoutRepository) ListPendingTimeEntriesDetail(
+	_ context.Context,
+	_ uuid.UUID,
+	_, _ time.Time,
+) ([]domain.PayrollPendingEntryDetail, error) {
+	return f.pendingEntryDetails, nil
+}
+
+func (f *fakePayoutRepository) ListPayoutRequestsByEmployeeAndMonth(
+	_ context.Context,
+	_ uuid.UUID,
+	_ time.Time,
+) ([]domain.PayoutRequest, error) {
+	return f.leavePayoutsByMonth, nil
+}
+
+func (f *fakePayoutRepository) GetLeaveBalanceExtraRemaining(
+	_ context.Context,
+	_ uuid.UUID,
+	_ int32,
+) (int32, error) {
+	return f.extraLeaveRemaining, nil
 }
 
 type fakePayoutTxRepository struct {

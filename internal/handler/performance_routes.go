@@ -9,6 +9,12 @@ func RegisterPerformanceRoutes(
 	requirePermission func(string) gin.HandlerFunc,
 ) {
 	rg.GET(
+		"/performance-mine",
+		auth,
+		handler.GetMine,
+	)
+
+	rg.GET(
 		"/performance-assessment-catalog",
 		auth,
 		requirePermission("PERFORMANCE.ASSESSMENT.VIEW_ALL"),

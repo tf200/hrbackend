@@ -119,11 +119,13 @@ type PayrollPreview struct {
 
 type PayrollPreviewLineItem struct {
 	TimeEntryID           uuid.UUID
+	Label                 string
 	ContractType          string
 	WorkDate              time.Time
 	HourType              string
 	StartTime             string
 	EndTime               string
+	BreakMinutes          int32
 	IrregularHoursProfile string
 	AppliedRatePercent    float64
 	MinutesWorked         int32
@@ -136,6 +138,7 @@ type PayrollPreviewTimeEntry struct {
 	ID                    uuid.UUID
 	EmployeeID            uuid.UUID
 	EmployeeName          string
+	Label                 string
 	EntryDate             time.Time
 	StartTime             string
 	EndTime               string
@@ -270,6 +273,27 @@ type PayrollMonthDetail struct {
 	Preview      *PayrollPreview
 }
 
+type SalaryPageData struct {
+	EmployeeID   uuid.UUID
+	EmployeeName string
+	Month        time.Time
+
+	ContractType          string
+	ContractRate          *float64
+	ContractHours         *float64
+	IrregularHoursProfile string
+	ContractStartDate     *time.Time
+	ContractEndDate       *time.Time
+
+	DataSource string
+	PayPeriod  *PayPeriod
+	Preview    *PayrollPreview
+
+	PendingEntries      []PayrollPendingEntryDetail
+	LeavePayoutRequests []PayoutRequest
+	ExtraLeaveRemaining int32
+}
+
 type PayrollMultiplierSummary struct {
 	RatePercent   float64
 	WorkedMinutes float64
@@ -305,6 +329,16 @@ type PayrollMonthPendingEntry struct {
 	EmployeeID    uuid.UUID
 	WorkedMinutes int32
 	ContractType  string
+}
+
+type PayrollPendingEntryDetail struct {
+	ID            uuid.UUID
+	WorkDate      time.Time
+	StartTime     string
+	EndTime       string
+	BreakMinutes  int32
+	WorkedMinutes int32
+	Status        string
 }
 
 type PayrollLockedMultiplierSummary struct {
@@ -461,6 +495,23 @@ type PayoutRepository interface {
 		employeeIDs []uuid.UUID,
 		monthStart, monthEnd time.Time,
 	) ([]PayrollMonthPendingEntry, error)
+
+	// Salary page queries (single employee, mine endpoint)
+	ListPendingTimeEntriesDetail(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollPendingEntryDetail, error)
+	ListPayoutRequestsByEmployeeAndMonth(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		salaryMonth time.Time,
+	) ([]PayoutRequest, error)
+	GetLeaveBalanceExtraRemaining(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		year int32,
+	) (int32, error)
 }
 
 type PayoutService interface {
@@ -518,6 +569,11 @@ type PayoutService interface {
 		month time.Time,
 		contractType *string,
 	) (*PayrollMonthDetail, error)
+	GetMySalaryPage(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		month time.Time,
+	) (*SalaryPageData, error)
 	ExportPayrollMonthPDF(
 		ctx context.Context,
 		employeeID uuid.UUID,

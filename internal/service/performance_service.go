@@ -98,10 +98,11 @@ func (s *PerformanceService) CreateAssessment(
 		}
 
 		created, err := tx.CreateAssessment(ctx, domain.CreatePerformanceAssessmentRecordParams{
-			EmployeeID:     normalized.EmployeeID,
-			AssessmentDate: normalized.AssessmentDate,
-			TotalScore:     averagePerformanceScore(normalized.Scores),
-			Notes:          normalized.Notes,
+			EmployeeID:         normalized.EmployeeID,
+			ReviewerEmployeeID: normalized.ReviewerEmployeeID,
+			AssessmentDate:     normalized.AssessmentDate,
+			TotalScore:         averagePerformanceScore(normalized.Scores),
+			Notes:              normalized.Notes,
 		}, *employeeName)
 		if err != nil {
 			return err
@@ -303,6 +304,150 @@ func (s *PerformanceService) SendUpcomingInvitations(
 	// Placeholder implementation: accept the command and return count.
 	// Hook into email/task queue in a later iteration.
 	return len(employeeIDs), nil
+}
+
+func (s *PerformanceService) GetMine(
+	ctx context.Context,
+	params domain.PerformanceMineParams,
+) (*domain.PerformanceMine, error) {
+	if params.EmployeeID == uuid.Nil {
+		return nil, domain.ErrPerformanceInvalidRequest
+	}
+	if params.Limit <= 0 {
+		params.Limit = 12
+	}
+	if params.Limit > 100 {
+		return nil, domain.ErrPerformanceInvalidRequest
+	}
+
+	reviewContext, err := s.repository.GetMineReviewContext(ctx, params.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("get performance mine review context: %w", err)
+	}
+
+	completedStatus := domain.PerformanceAssessmentStatusCompleted
+	assessmentPage, err := s.repository.ListAssessments(ctx, domain.ListPerformanceAssessmentsParams{
+		Limit:      params.Limit,
+		Offset:     0,
+		EmployeeID: &params.EmployeeID,
+		Status:     &completedStatus,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list performance mine assessments: %w", err)
+	}
+
+	assignments := make([]domain.PerformanceWorkAssignment, 0)
+	if params.IncludeAssignments {
+		assignmentPage, err := s.repository.ListWorkAssignments(ctx, domain.ListPerformanceWorkAssignmentsParams{
+			Limit:      100,
+			Offset:     0,
+			EmployeeID: &params.EmployeeID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list performance mine work assignments: %w", err)
+		}
+		assignments = assignmentPage.Items
+	}
+
+	scoresByAssessment := make(map[uuid.UUID][]domain.PerformanceAssessmentScore)
+	if params.IncludeScores {
+		for _, assessment := range assessmentPage.Items {
+			scores, err := s.repository.ListAssessmentScores(ctx, assessment.ID)
+			if err != nil {
+				return nil, fmt.Errorf("list performance mine scores: %w", err)
+			}
+			scoresByAssessment[assessment.ID] = scores
+		}
+	}
+
+	mine := &domain.PerformanceMine{
+		Employee: domain.PerformanceMineEmployee{
+			ID:   reviewContext.EmployeeID,
+			Name: reviewContext.EmployeeName,
+		},
+		ReviewIntervalDays: domain.PerformanceReviewIntervalDays,
+		NextReview: domain.PerformanceMineNextReview{
+			LastAssessmentDate: reviewContext.LastAssessmentDate,
+			NextAssessmentDate: reviewContext.NextAssessmentDate,
+			DaysUntilDue:       reviewContext.DaysUntilDue,
+			IsOverdue:          reviewContext.IsOverdue,
+			IsDueSoon:          reviewContext.IsDueSoon,
+			IsFirstReview:      reviewContext.IsFirstReview,
+		},
+		Assessments:     make([]domain.PerformanceMineAssessment, 0, len(assessmentPage.Items)),
+		WorkAssignments: assignments,
+	}
+
+	var total float64
+	var scoreCount int
+	for i, assessment := range assessmentPage.Items {
+		cycleNumber := len(assessmentPage.Items) - i
+		var scoreDelta *float64
+		if assessment.TotalScore != nil && i+1 < len(assessmentPage.Items) && assessmentPage.Items[i+1].TotalScore != nil {
+			delta := *assessment.TotalScore - *assessmentPage.Items[i+1].TotalScore
+			scoreDelta = &delta
+		}
+
+		mine.Assessments = append(mine.Assessments, domain.PerformanceMineAssessment{
+			PerformanceAssessment: assessment,
+			Title:                 assessment.AssessmentDate.Format("Assessment — January 2006"),
+			CycleNumber:           cycleNumber,
+			ScoreDelta:            scoreDelta,
+			Scores:                scoresByAssessment[assessment.ID],
+		})
+
+		if assessment.TotalScore != nil {
+			total += *assessment.TotalScore
+			scoreCount++
+		}
+	}
+
+	mine.Summary.AssessmentCount = len(assessmentPage.Items)
+	if len(assessmentPage.Items) > 0 {
+		mine.Summary.LatestScore = assessmentPage.Items[0].TotalScore
+		mine.Summary.FirstScore = assessmentPage.Items[len(assessmentPage.Items)-1].TotalScore
+		if mine.Summary.LatestScore != nil && mine.Summary.FirstScore != nil && len(assessmentPage.Items) > 1 {
+			growth := *mine.Summary.LatestScore - *mine.Summary.FirstScore
+			mine.Summary.ScoreGrowth = &growth
+		}
+	}
+	if scoreCount > 0 {
+		average := total / float64(scoreCount)
+		mine.Summary.AverageScore = &average
+	}
+
+	for _, assignment := range assignments {
+		switch assignment.Status {
+		case domain.PerformanceWorkAssignmentStatusOpen:
+			mine.Summary.OpenAssignmentCount++
+		case domain.PerformanceWorkAssignmentStatusSubmitted:
+			mine.Summary.SubmittedAssignmentCount++
+		case domain.PerformanceWorkAssignmentStatusApproved:
+			mine.Summary.ApprovedAssignmentCount++
+		case domain.PerformanceWorkAssignmentStatusRevisionNeeded:
+			mine.Summary.RevisionNeededAssignmentCount++
+		}
+	}
+
+	if params.IncludeScores {
+		for _, assessment := range assessmentPage.Items {
+			if assessment.Status != domain.PerformanceAssessmentStatusCompleted {
+				continue
+			}
+			for i := range scoresByAssessment[assessment.ID] {
+				score := scoresByAssessment[assessment.ID][i]
+				if mine.Highlighted.StrongestScore == nil || score.Rating > mine.Highlighted.StrongestScore.Rating {
+					mine.Highlighted.StrongestScore = &score
+				}
+				if mine.Highlighted.FocusScore == nil || score.Rating < mine.Highlighted.FocusScore.Rating {
+					mine.Highlighted.FocusScore = &score
+				}
+			}
+			break
+		}
+	}
+
+	return mine, nil
 }
 
 func (s *PerformanceService) GetStats(ctx context.Context) (*domain.PerformanceStats, error) {

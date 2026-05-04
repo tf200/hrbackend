@@ -75,12 +75,13 @@ func (r *PerformanceRepository) ListAssessments(
 	params domain.ListPerformanceAssessmentsParams,
 ) (*domain.PerformanceAssessmentPage, error) {
 	rows, err := r.store.ListPerformanceAssessments(ctx, db.ListPerformanceAssessmentsParams{
-		Limit:    params.Limit,
-		Offset:   params.Offset,
-		Search:   params.Search,
-		Status:   params.Status,
-		FromDate: pgDateFromTimePtr(params.FromDate),
-		ToDate:   pgDateFromTimePtr(params.ToDate),
+		Limit:      params.Limit,
+		Offset:     params.Offset,
+		EmployeeID: params.EmployeeID,
+		Search:     params.Search,
+		Status:     params.Status,
+		FromDate:   pgDateFromTimePtr(params.FromDate),
+		ToDate:     pgDateFromTimePtr(params.ToDate),
 	})
 	if err != nil {
 		return nil, err
@@ -94,6 +95,9 @@ func (r *PerformanceRepository) ListAssessments(
 			row.EmployeeID,
 			row.FirstName,
 			row.LastName,
+			row.ReviewerEmployeeID,
+			row.ReviewerFirstName,
+			row.ReviewerLastName,
 			row.AssessmentDate,
 			row.TotalScore,
 			string(row.Status),
@@ -123,6 +127,9 @@ func (r *PerformanceRepository) GetAssessmentByID(
 		row.EmployeeID,
 		row.FirstName,
 		row.LastName,
+		row.ReviewerEmployeeID,
+		row.ReviewerFirstName,
+		row.ReviewerLastName,
 		row.AssessmentDate,
 		row.TotalScore,
 		string(row.Status),
@@ -159,6 +166,8 @@ func (r *PerformanceRepository) ListAssessmentScores(
 			AssessmentID:  row.AssessmentID,
 			QuestionCode:  row.QuestionCode,
 			DomainCode:    row.DomainCode,
+			DomainNameNL:  row.DomainNameNl,
+			DomainNameEN:  row.DomainNameEn,
 			TitleNL:       row.TitleNl,
 			TitleEN:       row.TitleEn,
 			DescriptionNL: row.DescriptionNl,
@@ -193,11 +202,14 @@ func (r *PerformanceRepository) ListWorkAssignments(
 		items = append(items, toDomainPerformanceWorkAssignment(
 			row.ID,
 			row.AssessmentID,
+			row.AssessmentDate,
 			row.EmployeeID,
 			row.FirstName,
 			row.LastName,
 			row.QuestionCode,
 			row.DomainCode,
+			row.DomainNameNl,
+			row.DomainNameEn,
 			row.QuestionTextNl,
 			row.QuestionTextEn,
 			row.Score,
@@ -233,11 +245,14 @@ func (r *PerformanceRepository) GetWorkAssignmentByID(
 	item := toDomainPerformanceWorkAssignment(
 		row.ID,
 		row.AssessmentID,
+		row.AssessmentDate,
 		row.EmployeeID,
 		row.FirstName,
 		row.LastName,
 		row.QuestionCode,
 		row.DomainCode,
+		row.DomainNameNl,
+		row.DomainNameEn,
 		row.QuestionTextNl,
 		row.QuestionTextEn,
 		row.Score,
@@ -253,6 +268,44 @@ func (r *PerformanceRepository) GetWorkAssignmentByID(
 		row.ReviewedAt,
 	)
 	return &item, nil
+}
+
+func (r *PerformanceRepository) GetMineReviewContext(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.PerformanceUpcomingItem, error) {
+	row, err := r.store.GetPerformanceMineReviewContext(ctx, employeeID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrPerformanceNotFound
+		}
+		return nil, err
+	}
+
+	baseDate := conv.TimePtrFromPgDate(row.LastAssessmentDate)
+	if baseDate == nil {
+		baseDate = conv.TimePtrFromPgDate(row.ContractStartDate)
+	}
+	if baseDate == nil {
+		now := dateOnlyUTCPerf(time.Now().UTC())
+		baseDate = &now
+	}
+
+	now := dateOnlyUTCPerf(time.Now().UTC())
+	nextDate := baseDate.AddDate(0, 0, domain.PerformanceReviewIntervalDays)
+	days := int(nextDate.Sub(now).Hours() / 24)
+	isOverdue := nextDate.Before(now)
+
+	return &domain.PerformanceUpcomingItem{
+		EmployeeID:         row.ID,
+		EmployeeName:       strings.TrimSpace(row.FirstName + " " + row.LastName),
+		LastAssessmentDate: conv.TimePtrFromPgDate(row.LastAssessmentDate),
+		NextAssessmentDate: nextDate,
+		IsOverdue:          isOverdue,
+		IsDueSoon:          !isOverdue && days <= 14,
+		DaysUntilDue:       days,
+		IsFirstReview:      !row.LastAssessmentDate.Valid,
+	}, nil
 }
 
 func (r *PerformanceRepository) ListUpcoming(
@@ -327,11 +380,19 @@ func (r *performanceTxRepo) CreateAssessment(
 	employeeName domain.PerformanceEmployeeName,
 ) (*domain.PerformanceAssessment, error) {
 	row, err := r.queries.CreatePerformanceAssessment(ctx, db.CreatePerformanceAssessmentParams{
-		EmployeeID:     params.EmployeeID,
-		AssessmentDate: conv.PgDateFromTime(params.AssessmentDate),
-		TotalScore:     params.TotalScore,
-		Notes:          params.Notes,
+		EmployeeID:         params.EmployeeID,
+		ReviewerEmployeeID: params.ReviewerEmployeeID,
+		AssessmentDate:     conv.PgDateFromTime(params.AssessmentDate),
+		TotalScore:         params.TotalScore,
+		Notes:              params.Notes,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// We need the reviewer name. Since we know the creator is an active employee,
+	// fetch it directly. The RETURNING row carries the reviewer_employee_id.
+	reviewer, err := r.queries.GetActiveEmployeeNameForPerformance(ctx, row.ReviewerEmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -341,6 +402,9 @@ func (r *performanceTxRepo) CreateAssessment(
 		row.EmployeeID,
 		employeeName.FirstName,
 		employeeName.LastName,
+		row.ReviewerEmployeeID,
+		&reviewer.FirstName,
+		&reviewer.LastName,
 		row.AssessmentDate,
 		row.TotalScore,
 		string(row.Status),
@@ -392,16 +456,25 @@ func toDomainPerformanceAssessment(
 	employeeID uuid.UUID,
 	firstName string,
 	lastName string,
+	reviewerID uuid.UUID,
+	reviewerFirstName *string,
+	reviewerLastName *string,
 	assessmentDate pgtype.Date,
 	totalScore *float64,
 	status string,
 	notes *string,
 	createdAt pgtype.Timestamptz,
 ) domain.PerformanceAssessment {
+	reviewerName := ""
+	if reviewerFirstName != nil && reviewerLastName != nil {
+		reviewerName = strings.TrimSpace(*reviewerFirstName + " " + *reviewerLastName)
+	}
 	return domain.PerformanceAssessment{
 		ID:             id,
 		EmployeeID:     employeeID,
 		EmployeeName:   strings.TrimSpace(firstName + " " + lastName),
+		ReviewerID:     reviewerID,
+		ReviewerName:   reviewerName,
 		AssessmentDate: conv.TimeFromPgDate(assessmentDate),
 		TotalScore:     totalScore,
 		Status:         status,
@@ -413,11 +486,14 @@ func toDomainPerformanceAssessment(
 func toDomainPerformanceWorkAssignment(
 	id uuid.UUID,
 	assessmentID uuid.UUID,
+	assessmentDate pgtype.Date,
 	employeeID uuid.UUID,
 	firstName string,
 	lastName string,
 	questionCode string,
 	domainCode string,
+	domainNameNL string,
+	domainNameEN string,
 	questionTextNL string,
 	questionTextEN string,
 	score float64,
@@ -435,10 +511,13 @@ func toDomainPerformanceWorkAssignment(
 	return domain.PerformanceWorkAssignment{
 		ID:                    id,
 		AssessmentID:          assessmentID,
+		AssessmentDate:        conv.TimeFromPgDate(assessmentDate),
 		EmployeeID:            employeeID,
 		EmployeeName:          strings.TrimSpace(firstName + " " + lastName),
 		QuestionCode:          questionCode,
 		DomainCode:            domainCode,
+		DomainNameNL:          domainNameNL,
+		DomainNameEN:          domainNameEN,
 		QuestionTextNL:        questionTextNL,
 		QuestionTextEN:        questionTextEN,
 		Score:                 score,

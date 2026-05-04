@@ -24,6 +24,83 @@ func NewPayoutRepository(store *db.Store) domain.PayoutRepository {
 	return &PayoutRepository{store: store}
 }
 
+const payrollPreviewTimeEntriesSQL = `
+	SELECT
+		te.id,
+		te.employee_id,
+		ep.first_name AS employee_first_name,
+		ep.last_name AS employee_last_name,
+		COALESCE(
+			NULLIF(btrim(te.activity_description), ''),
+			NULLIF(btrim(te.activity_category), ''),
+			NULLIF(btrim(te.project_name), ''),
+			NULLIF(btrim(te.client_name), ''),
+			''
+		) AS label,
+		te.entry_date,
+		te.start_time,
+		te.end_time,
+		te.break_minutes,
+		te.hour_type::text,
+		COALESCE(cc.contract_type, ep.contract_type)::text AS contract_type,
+		COALESCE(cc.contract_rate, ep.contract_rate) AS contract_rate,
+		COALESCE(cc.irregular_hours_profile, ep.irregular_hours_profile)::text AS irregular_hours_profile
+	FROM time_entries te
+	JOIN employee_profile ep ON ep.id = te.employee_id
+	LEFT JOIN LATERAL (
+		SELECT c.contract_type, c.contract_rate, c.irregular_hours_profile
+		FROM employee_contract_changes c
+		WHERE c.employee_id = te.employee_id
+		  AND c.effective_from <= te.entry_date
+		ORDER BY c.effective_from DESC, c.created_at DESC
+		LIMIT 1
+	) cc ON TRUE
+	WHERE te.employee_id = $1
+	  AND te.status = 'approved'::time_entry_status_enum
+	  AND te.hour_type IN ('normal'::time_entry_hour_type_enum, 'overtime'::time_entry_hour_type_enum, 'travel'::time_entry_hour_type_enum, 'training'::time_entry_hour_type_enum)
+	  AND te.entry_date >= $2
+	  AND te.entry_date <= $3
+`
+
+const payrollMonthApprovedTimeEntriesSQL = `
+	SELECT
+		te.id,
+		te.employee_id,
+		ep.first_name AS employee_first_name,
+		ep.last_name AS employee_last_name,
+		COALESCE(
+			NULLIF(btrim(te.activity_description), ''),
+			NULLIF(btrim(te.activity_category), ''),
+			NULLIF(btrim(te.project_name), ''),
+			NULLIF(btrim(te.client_name), ''),
+			''
+		) AS label,
+		te.entry_date,
+		te.start_time,
+		te.end_time,
+		te.break_minutes,
+		te.hour_type::text,
+		COALESCE(cc.contract_type, ep.contract_type)::text AS contract_type,
+		COALESCE(cc.contract_rate, ep.contract_rate) AS contract_rate,
+		COALESCE(cc.irregular_hours_profile, ep.irregular_hours_profile)::text AS irregular_hours_profile
+	FROM time_entries te
+	JOIN employee_profile ep ON ep.id = te.employee_id
+	LEFT JOIN LATERAL (
+		SELECT c.contract_type, c.contract_rate, c.irregular_hours_profile
+		FROM employee_contract_changes c
+		WHERE c.employee_id = te.employee_id
+		  AND c.effective_from <= te.entry_date
+		ORDER BY c.effective_from DESC, c.created_at DESC
+		LIMIT 1
+	) cc ON TRUE
+	WHERE te.employee_id = ANY($1::uuid[])
+	  AND te.status = 'approved'::time_entry_status_enum
+	  AND te.hour_type IN ('normal'::time_entry_hour_type_enum, 'overtime'::time_entry_hour_type_enum, 'travel'::time_entry_hour_type_enum, 'training'::time_entry_hour_type_enum)
+	  AND te.entry_date >= $2
+	  AND te.entry_date <= $3
+	ORDER BY te.employee_id ASC, te.entry_date ASC, te.start_time ASC, te.created_at ASC
+`
+
 func (r *PayoutRepository) WithTx(
 	ctx context.Context,
 	fn func(tx domain.PayoutTxRepository) error,
@@ -148,30 +225,25 @@ func (r *PayoutRepository) ListPayrollPreviewTimeEntries(
 	ctx context.Context,
 	params domain.PayrollPreviewParams,
 ) ([]domain.PayrollPreviewTimeEntry, error) {
-	rows, err := r.store.ListPayrollPreviewTimeEntries(ctx, db.ListPayrollPreviewTimeEntriesParams{
-		EmployeeID:  params.EmployeeID,
-		PeriodStart: conv.PgDateFromTime(params.PeriodStart),
-		PeriodEnd:   conv.PgDateFromTime(params.PeriodEnd),
-	})
+	rows, err := r.store.ConnPool.Query(ctx, payrollPreviewTimeEntriesSQL+`
+		AND te.paid_period_id IS NULL
+		ORDER BY te.entry_date ASC, te.start_time ASC, te.created_at ASC
+	`, params.EmployeeID, params.PeriodStart, params.PeriodEnd)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	items := make([]domain.PayrollPreviewTimeEntry, 0, len(rows))
-	for _, row := range rows {
-		items = append(items, domain.PayrollPreviewTimeEntry{
-			ID:                    row.ID,
-			EmployeeID:            row.EmployeeID,
-			EmployeeName:          fullName(row.EmployeeFirstName, row.EmployeeLastName),
-			EntryDate:             conv.TimeFromPgDate(row.EntryDate),
-			StartTime:             conv.StringFromPgTime(row.StartTime),
-			EndTime:               conv.StringFromPgTime(row.EndTime),
-			BreakMinutes:          row.BreakMinutes,
-			HourType:              string(row.HourType),
-			ContractType:          string(row.ContractType),
-			ContractRate:          row.ContractRate,
-			IrregularHoursProfile: string(row.IrregularHoursProfile),
-		})
+	items := make([]domain.PayrollPreviewTimeEntry, 0)
+	for rows.Next() {
+		item, scanErr := scanPayrollPreviewTimeEntry(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return items, nil
@@ -428,33 +500,22 @@ func (r *PayoutRepository) ListPayrollMonthApprovedTimeEntries(
 		return []domain.PayrollPreviewTimeEntry{}, nil
 	}
 
-	rows, err := r.store.ListPayrollMonthApprovedTimeEntriesByEmployeeIDs(
-		ctx,
-		db.ListPayrollMonthApprovedTimeEntriesByEmployeeIDsParams{
-			EmployeeIds: employeeIDs,
-			MonthStart:  conv.PgDateFromTime(monthStart),
-			MonthEnd:    conv.PgDateFromTime(monthEnd),
-		},
-	)
+	rows, err := r.store.ConnPool.Query(ctx, payrollMonthApprovedTimeEntriesSQL, employeeIDs, monthStart, monthEnd)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	items := make([]domain.PayrollPreviewTimeEntry, 0, len(rows))
-	for _, row := range rows {
-		items = append(items, domain.PayrollPreviewTimeEntry{
-			ID:                    row.ID,
-			EmployeeID:            row.EmployeeID,
-			EmployeeName:          fullName(row.EmployeeFirstName, row.EmployeeLastName),
-			EntryDate:             conv.TimeFromPgDate(row.EntryDate),
-			StartTime:             conv.StringFromPgTime(row.StartTime),
-			EndTime:               conv.StringFromPgTime(row.EndTime),
-			BreakMinutes:          row.BreakMinutes,
-			HourType:              string(row.HourType),
-			ContractType:          string(row.ContractType),
-			ContractRate:          row.ContractRate,
-			IrregularHoursProfile: string(row.IrregularHoursProfile),
-		})
+	items := make([]domain.PayrollPreviewTimeEntry, 0)
+	for rows.Next() {
+		item, scanErr := scanPayrollPreviewTimeEntry(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return items, nil
@@ -522,6 +583,159 @@ func (r *PayoutRepository) ListPayrollMonthPendingEntries(
 		})
 	}
 	return items, nil
+}
+
+func (r *PayoutRepository) ListPendingTimeEntriesDetail(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	monthStart, monthEnd time.Time,
+) ([]domain.PayrollPendingEntryDetail, error) {
+	sql := `
+		SELECT
+			id,
+			entry_date,
+			start_time,
+			end_time,
+			break_minutes,
+			status,
+			GREATEST(0, (
+				CASE
+					WHEN end_time > start_time THEN
+						EXTRACT(EPOCH FROM end_time) - EXTRACT(EPOCH FROM start_time)
+					ELSE
+						EXTRACT(EPOCH FROM end_time) + 86400 - EXTRACT(EPOCH FROM start_time)
+				END
+			) / 60 - break_minutes)::INT AS worked_minutes
+		FROM time_entries
+		WHERE employee_id = $1
+		  AND entry_date >= $2
+		  AND entry_date <= $3
+		  AND status IN ('draft'::time_entry_status_enum, 'submitted'::time_entry_status_enum)
+		  AND hour_type IN ('normal'::time_entry_hour_type_enum, 'overtime'::time_entry_hour_type_enum, 'travel'::time_entry_hour_type_enum, 'training'::time_entry_hour_type_enum)
+		ORDER BY entry_date ASC, start_time ASC
+	`
+	rows, err := r.store.ConnPool.Query(ctx, sql, employeeID, monthStart, monthEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.PayrollPendingEntryDetail
+	for rows.Next() {
+		var item domain.PayrollPendingEntryDetail
+		var entryDate pgtype.Date
+		var startTime pgtype.Time
+		var endTime pgtype.Time
+		var status string
+		err := rows.Scan(
+			&item.ID,
+			&entryDate,
+			&startTime,
+			&endTime,
+			&item.BreakMinutes,
+			&status,
+			&item.WorkedMinutes,
+		)
+		if err != nil {
+			return nil, err
+		}
+		item.WorkDate = conv.TimeFromPgDate(entryDate)
+		item.StartTime = conv.StringFromPgTime(startTime)
+		item.EndTime = conv.StringFromPgTime(endTime)
+		item.Status = status
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *PayoutRepository) ListPayoutRequestsByEmployeeAndMonth(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	salaryMonth time.Time,
+) ([]domain.PayoutRequest, error) {
+	sql := `
+		SELECT
+			id, employee_id, created_by_employee_id, requested_hours, balance_year,
+			hourly_rate, gross_amount, salary_month, status,
+			request_note, decision_note, decided_by_employee_id, paid_by_employee_id,
+			requested_at, decided_at, paid_at, created_at, updated_at
+		FROM leave_payout_requests
+		WHERE employee_id = $1
+		  AND salary_month = $2
+		ORDER BY requested_at DESC
+	`
+	rows, err := r.store.ConnPool.Query(ctx, sql, employeeID, salaryMonth)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.PayoutRequest
+	for rows.Next() {
+		var (
+			id                  uuid.UUID
+			empID               uuid.UUID
+			createdByEmpID      uuid.UUID
+			requestedHours      int32
+			balanceYear         int32
+			hourlyRate          float64
+			grossAmount         float64
+			salMonth            pgtype.Date
+			status              string
+			requestNote         *string
+			decisionNote        *string
+			decidedByEmployeeID *uuid.UUID
+			paidByEmployeeID    *uuid.UUID
+			requestedAt         pgtype.Timestamptz
+			decidedAt           pgtype.Timestamptz
+			paidAt              pgtype.Timestamptz
+			createdAt           pgtype.Timestamptz
+			updatedAt           pgtype.Timestamptz
+		)
+		err := rows.Scan(
+			&id, &empID, &createdByEmpID, &requestedHours, &balanceYear,
+			&hourlyRate, &grossAmount, &salMonth, &status,
+			&requestNote, &decisionNote, &decidedByEmployeeID, &paidByEmployeeID,
+			&requestedAt, &decidedAt, &paidAt, &createdAt, &updatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, toDomainPayoutRequest(
+			id, empID, "", createdByEmpID,
+			requestedHours, balanceYear, hourlyRate, grossAmount, salMonth, status,
+			requestNote, decisionNote, decidedByEmployeeID, paidByEmployeeID,
+			requestedAt, decidedAt, paidAt, createdAt, updatedAt,
+		))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *PayoutRepository) GetLeaveBalanceExtraRemaining(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	year int32,
+) (int32, error) {
+	sql := `
+		SELECT COALESCE(
+			(SELECT extra_total_hours - extra_used_hours
+			 FROM leave_balances
+			 WHERE employee_id = $1 AND year = $2),
+			0
+		)::INT AS extra_remaining
+	`
+	var extraRemaining int32
+	err := r.store.ConnPool.QueryRow(ctx, sql, employeeID, year).Scan(&extraRemaining)
+	if err != nil {
+		return 0, err
+	}
+	return extraRemaining, nil
 }
 
 type payoutTxRepo struct {
@@ -935,6 +1149,61 @@ func toDomainPayoutRequestFromRow(row db.LeavePayoutRequest) domain.PayoutReques
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
+}
+
+func stringFromDBValue(value any) string {
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	case []byte:
+		return strings.TrimSpace(string(v))
+	default:
+		return ""
+	}
+}
+
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanPayrollPreviewTimeEntry(row rowScanner) (domain.PayrollPreviewTimeEntry, error) {
+	var (
+		item                  domain.PayrollPreviewTimeEntry
+		firstName             string
+		lastName              string
+		entryDate             pgtype.Date
+		startTime             pgtype.Time
+		endTime               pgtype.Time
+		hourType              string
+		contractType          string
+		irregularHoursProfile string
+	)
+	err := row.Scan(
+		&item.ID,
+		&item.EmployeeID,
+		&firstName,
+		&lastName,
+		&item.Label,
+		&entryDate,
+		&startTime,
+		&endTime,
+		&item.BreakMinutes,
+		&hourType,
+		&contractType,
+		&item.ContractRate,
+		&irregularHoursProfile,
+	)
+	if err != nil {
+		return domain.PayrollPreviewTimeEntry{}, err
+	}
+	item.EmployeeName = fullName(firstName, lastName)
+	item.EntryDate = conv.TimeFromPgDate(entryDate)
+	item.StartTime = conv.StringFromPgTime(startTime)
+	item.EndTime = conv.StringFromPgTime(endTime)
+	item.HourType = hourType
+	item.ContractType = contractType
+	item.IrregularHoursProfile = irregularHoursProfile
+	return item, nil
 }
 
 func toDomainPayoutRequest(

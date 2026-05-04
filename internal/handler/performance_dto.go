@@ -75,9 +75,16 @@ type sendPerformanceUpcomingInvitationsRequest struct {
 	Message     *string     `json:"message"`
 }
 
+type getPerformanceMineRequest struct {
+	Limit              *int32 `form:"limit" binding:"omitempty,min=1,max=100"`
+	IncludeScores      *bool  `form:"include_scores"`
+	IncludeAssignments *bool  `form:"include_assignments"`
+}
+
 type performanceAssessmentResponse struct {
 	ID             uuid.UUID `json:"id"`
 	Employee       gin.H     `json:"employee"`
+	Reviewer       gin.H     `json:"reviewer"`
 	AssessmentDate string    `json:"assessment_date"`
 	TotalScore     *float64  `json:"total_score"`
 	Status         string    `json:"status"`
@@ -90,6 +97,8 @@ type performanceAssessmentScoreResponse struct {
 	AssessmentID  uuid.UUID `json:"assessment_id"`
 	QuestionCode  string    `json:"question_code"`
 	DomainCode    string    `json:"domain_code"`
+	DomainNameNL  string    `json:"domain_name_nl"`
+	DomainNameEN  string    `json:"domain_name_en"`
 	TitleNL       string    `json:"title_nl"`
 	TitleEN       string    `json:"title_en"`
 	DescriptionNL string    `json:"description_nl"`
@@ -101,9 +110,12 @@ type performanceAssessmentScoreResponse struct {
 type performanceWorkAssignmentResponse struct {
 	ID                    uuid.UUID `json:"id"`
 	AssessmentID          uuid.UUID `json:"assessment_id"`
+	AssessmentDate        string    `json:"assessment_date"`
 	Employee              gin.H     `json:"employee"`
 	QuestionCode          string    `json:"question_code"`
 	DomainCode            string    `json:"domain_code"`
+	DomainNameNL          string    `json:"domain_name_nl"`
+	DomainNameEN          string    `json:"domain_name_en"`
 	QuestionTextNL        string    `json:"question_text_nl"`
 	QuestionTextEN        string    `json:"question_text_en"`
 	Score                 float64   `json:"score"`
@@ -141,6 +153,56 @@ type performanceStatsResponse struct {
 
 type sendPerformanceUpcomingInvitationsResponse struct {
 	SentCount int `json:"sent_count"`
+}
+
+type performanceMineResponse struct {
+	Employee           gin.H                               `json:"employee"`
+	ReviewIntervalDays int                                 `json:"review_interval_days"`
+	NextReview         performanceMineNextReview           `json:"next_review"`
+	Summary            performanceMineSummary              `json:"summary"`
+	Assessments        []performanceMineAssessment         `json:"assessments"`
+	Highlighted        performanceMineHighlighted          `json:"highlighted"`
+	WorkAssignments    []performanceWorkAssignmentResponse `json:"work_assignments"`
+}
+
+type performanceMineNextReview struct {
+	LastAssessmentDate *string `json:"last_assessment_date"`
+	NextAssessmentDate string  `json:"next_assessment_date"`
+	DaysUntilDue       int     `json:"days_until_due"`
+	IsOverdue          bool    `json:"is_overdue"`
+	IsDueSoon          bool    `json:"is_due_soon"`
+	IsFirstReview      bool    `json:"is_first_review"`
+}
+
+type performanceMineSummary struct {
+	AssessmentCount               int      `json:"assessment_count"`
+	LatestScore                   *float64 `json:"latest_score"`
+	AverageScore                  *float64 `json:"average_score"`
+	FirstScore                    *float64 `json:"first_score"`
+	ScoreGrowth                   *float64 `json:"score_growth"`
+	OpenAssignmentCount           int      `json:"open_assignment_count"`
+	SubmittedAssignmentCount      int      `json:"submitted_assignment_count"`
+	ApprovedAssignmentCount       int      `json:"approved_assignment_count"`
+	RevisionNeededAssignmentCount int      `json:"revision_needed_assignment_count"`
+}
+
+type performanceMineAssessment struct {
+	ID             uuid.UUID                            `json:"id"`
+	AssessmentDate string                               `json:"assessment_date"`
+	Title          string                               `json:"title"`
+	CycleNumber    int                                  `json:"cycle_number"`
+	TotalScore     *float64                             `json:"total_score"`
+	ScoreDelta     *float64                             `json:"score_delta"`
+	Status         string                               `json:"status"`
+	Reviewer       gin.H                                `json:"reviewer"`
+	Notes          *string                              `json:"notes"`
+	CreatedAt      string                               `json:"created_at"`
+	Scores         []performanceAssessmentScoreResponse `json:"scores"`
+}
+
+type performanceMineHighlighted struct {
+	StrongestScore *performanceAssessmentScoreResponse `json:"strongest_score"`
+	FocusScore     *performanceAssessmentScoreResponse `json:"focus_score"`
 }
 
 func toCreatePerformanceAssessmentParams(
@@ -254,6 +316,7 @@ func toPerformanceAssessmentResponse(item *domain.PerformanceAssessment) perform
 	return performanceAssessmentResponse{
 		ID:             item.ID,
 		Employee:       gin.H{"id": item.EmployeeID, "name": item.EmployeeName},
+		Reviewer:       gin.H{"id": item.ReviewerID, "name": item.ReviewerName},
 		AssessmentDate: item.AssessmentDate.Format(performanceDateLayout),
 		TotalScore:     item.TotalScore,
 		Status:         item.Status,
@@ -280,6 +343,8 @@ func toPerformanceAssessmentScoreResponses(
 			AssessmentID:  item.AssessmentID,
 			QuestionCode:  item.QuestionCode,
 			DomainCode:    item.DomainCode,
+			DomainNameNL:  item.DomainNameNL,
+			DomainNameEN:  item.DomainNameEN,
 			TitleNL:       item.TitleNL,
 			TitleEN:       item.TitleEN,
 			DescriptionNL: item.DescriptionNL,
@@ -297,9 +362,12 @@ func toPerformanceWorkAssignmentResponse(
 	return performanceWorkAssignmentResponse{
 		ID:                    item.ID,
 		AssessmentID:          item.AssessmentID,
+		AssessmentDate:        item.AssessmentDate.Format(performanceDateLayout),
 		Employee:              gin.H{"id": item.EmployeeID, "name": item.EmployeeName},
 		QuestionCode:          item.QuestionCode,
 		DomainCode:            item.DomainCode,
+		DomainNameNL:          item.DomainNameNL,
+		DomainNameEN:          item.DomainNameEN,
 		QuestionTextNL:        item.QuestionTextNL,
 		QuestionTextEN:        item.QuestionTextEN,
 		Score:                 item.Score,
@@ -313,6 +381,63 @@ func toPerformanceWorkAssignmentResponse(
 		SubmissionText:        item.SubmissionText,
 		Feedback:              item.Feedback,
 		ReviewedAt:            formatTimestampPtr(item.ReviewedAt),
+	}
+}
+
+func toPerformanceMineResponse(item *domain.PerformanceMine) performanceMineResponse {
+	assessments := make([]performanceMineAssessment, len(item.Assessments))
+	for i, assessment := range item.Assessments {
+		assessments[i] = performanceMineAssessment{
+			ID:             assessment.ID,
+			AssessmentDate: assessment.AssessmentDate.Format(performanceDateLayout),
+			Title:          assessment.Title,
+			CycleNumber:    assessment.CycleNumber,
+			TotalScore:     assessment.TotalScore,
+			ScoreDelta:     assessment.ScoreDelta,
+			Status:         assessment.Status,
+			Reviewer:       gin.H{"id": assessment.ReviewerID, "name": assessment.ReviewerName},
+			Notes:          assessment.Notes,
+			CreatedAt:      assessment.CreatedAt.Format(time.RFC3339),
+			Scores:         toPerformanceAssessmentScoreResponses(assessment.Scores),
+		}
+	}
+
+	var strongest *performanceAssessmentScoreResponse
+	if item.Highlighted.StrongestScore != nil {
+		mapped := toPerformanceAssessmentScoreResponses([]domain.PerformanceAssessmentScore{*item.Highlighted.StrongestScore})[0]
+		strongest = &mapped
+	}
+	var focus *performanceAssessmentScoreResponse
+	if item.Highlighted.FocusScore != nil {
+		mapped := toPerformanceAssessmentScoreResponses([]domain.PerformanceAssessmentScore{*item.Highlighted.FocusScore})[0]
+		focus = &mapped
+	}
+
+	return performanceMineResponse{
+		Employee:           gin.H{"id": item.Employee.ID, "name": item.Employee.Name},
+		ReviewIntervalDays: item.ReviewIntervalDays,
+		NextReview: performanceMineNextReview{
+			LastAssessmentDate: formatDatePtr(item.NextReview.LastAssessmentDate),
+			NextAssessmentDate: item.NextReview.NextAssessmentDate.Format(performanceDateLayout),
+			DaysUntilDue:       item.NextReview.DaysUntilDue,
+			IsOverdue:          item.NextReview.IsOverdue,
+			IsDueSoon:          item.NextReview.IsDueSoon,
+			IsFirstReview:      item.NextReview.IsFirstReview,
+		},
+		Summary: performanceMineSummary{
+			AssessmentCount:               item.Summary.AssessmentCount,
+			LatestScore:                   item.Summary.LatestScore,
+			AverageScore:                  item.Summary.AverageScore,
+			FirstScore:                    item.Summary.FirstScore,
+			ScoreGrowth:                   item.Summary.ScoreGrowth,
+			OpenAssignmentCount:           item.Summary.OpenAssignmentCount,
+			SubmittedAssignmentCount:      item.Summary.SubmittedAssignmentCount,
+			ApprovedAssignmentCount:       item.Summary.ApprovedAssignmentCount,
+			RevisionNeededAssignmentCount: item.Summary.RevisionNeededAssignmentCount,
+		},
+		Assessments:     assessments,
+		Highlighted:     performanceMineHighlighted{StrongestScore: strongest, FocusScore: focus},
+		WorkAssignments: toPerformanceWorkAssignmentResponses(item.WorkAssignments),
 	}
 }
 

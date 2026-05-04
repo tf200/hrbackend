@@ -9,6 +9,24 @@ func RegisterPayoutRoutes(
 	requirePermission func(string) gin.HandlerFunc,
 ) {
 	rg.GET(
+		"/payouts/salary-page/mine",
+		auth,
+		requirePermission("PAYOUT.REQUEST.VIEW"),
+		handler.GetMySalaryPage,
+	)
+	rg.GET(
+		"/payouts/detail/pdf",
+		auth,
+		requirePermission("PAYOUT.REQUEST.VIEW"),
+		handler.ExportMyPayrollMonthPDF,
+	)
+	rg.GET(
+		"/salary-page/mine",
+		auth,
+		requirePermission("PAYOUT.REQUEST.VIEW"),
+		handler.GetMySalaryPage,
+	)
+	rg.GET(
 		"/payroll-preview/my",
 		auth,
 		requirePermission("PAYOUT.REQUEST.VIEW"),

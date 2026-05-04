@@ -951,6 +951,126 @@ func (s *PayoutService) ExportPayrollMonthPDF(
 	return pdfBytes, filename, nil
 }
 
+func (s *PayoutService) GetMySalaryPage(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	month time.Time,
+) (*domain.SalaryPageData, error) {
+	if employeeID == uuid.Nil || month.IsZero() {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	monthStart := time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
+	monthEnd := monthStart.AddDate(0, 1, -1)
+
+	// 1. Fetch employee details (includes contract fields via EmployeeDetail)
+	employee, err := s.repository.GetPayrollPreviewEmployee(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Check for existing locked pay period for this month
+	payPeriods, err := s.repository.ListPayPeriodsByEmployeesAndRange(
+		ctx, []uuid.UUID{employeeID}, monthStart, monthEnd,
+	)
+	if err != nil {
+		s.logError(ctx, "GetMySalaryPage", "failed to list pay periods", err)
+		return nil, fmt.Errorf("failed to list pay periods: %w", err)
+	}
+
+	var selectedPayPeriod *domain.PayPeriod
+	for _, period := range payPeriods {
+		if period.EmployeeID != employeeID {
+			continue
+		}
+		if period.PeriodStart.Equal(monthStart) && period.PeriodEnd.Equal(monthEnd) {
+			item, loadErr := s.loadPayPeriodWithLineItems(ctx, period.ID)
+			if loadErr != nil {
+				return nil, loadErr
+			}
+			selectedPayPeriod = item
+			break
+		}
+	}
+
+	var dataSource string
+	var payPeriod *domain.PayPeriod
+	var preview *domain.PayrollPreview
+
+	if selectedPayPeriod != nil {
+		dataSource = "locked"
+		payPeriod = selectedPayPeriod
+	} else {
+		dataSource = "live"
+		// Build live preview from approved time entries
+		approvedEntries, err := s.repository.ListPayrollMonthApprovedTimeEntries(
+			ctx, []uuid.UUID{employeeID}, monthStart, monthEnd,
+		)
+		if err != nil {
+			s.logError(ctx, "GetMySalaryPage", "failed to list approved entries", err)
+			return nil, fmt.Errorf("failed to list approved entries: %w", err)
+		}
+
+		if len(approvedEntries) > 0 {
+			preview, err = s.buildPayrollPreview(ctx, employee, domain.PayrollPreviewParams{
+				EmployeeID:  employeeID,
+				PeriodStart: monthStart,
+				PeriodEnd:   monthEnd,
+			}, approvedEntries)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// 3. Fetch pending entries with full detail
+	pendingEntries, err := s.repository.ListPendingTimeEntriesDetail(ctx, employeeID, monthStart, monthEnd)
+	if err != nil {
+		s.logError(ctx, "GetMySalaryPage", "failed to list pending entries", err)
+		return nil, fmt.Errorf("failed to list pending entries: %w", err)
+	}
+	if pendingEntries == nil {
+		pendingEntries = []domain.PayrollPendingEntryDetail{}
+	}
+
+	// 4. Fetch leave payout requests for this month
+	leavePayouts, err := s.repository.ListPayoutRequestsByEmployeeAndMonth(ctx, employeeID, monthStart)
+	if err != nil {
+		s.logError(ctx, "GetMySalaryPage", "failed to list leave payouts", err)
+		return nil, fmt.Errorf("failed to list leave payouts: %w", err)
+	}
+	if leavePayouts == nil {
+		leavePayouts = []domain.PayoutRequest{}
+	}
+
+	// 5. Fetch remaining extra leave balance for the year
+	balanceYear := int32(monthStart.Year())
+	extraRemaining, err := s.repository.GetLeaveBalanceExtraRemaining(ctx, employeeID, balanceYear)
+	if err != nil {
+		s.logError(ctx, "GetMySalaryPage", "failed to get leave balance", err)
+		return nil, fmt.Errorf("failed to get leave balance: %w", err)
+	}
+
+	// 6. Assemble response
+	return &domain.SalaryPageData{
+		EmployeeID:            employeeID,
+		EmployeeName:          strings.TrimSpace(employee.FirstName + " " + employee.LastName),
+		Month:                 monthStart,
+		ContractType:          employee.ContractType,
+		ContractRate:          employee.ContractRate,
+		ContractHours:         employee.ContractHours,
+		IrregularHoursProfile: employee.IrregularHoursProfile,
+		ContractStartDate:     employee.ContractStartDate,
+		ContractEndDate:       employee.ContractEndDate,
+		DataSource:            dataSource,
+		PayPeriod:             payPeriod,
+		Preview:               preview,
+		PendingEntries:        pendingEntries,
+		LeavePayoutRequests:   leavePayouts,
+		ExtraLeaveRemaining:   extraRemaining,
+	}, nil
+}
+
 func (s *PayoutService) MarkPayPeriodPaidByAdmin(
 	ctx context.Context,
 	adminEmployeeID, payPeriodID uuid.UUID,
@@ -1259,6 +1379,7 @@ func buildPayrollPreviewLineItems(
 	var premiumTotal float64
 	for _, segment := range segments {
 		paidMinutes := float64(segment.minutes) * paidFactor
+		breakMinutes := int32(math.Round(float64(segment.minutes) - paidMinutes))
 		baseAmount := roundCurrency(hourlyRate * paidMinutes / 60)
 		premiumAmount := roundCurrency(baseAmount * segment.rate / 100)
 
@@ -1267,11 +1388,13 @@ func buildPayrollPreviewLineItems(
 
 		items = append(items, domain.PayrollPreviewLineItem{
 			TimeEntryID:           entry.ID,
+			Label:                 entry.Label,
 			ContractType:          entry.ContractType,
 			WorkDate:              segment.workDate,
 			HourType:              entry.HourType,
 			StartTime:             segment.start.Format("15:04"),
 			EndTime:               segment.end.Format("15:04"),
+			BreakMinutes:          breakMinutes,
 			IrregularHoursProfile: entry.IrregularHoursProfile,
 			AppliedRatePercent:    segment.rate,
 			MinutesWorked:         segment.minutes,

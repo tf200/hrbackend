@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"net/http"
+	"time"
 
 	"hrbackend/internal/domain"
 	"hrbackend/internal/httpapi"
@@ -165,6 +166,72 @@ func (h *PayoutHandler) PreviewMyPayroll(ctx *gin.Context) {
 		http.StatusOK,
 		httpapi.OK(toPayrollPreviewResponse(preview), "Payroll preview retrieved successfully"),
 	)
+}
+
+func (h *PayoutHandler) GetMySalaryPage(ctx *gin.Context) {
+	var req salaryPageRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	month, err := time.Parse(payoutMonthLayout, req.Month)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid month format, expected YYYY-MM", ""))
+		return
+	}
+
+	data, err := h.service.GetMySalaryPage(ctx.Request.Context(), employeeID, month)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toSalaryPageResponse(data), "Salary page data retrieved successfully"),
+	)
+}
+
+func (h *PayoutHandler) ExportMyPayrollMonthPDF(ctx *gin.Context) {
+	var req salaryPageRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	month, err := time.Parse(payoutMonthLayout, req.Month)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid month format, expected YYYY-MM", ""))
+		return
+	}
+
+	pdfBytes, filename, err := h.service.ExportPayrollMonthPDF(
+		ctx.Request.Context(),
+		employeeID,
+		month,
+		nil,
+	)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.Header("Content-Type", "application/pdf")
+	ctx.Header("Content-Disposition", `attachment; filename="`+filename+`"`)
+	ctx.DataFromReader(http.StatusOK, int64(len(pdfBytes)), "application/pdf", bytes.NewReader(pdfBytes), nil)
 }
 
 func (h *PayoutHandler) GetORTRules(ctx *gin.Context) {

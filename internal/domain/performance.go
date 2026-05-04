@@ -28,6 +28,8 @@ type PerformanceAssessment struct {
 	ID             uuid.UUID
 	EmployeeID     uuid.UUID
 	EmployeeName   string
+	ReviewerID     uuid.UUID
+	ReviewerName   string
 	AssessmentDate time.Time
 	TotalScore     *float64
 	Status         string
@@ -40,6 +42,8 @@ type PerformanceAssessmentScore struct {
 	AssessmentID  uuid.UUID
 	QuestionCode  string
 	DomainCode    string
+	DomainNameNL  string
+	DomainNameEN  string
 	TitleNL       string
 	TitleEN       string
 	DescriptionNL string
@@ -74,10 +78,13 @@ type PerformanceEmployeeName struct {
 type PerformanceWorkAssignment struct {
 	ID                    uuid.UUID
 	AssessmentID          uuid.UUID
+	AssessmentDate        time.Time
 	EmployeeID            uuid.UUID
 	EmployeeName          string
 	QuestionCode          string
 	DomainCode            string
+	DomainNameNL          string
+	DomainNameEN          string
 	QuestionTextNL        string
 	QuestionTextEN        string
 	Score                 float64
@@ -115,6 +122,62 @@ type PerformanceStats struct {
 	CoveredCount       int64
 }
 
+type PerformanceMineParams struct {
+	EmployeeID         uuid.UUID
+	Limit              int32
+	IncludeScores      bool
+	IncludeAssignments bool
+}
+
+type PerformanceMine struct {
+	Employee           PerformanceMineEmployee
+	ReviewIntervalDays int
+	NextReview         PerformanceMineNextReview
+	Summary            PerformanceMineSummary
+	Assessments        []PerformanceMineAssessment
+	Highlighted        PerformanceMineHighlighted
+	WorkAssignments    []PerformanceWorkAssignment
+}
+
+type PerformanceMineEmployee struct {
+	ID   uuid.UUID
+	Name string
+}
+
+type PerformanceMineNextReview struct {
+	LastAssessmentDate *time.Time
+	NextAssessmentDate time.Time
+	DaysUntilDue       int
+	IsOverdue          bool
+	IsDueSoon          bool
+	IsFirstReview      bool
+}
+
+type PerformanceMineSummary struct {
+	AssessmentCount               int
+	LatestScore                   *float64
+	AverageScore                  *float64
+	FirstScore                    *float64
+	ScoreGrowth                   *float64
+	OpenAssignmentCount           int
+	SubmittedAssignmentCount      int
+	ApprovedAssignmentCount       int
+	RevisionNeededAssignmentCount int
+}
+
+type PerformanceMineAssessment struct {
+	PerformanceAssessment
+	Title       string
+	CycleNumber int
+	ScoreDelta  *float64
+	Scores      []PerformanceAssessmentScore
+}
+
+type PerformanceMineHighlighted struct {
+	StrongestScore *PerformanceAssessmentScore
+	FocusScore     *PerformanceAssessmentScore
+}
+
 type PerformanceAssessmentPage struct {
 	Items      []PerformanceAssessment
 	TotalCount int64
@@ -132,26 +195,29 @@ type CreatePerformanceAssessmentScoreParams struct {
 }
 
 type CreatePerformanceAssessmentParams struct {
-	EmployeeID     uuid.UUID
-	AssessmentDate time.Time
-	Notes          *string
-	Scores         []CreatePerformanceAssessmentScoreParams
+	EmployeeID         uuid.UUID
+	ReviewerEmployeeID uuid.UUID
+	AssessmentDate     time.Time
+	Notes              *string
+	Scores             []CreatePerformanceAssessmentScoreParams
 }
 
 type CreatePerformanceAssessmentRecordParams struct {
-	EmployeeID     uuid.UUID
-	AssessmentDate time.Time
-	TotalScore     *float64
-	Notes          *string
+	EmployeeID         uuid.UUID
+	ReviewerEmployeeID uuid.UUID
+	AssessmentDate     time.Time
+	TotalScore         *float64
+	Notes              *string
 }
 
 type ListPerformanceAssessmentsParams struct {
-	Limit    int32
-	Offset   int32
-	Search   *string
-	Status   *string
-	FromDate *time.Time
-	ToDate   *time.Time
+	Limit      int32
+	Offset     int32
+	EmployeeID *uuid.UUID
+	Search     *string
+	Status     *string
+	FromDate   *time.Time
+	ToDate     *time.Time
 }
 
 type ListPerformanceWorkAssignmentsParams struct {
@@ -196,6 +262,7 @@ type PerformanceRepository interface {
 	) (*PerformanceWorkAssignmentPage, error)
 	GetWorkAssignmentByID(ctx context.Context, id uuid.UUID) (*PerformanceWorkAssignment, error)
 	ListUpcoming(ctx context.Context, windowDays int) ([]PerformanceUpcomingItem, error)
+	GetMineReviewContext(ctx context.Context, employeeID uuid.UUID) (*PerformanceUpcomingItem, error)
 	GetStats(ctx context.Context) (*PerformanceStats, error)
 }
 
@@ -225,5 +292,6 @@ type PerformanceService interface {
 		employeeIDs []uuid.UUID,
 		message *string,
 	) (int, error)
+	GetMine(ctx context.Context, params PerformanceMineParams) (*PerformanceMine, error)
 	GetStats(ctx context.Context) (*PerformanceStats, error)
 }

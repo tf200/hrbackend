@@ -1564,6 +1564,7 @@ INSERT INTO performance_questions (
 CREATE TABLE performance_assessments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    reviewer_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
     assessment_date DATE NOT NULL,
     total_score NUMERIC(4,2) NULL,
     status performance_assessment_status_enum NOT NULL DEFAULT 'draft',
@@ -1577,6 +1578,9 @@ ON performance_assessments(employee_id, assessment_date DESC);
 
 CREATE INDEX idx_performance_assessments_status
 ON performance_assessments(status);
+
+CREATE INDEX idx_performance_assessments_reviewer
+ON performance_assessments(reviewer_employee_id);
 
 CREATE TABLE performance_assessment_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

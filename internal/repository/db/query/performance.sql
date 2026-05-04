@@ -26,13 +26,14 @@ WHERE id = $1
 -- name: CreatePerformanceAssessment :one
 INSERT INTO performance_assessments (
     employee_id,
+    reviewer_employee_id,
     assessment_date,
     total_score,
     status,
     notes
 )
-VALUES ($1, $2, $3, 'completed', $4)
-RETURNING id, employee_id, assessment_date, total_score, status, notes, created_at;
+VALUES ($1, $2, $3, $4, 'completed', $5)
+RETURNING id, employee_id, reviewer_employee_id, assessment_date, total_score, status, notes, created_at;
 
 -- name: GetActivePerformanceQuestion :one
 SELECT code, domain_code, title_nl, title_en, description_nl, description_en, sort_order
@@ -55,6 +56,9 @@ SELECT
     pa.employee_id,
     ep.first_name,
     ep.last_name,
+    pa.reviewer_employee_id,
+    rev.first_name AS reviewer_first_name,
+    rev.last_name AS reviewer_last_name,
     pa.assessment_date,
     pa.total_score,
     pa.status,
@@ -63,7 +67,9 @@ SELECT
     COUNT(*) OVER() AS total_count
 FROM performance_assessments pa
 JOIN employee_profile ep ON ep.id = pa.employee_id
+LEFT JOIN employee_profile rev ON rev.id = pa.reviewer_employee_id
 WHERE (sqlc.narg(search)::text IS NULL OR LOWER(ep.first_name || ' ' || ep.last_name) LIKE '%' || LOWER(sqlc.narg(search)) || '%')
+  AND (sqlc.narg(employee_id)::uuid IS NULL OR pa.employee_id = sqlc.narg(employee_id))
   AND (sqlc.narg(status)::text IS NULL OR pa.status::text = sqlc.narg(status))
   AND (sqlc.narg(from_date)::date IS NULL OR pa.assessment_date >= sqlc.narg(from_date))
   AND (sqlc.narg(to_date)::date IS NULL OR pa.assessment_date <= sqlc.narg(to_date))
@@ -76,6 +82,9 @@ SELECT
     pa.employee_id,
     ep.first_name,
     ep.last_name,
+    pa.reviewer_employee_id,
+    rev.first_name AS reviewer_first_name,
+    rev.last_name AS reviewer_last_name,
     pa.assessment_date,
     pa.total_score,
     pa.status,
@@ -83,6 +92,7 @@ SELECT
     pa.created_at
 FROM performance_assessments pa
 JOIN employee_profile ep ON ep.id = pa.employee_id
+LEFT JOIN employee_profile rev ON rev.id = pa.reviewer_employee_id
 WHERE pa.id = $1;
 
 -- name: DeletePerformanceAssessment :execrows
@@ -94,6 +104,8 @@ SELECT
     pas.assessment_id,
     pas.question_code,
     pq.domain_code,
+    pd.name_nl AS domain_name_nl,
+    pd.name_en AS domain_name_en,
     pq.title_nl,
     pq.title_en,
     pq.description_nl,
@@ -102,6 +114,7 @@ SELECT
     pas.remarks
 FROM performance_assessment_scores pas
 JOIN performance_questions pq ON pq.code = pas.question_code
+JOIN performance_domains pd ON pd.code = pq.domain_code
 WHERE pas.assessment_id = $1
 ORDER BY pq.domain_code, pq.sort_order;
 
@@ -109,11 +122,14 @@ ORDER BY pq.domain_code, pq.sort_order;
 SELECT
     pwa.id,
     pwa.assessment_id,
+    pa.assessment_date,
     pwa.employee_id,
     ep.first_name,
     ep.last_name,
     pwa.question_code,
     pwa.domain_code,
+    pd.name_nl AS domain_name_nl,
+    pd.name_en AS domain_name_en,
     pwa.question_text_nl,
     pwa.question_text_en,
     pwa.score,
@@ -130,6 +146,8 @@ SELECT
     COUNT(*) OVER() AS total_count
 FROM performance_work_assignments pwa
 JOIN employee_profile ep ON ep.id = pwa.employee_id
+JOIN performance_assessments pa ON pa.id = pwa.assessment_id
+JOIN performance_domains pd ON pd.code = pwa.domain_code
 WHERE (sqlc.narg(employee_id)::uuid IS NULL OR pwa.employee_id = sqlc.narg(employee_id))
   AND (sqlc.narg(status)::text IS NULL OR pwa.status::text = sqlc.narg(status))
   AND (sqlc.narg(due_before)::date IS NULL OR pwa.due_date <= sqlc.narg(due_before))
@@ -141,11 +159,14 @@ LIMIT $1 OFFSET $2;
 SELECT
     pwa.id,
     pwa.assessment_id,
+    pa.assessment_date,
     pwa.employee_id,
     ep.first_name,
     ep.last_name,
     pwa.question_code,
     pwa.domain_code,
+    pd.name_nl AS domain_name_nl,
+    pd.name_en AS domain_name_en,
     pwa.question_text_nl,
     pwa.question_text_en,
     pwa.score,
@@ -161,7 +182,26 @@ SELECT
     pwa.reviewed_at
 FROM performance_work_assignments pwa
 JOIN employee_profile ep ON ep.id = pwa.employee_id
+JOIN performance_assessments pa ON pa.id = pwa.assessment_id
+JOIN performance_domains pd ON pd.code = pwa.domain_code
 WHERE pwa.id = $1;
+
+-- name: GetPerformanceMineReviewContext :one
+SELECT
+    ep.id,
+    ep.first_name,
+    ep.last_name,
+    ep.contract_start_date,
+    (
+        SELECT MAX(pa.assessment_date)::date
+        FROM performance_assessments pa
+        WHERE pa.employee_id = ep.id
+          AND pa.status = 'completed'
+    ) AS last_assessment_date
+FROM employee_profile ep
+WHERE ep.id = $1
+  AND ep.is_archived = FALSE
+  AND COALESCE(ep.out_of_service, FALSE) = FALSE;
 
 -- name: GetPerformanceWorkAssignmentStatusForUpdate :one
 SELECT status::text

@@ -6,6 +6,7 @@ import (
 
 	"hrbackend/internal/domain"
 	"hrbackend/internal/httpapi"
+	"hrbackend/internal/middleware"
 	"hrbackend/pkg/ptr"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,8 @@ func (h *PerformanceHandler) CreateAssessment(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
+
+	params.ReviewerEmployeeID = middleware.EmployeeIDFromContext(ctx.Request.Context())
 
 	created, err := h.service.CreateAssessment(ctx.Request.Context(), params)
 	if err != nil {
@@ -240,6 +243,41 @@ func (h *PerformanceHandler) SendUpcomingInvitations(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpapi.OK(sendPerformanceUpcomingInvitationsResponse{SentCount: sentCount}, "Invitations queued successfully"))
+}
+
+func (h *PerformanceHandler) GetMine(ctx *gin.Context) {
+	var req getPerformanceMineRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	limit := int32(12)
+	if req.Limit != nil {
+		limit = *req.Limit
+	}
+	includeScores := true
+	if req.IncludeScores != nil {
+		includeScores = *req.IncludeScores
+	}
+	includeAssignments := true
+	if req.IncludeAssignments != nil {
+		includeAssignments = *req.IncludeAssignments
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	mine, err := h.service.GetMine(ctx.Request.Context(), domain.PerformanceMineParams{
+		EmployeeID:         employeeID,
+		Limit:              limit,
+		IncludeScores:      includeScores,
+		IncludeAssignments: includeAssignments,
+	})
+	if err != nil {
+		ctx.JSON(mapPerformanceErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceMineResponse(mine), "My performance retrieved successfully"))
 }
 
 func (h *PerformanceHandler) GetStats(ctx *gin.Context) {

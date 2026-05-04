@@ -173,12 +173,76 @@ func TestPayoutHandlerGetORTRulesSuccess(t *testing.T) {
 	}
 }
 
+func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T) {
+	employeeID := uuid.New()
+	timeEntryID := uuid.New()
+	month := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	rate := 24.5
+	contractHours := 32.0
+
+	response := toSalaryPageResponse(&domain.SalaryPageData{
+		EmployeeID:            employeeID,
+		EmployeeName:          "Jane Doe",
+		Month:                 month,
+		ContractType:          "loondienst",
+		ContractRate:          &rate,
+		ContractHours:         &contractHours,
+		IrregularHoursProfile: "roster",
+		DataSource:            "live",
+		Preview: &domain.PayrollPreview{
+			EmployeeID:           employeeID,
+			EmployeeName:         "Jane Doe",
+			PeriodStart:          month,
+			PeriodEnd:            month.AddDate(0, 1, -1),
+			TotalWorkedMinutes:   480,
+			BaseGrossAmount:      183.75,
+			IrregularGrossAmount: 45.94,
+			GrossAmount:          229.69,
+			LineItems: []domain.PayrollPreviewLineItem{
+				{
+					TimeEntryID:        timeEntryID,
+					Label:              "Evening care route",
+					WorkDate:           time.Date(2026, 5, 4, 0, 0, 0, 0, time.UTC),
+					HourType:           "normal",
+					StartTime:          "15:00",
+					EndTime:            "23:00",
+					BreakMinutes:       30,
+					AppliedRatePercent: 25,
+					MinutesWorked:      480,
+					PaidMinutes:        450,
+					BaseAmount:         183.75,
+					PremiumAmount:      45.94,
+				},
+			},
+		},
+	})
+
+	if response == nil {
+		t.Fatalf("expected response")
+	}
+	if len(response.LineItems) != 1 {
+		t.Fatalf("expected 1 line item, got %d", len(response.LineItems))
+	}
+	line := response.LineItems[0]
+	if line.Label != "Evening care route" {
+		t.Fatalf("expected label to be preserved, got %q", line.Label)
+	}
+	if line.BreakMinutes != 30 {
+		t.Fatalf("expected break minutes 30, got %d", line.BreakMinutes)
+	}
+	if line.GrossAmount != 229.69 {
+		t.Fatalf("expected gross amount 229.69, got %.2f", line.GrossAmount)
+	}
+}
+
 type fakePayoutService struct {
 	ortOverviewPage   *domain.PayrollMonthORTOverviewPage
 	ortOverviewParams domain.PayrollMonthORTOverviewParams
 	ortOverviewErr    error
 	ortRules          *domain.ORTRulesResponse
 	ortRulesErr       error
+	salaryPageData    *domain.SalaryPageData
+	salaryPageErr     error
 }
 
 func (f *fakePayoutService) CreatePayoutRequest(
@@ -303,6 +367,17 @@ func (f *fakePayoutService) ExportPayrollMonthPDF(
 	_ *string,
 ) ([]byte, string, error) {
 	panic("unexpected call")
+}
+
+func (f *fakePayoutService) GetMySalaryPage(
+	_ context.Context,
+	_ uuid.UUID,
+	_ time.Time,
+) (*domain.SalaryPageData, error) {
+	if f.salaryPageErr != nil {
+		return nil, f.salaryPageErr
+	}
+	return f.salaryPageData, nil
 }
 
 var _ domain.PayoutService = (*fakePayoutService)(nil)
