@@ -173,6 +173,33 @@ func (h *ScheduleHandler) GetMyUpcomingShifts(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Upcoming shifts retrieved successfully"))
 }
 
+func (h *ScheduleHandler) GetMyPastShifts(ctx *gin.Context) {
+	var req getMyPastShiftsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	params := req.PageRequest.Params()
+	page, err := h.service.GetMyPastShifts(ctx.Request.Context(), employeeID, params.Limit, params.Offset)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get past shifts: %v", err), ""),
+		)
+		return
+	}
+
+	response := httpapi.NewPageResponse(ctx, req.PageRequest, page.Items, page.TotalCount)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Past shifts retrieved successfully"))
+}
+
 func (h *ScheduleHandler) GetScheduleByID(ctx *gin.Context) {
 	scheduleID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

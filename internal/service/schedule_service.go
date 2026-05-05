@@ -396,45 +396,81 @@ func (s *ScheduleService) GetMyUpcomingShifts(
 		return nil, fmt.Errorf("employee_id is required")
 	}
 
-	shifts, err := s.repository.ListEmployeeUpcomingShifts(ctx, employeeID, time.Now())
+	now := time.Now()
+	shifts, err := s.repository.ListEmployeeUpcomingShifts(ctx, employeeID, now, now.AddDate(0, 0, 15))
 	if err != nil {
 		s.logError(ctx, "GetMyUpcomingShifts", "failed to list upcoming shifts", err)
 		return nil, fmt.Errorf("failed to list upcoming shifts: %w", err)
 	}
 
 	if len(shifts) > 0 {
-		scheduleIDs := make([]uuid.UUID, len(shifts))
-		for i, shift := range shifts {
-			scheduleIDs[i] = shift.ScheduleID
-		}
-
-		colleagueRows, err := s.repository.ListShiftColleaguesByScheduleIDs(ctx, scheduleIDs, employeeID)
-		if err != nil {
+		if err := s.attachShiftColleagues(ctx, shifts, employeeID); err != nil {
 			s.logError(ctx, "GetMyUpcomingShifts", "failed to list shift colleagues", err)
 			return nil, fmt.Errorf("failed to list shift colleagues: %w", err)
-		}
-
-		colleaguesBySchedule := make(map[uuid.UUID][]domain.EmployeeShiftOverviewColleague, len(shifts))
-		for _, row := range colleagueRows {
-			colleaguesBySchedule[row.ScheduleID] = append(colleaguesBySchedule[row.ScheduleID], domain.EmployeeShiftOverviewColleague{
-				EmployeeID: row.EmployeeID,
-				FirstName:  row.FirstName,
-				LastName:   row.LastName,
-			})
-		}
-
-		for i := range shifts {
-			if coll, ok := colleaguesBySchedule[shifts[i].ScheduleID]; ok {
-				shifts[i].Colleagues = coll
-			} else {
-				shifts[i].Colleagues = []domain.EmployeeShiftOverviewColleague{}
-			}
 		}
 	}
 
 	return &domain.EmployeeUpcomingShiftsResponse{
 		Shifts: shifts,
 	}, nil
+}
+
+func (s *ScheduleService) GetMyPastShifts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	limit, offset int32,
+) (*domain.EmployeePastShiftsPage, error) {
+	if employeeID == uuid.Nil {
+		return nil, fmt.Errorf("employee_id is required")
+	}
+
+	page, err := s.repository.ListEmployeePastShiftsPaginated(ctx, employeeID, time.Now(), limit, offset)
+	if err != nil {
+		s.logError(ctx, "GetMyPastShifts", "failed to list past shifts", err)
+		return nil, fmt.Errorf("failed to list past shifts: %w", err)
+	}
+	if len(page.Items) > 0 {
+		if err := s.attachShiftColleagues(ctx, page.Items, employeeID); err != nil {
+			s.logError(ctx, "GetMyPastShifts", "failed to list shift colleagues", err)
+			return nil, fmt.Errorf("failed to list shift colleagues: %w", err)
+		}
+	}
+
+	return page, nil
+}
+
+func (s *ScheduleService) attachShiftColleagues(
+	ctx context.Context,
+	shifts []domain.EmployeeUpcomingShift,
+	employeeID uuid.UUID,
+) error {
+	scheduleIDs := make([]uuid.UUID, len(shifts))
+	for i, shift := range shifts {
+		scheduleIDs[i] = shift.ScheduleID
+	}
+
+	colleagueRows, err := s.repository.ListShiftColleaguesByScheduleIDs(ctx, scheduleIDs, employeeID)
+	if err != nil {
+		return err
+	}
+
+	colleaguesBySchedule := make(map[uuid.UUID][]domain.EmployeeShiftOverviewColleague, len(shifts))
+	for _, row := range colleagueRows {
+		colleaguesBySchedule[row.ScheduleID] = append(colleaguesBySchedule[row.ScheduleID], domain.EmployeeShiftOverviewColleague{
+			EmployeeID: row.EmployeeID,
+			FirstName:  row.FirstName,
+			LastName:   row.LastName,
+		})
+	}
+
+	for i := range shifts {
+		if coll, ok := colleaguesBySchedule[shifts[i].ScheduleID]; ok {
+			shifts[i].Colleagues = coll
+		} else {
+			shifts[i].Colleagues = []domain.EmployeeShiftOverviewColleague{}
+		}
+	}
+	return nil
 }
 
 func (s *ScheduleService) GetScheduleByID(

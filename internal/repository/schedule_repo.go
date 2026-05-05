@@ -930,11 +930,12 @@ func parseDBShiftSwapStatus(value string) (db.ShiftSwapStatusEnum, bool) {
 func (r *ScheduleRepository) ListEmployeeUpcomingShifts(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	now time.Time,
+	now, windowEnd time.Time,
 ) ([]domain.EmployeeUpcomingShift, error) {
 	rows, err := r.store.ListEmployeeUpcomingShifts(ctx, db.ListEmployeeUpcomingShiftsParams{
 		EmployeeID: employeeID,
 		Now:        conv.PgTimestamptzFromTime(now),
+		WindowEnd:  conv.PgTimestamptzFromTime(windowEnd),
 	})
 	if err != nil {
 		return nil, err
@@ -956,6 +957,43 @@ func (r *ScheduleRepository) ListEmployeeUpcomingShifts(
 		})
 	}
 	return result, nil
+}
+
+func (r *ScheduleRepository) ListEmployeePastShiftsPaginated(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	now time.Time,
+	limit, offset int32,
+) (*domain.EmployeePastShiftsPage, error) {
+	rows, err := r.store.ListEmployeePastShiftsPaginated(ctx, db.ListEmployeePastShiftsPaginatedParams{
+		EmployeeID:  employeeID,
+		Now:         conv.PgTimestamptzFromTime(now),
+		LimitCount:  limit,
+		OffsetCount: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.EmployeeUpcomingShift, 0, len(rows))
+	var totalCount int64
+	for _, row := range rows {
+		totalCount = row.TotalCount
+		items = append(items, domain.EmployeeUpcomingShift{
+			ScheduleID:   row.ScheduleID,
+			ShiftName:    row.ShiftName,
+			IsCustom:     row.IsCustom,
+			LocationID:   row.LocationID,
+			LocationName: row.LocationName,
+			Address:      formatLocationAddress(row.Street, row.HouseNumber, row.HouseNumberAddition, row.PostalCode, row.City),
+			StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
+			EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
+			Date:         conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
+			Colleagues:   []domain.EmployeeShiftOverviewColleague{},
+		})
+	}
+
+	return &domain.EmployeePastShiftsPage{Items: items, TotalCount: totalCount}, nil
 }
 
 func (r *ScheduleRepository) ListShiftColleaguesByScheduleIDs(

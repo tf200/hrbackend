@@ -39,6 +39,12 @@ func RegisterScheduleRoutes(
 		requirePermission("PORTAL.EMPLOYEE.ACCESS"),
 		handler.GetMyUpcomingShifts,
 	)
+	rg.GET(
+		"/me/shifts/past",
+		auth,
+		requirePermission("PORTAL.EMPLOYEE.ACCESS"),
+		handler.GetMyPastShifts,
+	)
 	rg.GET("/schedules/:id", auth, requirePermission("SCHEDULE.VIEW"), handler.GetScheduleByID)
 	rg.PUT("/schedules/:id", auth, requirePermission("SCHEDULE.UPDATE"), handler.UpdateSchedule)
 	rg.DELETE("/schedules/:id", auth, requirePermission("SCHEDULE.DELETE"), handler.DeleteSchedule)

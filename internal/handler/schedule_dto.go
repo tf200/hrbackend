@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/httpapi"
 	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
@@ -38,6 +39,10 @@ type getEmployeeSchedulesByDayRequest struct {
 type getEmployeeSchedulesTimelineRequest struct {
 	StartDate string `form:"start_date" binding:"required"`
 	EndDate   string `form:"end_date"   binding:"required"`
+}
+
+type getMyPastShiftsRequest struct {
+	httpapi.PageRequest
 }
 
 var uuidExtractRegex = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)

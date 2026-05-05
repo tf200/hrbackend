@@ -241,7 +241,32 @@ JOIN location l ON l.id = s.location_id
 LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
 WHERE s.employee_id = @employee_id
   AND s.start_datetime > @now
+  AND s.start_datetime < @window_end
 ORDER BY s.start_datetime;
+
+-- name: ListEmployeePastShiftsPaginated :many
+SELECT
+    s.id AS schedule_id,
+    s.location_id,
+    l.name AS location_name,
+    l.street,
+    l.house_number,
+    l.house_number_addition,
+    l.postal_code,
+    l.city,
+    s.start_datetime,
+    s.end_datetime,
+    s.is_custom,
+    COALESCE(s.shift_name_snapshot, ls.shift_name, 'Custom Shift') AS shift_name,
+    DATE(s.start_datetime AT TIME ZONE l.timezone) AS shift_date,
+    COUNT(*) OVER() AS total_count
+FROM schedules s
+JOIN location l ON l.id = s.location_id
+LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
+WHERE s.employee_id = @employee_id
+  AND s.start_datetime < @now
+ORDER BY s.start_datetime DESC
+LIMIT @limit_count OFFSET @offset_count;
 
 -- name: ListShiftColleaguesByScheduleIDs :many
 SELECT

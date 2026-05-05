@@ -221,6 +221,11 @@ type EmployeeUpcomingShiftsResponse struct {
 	Shifts []EmployeeUpcomingShift `json:"shifts"`
 }
 
+type EmployeePastShiftsPage struct {
+	Items      []EmployeeUpcomingShift
+	TotalCount int64
+}
+
 type EmployeeUpcomingShiftColleagueRow struct {
 	ScheduleID uuid.UUID
 	EmployeeID uuid.UUID
@@ -541,8 +546,14 @@ type ScheduleRepository interface {
 	ListEmployeeUpcomingShifts(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		now time.Time,
+		now, windowEnd time.Time,
 	) ([]EmployeeUpcomingShift, error)
+	ListEmployeePastShiftsPaginated(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		now time.Time,
+		limit, offset int32,
+	) (*EmployeePastShiftsPage, error)
 	ListShiftColleaguesByScheduleIDs(
 		ctx context.Context,
 		scheduleIDs []uuid.UUID,
@@ -649,6 +660,11 @@ type ScheduleService interface {
 		ctx context.Context,
 		employeeID uuid.UUID,
 	) (*EmployeeUpcomingShiftsResponse, error)
+	GetMyPastShifts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		limit, offset int32,
+	) (*EmployeePastShiftsPage, error)
 	GetScheduleByID(ctx context.Context, scheduleID uuid.UUID) (*GetScheduleByIdResponse, error)
 	UpdateSchedule(
 		ctx context.Context,
