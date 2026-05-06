@@ -487,3 +487,35 @@ SELECT
 FROM time_entries te
 WHERE te.entry_date >= DATE_TRUNC('month', NOW())::date
   AND te.entry_date < (DATE_TRUNC('month', NOW()) + INTERVAL '1 month')::date;
+
+-- name: GetMyCurrentMonthTimeEntryStats :one
+SELECT
+    COALESCE(
+        SUM(
+            GREATEST(
+                0,
+                (
+                    CASE
+                        WHEN te.end_time > te.start_time THEN
+                            EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
+                        ELSE
+                            EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
+                    END
+                ) / 60 - te.break_minutes
+            )
+        ),
+        0
+    )::BIGINT AS total_worked_minutes,
+    COUNT(*) FILTER (
+        WHERE te.status = 'submitted'::time_entry_status_enum
+    )::BIGINT AS total_awaiting_approval,
+    COUNT(*) FILTER (
+        WHERE te.status = 'approved'::time_entry_status_enum
+    )::BIGINT AS total_approved,
+    COUNT(*) FILTER (
+        WHERE te.status = 'draft'::time_entry_status_enum
+    )::BIGINT AS total_concepts
+FROM time_entries te
+WHERE te.employee_id = sqlc.arg(employee_id)
+  AND te.entry_date >= DATE_TRUNC('month', NOW())::date
+  AND te.entry_date < (DATE_TRUNC('month', NOW()) + INTERVAL '1 month')::date;

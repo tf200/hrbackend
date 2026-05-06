@@ -412,6 +412,58 @@ func (q *Queries) GetCurrentMonthTimeEntryStats(ctx context.Context) (GetCurrent
 	return i, err
 }
 
+const getMyCurrentMonthTimeEntryStats = `-- name: GetMyCurrentMonthTimeEntryStats :one
+SELECT
+    COALESCE(
+        SUM(
+            GREATEST(
+                0,
+                (
+                    CASE
+                        WHEN te.end_time > te.start_time THEN
+                            EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
+                        ELSE
+                            EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
+                    END
+                ) / 60 - te.break_minutes
+            )
+        ),
+        0
+    )::BIGINT AS total_worked_minutes,
+    COUNT(*) FILTER (
+        WHERE te.status = 'submitted'::time_entry_status_enum
+    )::BIGINT AS total_awaiting_approval,
+    COUNT(*) FILTER (
+        WHERE te.status = 'approved'::time_entry_status_enum
+    )::BIGINT AS total_approved,
+    COUNT(*) FILTER (
+        WHERE te.status = 'draft'::time_entry_status_enum
+    )::BIGINT AS total_concepts
+FROM time_entries te
+WHERE te.employee_id = $1
+  AND te.entry_date >= DATE_TRUNC('month', NOW())::date
+  AND te.entry_date < (DATE_TRUNC('month', NOW()) + INTERVAL '1 month')::date
+`
+
+type GetMyCurrentMonthTimeEntryStatsRow struct {
+	TotalWorkedMinutes    int64 `json:"total_worked_minutes"`
+	TotalAwaitingApproval int64 `json:"total_awaiting_approval"`
+	TotalApproved         int64 `json:"total_approved"`
+	TotalConcepts         int64 `json:"total_concepts"`
+}
+
+func (q *Queries) GetMyCurrentMonthTimeEntryStats(ctx context.Context, employeeID uuid.UUID) (GetMyCurrentMonthTimeEntryStatsRow, error) {
+	row := q.db.QueryRow(ctx, getMyCurrentMonthTimeEntryStats, employeeID)
+	var i GetMyCurrentMonthTimeEntryStatsRow
+	err := row.Scan(
+		&i.TotalWorkedMinutes,
+		&i.TotalAwaitingApproval,
+		&i.TotalApproved,
+		&i.TotalConcepts,
+	)
+	return i, err
+}
+
 const getTimeEntryByID = `-- name: GetTimeEntryByID :one
 SELECT
     te.id,

@@ -158,6 +158,42 @@ func (s *TimeEntryService) UpdateTimeEntryByAdmin(
 	return updated, nil
 }
 
+func (s *TimeEntryService) UpdateMyTimeEntry(
+	ctx context.Context,
+	actorEmployeeID, timeEntryID uuid.UUID,
+	params domain.UpdateTimeEntryByAdminParams,
+) (*domain.TimeEntry, error) {
+	if actorEmployeeID == uuid.Nil || timeEntryID == uuid.Nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	var updated *domain.TimeEntry
+	err := s.repository.WithTx(ctx, func(tx domain.TimeEntryTxRepository) error {
+		current, err := tx.GetTimeEntryForUpdate(ctx, timeEntryID)
+		if err != nil {
+			return err
+		}
+		if current.EmployeeID != actorEmployeeID {
+			return domain.ErrTimeEntryForbidden
+		}
+		if current.Status != domain.TimeEntryStatusDraft || current.PaidPeriodID != nil {
+			return domain.ErrTimeEntryStateInvalid
+		}
+
+		normalized, err := normalizeUpdateTimeEntryByAdminParams(*current, params)
+		if err != nil {
+			return err
+		}
+		updated, err = tx.UpdateTimeEntryByAdmin(ctx, timeEntryID, normalized)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
 func (s *TimeEntryService) createTimeEntry(
 	ctx context.Context,
 	params domain.CreateTimeEntryParams,
@@ -270,6 +306,25 @@ func (s *TimeEntryService) GetCurrentMonthTimeEntryStats(
 			err,
 		)
 		return nil, fmt.Errorf("failed to get current month time entry stats: %w", err)
+	}
+
+	return stats, nil
+}
+
+func (s *TimeEntryService) GetMyCurrentMonthTimeEntryStats(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.TimeEntryStats, error) {
+	if employeeID == uuid.Nil {
+		return nil, domain.ErrTimeEntryInvalidRequest
+	}
+
+	stats, err := s.repository.GetMyCurrentMonthTimeEntryStats(ctx, employeeID)
+	if err != nil {
+		s.logError(ctx, "TimeEntryService.GetMyCurrentMonthTimeEntryStats", "failed to get my current month time entry stats", err,
+			zap.String("employee_id", employeeID.String()),
+		)
+		return nil, fmt.Errorf("failed to get my current month time entry stats: %w", err)
 	}
 
 	return stats, nil

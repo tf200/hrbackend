@@ -122,6 +122,7 @@ type Querier interface {
 	GetHandbookTemplateByID(ctx context.Context, id uuid.UUID) (HandbookTemplate, error)
 	GetLeaveRequestStats(ctx context.Context) (GetLeaveRequestStatsRow, error)
 	GetLocation(ctx context.Context, id uuid.UUID) (Location, error)
+	GetMyCurrentMonthTimeEntryStats(ctx context.Context, employeeID uuid.UUID) (GetMyCurrentMonthTimeEntryStatsRow, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (GetMyLeaveRequestStatsRow, error)
 	GetOrganisation(ctx context.Context, id uuid.UUID) (GetOrganisationRow, error)
 	GetOrganisationCounts(ctx context.Context, id uuid.UUID) (GetOrganisationCountsRow, error)

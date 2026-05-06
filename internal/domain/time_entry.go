@@ -155,6 +155,7 @@ type TimeEntryRepository interface {
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)
 	ListMyTimeEntries(ctx context.Context, params ListMyTimeEntriesParams) (*TimeEntryPage, error)
 	GetCurrentMonthTimeEntryStats(ctx context.Context) (*TimeEntryStats, error)
+	GetMyCurrentMonthTimeEntryStats(ctx context.Context, employeeID uuid.UUID) (*TimeEntryStats, error)
 }
 
 type TimeEntryService interface {
@@ -179,6 +180,11 @@ type TimeEntryService interface {
 		params UpdateTimeEntryByAdminParams,
 		adminUpdateNote string,
 	) (*TimeEntry, error)
+	UpdateMyTimeEntry(
+		ctx context.Context,
+		actorEmployeeID, timeEntryID uuid.UUID,
+		params UpdateTimeEntryByAdminParams,
+	) (*TimeEntry, error)
 	GetTimeEntryByID(ctx context.Context, timeEntryID uuid.UUID) (*TimeEntry, error)
 	GetMyTimeEntryByID(
 		ctx context.Context,
@@ -187,4 +193,5 @@ type TimeEntryService interface {
 	ListTimeEntries(ctx context.Context, params ListTimeEntriesParams) (*TimeEntryPage, error)
 	ListMyTimeEntries(ctx context.Context, params ListMyTimeEntriesParams) (*TimeEntryPage, error)
 	GetCurrentMonthTimeEntryStats(ctx context.Context) (*TimeEntryStats, error)
+	GetMyCurrentMonthTimeEntryStats(ctx context.Context, employeeID uuid.UUID) (*TimeEntryStats, error)
 }

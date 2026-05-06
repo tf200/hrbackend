@@ -66,6 +66,22 @@ type updateTimeEntryByAdminRequest struct {
 	AdminUpdateNote     string     `json:"admin_update_note"     binding:"required"`
 }
 
+type updateMyTimeEntryRequest struct {
+	ScheduleID          *uuid.UUID `json:"schedule_id,omitempty"`
+	EntryDate           *string    `json:"entry_date"            binding:"omitempty,datetime=2006-01-02"`
+	StartTime           *string    `json:"start_time"`
+	EndTime             *string    `json:"end_time"`
+	BreakMinutes        *int32     `json:"break_minutes"`
+	HourType            *string    `json:"hour_type"             binding:"omitempty,oneof=normal overtime travel leave sick training"`
+	ProjectName         *string    `json:"project_name"`
+	ProjectNumber       *string    `json:"project_number"`
+	ClientName          *string    `json:"client_name"`
+	ActivityCategory    *string    `json:"activity_category"`
+	ActivityDescription *string    `json:"activity_description"`
+	Notes               *string    `json:"notes"`
+	Status              *string    `json:"status"                binding:"omitempty,oneof=submitted"`
+}
+
 type listTimeEntriesRequest struct {
 	httpapi.PageRequest
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
@@ -167,9 +183,34 @@ func toDecideTimeEntryParams(req decideTimeEntryByAdminRequest) domain.DecideTim
 func toUpdateTimeEntryByAdminParams(
 	req updateTimeEntryByAdminRequest,
 ) (domain.UpdateTimeEntryByAdminParams, string, error) {
-	entryDate, err := parseTimeEntryDatePtr(req.EntryDate)
+	params, err := toUpdateMyTimeEntryParams(updateMyTimeEntryRequest{
+		ScheduleID:          req.ScheduleID,
+		EntryDate:           req.EntryDate,
+		StartTime:           req.StartTime,
+		EndTime:             req.EndTime,
+		BreakMinutes:        req.BreakMinutes,
+		HourType:            req.HourType,
+		ProjectName:         req.ProjectName,
+		ProjectNumber:       req.ProjectNumber,
+		ClientName:          req.ClientName,
+		ActivityCategory:    req.ActivityCategory,
+		ActivityDescription: req.ActivityDescription,
+		Notes:               req.Notes,
+		Status:              req.Status,
+	})
 	if err != nil {
 		return domain.UpdateTimeEntryByAdminParams{}, "", err
+	}
+
+	return params, req.AdminUpdateNote, nil
+}
+
+func toUpdateMyTimeEntryParams(
+	req updateMyTimeEntryRequest,
+) (domain.UpdateTimeEntryByAdminParams, error) {
+	entryDate, err := parseTimeEntryDatePtr(req.EntryDate)
+	if err != nil {
+		return domain.UpdateTimeEntryByAdminParams{}, err
 	}
 
 	status := req.Status
@@ -192,7 +233,7 @@ func toUpdateTimeEntryByAdminParams(
 		ActivityDescription: ptr.TrimString(req.ActivityDescription),
 		Notes:               ptr.TrimString(req.Notes),
 		Status:              status,
-	}, req.AdminUpdateNote, nil
+	}, nil
 }
 
 func toListTimeEntriesParams(req listTimeEntriesRequest) domain.ListTimeEntriesParams {

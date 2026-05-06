@@ -27,6 +27,12 @@ func RegisterTimeEntryRoutes(
 		requirePermission("TIME_ENTRY.UPDATE_ALL"),
 		handler.UpdateTimeEntryByAdmin,
 	)
+	rg.PUT(
+		"/time-entries/my/:id",
+		auth,
+		requirePermission("TIME_ENTRY.UPDATE"),
+		handler.UpdateMyTimeEntry,
+	)
 	rg.GET("/time-entries", auth, requirePermission("TIME_ENTRY.VIEW_ALL"), handler.ListTimeEntries)
 	rg.GET(
 		"/time-entries/stats",
@@ -39,6 +45,12 @@ func RegisterTimeEntryRoutes(
 		auth,
 		requirePermission("TIME_ENTRY.VIEW"),
 		handler.ListMyTimeEntries,
+	)
+	rg.GET(
+		"/time-entries/my/stats",
+		auth,
+		requirePermission("TIME_ENTRY.VIEW"),
+		handler.GetMyTimeEntryStats,
 	)
 	rg.GET(
 		"/time-entries/:id",

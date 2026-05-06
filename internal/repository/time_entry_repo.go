@@ -223,6 +223,23 @@ func (r *TimeEntryRepository) GetCurrentMonthTimeEntryStats(
 	}, nil
 }
 
+func (r *TimeEntryRepository) GetMyCurrentMonthTimeEntryStats(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.TimeEntryStats, error) {
+	row, err := r.store.GetMyCurrentMonthTimeEntryStats(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.TimeEntryStats{
+		TotalHours:            float64(row.TotalWorkedMinutes) / 60.0,
+		TotalAwaitingApproval: row.TotalAwaitingApproval,
+		TotalApproved:         row.TotalApproved,
+		TotalConcepts:         row.TotalConcepts,
+	}, nil
+}
+
 func toDomainTimeEntryFromCreateRow(row db.CreateTimeEntryRow) domain.TimeEntry {
 	return buildDomainTimeEntry(
 		row.ID,

@@ -161,6 +161,43 @@ func (h *TimeEntryHandler) UpdateTimeEntryByAdmin(ctx *gin.Context) {
 	)
 }
 
+func (h *TimeEntryHandler) UpdateMyTimeEntry(ctx *gin.Context) {
+	timeEntryID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid time entry id", ""))
+		return
+	}
+
+	var req updateMyTimeEntryRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	params, err := toUpdateMyTimeEntryParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	item, err := h.service.UpdateMyTimeEntry(ctx.Request.Context(), employeeID, timeEntryID, params)
+	if err != nil {
+		ctx.JSON(mapTimeEntryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toTimeEntryResponse(item), "Time entry updated successfully"),
+	)
+}
+
 func (h *TimeEntryHandler) GetTimeEntryByID(ctx *gin.Context) {
 	timeEntryID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -260,6 +297,28 @@ func (h *TimeEntryHandler) ListMyTimeEntries(ctx *gin.Context) {
 
 func (h *TimeEntryHandler) GetTimeEntryStats(ctx *gin.Context) {
 	stats, err := h.service.GetCurrentMonthTimeEntryStats(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(mapTimeEntryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toTimeEntryStatsResponse(stats),
+			"Time entry stats retrieved successfully",
+		),
+	)
+}
+
+func (h *TimeEntryHandler) GetMyTimeEntryStats(ctx *gin.Context) {
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	stats, err := h.service.GetMyCurrentMonthTimeEntryStats(ctx.Request.Context(), employeeID)
 	if err != nil {
 		ctx.JSON(mapTimeEntryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return

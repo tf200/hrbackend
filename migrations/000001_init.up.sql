@@ -207,10 +207,11 @@ WITH seeded(name, sort_order) AS (
         ('SHIFT.VIEW', 490),
         ('TIME_ENTRY.CREATE', 500),
         ('TIME_ENTRY.CREATE_ALL', 510),
-        ('TIME_ENTRY.UPDATE_ALL', 520),
-        ('TIME_ENTRY.VIEW', 530),
-        ('TIME_ENTRY.VIEW_ALL', 540),
-        ('TIME_ENTRY.DECIDE', 550),
+        ('TIME_ENTRY.UPDATE', 520),
+        ('TIME_ENTRY.UPDATE_ALL', 530),
+        ('TIME_ENTRY.VIEW', 540),
+        ('TIME_ENTRY.VIEW_ALL', 550),
+        ('TIME_ENTRY.DECIDE', 560),
         ('PORTAL.ADMIN.ACCESS', 700),
         ('PORTAL.EMPLOYEE.ACCESS', 710)
     )
@@ -331,6 +332,7 @@ WHERE p.name IN (
     'SHIFT.VIEW',
     'TIME_ENTRY.CREATE',
     'TIME_ENTRY.CREATE_ALL',
+    'TIME_ENTRY.UPDATE',
     'TIME_ENTRY.UPDATE_ALL',
     'TIME_ENTRY.VIEW',
     'TIME_ENTRY.VIEW_ALL',
