@@ -52,43 +52,48 @@ type Employee struct {
 
 // EmployeeDetail is the rich domain struct for get-by-id queries (with joins).
 type EmployeeDetail struct {
-	ID                    uuid.UUID
-	UserID                uuid.UUID
-	FirstName             string
-	LastName              string
-	Bsn                   string
-	Street                string
-	HouseNumber           string
-	HouseNumberAddition   *string
-	PostalCode            string
-	City                  string
-	Position              *string
-	EmployeeNumber        *string
-	EmploymentNumber      *string
-	PrivateEmailAddress   *string
-	WorkEmailAddress      *string
-	PrivatePhoneNumber    *string
-	WorkPhoneNumber       *string
-	DateOfBirth           *time.Time
-	HomeTelephoneNumber   *string
-	CreatedAt             time.Time
-	Gender                string
-	LocationID            *uuid.UUID
-	DepartmentID          *uuid.UUID
-	ManagerEmployeeID     *uuid.UUID
-	HasBorrowed           bool
-	OutOfService          *bool
-	IsArchived            bool
-	ContractHours         *float64
-	ContractEndDate       *time.Time
-	ContractStartDate     *time.Time
-	ContractType          string
-	ContractRate          *float64
-	IrregularHoursProfile string
-	ProfilePicture        *string
-	DepartmentName        *string
-	ManagerFirstName      *string
-	ManagerLastName       *string
+	ID                         uuid.UUID
+	UserID                     uuid.UUID
+	FirstName                  string
+	LastName                   string
+	Bsn                        string
+	Street                     string
+	HouseNumber                string
+	HouseNumberAddition        *string
+	PostalCode                 string
+	City                       string
+	Position                   *string
+	EmployeeNumber             *string
+	EmploymentNumber           *string
+	PrivateEmailAddress        *string
+	WorkEmailAddress           *string
+	PrivatePhoneNumber         *string
+	WorkPhoneNumber            *string
+	DateOfBirth                *time.Time
+	HomeTelephoneNumber        *string
+	CreatedAt                  time.Time
+	Gender                     string
+	LocationID                 *uuid.UUID
+	DepartmentID               *uuid.UUID
+	ManagerEmployeeID          *uuid.UUID
+	HasBorrowed                bool
+	OutOfService               *bool
+	IsArchived                 bool
+	ContractHours              *float64
+	ContractEndDate            *time.Time
+	ContractStartDate          *time.Time
+	ContractType               string
+	ContractRate               *float64
+	IrregularHoursProfile      string
+	ProfilePicture             *string
+	DepartmentName             *string
+	ManagerFirstName           *string
+	ManagerLastName            *string
+	RemainingLeaveBalanceHours int32
+	HoursWorkedThisMonth       float64
+	HoursPendingApproval       float64
+	TotalHoursWorkedThisYear   float64
+	LastPerformanceReviewScore *float64
 }
 
 // Portal access types for frontend routing.
@@ -133,7 +138,6 @@ type EmployeeCounts struct {
 	TotalArchived       int64
 	TotalOutOfService   int64
 }
-
 
 // EmployeeSearchResult is the domain struct for search results.
 type EmployeeSearchResult struct {

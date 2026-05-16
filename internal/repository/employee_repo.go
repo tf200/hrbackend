@@ -38,7 +38,15 @@ func (r *EmployeeRepository) GetEmployeeByID(
 		return nil, err
 	}
 
-	return toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row), nil
+	stats, err := r.store.GetEmployeeDetailStats(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	employee := toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row)
+	applyEmployeeDetailStats(employee, stats)
+
+	return employee, nil
 }
 
 func (r *EmployeeRepository) GetEmployeeByUserID(
@@ -707,6 +715,17 @@ func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 		ManagerFirstName:      row.ManagerFirstName,
 		ManagerLastName:       row.ManagerLastName,
 	}
+}
+
+func applyEmployeeDetailStats(
+	employee *domain.EmployeeDetail,
+	stats db.GetEmployeeDetailStatsRow,
+) {
+	employee.RemainingLeaveBalanceHours = stats.RemainingLeaveBalanceHours
+	employee.HoursWorkedThisMonth = stats.HoursWorkedThisMonth
+	employee.HoursPendingApproval = stats.HoursPendingApproval
+	employee.TotalHoursWorkedThisYear = stats.TotalHoursWorkedThisYear
+	employee.LastPerformanceReviewScore = stats.LastPerformanceReviewScore
 }
 
 func toDomainEmployeeDetailFromEmployeeProfile(row db.EmployeeProfile) *domain.EmployeeDetail {

@@ -106,6 +106,7 @@ type Querier interface {
 	GetEmployeeContractForLeave(ctx context.Context, employeeID uuid.UUID) (GetEmployeeContractForLeaveRow, error)
 	GetEmployeeContractSnapshotForContractChange(ctx context.Context, id uuid.UUID) (GetEmployeeContractSnapshotForContractChangeRow, error)
 	GetEmployeeCounts(ctx context.Context) (GetEmployeeCountsRow, error)
+	GetEmployeeDetailStats(ctx context.Context, employeeID uuid.UUID) (GetEmployeeDetailStatsRow, error)
 	GetEmployeeHandbookByID(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	GetEmployeeHandbookDetailsByID(ctx context.Context, id uuid.UUID) (GetEmployeeHandbookDetailsByIDRow, error)
 	GetEmployeeNextShift(ctx context.Context, arg GetEmployeeNextShiftParams) (GetEmployeeNextShiftRow, error)
