@@ -30,6 +30,7 @@ var (
 	ErrContractChangeLeaveConflict = errors.New(
 		"contract change would invalidate current leave usage",
 	)
+	ErrInvalidPasswordResetRequest = errors.New("invalid password reset request")
 )
 
 const (
@@ -302,6 +303,16 @@ type UpdateIsSubcontractorParams struct {
 	IsSubcontractor bool
 }
 
+type ResetPasswordParams struct {
+	Generated bool
+	Password  *string
+	SendEmail bool
+}
+
+type ResetPasswordResult struct {
+	TemporaryPassword string
+}
+
 type CreateEmployeeContractChangeParams struct {
 	EffectiveFrom         time.Time
 	ContractHours         float64
@@ -435,6 +446,9 @@ type EmployeeRepository interface {
 		params UpdateCertificationParams,
 	) (*Certification, error)
 	DeleteCertification(ctx context.Context, id uuid.UUID) (*Certification, error)
+
+	// Password
+	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
 }
 
 type EmployeeService interface {
@@ -513,4 +527,11 @@ type EmployeeService interface {
 		params UpdateCertificationParams,
 	) (*Certification, error)
 	DeleteCertification(ctx context.Context, id uuid.UUID) (*Certification, error)
+
+	// Password
+	ResetPassword(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params ResetPasswordParams,
+	) (*ResetPasswordResult, error)
 }

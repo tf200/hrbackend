@@ -213,7 +213,7 @@ func buildRouter(
 	)
 
 	employeeRepo := repository.NewEmployeeRepository(store)
-	employeeService := service.NewEmployeeService(employeeRepo, logger)
+	employeeService := service.NewEmployeeService(employeeRepo, taskQueue, logger)
 
 	organizationRepo := repository.NewOrganizationRepository(store)
 	organizationService := service.NewOrganizationService(organizationRepo, logger)

@@ -51,7 +51,7 @@ func (s EmployeeContractChangesSeeder) Seed(ctx context.Context, env Env) error 
 
 	store := dbrepo.NewStoreWithTx(tx)
 	employeeRepo := repository.NewEmployeeRepository(store)
-	employeeService := service.NewEmployeeService(employeeRepo, nil)
+	employeeService := service.NewEmployeeService(employeeRepo, nil, nil)
 
 	employeeSeedByAlias := make(map[string]EmployeeSeed, len(s.Employees))
 	for _, employee := range s.Employees {

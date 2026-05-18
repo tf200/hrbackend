@@ -1072,4 +1072,15 @@ func mapContractChangeDBError(err error) error {
 	return err
 }
 
+func (r *EmployeeRepository) UpdatePassword(
+	ctx context.Context,
+	userID uuid.UUID,
+	password string,
+) error {
+	return r.store.UpdatePassword(ctx, db.UpdatePasswordParams{
+		ID:       userID,
+		Password: password,
+	})
+}
+
 var _ domain.EmployeeRepository = (*EmployeeRepository)(nil)

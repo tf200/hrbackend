@@ -143,6 +143,16 @@ type searchEmployeesRequest struct {
 	Search *string `form:"search" binding:"required"`
 }
 
+type resetPasswordRequest struct {
+	Generated *bool   `json:"generated" binding:"required"`
+	Password  *string `json:"password"`
+	SendEmail bool    `json:"send_email"`
+}
+
+type resetPasswordResponse struct {
+	TemporaryPassword string `json:"temporary_password"`
+}
+
 type employeeDetailResponse struct {
 	ID                         uuid.UUID  `json:"id"`
 	UserID                     uuid.UUID  `json:"user_id"`
@@ -691,6 +701,21 @@ func toCertificationResponse(certification *domain.Certification) certificationR
 		IssuedBy:   certification.IssuedBy,
 		DateIssued: certification.DateIssued,
 		CreatedAt:  certification.CreatedAt,
+	}
+}
+
+func toResetPasswordParams(req resetPasswordRequest) domain.ResetPasswordParams {
+	generated := req.Generated != nil && *req.Generated
+	return domain.ResetPasswordParams{
+		Generated: generated,
+		Password:  req.Password,
+		SendEmail: req.SendEmail,
+	}
+}
+
+func toResetPasswordResponse(result *domain.ResetPasswordResult) resetPasswordResponse {
+	return resetPasswordResponse{
+		TemporaryPassword: result.TemporaryPassword,
 	}
 }
 

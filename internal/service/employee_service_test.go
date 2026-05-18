@@ -110,8 +110,9 @@ func TestEmployeeServiceGetEmployeeProfile_repoError(t *testing.T) {
 // --- Fake repository ---
 
 type fakeEmployeeRepo struct {
-	profile *domain.EmployeeProfile
-	err     error
+	profile        *domain.EmployeeProfile
+	employeeDetail *domain.EmployeeDetail
+	err            error
 }
 
 func (f *fakeEmployeeRepo) GetEmployeeByUserID(_ context.Context, _ uuid.UUID) (*domain.EmployeeProfile, error) {
@@ -122,7 +123,10 @@ func (f *fakeEmployeeRepo) GetEmployeeByUserID(_ context.Context, _ uuid.UUID) (
 }
 
 func (f *fakeEmployeeRepo) GetEmployeeByID(_ context.Context, _ uuid.UUID) (*domain.EmployeeDetail, error) {
-	return nil, nil
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.employeeDetail, nil
 }
 func (f *fakeEmployeeRepo) ListEmployees(_ context.Context, _ domain.ListEmployeesParams) (*domain.EmployeePage, error) {
 	return nil, nil
@@ -193,4 +197,194 @@ func (f *fakeEmployeeRepo) UpdateCertification(_ context.Context, _ uuid.UUID, _
 }
 func (f *fakeEmployeeRepo) DeleteCertification(_ context.Context, _ uuid.UUID) (*domain.Certification, error) {
 	return nil, f.err
+}
+func (f *fakeEmployeeRepo) UpdatePassword(_ context.Context, _ uuid.UUID, _ string) error {
+	return f.err
+}
+
+// --- Fake task queue ---
+
+type fakeTaskQueue struct {
+	enqueuedPayload domain.EmailDeliveryTaskPayload
+	enqueued        bool
+	err             error
+}
+
+func (f *fakeTaskQueue) EnqueueEmailDelivery(_ context.Context, payload domain.EmailDeliveryTaskPayload, _ *domain.TaskEnqueueOptions) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.enqueued = true
+	f.enqueuedPayload = payload
+	return nil
+}
+func (f *fakeTaskQueue) EnqueueIncident(_ context.Context, _ domain.IncidentTaskPayload, _ *domain.TaskEnqueueOptions) error { return nil }
+func (f *fakeTaskQueue) EnqueueIncidentConfirmedEmail(_ context.Context, _ domain.IncidentConfirmedEmailTaskPayload, _ *domain.TaskEnqueueOptions) error { return nil }
+func (f *fakeTaskQueue) EnqueueNotificationTask(_ context.Context, _ domain.NotificationTaskPayload, _ *domain.TaskEnqueueOptions) error { return nil }
+func (f *fakeTaskQueue) Close() error { return nil }
+
+func employeeDetailWithWorkEmail(email string) *domain.EmployeeDetail {
+	return &domain.EmployeeDetail{
+		ID:               uuid.New(),
+		UserID:           uuid.New(),
+		FirstName:        "John",
+		LastName:         "Doe",
+		WorkEmailAddress: &email,
+	}
+}
+
+func TestResetPassword_manualPassword(t *testing.T) {
+	email := "john@example.com"
+	password := "MySecurePass123"
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail(email)}
+	svc := &EmployeeService{repo: repo}
+
+	result, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: false,
+		Password:  &password,
+		SendEmail: false,
+	})
+	if err != nil {
+		t.Fatalf("ResetPassword returned error: %v", err)
+	}
+	if result.TemporaryPassword != password {
+		t.Fatalf("expected temporary_password %q, got %q", password, result.TemporaryPassword)
+	}
+}
+
+func TestResetPassword_generatedPassword(t *testing.T) {
+	email := "john@example.com"
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail(email)}
+	svc := &EmployeeService{repo: repo}
+
+	result, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: true,
+		SendEmail: false,
+	})
+	if err != nil {
+		t.Fatalf("ResetPassword returned error: %v", err)
+	}
+	if len(result.TemporaryPassword) == 0 {
+		t.Fatal("expected non-empty generated password")
+	}
+}
+
+func TestResetPassword_missingPasswordReturnsError(t *testing.T) {
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail("john@example.com")}
+	svc := &EmployeeService{repo: repo}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: false,
+		Password:  nil,
+		SendEmail: false,
+	})
+	if !errors.Is(err, domain.ErrInvalidPasswordResetRequest) {
+		t.Fatalf("expected ErrInvalidPasswordResetRequest, got %v", err)
+	}
+}
+
+func TestResetPassword_whitespacePasswordReturnsError(t *testing.T) {
+	whitespace := "   "
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail("john@example.com")}
+	svc := &EmployeeService{repo: repo}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: false,
+		Password:  &whitespace,
+		SendEmail: false,
+	})
+	if !errors.Is(err, domain.ErrInvalidPasswordResetRequest) {
+		t.Fatalf("expected ErrInvalidPasswordResetRequest, got %v", err)
+	}
+}
+
+func TestResetPassword_sendEmailWithoutTaskQueueReturnsError(t *testing.T) {
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail("john@example.com")}
+	svc := &EmployeeService{repo: repo, taskQueue: nil}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: true,
+		SendEmail: true,
+	})
+	if !errors.Is(err, domain.ErrEmailDeliveryFailed) {
+		t.Fatalf("expected ErrEmailDeliveryFailed, got %v", err)
+	}
+}
+
+func TestResetPassword_sendEmailWithoutWorkEmailReturnsError(t *testing.T) {
+	detail := employeeDetailWithWorkEmail("")
+	detail.WorkEmailAddress = nil
+	repo := &fakeEmployeeRepo{employeeDetail: detail}
+	tq := &fakeTaskQueue{}
+	svc := &EmployeeService{repo: repo, taskQueue: tq}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: true,
+		SendEmail: true,
+	})
+	if !errors.Is(err, domain.ErrEmailDeliveryFailed) {
+		t.Fatalf("expected ErrEmailDeliveryFailed, got %v", err)
+	}
+	if tq.enqueued {
+		t.Fatal("expected email NOT to be enqueued")
+	}
+}
+
+func TestResetPassword_sendEmailEnqueuesPayload(t *testing.T) {
+	email := "john@example.com"
+	password := "MySecurePass123"
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail(email)}
+	tq := &fakeTaskQueue{}
+	svc := &EmployeeService{repo: repo, taskQueue: tq}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: false,
+		Password:  &password,
+		SendEmail: true,
+	})
+	if err != nil {
+		t.Fatalf("ResetPassword returned error: %v", err)
+	}
+	if !tq.enqueued {
+		t.Fatal("expected email to be enqueued")
+	}
+	if tq.enqueuedPayload.To != email {
+		t.Fatalf("expected To %q, got %q", email, tq.enqueuedPayload.To)
+	}
+	if tq.enqueuedPayload.UserEmail != email {
+		t.Fatalf("expected UserEmail %q, got %q", email, tq.enqueuedPayload.UserEmail)
+	}
+	if tq.enqueuedPayload.UserPassword != password {
+		t.Fatalf("expected UserPassword %q, got %q", password, tq.enqueuedPayload.UserPassword)
+	}
+}
+
+func TestResetPassword_enqueueErrorReturnsError(t *testing.T) {
+	email := "john@example.com"
+	password := "MySecurePass123"
+	repo := &fakeEmployeeRepo{employeeDetail: employeeDetailWithWorkEmail(email)}
+	tq := &fakeTaskQueue{err: errors.New("redis down")}
+	svc := &EmployeeService{repo: repo, taskQueue: tq}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: false,
+		Password:  &password,
+		SendEmail: true,
+	})
+	if !errors.Is(err, domain.ErrEmailDeliveryFailed) {
+		t.Fatalf("expected ErrEmailDeliveryFailed, got %v", err)
+	}
+}
+
+func TestResetPassword_employeeNotFoundError(t *testing.T) {
+	repo := &fakeEmployeeRepo{err: domain.ErrEmployeeNotFound}
+	svc := &EmployeeService{repo: repo}
+
+	_, err := svc.ResetPassword(context.Background(), uuid.New(), domain.ResetPasswordParams{
+		Generated: true,
+		SendEmail: false,
+	})
+	if !errors.Is(err, domain.ErrEmployeeNotFound) {
+		t.Fatalf("expected ErrEmployeeNotFound, got %v", err)
+	}
 }

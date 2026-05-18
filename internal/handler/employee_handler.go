@@ -813,6 +813,41 @@ func (h *EmployeeHandler) DeleteCertification(ctx *gin.Context) {
 	)
 }
 
+func (h *EmployeeHandler) ResetPassword(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	var req resetPasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	result, err := h.service.ResetPassword(ctx.Request.Context(), employeeID, toResetPasswordParams(req))
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrInvalidPasswordResetRequest):
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		case errors.Is(err, domain.ErrEmployeeNotFound):
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+		case errors.Is(err, domain.ErrPasswordHashFailed),
+			errors.Is(err, domain.ErrEmailDeliveryFailed):
+			ctx.JSON(http.StatusInternalServerError, httpapi.Fail(err.Error(), ""))
+		default:
+			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to reset password", ""))
+		}
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toResetPasswordResponse(result), "Password reset successfully"),
+	)
+}
+
 func (h *EmployeeHandler) SearchEmployeesByNameOrEmail(ctx *gin.Context) {
 	var req searchEmployeesRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {

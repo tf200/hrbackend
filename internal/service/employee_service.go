@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"hrbackend/internal/domain"
 	"hrbackend/pkg/password"
@@ -12,15 +13,17 @@ import (
 )
 
 type EmployeeService struct {
-	repo   domain.EmployeeRepository
-	logger domain.Logger
+	repo      domain.EmployeeRepository
+	taskQueue domain.TaskQueue
+	logger    domain.Logger
 }
 
 func NewEmployeeService(
 	repo domain.EmployeeRepository,
+	taskQueue domain.TaskQueue,
 	logger domain.Logger,
 ) domain.EmployeeService {
-	return &EmployeeService{repo: repo, logger: logger}
+	return &EmployeeService{repo: repo, taskQueue: taskQueue, logger: logger}
 }
 
 func (s *EmployeeService) GetEmployeeByID(
@@ -399,6 +402,73 @@ func (s *EmployeeService) DeleteCertification(
 		return nil, err
 	}
 	return cert, nil
+}
+
+func (s *EmployeeService) ResetPassword(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.ResetPasswordParams,
+) (*domain.ResetPasswordResult, error) {
+	emp, err := s.repo.GetEmployeeByID(ctx, employeeID)
+	if err != nil {
+		s.logError(ctx, "ResetPassword", err, zap.String("employee_id", employeeID.String()))
+		return nil, err
+	}
+
+	if params.SendEmail {
+		if s.taskQueue == nil {
+			s.logError(ctx, "ResetPassword", domain.ErrEmailDeliveryFailed,
+				zap.String("employee_id", employeeID.String()))
+			return nil, domain.ErrEmailDeliveryFailed
+		}
+		if emp.WorkEmailAddress == nil || strings.TrimSpace(*emp.WorkEmailAddress) == "" {
+			s.logError(ctx, "ResetPassword", domain.ErrEmailDeliveryFailed,
+				zap.String("employee_id", employeeID.String()))
+			return nil, domain.ErrEmailDeliveryFailed
+		}
+	}
+
+	var plainPassword string
+
+	if params.Generated {
+		gen, err := password.GenerateRandomPassword(16)
+		if err != nil {
+			s.logError(ctx, "ResetPassword", err, zap.String("employee_id", employeeID.String()))
+			return nil, domain.ErrPasswordHashFailed
+		}
+		plainPassword = gen
+	} else {
+		if params.Password == nil || strings.TrimSpace(*params.Password) == "" {
+			return nil, domain.ErrInvalidPasswordResetRequest
+		}
+		plainPassword = *params.Password
+	}
+
+	hashedPassword, err := password.HashPassword(plainPassword)
+	if err != nil {
+		s.logError(ctx, "ResetPassword", err, zap.String("employee_id", employeeID.String()))
+		return nil, domain.ErrPasswordHashFailed
+	}
+
+	if err := s.repo.UpdatePassword(ctx, emp.UserID, hashedPassword); err != nil {
+		s.logError(ctx, "ResetPassword", err, zap.String("employee_id", employeeID.String()))
+		return nil, err
+	}
+
+	if params.SendEmail {
+		payload := domain.EmailDeliveryTaskPayload{
+			To:           *emp.WorkEmailAddress,
+			Name:         emp.FirstName + " " + emp.LastName,
+			UserEmail:    *emp.WorkEmailAddress,
+			UserPassword: plainPassword,
+		}
+		if err := s.taskQueue.EnqueueEmailDelivery(ctx, payload, nil); err != nil {
+			s.logError(ctx, "ResetPassword", err, zap.String("employee_id", employeeID.String()))
+			return nil, domain.ErrEmailDeliveryFailed
+		}
+	}
+
+	return &domain.ResetPasswordResult{TemporaryPassword: plainPassword}, nil
 }
 
 func (s *EmployeeService) logError(

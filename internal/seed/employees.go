@@ -69,7 +69,7 @@ func (s EmployeesSeeder) Seed(ctx context.Context, env Env) error {
 
 	store := dbrepo.NewStoreWithTx(tx)
 	employeeRepo := repository.NewEmployeeRepository(store)
-	employeeService := service.NewEmployeeService(employeeRepo, nil)
+	employeeService := service.NewEmployeeService(employeeRepo, nil, nil)
 	roleIDs := make(map[string]uuid.UUID)
 	seedCtx := context.WithValue(ctx, "employee_id", uuid.Nil)
 

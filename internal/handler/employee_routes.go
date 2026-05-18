@@ -116,6 +116,12 @@ func RegisterEmployeeRoutes(
 		requirePermission("EMPLOYEE.DELETE"),
 		handler.DeleteCertification,
 	)
+	rg.POST(
+		"/employees/:id/reset_password",
+		auth,
+		requirePermission("EMPLOYEE.UPDATE"),
+		handler.ResetPassword,
+	)
 	rg.GET(
 		"/employees/emails",
 		auth,
