@@ -133,6 +133,11 @@ INSERT INTO roles (name, description)
 VALUES ('admin', 'System administrator with full access')
 ON CONFLICT (name) DO NOTHING;
 
+-- Bootstrap default employee role
+INSERT INTO roles (name, description)
+VALUES ('employee', 'Standard employee with self-service access')
+ON CONFLICT (name) DO NOTHING;
+
 -- Bootstrap known API permissions (code-derived)
 WITH seeded(name, sort_order) AS (
     VALUES
@@ -337,6 +342,42 @@ WHERE p.name IN (
     'TIME_ENTRY.VIEW',
     'TIME_ENTRY.VIEW_ALL',
     'TIME_ENTRY.DECIDE'
+)
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- Grant self-service permissions to employee role
+WITH employee_role AS (
+    SELECT id
+    FROM roles
+    WHERE name = 'employee'
+)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT er.id, p.id
+FROM employee_role er
+CROSS JOIN permissions p
+WHERE p.name IN (
+    'PORTAL.EMPLOYEE.ACCESS',
+    'EMPLOYEE.VIEW',
+    'HANDBOOK.SELF.UPDATE',
+    'HANDBOOK.SELF.VIEW',
+    'LATE_ARRIVAL.CREATE',
+    'LEAVE.REQUEST.CREATE',
+    'LEAVE.REQUEST.VIEW',
+    'PAYOUT.REQUEST.CREATE',
+    'PAYOUT.REQUEST.VIEW',
+    'EXPENSE.REQUEST.CREATE',
+    'EXPENSE.REQUEST.VIEW',
+    'SCHEDULE.VIEW',
+    'SCHEDULE_SWAP.REQUEST',
+    'SCHEDULE_SWAP.RESPOND',
+    'SCHEDULE_SWAP.VIEW',
+    'SHIFT.VIEW',
+    'TIME_ENTRY.CREATE',
+    'TIME_ENTRY.VIEW',
+    'TIME_ENTRY.UPDATE',
+    'TRAINING.CATALOG.VIEW',
+    'TRAINING.ASSIGNMENTS.VIEW',
+    'PERFORMANCE.ASSESSMENT.VIEW'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 

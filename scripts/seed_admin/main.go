@@ -67,12 +67,7 @@ func main() {
 		_ = tx.Rollback(ctx)
 	}()
 
-	adminRoleID, err := ensureAdminRole(ctx, tx)
-	if err != nil {
-		exitErr(err)
-	}
-
-	grantedCount, err := syncAdminRolePermissions(ctx, tx, adminRoleID)
+	adminRoleID, err := lookupRoleID(ctx, tx, "admin")
 	if err != nil {
 		exitErr(err)
 	}
@@ -99,47 +94,14 @@ func main() {
 	fmt.Printf("Admin email: %s\n", cfg.AdminEmail)
 	fmt.Printf("User created: %t\n", createdUser)
 	fmt.Printf("Profile created: %t\n", createdProfile)
-	fmt.Printf("Admin permission links ensured: %d\n", grantedCount)
 }
 
-func ensureAdminRole(ctx context.Context, tx pgx.Tx) (uuid.UUID, error) {
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO roles (name, description)
-		VALUES ('admin', 'System administrator with full access')
-		ON CONFLICT (name) DO NOTHING
-	`); err != nil {
-		return uuid.Nil, fmt.Errorf("ensure admin role: %w", err)
-	}
-
+func lookupRoleID(ctx context.Context, tx pgx.Tx, name string) (uuid.UUID, error) {
 	var roleID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = 'admin'`).
-		Scan(&roleID); err != nil {
-		return uuid.Nil, fmt.Errorf("read admin role id: %w", err)
+	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = $1`, name).Scan(&roleID); err != nil {
+		return uuid.Nil, fmt.Errorf("lookup role %q: %w", name, err)
 	}
 	return roleID, nil
-}
-
-func syncAdminRolePermissions(ctx context.Context, tx pgx.Tx, roleID uuid.UUID) (int64, error) {
-	var permissionCount int64
-	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM permissions`).
-		Scan(&permissionCount); err != nil {
-		return 0, fmt.Errorf("count permissions: %w", err)
-	}
-	if permissionCount == 0 {
-		return 0, errors.New("no permissions found; run migrations before seeding admin")
-	}
-
-	tag, err := tx.Exec(ctx, `
-		INSERT INTO role_permissions (role_id, permission_id)
-		SELECT $1, p.id
-		FROM permissions p
-		ON CONFLICT (role_id, permission_id) DO NOTHING
-	`, roleID)
-	if err != nil {
-		return 0, fmt.Errorf("sync admin role permissions: %w", err)
-	}
-
-	return tag.RowsAffected(), nil
 }
 
 func ensureAdminUser(

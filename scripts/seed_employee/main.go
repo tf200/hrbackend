@@ -67,12 +67,7 @@ func main() {
 		_ = tx.Rollback(ctx)
 	}()
 
-	employeeRoleID, err := ensureEmployeeRole(ctx, tx)
-	if err != nil {
-		exitErr(err)
-	}
-
-	grantedCount, err := syncEmployeeRolePermissions(ctx, tx, employeeRoleID)
+	employeeRoleID, err := lookupRoleID(ctx, tx, "employee")
 	if err != nil {
 		exitErr(err)
 	}
@@ -99,67 +94,14 @@ func main() {
 	fmt.Printf("Employee email: %s\n", cfg.EmployeeEmail)
 	fmt.Printf("User created: %t\n", createdUser)
 	fmt.Printf("Profile created: %t\n", createdProfile)
-	fmt.Printf("Employee permission links ensured: %d\n", grantedCount)
 }
 
-func ensureEmployeeRole(ctx context.Context, tx pgx.Tx) (uuid.UUID, error) {
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO roles (name, description)
-		VALUES ('employee', 'Standard employee with self-service access')
-		ON CONFLICT (name) DO NOTHING
-	`); err != nil {
-		return uuid.Nil, fmt.Errorf("ensure employee role: %w", err)
-	}
-
+func lookupRoleID(ctx context.Context, tx pgx.Tx, name string) (uuid.UUID, error) {
 	var roleID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = 'employee'`).
-		Scan(&roleID); err != nil {
-		return uuid.Nil, fmt.Errorf("read employee role id: %w", err)
+	if err := tx.QueryRow(ctx, `SELECT id FROM roles WHERE name = $1`, name).Scan(&roleID); err != nil {
+		return uuid.Nil, fmt.Errorf("lookup role %q: %w", name, err)
 	}
 	return roleID, nil
-}
-
-// employeePermissions defines the set of self-service permissions granted to
-// the standard employee role.
-var employeePermissions = []string{
-	"PORTAL.EMPLOYEE.ACCESS",
-	"EMPLOYEE.VIEW",
-	"HANDBOOK.SELF.VIEW",
-	"HANDBOOK.SELF.UPDATE",
-	"LATE_ARRIVAL.CREATE",
-	"LEAVE.REQUEST.CREATE",
-	"LEAVE.REQUEST.VIEW",
-	"PAYOUT.REQUEST.CREATE",
-	"PAYOUT.REQUEST.VIEW",
-	"EXPENSE.REQUEST.CREATE",
-	"EXPENSE.REQUEST.VIEW",
-	"SCHEDULE.VIEW",
-	"SCHEDULE_SWAP.REQUEST",
-	"SCHEDULE_SWAP.RESPOND",
-	"SCHEDULE_SWAP.VIEW",
-	"SHIFT.VIEW",
-	"TIME_ENTRY.CREATE",
-	"TIME_ENTRY.VIEW",
-	"TIME_ENTRY.UPDATE",
-	"TRAINING.CATALOG.VIEW",
-	"TRAINING.ASSIGNMENTS.VIEW",
-	"PERFORMANCE.ASSESSMENT.VIEW",
-}
-
-func syncEmployeeRolePermissions(ctx context.Context, tx pgx.Tx, roleID uuid.UUID) (int64, error) {
-	var count int64
-	for _, name := range employeePermissions {
-		tag, err := tx.Exec(ctx, `
-			INSERT INTO role_permissions (role_id, permission_id)
-			SELECT $1, id FROM permissions WHERE name = $2
-			ON CONFLICT (role_id, permission_id) DO NOTHING
-		`, roleID, name)
-		if err != nil {
-			return 0, fmt.Errorf("grant permission %q to employee role: %w", name, err)
-		}
-		count += tag.RowsAffected()
-	}
-	return count, nil
 }
 
 func ensureEmployeeUser(
