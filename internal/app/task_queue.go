@@ -53,38 +53,6 @@ func (a *taskQueueAdapter) EnqueueNotificationTask(
 		toAsynqOptions(opts)...)
 }
 
-func (a *taskQueueAdapter) EnqueueAcceptedRegistration(
-	ctx context.Context,
-	payload domain.AcceptedRegistrationFormTaskPayload,
-	opts *domain.TaskEnqueueOptions,
-) error {
-	return a.client.EnqueueAcceptedRegistration(ctx, pkgasynq.AcceptedRegistrationFormPayload{
-		ReferrerName:        payload.ReferrerName,
-		ChildName:           payload.ChildName,
-		ChildBSN:            payload.ChildBSN,
-		AppointmentDate:     payload.AppointmentDate,
-		AppointmentLocation: payload.AppointmentLocation,
-		To:                  "",
-	}, toAsynqOptions(opts)...)
-}
-
-func (a *taskQueueAdapter) EnqueueProcessRegistrationFormEmail(
-	ctx context.Context,
-	payload domain.ProcessRegistrationFormEmailTaskPayload,
-	opts *domain.TaskEnqueueOptions,
-) error {
-	return a.client.EnqueueProcessRegistrationFormEmail(
-		ctx,
-		pkgasynq.ProcessRegistrationFormEmailPayload{
-			ReferrerName: payload.ReferrerName,
-			ClientName:   payload.ClientName,
-			Location:     payload.Location,
-			Link:         payload.Link,
-			To:           payload.To,
-		},
-		toAsynqOptions(opts)...)
-}
-
 func (a *taskQueueAdapter) Close() error {
 	return a.client.Close()
 }

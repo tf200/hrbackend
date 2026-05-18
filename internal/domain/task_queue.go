@@ -56,23 +56,6 @@ type EmailDeliveryTaskPayload struct {
 	UserPassword string
 }
 
-type AcceptedRegistrationFormTaskPayload struct {
-	ReferrerName        string
-	ChildName           string
-	ChildBSN            string
-	AppointmentDate     string
-	AppointmentLocation string
-	To                  string
-}
-
-type ProcessRegistrationFormEmailTaskPayload struct {
-	ReferrerName string
-	ClientName   string
-	Location     string
-	Link         string
-	To           []string
-}
-
 type IncidentConfirmedEmailTaskPayload struct {
 	IncidentID uuid.UUID
 }
@@ -160,16 +143,6 @@ type TaskQueue interface {
 	EnqueueNotificationTask(
 		ctx context.Context,
 		payload NotificationTaskPayload,
-		opts *TaskEnqueueOptions,
-	) error
-	EnqueueAcceptedRegistration(
-		ctx context.Context,
-		payload AcceptedRegistrationFormTaskPayload,
-		opts *TaskEnqueueOptions,
-	) error
-	EnqueueProcessRegistrationFormEmail(
-		ctx context.Context,
-		payload ProcessRegistrationFormEmailTaskPayload,
 		opts *TaskEnqueueOptions,
 	) error
 	Close() error

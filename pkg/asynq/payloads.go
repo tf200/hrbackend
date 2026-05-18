@@ -44,23 +44,6 @@ type EmailDeliveryPayload struct {
 	UserPassword string `json:"user_password"`
 }
 
-type AcceptedRegistrationFormPayload struct {
-	ReferrerName        string `json:"referrer_name"`
-	ChildName           string `json:"child_name"`
-	ChildBSN            string `json:"child_bsn"`
-	AppointmentDate     string `json:"appointment_date"`
-	AppointmentLocation string `json:"appointment_location"`
-	To                  string `json:"to"`
-}
-
-type ProcessRegistrationFormEmailPayload struct {
-	ReferrerName string   `json:"referrer_name"`
-	ClientName   string   `json:"client_name"`
-	Location     string   `json:"location"`
-	Link         string   `json:"link"`
-	To           []string `json:"to"`
-}
-
 type IncidentConfirmedEmailPayload struct {
 	IncidentID uuid.UUID `json:"incident_id"`
 }
