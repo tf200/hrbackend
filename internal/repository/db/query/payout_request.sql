@@ -1,9 +1,11 @@
 -- name: GetEmployeePayoutContract :one
 SELECT
     contract_type,
-    contract_rate
-FROM employee_profile
-WHERE id = $1;
+    NULL::numeric AS contract_rate
+FROM employee_contracts
+WHERE employee_id = $1
+ORDER BY start_date DESC, created_at DESC
+LIMIT 1;
 
 -- name: CreatePayoutRequest :one
 INSERT INTO leave_payout_requests (

@@ -127,16 +127,18 @@ type updateExperienceRequest struct {
 	Description *string `json:"description"`
 }
 
-type createCertificationRequest struct {
-	Name       string `json:"name"        binding:"required"`
-	IssuedBy   string `json:"issued_by"   binding:"required"`
-	DateIssued string `json:"date_issued" binding:"required"`
+type createQualificationRequest struct {
+	QualificationTypeCode string  `json:"qualification_type_code" binding:"required"`
+	AchievedOn            string  `json:"achieved_on"             binding:"required"`
+	ExpirationDate        *string `json:"expiration_date"`
+	CertificateNumber     *string `json:"certificate_number"`
 }
 
-type updateCertificationRequest struct {
-	Name       *string `json:"name"`
-	IssuedBy   *string `json:"issued_by"`
-	DateIssued *string `json:"date_issued"`
+type updateQualificationRequest struct {
+	QualificationTypeCode *string `json:"qualification_type_code"`
+	AchievedOn            *string `json:"achieved_on"`
+	ExpirationDate        *string `json:"expiration_date"`
+	CertificateNumber     *string `json:"certificate_number"`
 }
 
 type searchEmployeesRequest struct {
@@ -302,13 +304,23 @@ type experienceResponse struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type certificationResponse struct {
-	ID         uuid.UUID `json:"id"`
-	EmployeeID uuid.UUID `json:"employee_id"`
-	Name       string    `json:"name"`
-	IssuedBy   string    `json:"issued_by"`
-	DateIssued time.Time `json:"date_issued"`
-	CreatedAt  time.Time `json:"created_at"`
+type qualificationResponse struct {
+	ID                    uuid.UUID  `json:"id"`
+	EmployeeID            uuid.UUID  `json:"employee_id"`
+	QualificationTypeCode string     `json:"qualification_type_code"`
+	AchievedOn            time.Time  `json:"achieved_on"`
+	ExpirationDate        *time.Time `json:"expiration_date"`
+	CertificateNumber     *string    `json:"certificate_number"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
+}
+
+type qualificationTypeResponse struct {
+	Code              string    `json:"code"`
+	OriginalDutchText string    `json:"original_dutch_text"`
+	EnglishName       string    `json:"english_name"`
+	AppContext        string    `json:"app_context"`
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 type employeeSearchResultResponse struct {
@@ -461,23 +473,27 @@ func toUpdateExperienceParams(req updateExperienceRequest) domain.UpdateExperien
 	}
 }
 
-func toCreateCertificationParams(req createCertificationRequest) domain.CreateCertificationParams {
-	dateIssued, _ := parseDate(req.DateIssued)
+func toCreateQualificationParams(req createQualificationRequest) domain.CreateQualificationParams {
+	achievedOn, _ := parseDate(req.AchievedOn)
+	expirationDate, _ := parseDatePtr(req.ExpirationDate)
 
-	return domain.CreateCertificationParams{
-		Name:       req.Name,
-		IssuedBy:   req.IssuedBy,
-		DateIssued: dateIssued,
+	return domain.CreateQualificationParams{
+		QualificationTypeCode: req.QualificationTypeCode,
+		AchievedOn:            achievedOn,
+		ExpirationDate:        expirationDate,
+		CertificateNumber:     req.CertificateNumber,
 	}
 }
 
-func toUpdateCertificationParams(req updateCertificationRequest) domain.UpdateCertificationParams {
-	dateIssued, _ := parseDatePtr(req.DateIssued)
+func toUpdateQualificationParams(req updateQualificationRequest) domain.UpdateQualificationParams {
+	achievedOn, _ := parseDatePtr(req.AchievedOn)
+	expirationDate, _ := parseDatePtr(req.ExpirationDate)
 
-	return domain.UpdateCertificationParams{
-		Name:       req.Name,
-		IssuedBy:   req.IssuedBy,
-		DateIssued: dateIssued,
+	return domain.UpdateQualificationParams{
+		QualificationTypeCode: req.QualificationTypeCode,
+		AchievedOn:            achievedOn,
+		ExpirationDate:        expirationDate,
+		CertificateNumber:     req.CertificateNumber,
 	}
 }
 
@@ -693,14 +709,26 @@ func toExperienceResponse(experience *domain.Experience) experienceResponse {
 	}
 }
 
-func toCertificationResponse(certification *domain.Certification) certificationResponse {
-	return certificationResponse{
-		ID:         certification.ID,
-		EmployeeID: certification.EmployeeID,
-		Name:       certification.Name,
-		IssuedBy:   certification.IssuedBy,
-		DateIssued: certification.DateIssued,
-		CreatedAt:  certification.CreatedAt,
+func toQualificationResponse(qualification *domain.Qualification) qualificationResponse {
+	return qualificationResponse{
+		ID:                    qualification.ID,
+		EmployeeID:            qualification.EmployeeID,
+		QualificationTypeCode: qualification.QualificationTypeCode,
+		AchievedOn:            qualification.AchievedOn,
+		ExpirationDate:        qualification.ExpirationDate,
+		CertificateNumber:     qualification.CertificateNumber,
+		CreatedAt:             qualification.CreatedAt,
+		UpdatedAt:             qualification.UpdatedAt,
+	}
+}
+
+func toQualificationTypeResponse(qt *domain.QualificationType) qualificationTypeResponse {
+	return qualificationTypeResponse{
+		Code:              qt.Code,
+		OriginalDutchText: qt.OriginalDutchText,
+		EnglishName:       qt.EnglishName,
+		AppContext:        qt.AppContext,
+		CreatedAt:         qt.CreatedAt,
 	}
 }
 

@@ -133,9 +133,11 @@ func (q *Queries) CreatePayoutRequest(ctx context.Context, arg CreatePayoutReque
 const getEmployeePayoutContract = `-- name: GetEmployeePayoutContract :one
 SELECT
     contract_type,
-    contract_rate
-FROM employee_profile
-WHERE id = $1
+    NULL::numeric AS contract_rate
+FROM employee_contracts
+WHERE employee_id = $1
+ORDER BY start_date DESC, created_at DESC
+LIMIT 1
 `
 
 type GetEmployeePayoutContractRow struct {
@@ -143,8 +145,8 @@ type GetEmployeePayoutContractRow struct {
 	ContractRate *float64                 `json:"contract_rate"`
 }
 
-func (q *Queries) GetEmployeePayoutContract(ctx context.Context, id uuid.UUID) (GetEmployeePayoutContractRow, error) {
-	row := q.db.QueryRow(ctx, getEmployeePayoutContract, id)
+func (q *Queries) GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (GetEmployeePayoutContractRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeePayoutContract, employeeID)
 	var i GetEmployeePayoutContractRow
 	err := row.Scan(&i.ContractType, &i.ContractRate)
 	return i, err

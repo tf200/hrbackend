@@ -12,82 +12,111 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addEmployeeCertification = `-- name: AddEmployeeCertification :one
-INSERT INTO certification (
+const addEmployeeQualification = `-- name: AddEmployeeQualification :one
+INSERT INTO employee_qualifications (
     employee_id,
-    name,
-    issued_by,
-    date_issued
+    qualification_id,
+    achieved_on,
+    expiration_date,
+    certificate_number
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
-RETURNING id, employee_id, name, issued_by, date_issued, created_at
+RETURNING id, employee_id, qualification_id, achieved_on, expiration_date, certificate_number, created_at, updated_at
 `
 
-type AddEmployeeCertificationParams struct {
-	EmployeeID uuid.UUID   `json:"employee_id"`
-	Name       string      `json:"name"`
-	IssuedBy   string      `json:"issued_by"`
-	DateIssued pgtype.Date `json:"date_issued"`
+type AddEmployeeQualificationParams struct {
+	EmployeeID        uuid.UUID   `json:"employee_id"`
+	QualificationID   uuid.UUID   `json:"qualification_id"`
+	AchievedOn        pgtype.Date `json:"achieved_on"`
+	ExpirationDate    pgtype.Date `json:"expiration_date"`
+	CertificateNumber *string     `json:"certificate_number"`
 }
 
-func (q *Queries) AddEmployeeCertification(ctx context.Context, arg AddEmployeeCertificationParams) (Certification, error) {
-	row := q.db.QueryRow(ctx, addEmployeeCertification,
+func (q *Queries) AddEmployeeQualification(ctx context.Context, arg AddEmployeeQualificationParams) (EmployeeQualification, error) {
+	row := q.db.QueryRow(ctx, addEmployeeQualification,
 		arg.EmployeeID,
-		arg.Name,
-		arg.IssuedBy,
-		arg.DateIssued,
+		arg.QualificationID,
+		arg.AchievedOn,
+		arg.ExpirationDate,
+		arg.CertificateNumber,
 	)
-	var i Certification
+	var i EmployeeQualification
 	err := row.Scan(
 		&i.ID,
 		&i.EmployeeID,
-		&i.Name,
-		&i.IssuedBy,
-		&i.DateIssued,
+		&i.QualificationID,
+		&i.AchievedOn,
+		&i.ExpirationDate,
+		&i.CertificateNumber,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const deleteEmployeeCertification = `-- name: DeleteEmployeeCertification :one
-DELETE FROM certification WHERE id = $1 RETURNING id, employee_id, name, issued_by, date_issued, created_at
+const deleteEmployeeQualification = `-- name: DeleteEmployeeQualification :one
+DELETE FROM employee_qualifications WHERE id = $1 RETURNING id, employee_id, qualification_id, achieved_on, expiration_date, certificate_number, created_at, updated_at
 `
 
-func (q *Queries) DeleteEmployeeCertification(ctx context.Context, id uuid.UUID) (Certification, error) {
-	row := q.db.QueryRow(ctx, deleteEmployeeCertification, id)
-	var i Certification
+func (q *Queries) DeleteEmployeeQualification(ctx context.Context, id uuid.UUID) (EmployeeQualification, error) {
+	row := q.db.QueryRow(ctx, deleteEmployeeQualification, id)
+	var i EmployeeQualification
 	err := row.Scan(
 		&i.ID,
 		&i.EmployeeID,
-		&i.Name,
-		&i.IssuedBy,
-		&i.DateIssued,
+		&i.QualificationID,
+		&i.AchievedOn,
+		&i.ExpirationDate,
+		&i.CertificateNumber,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const listEmployeeCertifications = `-- name: ListEmployeeCertifications :many
-SELECT id, employee_id, name, issued_by, date_issued, created_at FROM certification WHERE employee_id = $1
+const getQualificationType = `-- name: GetQualificationType :one
+SELECT id, code, original_dutch_text, english_name, app_context, is_active, created_at, updated_at FROM qualifications WHERE code = $1
 `
 
-func (q *Queries) ListEmployeeCertifications(ctx context.Context, employeeID uuid.UUID) ([]Certification, error) {
-	rows, err := q.db.Query(ctx, listEmployeeCertifications, employeeID)
+func (q *Queries) GetQualificationType(ctx context.Context, code string) (Qualification, error) {
+	row := q.db.QueryRow(ctx, getQualificationType, code)
+	var i Qualification
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.OriginalDutchText,
+		&i.EnglishName,
+		&i.AppContext,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listEmployeeQualifications = `-- name: ListEmployeeQualifications :many
+SELECT id, employee_id, qualification_id, achieved_on, expiration_date, certificate_number, created_at, updated_at FROM employee_qualifications WHERE employee_id = $1
+`
+
+func (q *Queries) ListEmployeeQualifications(ctx context.Context, employeeID uuid.UUID) ([]EmployeeQualification, error) {
+	rows, err := q.db.Query(ctx, listEmployeeQualifications, employeeID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Certification{}
+	items := []EmployeeQualification{}
 	for rows.Next() {
-		var i Certification
+		var i EmployeeQualification
 		if err := rows.Scan(
 			&i.ID,
 			&i.EmployeeID,
-			&i.Name,
-			&i.IssuedBy,
-			&i.DateIssued,
+			&i.QualificationID,
+			&i.AchievedOn,
+			&i.ExpirationDate,
+			&i.CertificateNumber,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -99,38 +128,77 @@ func (q *Queries) ListEmployeeCertifications(ctx context.Context, employeeID uui
 	return items, nil
 }
 
-const updateEmployeeCertification = `-- name: UpdateEmployeeCertification :one
-UPDATE certification
-SET
-    name = COALESCE($2, name),
-    issued_by = COALESCE($3, issued_by),
-    date_issued = COALESCE($4, date_issued)
-WHERE id = $1
-RETURNING id, employee_id, name, issued_by, date_issued, created_at
+const listQualificationTypes = `-- name: ListQualificationTypes :many
+SELECT id, code, original_dutch_text, english_name, app_context, is_active, created_at, updated_at FROM qualifications WHERE is_active = TRUE ORDER BY english_name
 `
 
-type UpdateEmployeeCertificationParams struct {
-	ID         uuid.UUID   `json:"id"`
-	Name       *string     `json:"name"`
-	IssuedBy   *string     `json:"issued_by"`
-	DateIssued pgtype.Date `json:"date_issued"`
+func (q *Queries) ListQualificationTypes(ctx context.Context) ([]Qualification, error) {
+	rows, err := q.db.Query(ctx, listQualificationTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Qualification{}
+	for rows.Next() {
+		var i Qualification
+		if err := rows.Scan(
+			&i.ID,
+			&i.Code,
+			&i.OriginalDutchText,
+			&i.EnglishName,
+			&i.AppContext,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
-func (q *Queries) UpdateEmployeeCertification(ctx context.Context, arg UpdateEmployeeCertificationParams) (Certification, error) {
-	row := q.db.QueryRow(ctx, updateEmployeeCertification,
+const updateEmployeeQualification = `-- name: UpdateEmployeeQualification :one
+UPDATE employee_qualifications
+SET
+    qualification_id = COALESCE($2, qualification_id),
+    achieved_on = COALESCE($3, achieved_on),
+    expiration_date = COALESCE($4, expiration_date),
+    certificate_number = COALESCE($5, certificate_number),
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, employee_id, qualification_id, achieved_on, expiration_date, certificate_number, created_at, updated_at
+`
+
+type UpdateEmployeeQualificationParams struct {
+	ID                uuid.UUID   `json:"id"`
+	QualificationID   *uuid.UUID  `json:"qualification_id"`
+	AchievedOn        pgtype.Date `json:"achieved_on"`
+	ExpirationDate    pgtype.Date `json:"expiration_date"`
+	CertificateNumber *string     `json:"certificate_number"`
+}
+
+func (q *Queries) UpdateEmployeeQualification(ctx context.Context, arg UpdateEmployeeQualificationParams) (EmployeeQualification, error) {
+	row := q.db.QueryRow(ctx, updateEmployeeQualification,
 		arg.ID,
-		arg.Name,
-		arg.IssuedBy,
-		arg.DateIssued,
+		arg.QualificationID,
+		arg.AchievedOn,
+		arg.ExpirationDate,
+		arg.CertificateNumber,
 	)
-	var i Certification
+	var i EmployeeQualification
 	err := row.Scan(
 		&i.ID,
 		&i.EmployeeID,
-		&i.Name,
-		&i.IssuedBy,
-		&i.DateIssued,
+		&i.QualificationID,
+		&i.AchievedOn,
+		&i.ExpirationDate,
+		&i.CertificateNumber,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

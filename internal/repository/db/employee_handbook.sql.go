@@ -147,12 +147,19 @@ WITH active_assignments AS (
 )
 SELECT COUNT(*)
 FROM employee_profile ep
+LEFT JOIN LATERAL (
+    SELECT department_id
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 LEFT JOIN active_assignments aa ON aa.employee_id = ep.id
 WHERE
     NOT ep.is_archived AND
     NOT COALESCE(ep.out_of_service, false) AND
     aa.employee_id IS NULL AND
-    (ep.department_id = $1 OR $1 IS NULL) AND
+    ($1::uuid IS NULL OR ec.department_id = $1::uuid) AND
     ($2::TEXT IS NULL OR
         ep.first_name ILIKE '%' || $2 || '%' OR
         ep.last_name ILIKE '%' || $2 || '%')
@@ -183,14 +190,21 @@ FROM (
         ep.id AS employee_id,
         ep.first_name,
         ep.last_name,
-        ep.department_id AS employee_department_id,
+        ec.department_id AS employee_department_id,
         latest_handbooks.template_id AS handbook_template_id,
         COALESCE(latest_handbooks.status::text, 'unassigned') AS employee_handbook_status,
         ep.is_archived
     FROM employee_profile ep
+    LEFT JOIN LATERAL (
+        SELECT department_id
+        FROM employee_contracts c
+        WHERE c.employee_id = ep.id
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) ec ON true
     LEFT JOIN latest_handbooks ON latest_handbooks.employee_id = ep.id AND latest_handbooks.rn = 1
     WHERE
-        (ep.department_id = $1 OR $1 IS NULL) AND
+        ($1::uuid IS NULL OR ec.department_id = $1::uuid) AND
         ($2::TEXT IS NULL OR COALESCE(latest_handbooks.status::text, 'unassigned') = $2::TEXT) AND
         ($3::TEXT IS NULL OR
             ep.first_name ILIKE '%' || $3 || '%' OR
@@ -713,16 +727,23 @@ SELECT
     ep.id AS employee_id,
     ep.first_name,
     ep.last_name,
-    ep.department_id,
+    ec.department_id,
     d.name AS department_name
 FROM employee_profile ep
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN LATERAL (
+    SELECT department_id
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
+LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN active_assignments aa ON aa.employee_id = ep.id
 WHERE
     NOT ep.is_archived AND
     NOT COALESCE(ep.out_of_service, false) AND
     aa.employee_id IS NULL AND
-    (ep.department_id = $3 OR $3 IS NULL) AND
+    ($3::uuid IS NULL OR ec.department_id = $3::uuid) AND
     ($4::TEXT IS NULL OR
         ep.first_name ILIKE '%' || $4 || '%' OR
         ep.last_name ILIKE '%' || $4 || '%')
@@ -738,11 +759,11 @@ type ListEligibleEmployeesForHandbookAssignmentParams struct {
 }
 
 type ListEligibleEmployeesForHandbookAssignmentRow struct {
-	EmployeeID     uuid.UUID  `json:"employee_id"`
-	FirstName      string     `json:"first_name"`
-	LastName       string     `json:"last_name"`
-	DepartmentID   *uuid.UUID `json:"department_id"`
-	DepartmentName *string    `json:"department_name"`
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	FirstName      string    `json:"first_name"`
+	LastName       string    `json:"last_name"`
+	DepartmentID   uuid.UUID `json:"department_id"`
+	DepartmentName *string   `json:"department_name"`
 }
 
 func (q *Queries) ListEligibleEmployeesForHandbookAssignment(ctx context.Context, arg ListEligibleEmployeesForHandbookAssignmentParams) ([]ListEligibleEmployeesForHandbookAssignmentRow, error) {
@@ -850,7 +871,7 @@ FROM (
         ep.id AS employee_id,
         ep.first_name,
         ep.last_name,
-        ep.department_id AS employee_department_id,
+        ec.department_id AS employee_department_id,
         d.name AS department_name,
         latest_handbooks.id AS employee_handbook_id,
         latest_handbooks.template_id AS handbook_template_id,
@@ -865,7 +886,14 @@ FROM (
         COALESCE(progress.required_steps_completed, 0)::INT AS required_steps_completed,
         ep.is_archived
     FROM employee_profile ep
-    LEFT JOIN departments d ON d.id = ep.department_id
+    LEFT JOIN LATERAL (
+        SELECT department_id
+        FROM employee_contracts c
+        WHERE c.employee_id = ep.id
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) ec ON true
+    LEFT JOIN departments d ON d.id = ec.department_id
     LEFT JOIN latest_handbooks ON latest_handbooks.employee_id = ep.id AND latest_handbooks.rn = 1
     LEFT JOIN handbook_templates ht ON ht.id = latest_handbooks.template_id
     LEFT JOIN LATERAL (
@@ -877,7 +905,7 @@ FROM (
         WHERE ehsp.employee_handbook_id = latest_handbooks.id
     ) progress ON TRUE
     WHERE
-        (ep.department_id = $3 OR $3 IS NULL) AND
+        ($3::uuid IS NULL OR ec.department_id = $3::uuid) AND
         ($4::TEXT IS NULL OR COALESCE(latest_handbooks.status::text, 'unassigned') = $4::TEXT) AND
         ($5::TEXT IS NULL OR
             ep.first_name ILIKE '%' || $5 || '%' OR
@@ -899,7 +927,7 @@ type ListEmployeeHandbookAssignmentsRow struct {
 	EmployeeID             uuid.UUID          `json:"employee_id"`
 	FirstName              string             `json:"first_name"`
 	LastName               string             `json:"last_name"`
-	EmployeeDepartmentID   *uuid.UUID         `json:"employee_department_id"`
+	EmployeeDepartmentID   uuid.UUID          `json:"employee_department_id"`
 	DepartmentName         *string            `json:"department_name"`
 	EmployeeHandbookID     *uuid.UUID         `json:"employee_handbook_id"`
 	HandbookTemplateID     *uuid.UUID         `json:"handbook_template_id"`
@@ -1028,7 +1056,12 @@ FROM employee_profile ep
 LEFT JOIN employee_handbooks eh
     ON eh.employee_id = ep.id
    AND eh.status IN ('not_started', 'in_progress')
-WHERE ep.department_id = $1
+WHERE EXISTS (
+    SELECT 1
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+      AND c.department_id = $1
+)
   AND NOT ep.is_archived
   AND NOT COALESCE(ep.out_of_service, false)
   AND eh.id IS NULL
@@ -1037,8 +1070,8 @@ LIMIT $2
 `
 
 type ListEmployeesEligibleForDepartmentHandbookSeedParams struct {
-	DepartmentID *uuid.UUID `json:"department_id"`
-	Limit        int32      `json:"limit"`
+	DepartmentID uuid.UUID `json:"department_id"`
+	Limit        int32     `json:"limit"`
 }
 
 func (q *Queries) ListEmployeesEligibleForDepartmentHandbookSeed(ctx context.Context, arg ListEmployeesEligibleForDepartmentHandbookSeedParams) ([]uuid.UUID, error) {

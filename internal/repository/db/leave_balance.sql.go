@@ -202,10 +202,12 @@ func (q *Queries) EnsureLeaveBalanceForYear(ctx context.Context, arg EnsureLeave
 
 const getEmployeeContractForLeave = `-- name: GetEmployeeContractForLeave :one
 SELECT
-    contract_hours,
+    hours_per_week AS contract_hours,
     contract_type
-FROM employee_profile
-WHERE id = $1
+FROM employee_contracts
+WHERE employee_id = $1
+ORDER BY start_date DESC, created_at DESC
+LIMIT 1
 `
 
 type GetEmployeeContractForLeaveRow struct {
@@ -277,13 +279,20 @@ SELECT
     lb.updated_at,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
-    ep.contract_hours,
-    ep.contract_type,
-    ep.contract_start_date,
-    ep.contract_end_date,
+    ec.hours_per_week AS contract_hours,
+    ec.contract_type,
+    ec.start_date AS contract_start_date,
+    ec.contract_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
+LEFT JOIN LATERAL (
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 WHERE (
     $1::text IS NULL
     OR $1::text = ''
@@ -381,13 +390,20 @@ SELECT
     lb.updated_at,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
-    ep.contract_hours,
-    ep.contract_type,
-    ep.contract_start_date,
-    ep.contract_end_date,
+    ec.hours_per_week AS contract_hours,
+    ec.contract_type,
+    ec.start_date AS contract_start_date,
+    ec.contract_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
+LEFT JOIN LATERAL (
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 WHERE lb.employee_id = $1
   AND (
     $2::int IS NULL

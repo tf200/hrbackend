@@ -129,7 +129,7 @@ func (r *EmployeeRepository) CreateEmployee(
 			HouseNumberAddition:   params.HouseNumberAddition,
 			PostalCode:            params.PostalCode,
 			City:                  params.City,
-			Position:              params.Position,
+			Position:              positionEnumPtrFromStringPtr(params.Position),
 			DepartmentID:          params.DepartmentID,
 			ManagerEmployeeID:     params.ManagerEmployeeID,
 			EmployeeNumber:        params.EmployeeNumber,
@@ -166,7 +166,7 @@ func (r *EmployeeRepository) UpdateEmployee(
 	row, err := r.store.UpdateEmployeeProfile(ctx, db.UpdateEmployeeProfileParams{
 		FirstName:             params.FirstName,
 		LastName:              params.LastName,
-		Position:              params.Position,
+		Position:              positionEnumPtrFromStringPtr(params.Position),
 		DepartmentID:          params.DepartmentID,
 		ManagerEmployeeID:     params.ManagerEmployeeID,
 		EmployeeNumber:        params.EmployeeNumber,
@@ -586,78 +586,96 @@ func (r *EmployeeRepository) DeleteExperience(
 	return &result, nil
 }
 
-func (r *EmployeeRepository) ListCertification(
+func (r *EmployeeRepository) ListQualifications(
 	ctx context.Context,
 	employeeID uuid.UUID,
-) ([]domain.Certification, error) {
-	rows, err := r.store.ListEmployeeCertifications(ctx, employeeID)
+) ([]domain.Qualification, error) {
+	rows, err := r.store.ListEmployeeQualifications(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]domain.Certification, 0, len(rows))
+	result := make([]domain.Qualification, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, toDomainCertification(row))
+		result = append(result, toDomainQualification(row))
 	}
 
 	return result, nil
 }
 
-func (r *EmployeeRepository) AddCertification(
+func (r *EmployeeRepository) AddQualification(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	params domain.CreateCertificationParams,
-) (*domain.Certification, error) {
-	row, err := r.store.AddEmployeeCertification(ctx, db.AddEmployeeCertificationParams{
-		EmployeeID: employeeID,
-		Name:       params.Name,
-		IssuedBy:   params.IssuedBy,
-		DateIssued: conv.PgDateFromTime(params.DateIssued),
+	params domain.CreateQualificationParams,
+) (*domain.Qualification, error) {
+	row, err := r.store.AddEmployeeQualification(ctx, db.AddEmployeeQualificationParams{
+		EmployeeID:            employeeID,
+		QualificationTypeCode: params.QualificationTypeCode,
+		AchievedOn:            conv.PgDateFromTime(params.AchievedOn),
+		ExpirationDate:        pgDateFromPtr(params.ExpirationDate),
+		CertificateNumber:     params.CertificateNumber,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	result := toDomainCertification(row)
+	result := toDomainQualification(row)
 	return &result, nil
 }
 
-func (r *EmployeeRepository) UpdateCertification(
+func (r *EmployeeRepository) UpdateQualification(
 	ctx context.Context,
 	id uuid.UUID,
-	params domain.UpdateCertificationParams,
-) (*domain.Certification, error) {
-	row, err := r.store.UpdateEmployeeCertification(ctx, db.UpdateEmployeeCertificationParams{
-		ID:         id,
-		Name:       params.Name,
-		IssuedBy:   params.IssuedBy,
-		DateIssued: pgDateFromPtr(params.DateIssued),
+	params domain.UpdateQualificationParams,
+) (*domain.Qualification, error) {
+	row, err := r.store.UpdateEmployeeQualification(ctx, db.UpdateEmployeeQualificationParams{
+		ID:                    id,
+		QualificationTypeCode: params.QualificationTypeCode,
+		AchievedOn:            pgDateFromPtr(params.AchievedOn),
+		ExpirationDate:        pgDateFromPtr(params.ExpirationDate),
+		CertificateNumber:     params.CertificateNumber,
 	})
 	if err != nil {
 		if isDBNotFound(err) {
-			return nil, domain.ErrCertificationNotFound
+			return nil, domain.ErrQualificationNotFound
 		}
 		return nil, err
 	}
 
-	result := toDomainCertification(row)
+	result := toDomainQualification(row)
 	return &result, nil
 }
 
-func (r *EmployeeRepository) DeleteCertification(
+func (r *EmployeeRepository) DeleteQualification(
 	ctx context.Context,
 	id uuid.UUID,
-) (*domain.Certification, error) {
-	row, err := r.store.DeleteEmployeeCertification(ctx, id)
+) (*domain.Qualification, error) {
+	row, err := r.store.DeleteEmployeeQualification(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
-			return nil, domain.ErrCertificationNotFound
+			return nil, domain.ErrQualificationNotFound
 		}
 		return nil, err
 	}
 
-	result := toDomainCertification(row)
+	result := toDomainQualification(row)
 	return &result, nil
+}
+
+func (r *EmployeeRepository) ListQualificationTypes(
+	ctx context.Context,
+) ([]domain.QualificationType, error) {
+	rows, err := r.store.ListQualificationTypes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.QualificationType, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, toDomainQualificationType(row))
+	}
+
+	return result, nil
 }
 
 func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
@@ -687,7 +705,7 @@ func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 		HouseNumberAddition:   row.HouseNumberAddition,
 		PostalCode:            row.PostalCode,
 		City:                  row.City,
-		Position:              row.Position,
+		Position:              positionEnumPtrToStringPtr(row.Position),
 		EmployeeNumber:        row.EmployeeNumber,
 		EmploymentNumber:      row.EmploymentNumber,
 		PrivateEmailAddress:   row.PrivateEmailAddress,
@@ -740,7 +758,7 @@ func toDomainEmployeeDetailFromEmployeeProfile(row db.EmployeeProfile) *domain.E
 		HouseNumberAddition:   row.HouseNumberAddition,
 		PostalCode:            row.PostalCode,
 		City:                  row.City,
-		Position:              row.Position,
+		Position:              positionEnumPtrToStringPtr(row.Position),
 		EmployeeNumber:        row.EmployeeNumber,
 		EmploymentNumber:      row.EmploymentNumber,
 		PrivateEmailAddress:   row.PrivateEmailAddress,
@@ -855,14 +873,28 @@ func toDomainExperience(row db.EmployeeExperience) domain.Experience {
 	}
 }
 
-func toDomainCertification(row db.Certification) domain.Certification {
-	return domain.Certification{
-		ID:         row.ID,
-		EmployeeID: row.EmployeeID,
-		Name:       row.Name,
-		IssuedBy:   row.IssuedBy,
-		DateIssued: conv.TimeFromPgDate(row.DateIssued),
-		CreatedAt:  conv.TimeFromPgTimestamptz(row.CreatedAt),
+func toDomainQualification(row db.EmployeeQualification) domain.Qualification {
+	return domain.Qualification{
+		ID:                    row.ID,
+		EmployeeID:            row.EmployeeID,
+		QualificationTypeCode: row.QualificationTypeCode,
+		AchievedOn:            conv.TimeFromPgDate(row.AchievedOn),
+		ExpirationDate:        conv.TimePtrFromPgDate(row.ExpirationDate),
+		CertificateNumber:     row.CertificateNumber,
+		CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:             conv.TimeFromPgTimestamptz(row.UpdatedAt),
+	}
+}
+
+func toDomainQualificationType(row db.QualificationType) domain.QualificationType {
+	return domain.QualificationType{
+		Code:               row.Code,
+		OriginalDutchText:  row.OriginalDutchText,
+		EnglishName:        row.EnglishName,
+		AppContext:         row.AppContext,
+		IsActive:           row.IsActive,
+		CreatedAt:          conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:          conv.TimeFromPgTimestamptz(row.UpdatedAt),
 	}
 }
 
@@ -931,6 +963,37 @@ func irregularHoursProfilePtrFromStringPtr(value *string) *db.IrregularHoursProf
 	}
 
 	return enumPtr(irregularHoursProfileFromString(*value))
+}
+
+func positionEnumFromString(value string) db.EmployeePositionEnum {
+	switch db.EmployeePositionEnum(value) {
+	case db.EmployeePositionEnumYouthworkerD,
+		db.EmployeePositionEnumCareCoordinator,
+		db.EmployeePositionEnumBehavioralScientist,
+		db.EmployeePositionEnumQualityemployee,
+		db.EmployeePositionEnumPedagogicalAssistant,
+		db.EmployeePositionEnumTeamLeader,
+		db.EmployeePositionEnumManager,
+		db.EmployeePositionEnumAdministrativeAssistant:
+		return db.EmployeePositionEnum(value)
+	default:
+		return ""
+	}
+}
+
+func positionEnumPtrFromStringPtr(value *string) *db.EmployeePositionEnum {
+	if value == nil {
+		return nil
+	}
+	return enumPtr(positionEnumFromString(*value))
+}
+
+func positionEnumPtrToStringPtr(value *db.EmployeePositionEnum) *string {
+	if value == nil {
+		return nil
+	}
+	s := string(*value)
+	return &s
 }
 
 func enumPtr[T any](value T) *T {

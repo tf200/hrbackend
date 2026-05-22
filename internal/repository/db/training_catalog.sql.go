@@ -195,7 +195,7 @@ SELECT
     ep.employment_number,
     ep.first_name,
     ep.last_name,
-    ep.department_id,
+    ec.department_id,
     d.name AS department_name,
     eta.training_id,
     tci.title AS training_title,
@@ -215,8 +215,15 @@ SELECT
     COUNT(*) OVER() AS total_count
 FROM employee_training_assignments eta
 JOIN employee_profile ep ON ep.id = eta.employee_id
+LEFT JOIN LATERAL (
+    SELECT department_id
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 JOIN training_catalog_items tci ON tci.id = eta.training_id
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN employee_profile assigner ON assigner.id = eta.assigned_by_employee_id
 WHERE (
     $1::text IS NULL
@@ -229,7 +236,7 @@ WHERE (
 )
 AND (
     $2::uuid IS NULL
-    OR ep.department_id = $2::uuid
+    OR ec.department_id = $2::uuid
 )
 AND (
     $3::uuid IS NULL
@@ -259,7 +266,7 @@ type ListTrainingAssignmentsPaginatedRow struct {
 	EmploymentNumber     *string            `json:"employment_number"`
 	FirstName            string             `json:"first_name"`
 	LastName             string             `json:"last_name"`
-	DepartmentID         *uuid.UUID         `json:"department_id"`
+	DepartmentID         uuid.UUID          `json:"department_id"`
 	DepartmentName       *string            `json:"department_name"`
 	TrainingID           uuid.UUID          `json:"training_id"`
 	TrainingTitle        string             `json:"training_title"`

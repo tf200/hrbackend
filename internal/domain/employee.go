@@ -12,7 +12,7 @@ var (
 	ErrEmployeeNotFound       = errors.New("employee not found")
 	ErrEducationNotFound      = errors.New("education not found")
 	ErrExperienceNotFound     = errors.New("experience not found")
-	ErrCertificationNotFound  = errors.New("certification not found")
+	ErrQualificationNotFound  = errors.New("qualification not found")
 	ErrInvalidDateOfBirth     = errors.New("invalid date of birth format")
 	ErrInvalidContractDate    = errors.New("invalid contract date format")
 	ErrInvalidAttachmentID    = errors.New("invalid attachment ID")
@@ -172,14 +172,27 @@ type Experience struct {
 	CreatedAt   time.Time
 }
 
-// Certification domain struct.
-type Certification struct {
-	ID         uuid.UUID
-	EmployeeID uuid.UUID
-	Name       string
-	IssuedBy   string
-	DateIssued time.Time
-	CreatedAt  time.Time
+// QualificationType domain struct.
+type QualificationType struct {
+	Code               string
+	OriginalDutchText  string
+	EnglishName        string
+	AppContext         string
+	IsActive           bool
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+// Qualification domain struct.
+type Qualification struct {
+	ID                    uuid.UUID
+	EmployeeID            uuid.UUID
+	QualificationTypeCode string
+	AchievedOn            time.Time
+	ExpirationDate        *time.Time
+	CertificateNumber     *string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 // ContractDetails domain struct.
@@ -354,16 +367,18 @@ type UpdateExperienceParams struct {
 	Description *string
 }
 
-type CreateCertificationParams struct {
-	Name       string
-	IssuedBy   string
-	DateIssued time.Time
+type CreateQualificationParams struct {
+	QualificationTypeCode string
+	AchievedOn            time.Time
+	ExpirationDate        *time.Time
+	CertificateNumber     *string
 }
 
-type UpdateCertificationParams struct {
-	Name       *string
-	IssuedBy   *string
-	DateIssued *time.Time
+type UpdateQualificationParams struct {
+	QualificationTypeCode *string
+	AchievedOn            *time.Time
+	ExpirationDate        *time.Time
+	CertificateNumber     *string
 }
 
 // --- Interfaces ---
@@ -433,19 +448,20 @@ type EmployeeRepository interface {
 	) (*Experience, error)
 	DeleteExperience(ctx context.Context, id uuid.UUID) (*Experience, error)
 
-	// Certification
-	ListCertification(ctx context.Context, employeeID uuid.UUID) ([]Certification, error)
-	AddCertification(
+	// Qualification
+	ListQualifications(ctx context.Context, employeeID uuid.UUID) ([]Qualification, error)
+	AddQualification(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		params CreateCertificationParams,
-	) (*Certification, error)
-	UpdateCertification(
+		params CreateQualificationParams,
+	) (*Qualification, error)
+	UpdateQualification(
 		ctx context.Context,
 		id uuid.UUID,
-		params UpdateCertificationParams,
-	) (*Certification, error)
-	DeleteCertification(ctx context.Context, id uuid.UUID) (*Certification, error)
+		params UpdateQualificationParams,
+	) (*Qualification, error)
+	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
+	ListQualificationTypes(ctx context.Context) ([]QualificationType, error)
 
 	// Password
 	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
@@ -515,18 +531,19 @@ type EmployeeService interface {
 	) (*Experience, error)
 	DeleteExperience(ctx context.Context, id uuid.UUID) (*Experience, error)
 
-	ListCertification(ctx context.Context, employeeID uuid.UUID) ([]Certification, error)
-	AddCertification(
+	ListQualifications(ctx context.Context, employeeID uuid.UUID) ([]Qualification, error)
+	AddQualification(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		params CreateCertificationParams,
-	) (*Certification, error)
-	UpdateCertification(
+		params CreateQualificationParams,
+	) (*Qualification, error)
+	UpdateQualification(
 		ctx context.Context,
 		id uuid.UUID,
-		params UpdateCertificationParams,
-	) (*Certification, error)
-	DeleteCertification(ctx context.Context, id uuid.UUID) (*Certification, error)
+		params UpdateQualificationParams,
+	) (*Qualification, error)
+	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
+	ListQualificationTypes(ctx context.Context) ([]QualificationType, error)
 
 	// Password
 	ResetPassword(

@@ -178,7 +178,7 @@ func ensureEmployeeProfile(
 			gender
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, $9, NULLIF($10, ''),
+			$1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, $9, NULLIF($10, '')::employee_position_enum,
 			NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), NULLIF($15, ''), $16::gender_enum
 		)
 	`, userID, profile.FirstName, profile.LastName, profile.BSN, profile.Street, profile.HouseNumber,

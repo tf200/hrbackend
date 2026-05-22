@@ -15,8 +15,8 @@ DROP TRIGGER IF EXISTS trigger_calendar_event_reset_work_approval ON calendar_ev
 DROP FUNCTION IF EXISTS calendar_event_reset_work_approval_on_time_change();
 
 -- Drop trigger and function for leave balance initialization
-DROP TRIGGER IF EXISTS trigger_initialize_leave_balance_on_employee_insert ON employee_profile;
-DROP FUNCTION IF EXISTS initialize_leave_balance_on_employee_insert();
+DROP TRIGGER IF EXISTS trigger_initialize_leave_balance_on_contract_insert ON employee_contracts;
+DROP FUNCTION IF EXISTS initialize_leave_balance_on_contract_insert();
 DROP FUNCTION IF EXISTS calculate_legal_leave_hours(UUID, INT);
 
 -- Drop trigger and function for default shifts on location
@@ -83,10 +83,17 @@ DROP TABLE IF EXISTS handbook_steps;
 DROP TABLE IF EXISTS handbook_templates;
 
 -- Employee tables
+DROP TABLE IF EXISTS employee_authorizations;
+DROP TABLE IF EXISTS authorizations;
+DROP TABLE IF EXISTS employee_qualifications;
+DROP TABLE IF EXISTS qualifications;
 DROP TABLE IF EXISTS employee_experience;
-DROP TABLE IF EXISTS certification;
 DROP TABLE IF EXISTS employee_education;
-DROP TABLE IF EXISTS employee_contract_changes;
+DROP TABLE IF EXISTS employee_salary_assignments;
+DROP TABLE IF EXISTS cao_salary_scale_steps;
+DROP TABLE IF EXISTS cao_salary_tables;
+DROP TABLE IF EXISTS employee_contracts;
+DROP TABLE IF EXISTS organizational_roles;
 DROP TABLE IF EXISTS employee_profile CASCADE;
 
 -- Training tables
@@ -144,6 +151,11 @@ DROP TYPE IF EXISTS handbook_step_status_enum;
 DROP TYPE IF EXISTS handbook_assignment_status_enum;
 DROP TYPE IF EXISTS handbook_step_kind_enum;
 DROP TYPE IF EXISTS handbook_template_status_enum;
+DROP TYPE IF EXISTS wage_tax_table_enum;
+DROP TYPE IF EXISTS marital_status_enum;
+DROP TYPE IF EXISTS name_in_use_enum;
+DROP TYPE IF EXISTS employee_job_title_enum;
+DROP TYPE IF EXISTS contract_hours_type_enum;
 DROP TYPE IF EXISTS employee_contract_type_enum;
 DROP TYPE IF EXISTS gender_enum;
 DROP TYPE IF EXISTS permission_override_effect;

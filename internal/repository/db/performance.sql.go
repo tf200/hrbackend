@@ -217,7 +217,7 @@ SELECT
     ep.id,
     ep.first_name,
     ep.last_name,
-    ep.contract_start_date,
+    ec.start_date AS contract_start_date,
     (
         SELECT MAX(pa.assessment_date)::date
         FROM performance_assessments pa
@@ -225,6 +225,13 @@ SELECT
           AND pa.status = 'completed'
     ) AS last_assessment_date
 FROM employee_profile ep
+LEFT JOIN LATERAL (
+    SELECT start_date
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 WHERE ep.id = $1
   AND ep.is_archived = FALSE
   AND COALESCE(ep.out_of_service, FALSE) = FALSE
@@ -628,7 +635,7 @@ WITH employee_review_status AS (
         ep.id,
         ep.first_name,
         ep.last_name,
-        ep.contract_start_date,
+        ec.start_date AS contract_start_date,
         (
             SELECT MAX(pa.assessment_date)::date
             FROM performance_assessments pa
@@ -636,6 +643,13 @@ WITH employee_review_status AS (
               AND pa.status = 'completed'
         ) AS last_assessment_date
     FROM employee_profile ep
+    LEFT JOIN LATERAL (
+        SELECT start_date
+        FROM employee_contracts c
+        WHERE c.employee_id = ep.id
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) ec ON true
     WHERE ep.is_archived = FALSE
       AND COALESCE(ep.out_of_service, FALSE) = FALSE
 ),

@@ -22,10 +22,12 @@ SELECT calculate_legal_leave_hours(sqlc.arg('employee_id'), sqlc.arg('year'))::i
 
 -- name: GetEmployeeContractForLeave :one
 SELECT
-    contract_hours,
+    hours_per_week AS contract_hours,
     contract_type
-FROM employee_profile
-WHERE id = sqlc.arg('employee_id');
+FROM employee_contracts
+WHERE employee_id = sqlc.arg('employee_id')
+ORDER BY start_date DESC, created_at DESC
+LIMIT 1;
 
 -- name: LockLeaveBalanceByEmployeeYear :one
 SELECT *
@@ -64,13 +66,20 @@ SELECT
     lb.updated_at,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
-    ep.contract_hours,
-    ep.contract_type,
-    ep.contract_start_date,
-    ep.contract_end_date,
+    ec.hours_per_week AS contract_hours,
+    ec.contract_type,
+    ec.start_date AS contract_start_date,
+    ec.contract_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
+LEFT JOIN LATERAL (
+    SELECT *
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 WHERE (
     sqlc.narg('employee_search')::text IS NULL
     OR sqlc.narg('employee_search')::text = ''
@@ -99,13 +108,20 @@ SELECT
     lb.updated_at,
     ep.first_name AS employee_first_name,
     ep.last_name AS employee_last_name,
-    ep.contract_hours,
-    ep.contract_type,
-    ep.contract_start_date,
-    ep.contract_end_date,
+    ec.hours_per_week AS contract_hours,
+    ec.contract_type,
+    ec.start_date AS contract_start_date,
+    ec.contract_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
+LEFT JOIN LATERAL (
+    SELECT *
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 WHERE lb.employee_id = sqlc.arg('employee_id')
   AND (
     sqlc.narg('year')::int IS NULL

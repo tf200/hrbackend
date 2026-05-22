@@ -186,16 +186,19 @@ func (f *fakeEmployeeRepo) UpdateExperience(_ context.Context, _ uuid.UUID, _ do
 func (f *fakeEmployeeRepo) DeleteExperience(_ context.Context, _ uuid.UUID) (*domain.Experience, error) {
 	return nil, f.err
 }
-func (f *fakeEmployeeRepo) ListCertification(_ context.Context, _ uuid.UUID) ([]domain.Certification, error) {
+func (f *fakeEmployeeRepo) ListQualifications(_ context.Context, _ uuid.UUID) ([]domain.Qualification, error) {
 	return nil, f.err
 }
-func (f *fakeEmployeeRepo) AddCertification(_ context.Context, _ uuid.UUID, _ domain.CreateCertificationParams) (*domain.Certification, error) {
+func (f *fakeEmployeeRepo) AddQualification(_ context.Context, _ uuid.UUID, _ domain.CreateQualificationParams) (*domain.Qualification, error) {
 	return nil, f.err
 }
-func (f *fakeEmployeeRepo) UpdateCertification(_ context.Context, _ uuid.UUID, _ domain.UpdateCertificationParams) (*domain.Certification, error) {
+func (f *fakeEmployeeRepo) UpdateQualification(_ context.Context, _ uuid.UUID, _ domain.UpdateQualificationParams) (*domain.Qualification, error) {
 	return nil, f.err
 }
-func (f *fakeEmployeeRepo) DeleteCertification(_ context.Context, _ uuid.UUID) (*domain.Certification, error) {
+func (f *fakeEmployeeRepo) DeleteQualification(_ context.Context, _ uuid.UUID) (*domain.Qualification, error) {
+	return nil, f.err
+}
+func (f *fakeEmployeeRepo) ListQualificationTypes(_ context.Context) ([]domain.QualificationType, error) {
 	return nil, f.err
 }
 func (f *fakeEmployeeRepo) UpdatePassword(_ context.Context, _ uuid.UUID, _ string) error {

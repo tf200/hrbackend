@@ -675,70 +675,76 @@ func (h *EmployeeHandler) DeleteExperience(ctx *gin.Context) {
 	)
 }
 
-func (h *EmployeeHandler) AddCertification(ctx *gin.Context) {
+func (h *EmployeeHandler) AddQualification(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
 		return
 	}
 
-	var req createCertificationRequest
+	var req createQualificationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	if _, err := parseDate(req.DateIssued); err != nil {
+	if _, err := parseDate(req.AchievedOn); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
+	if req.ExpirationDate != nil {
+		if _, err := parseDate(*req.ExpirationDate); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+	}
 
-	certification, err := h.service.AddCertification(
+	qualification, err := h.service.AddQualification(
 		ctx.Request.Context(),
 		employeeID,
-		toCreateCertificationParams(req),
+		toCreateQualificationParams(req),
 	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add certification", ""))
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add qualification", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusCreated,
-		httpapi.OK(toCertificationResponse(certification), "Certification added successfully"),
+		httpapi.OK(toQualificationResponse(qualification), "Qualification added successfully"),
 	)
 }
 
-func (h *EmployeeHandler) ListCertification(ctx *gin.Context) {
+func (h *EmployeeHandler) ListQualification(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
 		return
 	}
 
-	certifications, err := h.service.ListCertification(ctx.Request.Context(), employeeID)
+	qualifications, err := h.service.ListQualifications(ctx.Request.Context(), employeeID)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list certification", ""))
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list qualifications", ""))
 		return
 	}
 
-	response := make([]certificationResponse, len(certifications))
-	for i := range certifications {
-		response[i] = toCertificationResponse(&certifications[i])
+	response := make([]qualificationResponse, len(qualifications))
+	for i := range qualifications {
+		response[i] = toQualificationResponse(&qualifications[i])
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Certification retrieved successfully"))
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Qualifications retrieved successfully"))
 }
 
-func (h *EmployeeHandler) UpdateCertification(ctx *gin.Context) {
+func (h *EmployeeHandler) UpdateQualification(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
@@ -746,44 +752,52 @@ func (h *EmployeeHandler) UpdateCertification(ctx *gin.Context) {
 	}
 	_ = employeeID
 
-	certificationID, err := uuid.Parse(ctx.Param("certification_id"))
+	qualificationID, err := uuid.Parse(ctx.Param("qualification_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid certification ID", ""))
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid qualification ID", ""))
 		return
 	}
 
-	var req updateCertificationRequest
+	var req updateQualificationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	if _, err := parseDatePtr(req.DateIssued); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-		return
+	if req.AchievedOn != nil {
+		if _, err := parseDate(*req.AchievedOn); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+	}
+	if req.ExpirationDate != nil {
+		if _, err := parseDate(*req.ExpirationDate); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
 	}
 
-	certification, err := h.service.UpdateCertification(
+	qualification, err := h.service.UpdateQualification(
 		ctx.Request.Context(),
-		certificationID,
-		toUpdateCertificationParams(req),
+		qualificationID,
+		toUpdateQualificationParams(req),
 	)
 	if err != nil {
-		if errors.Is(err, domain.ErrCertificationNotFound) {
+		if errors.Is(err, domain.ErrQualificationNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update certification", ""))
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update qualification", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toCertificationResponse(certification), "Certification updated successfully"),
+		httpapi.OK(toQualificationResponse(qualification), "Qualification updated successfully"),
 	)
 }
 
-func (h *EmployeeHandler) DeleteCertification(ctx *gin.Context) {
+func (h *EmployeeHandler) DeleteQualification(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
@@ -791,26 +805,41 @@ func (h *EmployeeHandler) DeleteCertification(ctx *gin.Context) {
 	}
 	_ = employeeID
 
-	certificationID, err := uuid.Parse(ctx.Param("certification_id"))
+	qualificationID, err := uuid.Parse(ctx.Param("qualification_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid certification ID", ""))
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid qualification ID", ""))
 		return
 	}
 
-	certification, err := h.service.DeleteCertification(ctx.Request.Context(), certificationID)
+	qualification, err := h.service.DeleteQualification(ctx.Request.Context(), qualificationID)
 	if err != nil {
-		if errors.Is(err, domain.ErrCertificationNotFound) {
+		if errors.Is(err, domain.ErrQualificationNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to delete certification", ""))
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to delete qualification", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toCertificationResponse(certification), "Certification deleted successfully"),
+		httpapi.OK(toQualificationResponse(qualification), "Qualification deleted successfully"),
 	)
+}
+
+func (h *EmployeeHandler) ListQualificationTypes(ctx *gin.Context) {
+	types, err := h.service.ListQualificationTypes(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list qualification types", ""))
+		return
+	}
+
+	response := make([]qualificationTypeResponse, len(types))
+	for i := range types {
+		response[i] = toQualificationTypeResponse(&types[i])
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Qualification types retrieved successfully"))
 }
 
 func (h *EmployeeHandler) ResetPassword(ctx *gin.Context) {

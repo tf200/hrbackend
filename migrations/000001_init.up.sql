@@ -490,8 +490,24 @@ CREATE INDEX temporary_file_uploaded_at_idx ON temporary_file(uploaded_at);
 -- Shared Gender ENUM
 CREATE TYPE gender_enum AS ENUM ('male', 'female', 'other', 'unknown');
 -- Employee Contract Type ENUM
-CREATE TYPE employee_contract_type_enum AS ENUM ('loondienst', 'ZZP', 'none');
+CREATE TYPE employee_contract_type_enum AS ENUM ('permanent', 'temporary', 'on_call');
+CREATE TYPE contract_hours_type_enum AS ENUM ('fixed', 'zero_hours', 'min_max');
 CREATE TYPE irregular_hours_profile_enum AS ENUM ('none', 'roster', 'non_roster');
+CREATE TYPE employee_job_title_enum AS ENUM ('youth_worker_d', 'care_coordinator', 'behavioral_scientist', 'quality_officer', 'pedagogical_worker', 'team_lead', 'manager', 'administrative_employee');
+CREATE TYPE name_in_use_enum AS ENUM ('first_name', 'last_name');
+CREATE TYPE marital_status_enum AS ENUM ('single', 'married', 'registered_partnership', 'divorced', 'widow');
+CREATE TYPE wage_tax_table_enum AS ENUM ('white_table', 'green_table');
+
+CREATE TABLE organizational_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_organizational_roles_is_active ON organizational_roles(is_active);
 
 -- Departments (used for employee assignment and handbook templates)
 CREATE TABLE departments (
@@ -512,13 +528,14 @@ CREATE TABLE employee_profile (
     user_id UUID NOT NULL UNIQUE REFERENCES custom_user(id) ON DELETE CASCADE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
+    name_in_use name_in_use_enum NOT NULL DEFAULT 'first_name',
+    marital_status marital_status_enum NULL,
     bsn TEXT NOT NULL,
     street TEXT NOT NULL,
     house_number TEXT NOT NULL,
     house_number_addition TEXT NULL,
     postal_code TEXT NOT NULL,
     city TEXT NOT NULL,
-    position VARCHAR(100) NULL,
     employee_number VARCHAR(50) NULL,
     employment_number VARCHAR(50) NULL,
     private_email_address VARCHAR(254) NULL,
@@ -529,48 +546,116 @@ CREATE TABLE employee_profile (
     home_telephone_number VARCHAR(100) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     gender gender_enum NOT NULL,
-    location_id UUID NULL REFERENCES location(id) ON DELETE SET NULL,
-    department_id UUID NULL REFERENCES departments(id) ON DELETE SET NULL,
     manager_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
-    has_borrowed BOOLEAN NOT NULL DEFAULT FALSE,
     out_of_service BOOLEAN NULL DEFAULT FALSE,
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
-    contract_hours FLOAT NULL DEFAULT 0.0,
-    contract_end_date DATE NULL,
-    contract_start_date DATE NULL,
-    contract_type employee_contract_type_enum NOT NULL DEFAULT 'none',
-    contract_rate DECIMAL(10,2) NULL DEFAULT 0.00,
-    irregular_hours_profile irregular_hours_profile_enum NOT NULL DEFAULT 'none',
     CONSTRAINT employee_profile_manager_not_self
         CHECK (manager_employee_id IS NULL OR manager_employee_id <> id)
 );
 
 CREATE INDEX employee_profile_user_id_idx ON employee_profile(user_id);
-CREATE INDEX employee_profile_location_id_idx ON employee_profile(location_id);
-CREATE INDEX idx_employee_profile_department_id ON employee_profile(department_id);
 CREATE INDEX idx_employee_profile_manager_employee_id ON employee_profile(manager_employee_id);
 CREATE INDEX employee_profile_id_desc_idx ON employee_profile(id DESC);
 CREATE INDEX idx_employee_profile_is_archived ON employee_profile(is_archived);
 CREATE INDEX idx_employee_profile_out_of_service ON employee_profile(out_of_service);
 
-CREATE TABLE employee_contract_changes (
+CREATE TABLE employee_contracts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    effective_from DATE NOT NULL,
-    contract_hours FLOAT NOT NULL DEFAULT 0.0,
-    contract_type employee_contract_type_enum NOT NULL DEFAULT 'none',
-    contract_rate DECIMAL(10,2) NULL DEFAULT 0.00,
-    irregular_hours_profile irregular_hours_profile_enum NOT NULL DEFAULT 'none',
+    job_title employee_job_title_enum NOT NULL,
+    department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
+    location_id UUID NOT NULL REFERENCES location(id) ON DELETE RESTRICT,
+    organizational_role_id UUID NULL REFERENCES organizational_roles(id) ON DELETE SET NULL,
+    contract_type employee_contract_type_enum NOT NULL,
+    contract_hours_type contract_hours_type_enum NOT NULL,
+    start_date DATE NOT NULL,
     contract_end_date DATE NULL,
-    created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    hours_per_week NUMERIC(4,1) NULL,
+    min_hours_per_week NUMERIC(4,1) NULL,
+    max_hours_per_week NUMERIC(4,1) NULL,
+    roster_free_day SMALLINT NULL,
+    wage_tax_table wage_tax_table_enum NULL,
+    created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT employee_contract_changes_unique_employee_effective_from UNIQUE (employee_id, effective_from),
-    CONSTRAINT employee_contract_changes_contract_hours_non_negative CHECK (contract_hours >= 0)
+    CONSTRAINT employee_contracts_date_order CHECK (contract_end_date IS NULL OR contract_end_date >= start_date),
+    CONSTRAINT employee_contracts_roster_free_day_valid CHECK (roster_free_day IS NULL OR roster_free_day BETWEEN 0 AND 6),
+    CONSTRAINT employee_contracts_hours_per_week_valid CHECK (hours_per_week IS NULL OR (hours_per_week >= 0 AND hours_per_week <= 40)),
+    CONSTRAINT employee_contracts_min_hours_valid CHECK (min_hours_per_week IS NULL OR (min_hours_per_week >= 0 AND min_hours_per_week <= 40)),
+    CONSTRAINT employee_contracts_max_hours_valid CHECK (max_hours_per_week IS NULL OR (max_hours_per_week >= 0 AND max_hours_per_week <= 40)),
+    CONSTRAINT employee_contracts_hours_per_week_half_step CHECK (hours_per_week IS NULL OR hours_per_week * 2 = floor(hours_per_week * 2)),
+    CONSTRAINT employee_contracts_min_hours_half_step CHECK (min_hours_per_week IS NULL OR min_hours_per_week * 2 = floor(min_hours_per_week * 2)),
+    CONSTRAINT employee_contracts_max_hours_half_step CHECK (max_hours_per_week IS NULL OR max_hours_per_week * 2 = floor(max_hours_per_week * 2)),
+    CONSTRAINT employee_contracts_min_max_order CHECK (min_hours_per_week IS NULL OR max_hours_per_week IS NULL OR min_hours_per_week <= max_hours_per_week),
+    CONSTRAINT employee_contracts_unique_employee_start_date UNIQUE (employee_id, start_date)
 );
 
-CREATE INDEX idx_employee_contract_changes_employee_effective_from_desc
-ON employee_contract_changes(employee_id, effective_from DESC);
+CREATE INDEX idx_employee_contracts_employee_start_date_desc
+ON employee_contracts(employee_id, start_date DESC);
+CREATE INDEX idx_employee_contracts_department_id ON employee_contracts(department_id);
+CREATE INDEX idx_employee_contracts_location_id ON employee_contracts(location_id);
+CREATE INDEX idx_employee_contracts_organizational_role_id ON employee_contracts(organizational_role_id);
+
+CREATE TABLE cao_salary_tables (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cao_code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    effective_from DATE NOT NULL,
+    effective_to DATE NULL,
+    full_time_hours_per_week NUMERIC(4,1) NOT NULL,
+    full_time_hours_per_year NUMERIC(7,2) NOT NULL,
+    source_url TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cao_salary_tables_cao_code_not_blank CHECK (btrim(cao_code) <> ''),
+    CONSTRAINT cao_salary_tables_name_not_blank CHECK (btrim(name) <> ''),
+    CONSTRAINT cao_salary_tables_effective_dates_valid CHECK (effective_to IS NULL OR effective_to > effective_from),
+    CONSTRAINT cao_salary_tables_hours_valid CHECK (full_time_hours_per_week > 0 AND full_time_hours_per_year > 0),
+    CONSTRAINT cao_salary_tables_unique_effective_from UNIQUE (cao_code, effective_from)
+);
+
+CREATE INDEX idx_cao_salary_tables_cao_effective
+ON cao_salary_tables(cao_code, effective_from DESC);
+
+CREATE TABLE cao_salary_scale_steps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    salary_table_id UUID NOT NULL REFERENCES cao_salary_tables(id) ON DELETE CASCADE,
+    scale INT NOT NULL,
+    step TEXT NOT NULL,
+    ip_number INT NULL,
+    monthly_salary NUMERIC(12,2) NOT NULL,
+    hourly_rate NUMERIC(10,4) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cao_salary_scale_steps_scale_valid CHECK (scale > 0),
+    CONSTRAINT cao_salary_scale_steps_step_not_blank CHECK (btrim(step) <> ''),
+    CONSTRAINT cao_salary_scale_steps_monthly_salary_positive CHECK (monthly_salary > 0),
+    CONSTRAINT cao_salary_scale_steps_hourly_rate_positive CHECK (hourly_rate > 0),
+    CONSTRAINT cao_salary_scale_steps_unique_row UNIQUE (salary_table_id, scale, step)
+);
+
+CREATE INDEX idx_cao_salary_scale_steps_lookup
+ON cao_salary_scale_steps(salary_table_id, scale, step);
+
+CREATE TABLE employee_salary_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    contract_id UUID NULL REFERENCES employee_contracts(id) ON DELETE SET NULL,
+    salary_scale_step_id UUID NOT NULL REFERENCES cao_salary_scale_steps(id) ON DELETE RESTRICT,
+    effective_from DATE NOT NULL,
+    effective_to DATE NULL,
+    created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT employee_salary_assignments_dates_valid CHECK (effective_to IS NULL OR effective_to > effective_from)
+);
+
+CREATE INDEX idx_employee_salary_assignments_employee_effective
+ON employee_salary_assignments(employee_id, effective_from DESC);
+CREATE INDEX idx_employee_salary_assignments_contract_id
+ON employee_salary_assignments(contract_id);
+CREATE INDEX idx_employee_salary_assignments_salary_scale_step_id
+ON employee_salary_assignments(salary_scale_step_id);
 
 CREATE TABLE national_holidays (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -606,17 +691,85 @@ CREATE TABLE employee_education (
 
 CREATE INDEX education_employee_id_idx ON employee_education(employee_id);
 
--- Employee certifications
-CREATE TABLE certification (
+-- Qualifications (admin-managed catalog)
+CREATE TABLE qualifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    issued_by VARCHAR(255) NOT NULL,
-    date_issued DATE NOT NULL,
-    created_at TIMESTAMPTZ NULL DEFAULT CURRENT_TIMESTAMP
+    code TEXT NOT NULL UNIQUE,
+    original_dutch_text TEXT NULL,
+    english_name TEXT NOT NULL,
+    app_context TEXT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT qualifications_code_not_blank CHECK (btrim(code) <> ''),
+    CONSTRAINT qualifications_english_name_not_blank CHECK (btrim(english_name) <> '')
 );
 
-CREATE INDEX certification_employee_id_idx ON certification(employee_id);
+CREATE INDEX idx_qualifications_is_active ON qualifications(is_active);
+
+INSERT INTO qualifications (code, original_dutch_text, english_name, app_context) VALUES
+    ('company_emergency_response_certificate', 'BHV certificaat', 'Company Emergency Response certificate', 'General safety cert (usually gives a small monthly bonus, not a scale bump).'),
+    ('first_aid_diploma', 'EHBO diploma', 'First Aid diploma', 'Standard first aid qualification.'),
+    ('cpr_resuscitation_certificate', 'Reanimatie certificaat', 'CPR / Resuscitation certificate', 'Standard CPR qualification.'),
+    ('hbo_nursing', 'HBO Verpleegkunde', 'Higher Professional Education in Nursing', 'Bachelor''s degree in Nursing. Typically maps to FWG 50 / 55.'),
+    ('mbo_nursing_level_4', 'MBO Verpleegkunde niveau 4', 'Vocational Education in Nursing level 4', 'Senior practical nurse qualification. Typically maps to FWG 45.'),
+    ('mbo_individual_healthcare_caregiver_level_3', 'MBO Verzorgende IG niveau 3', 'Individual Healthcare Caregiver level 3', 'Certified nursing assistant/carer. Typically maps to FWG 35 / 40.'),
+    ('big_registration_nurse', 'BIG registratie Verpleegkundige', 'BIG registration Nurse', 'The official legal registry for medical professionals in NL. Absolute prerequisite to practice as a nurse.');
+
+-- Employee qualification assignments (junction)
+CREATE TABLE employee_qualifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    qualification_id UUID NOT NULL REFERENCES qualifications(id) ON DELETE RESTRICT,
+    achieved_on DATE NOT NULL,
+    expiration_date DATE NULL,
+    certificate_number TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT employee_qualifications_unique_assignment UNIQUE (employee_id, qualification_id, certificate_number)
+);
+
+CREATE INDEX idx_employee_qualifications_employee_id ON employee_qualifications(employee_id);
+CREATE INDEX idx_employee_qualifications_qualification_id ON employee_qualifications(qualification_id);
+
+-- Authorizations (admin-managed catalog)
+CREATE TABLE authorizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    description TEXT NULL,
+    category TEXT NOT NULL,
+    requires_expiry BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT authorizations_name_not_blank CHECK (btrim(name) <> ''),
+    CONSTRAINT authorizations_category_not_blank CHECK (btrim(category) <> '')
+);
+
+CREATE INDEX idx_authorizations_category ON authorizations(category);
+CREATE INDEX idx_authorizations_is_active ON authorizations(is_active);
+
+-- Employee authorization assignments (junction)
+CREATE TABLE employee_authorizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    authorization_id UUID NOT NULL REFERENCES authorizations(id) ON DELETE RESTRICT,
+    granted_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    expiry_date DATE NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    notes TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT employee_authorizations_expiry_after_granted
+        CHECK (expiry_date IS NULL OR expiry_date >= granted_date),
+    CONSTRAINT employee_authorizations_unique_assignment
+        UNIQUE (employee_id, authorization_id, granted_date)
+);
+
+CREATE INDEX idx_employee_authorizations_employee_id ON employee_authorizations(employee_id);
+CREATE INDEX idx_employee_authorizations_authorization_id ON employee_authorizations(authorization_id);
+CREATE INDEX idx_employee_authorizations_is_active ON employee_authorizations(is_active);
+CREATE INDEX idx_employee_authorizations_expiry_date ON employee_authorizations(expiry_date);
 
 -- Employee work experience
 CREATE TABLE employee_experience (
@@ -1084,77 +1237,54 @@ CREATE OR REPLACE FUNCTION calculate_legal_leave_hours(p_employee_id UUID, p_yea
 RETURNS INT AS $$
 DECLARE
     computed_legal_hours INT := 0;
-    has_history BOOLEAN := FALSE;
-    profile_contract_type employee_contract_type_enum;
-    profile_contract_hours FLOAT;
 BEGIN
-    SELECT EXISTS(
-        SELECT 1
-        FROM employee_contract_changes ecc
-        WHERE ecc.employee_id = p_employee_id
-    ) INTO has_history;
-
-    IF has_history THEN
-        SELECT
-            GREATEST(
-                0,
-                ROUND(COALESCE(SUM(
-                    CASE
-                        WHEN segments.contract_type <> 'loondienst' OR segments.contract_hours <= 0 THEN 0
-                        ELSE (
-                            (segments.contract_hours * 4.0) * (
-                                (
-                                    LEAST(segments.segment_end, make_date(p_year, 12, 31)) -
-                                    GREATEST(segments.effective_from, make_date(p_year, 1, 1)) + 1
-                                )::numeric /
-                                (make_date(p_year + 1, 1, 1) - make_date(p_year, 1, 1))::numeric
-                            )
-                        )
-                    END
-                ), 0)::numeric)::INT
-            )
-        INTO computed_legal_hours
-        FROM (
-            SELECT
-                ecc.effective_from,
-                COALESCE(
-                    LEAST(
-                        COALESCE(ecc.contract_end_date, make_date(p_year, 12, 31)),
-                        (
-                            LEAD(ecc.effective_from) OVER (
-                                PARTITION BY ecc.employee_id
-                                ORDER BY ecc.effective_from
-                            ) - INTERVAL '1 day'
-                        )::DATE
-                    ),
-                    COALESCE(ecc.contract_end_date, make_date(p_year, 12, 31))
-                ) AS segment_end,
-                ecc.contract_hours,
-                ecc.contract_type
-            FROM employee_contract_changes ecc
-            WHERE ecc.employee_id = p_employee_id
-        ) AS segments
-        WHERE segments.segment_end >= make_date(p_year, 1, 1)
-          AND segments.effective_from <= make_date(p_year, 12, 31);
-
-        RETURN COALESCE(computed_legal_hours, 0);
-    END IF;
-
     SELECT
-        ep.contract_type,
-        COALESCE(ep.contract_hours, 0)
-    INTO
-        profile_contract_type,
-        profile_contract_hours
-    FROM employee_profile ep
-    WHERE ep.id = p_employee_id;
+        GREATEST(
+            0,
+            ROUND(COALESCE(SUM(
+                CASE
+                    WHEN segments.weekly_hours <= 0 THEN 0
+                    ELSE (
+                        (segments.weekly_hours * 4.0) * (
+                            (
+                                LEAST(segments.segment_end, make_date(p_year, 12, 31)) -
+                                GREATEST(segments.start_date, make_date(p_year, 1, 1)) + 1
+                            )::numeric /
+                            (make_date(p_year + 1, 1, 1) - make_date(p_year, 1, 1))::numeric
+                        )
+                    )
+                END
+            ), 0)::numeric)::INT
+        )
+    INTO computed_legal_hours
+    FROM (
+        SELECT
+            ec.start_date,
+            COALESCE(
+                LEAST(
+                    COALESCE(ec.contract_end_date, make_date(p_year, 12, 31)),
+                    (
+                        LEAD(ec.start_date) OVER (
+                            PARTITION BY ec.employee_id
+                            ORDER BY ec.start_date
+                        ) - INTERVAL '1 day'
+                    )::DATE
+                ),
+                COALESCE(ec.contract_end_date, make_date(p_year, 12, 31))
+            ) AS segment_end,
+            CASE
+                WHEN ec.contract_hours_type = 'fixed' THEN COALESCE(ec.hours_per_week, 0)
+                WHEN ec.contract_hours_type = 'min_max' THEN COALESCE(ec.min_hours_per_week, 0)
+                ELSE 0
+            END AS weekly_hours
+        FROM employee_contracts ec
+        WHERE ec.employee_id = p_employee_id
+    ) AS segments
+    WHERE segments.segment_end >= make_date(p_year, 1, 1)
+      AND segments.start_date <= make_date(p_year, 12, 31);
 
-    IF profile_contract_type IS NULL OR profile_contract_type <> 'loondienst' THEN
-        RETURN 0;
-    END IF;
-
-    IF profile_contract_hours > 0 THEN
-        RETURN GREATEST(0, ROUND((profile_contract_hours * 4)::numeric)::INT);
+    IF COALESCE(computed_legal_hours, 0) > 0 THEN
+        RETURN COALESCE(computed_legal_hours, 0);
     END IF;
 
     SELECT
@@ -1196,7 +1326,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION initialize_leave_balance_on_employee_insert()
+CREATE OR REPLACE FUNCTION initialize_leave_balance_on_contract_insert()
 RETURNS TRIGGER AS $$
 DECLARE
     computed_legal_hours INT;
@@ -1204,11 +1334,7 @@ DECLARE
 BEGIN
     current_year := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
 
-    IF NEW.contract_type <> 'loondienst' OR COALESCE(NEW.contract_hours, 0) <= 0 THEN
-        RETURN NEW;
-    END IF;
-
-    computed_legal_hours := calculate_legal_leave_hours(NEW.id, current_year);
+    computed_legal_hours := calculate_legal_leave_hours(NEW.employee_id, current_year);
 
     INSERT INTO leave_balances (
         employee_id,
@@ -1218,7 +1344,7 @@ BEGIN
         legal_used_hours,
         extra_used_hours
     ) VALUES (
-        NEW.id,
+        NEW.employee_id,
         current_year,
         computed_legal_hours,
         0,
@@ -1231,10 +1357,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_initialize_leave_balance_on_employee_insert
-AFTER INSERT ON employee_profile
+CREATE TRIGGER trigger_initialize_leave_balance_on_contract_insert
+AFTER INSERT ON employee_contracts
 FOR EACH ROW
-EXECUTE FUNCTION initialize_leave_balance_on_employee_insert();
+EXECUTE FUNCTION initialize_leave_balance_on_contract_insert();
 
 CREATE TABLE leave_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1390,7 +1516,7 @@ CREATE TABLE pay_period_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pay_period_id UUID NOT NULL REFERENCES pay_periods(id) ON DELETE CASCADE,
     time_entry_id UUID NULL REFERENCES time_entries(id) ON DELETE SET NULL,
-    contract_type employee_contract_type_enum NOT NULL DEFAULT 'none',
+    contract_type employee_contract_type_enum NOT NULL DEFAULT 'permanent',
     work_date DATE NOT NULL,
     line_type TEXT NOT NULL,
     irregular_hours_profile irregular_hours_profile_enum NOT NULL DEFAULT 'none',

@@ -354,54 +354,63 @@ func (s *EmployeeService) DeleteExperience(
 	return exp, nil
 }
 
-func (s *EmployeeService) ListCertification(
+func (s *EmployeeService) ListQualifications(
 	ctx context.Context,
 	employeeID uuid.UUID,
-) ([]domain.Certification, error) {
-	items, err := s.repo.ListCertification(ctx, employeeID)
+) ([]domain.Qualification, error) {
+	items, err := s.repo.ListQualifications(ctx, employeeID)
 	if err != nil {
-		s.logError(ctx, "ListCertification", err, zap.String("employee_id", employeeID.String()))
+		s.logError(ctx, "ListQualifications", err, zap.String("employee_id", employeeID.String()))
 		return nil, err
 	}
 	return items, nil
 }
 
-func (s *EmployeeService) AddCertification(
+func (s *EmployeeService) AddQualification(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	params domain.CreateCertificationParams,
-) (*domain.Certification, error) {
-	cert, err := s.repo.AddCertification(ctx, employeeID, params)
+	params domain.CreateQualificationParams,
+) (*domain.Qualification, error) {
+	qual, err := s.repo.AddQualification(ctx, employeeID, params)
 	if err != nil {
-		s.logError(ctx, "AddCertification", err, zap.String("employee_id", employeeID.String()))
+		s.logError(ctx, "AddQualification", err, zap.String("employee_id", employeeID.String()))
 		return nil, err
 	}
-	return cert, nil
+	return qual, nil
 }
 
-func (s *EmployeeService) UpdateCertification(
+func (s *EmployeeService) UpdateQualification(
 	ctx context.Context,
 	id uuid.UUID,
-	params domain.UpdateCertificationParams,
-) (*domain.Certification, error) {
-	cert, err := s.repo.UpdateCertification(ctx, id, params)
+	params domain.UpdateQualificationParams,
+) (*domain.Qualification, error) {
+	qual, err := s.repo.UpdateQualification(ctx, id, params)
 	if err != nil {
-		s.logError(ctx, "UpdateCertification", err, zap.String("certification_id", id.String()))
+		s.logError(ctx, "UpdateQualification", err, zap.String("qualification_id", id.String()))
 		return nil, err
 	}
-	return cert, nil
+	return qual, nil
 }
 
-func (s *EmployeeService) DeleteCertification(
+func (s *EmployeeService) DeleteQualification(
 	ctx context.Context,
 	id uuid.UUID,
-) (*domain.Certification, error) {
-	cert, err := s.repo.DeleteCertification(ctx, id)
+) (*domain.Qualification, error) {
+	qual, err := s.repo.DeleteQualification(ctx, id)
 	if err != nil {
-		s.logError(ctx, "DeleteCertification", err, zap.String("certification_id", id.String()))
+		s.logError(ctx, "DeleteQualification", err, zap.String("qualification_id", id.String()))
 		return nil, err
 	}
-	return cert, nil
+	return qual, nil
+}
+
+func (s *EmployeeService) ListQualificationTypes(ctx context.Context) ([]domain.QualificationType, error) {
+	items, err := s.repo.ListQualificationTypes(ctx)
+	if err != nil {
+		s.logError(ctx, "ListQualificationTypes", err)
+		return nil, err
+	}
+	return items, nil
 }
 
 func (s *EmployeeService) ResetPassword(

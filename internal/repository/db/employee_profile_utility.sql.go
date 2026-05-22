@@ -195,14 +195,21 @@ func (q *Queries) ListEmployeeNamesByIDs(ctx context.Context, employeeIds []uuid
 
 const listEmployeesWithContractHours = `-- name: ListEmployeesWithContractHours :many
 SELECT
-    id,
-    first_name,
-    last_name,
-    contract_hours
-FROM employee_profile
-WHERE id = ANY($1::uuid[])
-AND contract_hours IS NOT NULL
-AND contract_hours > 0
+    ep.id,
+    ep.first_name,
+    ep.last_name,
+    ec.hours_per_week AS contract_hours
+FROM employee_profile ep
+JOIN LATERAL (
+    SELECT hours_per_week
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
+WHERE ep.id = ANY($1::uuid[])
+AND ec.hours_per_week IS NOT NULL
+AND ec.hours_per_week > 0
 `
 
 type ListEmployeesWithContractHoursRow struct {

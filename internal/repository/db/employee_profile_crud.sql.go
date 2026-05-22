@@ -13,8 +13,14 @@ import (
 )
 
 const countEmployeeProfile = `-- name: CountEmployeeProfile :one
+WITH latest_contract AS (
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts
+    ORDER BY employee_id, start_date DESC, created_at DESC
+)
 SELECT COUNT(*)
 FROM employee_profile ep
+LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 WHERE
     (CASE
         WHEN $1::boolean IS NULL THEN true
@@ -26,8 +32,8 @@ WHERE
         WHEN $2::boolean = false THEN NOT COALESCE(ep.out_of_service, false)
         ELSE true
     END) AND
-    (location_id = $3 OR $3 IS NULL) AND
-    (contract_type = $4 OR $4 IS NULL)
+    ($3::uuid IS NULL OR ec.location_id = $3::uuid) AND
+    ($4::employee_contract_type_enum IS NULL OR ec.contract_type = $4::employee_contract_type_enum)
 `
 
 type CountEmployeeProfileParams struct {
@@ -60,8 +66,6 @@ INSERT INTO employee_profile (
     house_number_addition,
     postal_code,
     city,
-    position,
-    department_id,
     manager_employee_id,
     employee_number,
     employment_number,
@@ -71,50 +75,33 @@ INSERT INTO employee_profile (
     private_phone_number,
     date_of_birth,
     home_telephone_number,
-    gender,
-    location_id,
-    contract_hours,
-    contract_end_date,
-    contract_start_date,
-    contract_type,
-    contract_rate,
-    irregular_hours_profile
+    gender
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-    $21, $22, $23, $24, $25, $26, $27, $28
-) RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate, irregular_hours_profile
+    $11, $12, $13, $14, $15, $16, $17, $18, $19
+) RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, has_borrowed, out_of_service, is_archived
 `
 
 type CreateEmployeeProfileParams struct {
-	UserID                uuid.UUID                 `json:"user_id"`
-	FirstName             string                    `json:"first_name"`
-	LastName              string                    `json:"last_name"`
-	Bsn                   string                    `json:"bsn"`
-	Street                string                    `json:"street"`
-	HouseNumber           string                    `json:"house_number"`
-	HouseNumberAddition   *string                   `json:"house_number_addition"`
-	PostalCode            string                    `json:"postal_code"`
-	City                  string                    `json:"city"`
-	Position              *string                   `json:"position"`
-	DepartmentID          *uuid.UUID                `json:"department_id"`
-	ManagerEmployeeID     *uuid.UUID                `json:"manager_employee_id"`
-	EmployeeNumber        *string                   `json:"employee_number"`
-	EmploymentNumber      *string                   `json:"employment_number"`
-	PrivateEmailAddress   *string                   `json:"private_email_address"`
-	WorkEmailAddress      *string                   `json:"work_email_address"`
-	WorkPhoneNumber       *string                   `json:"work_phone_number"`
-	PrivatePhoneNumber    *string                   `json:"private_phone_number"`
-	DateOfBirth           pgtype.Date               `json:"date_of_birth"`
-	HomeTelephoneNumber   *string                   `json:"home_telephone_number"`
-	Gender                GenderEnum                `json:"gender"`
-	LocationID            *uuid.UUID                `json:"location_id"`
-	ContractHours         *float64                  `json:"contract_hours"`
-	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
-	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
-	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
-	ContractRate          *float64                  `json:"contract_rate"`
-	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	UserID              uuid.UUID   `json:"user_id"`
+	FirstName           string      `json:"first_name"`
+	LastName            string      `json:"last_name"`
+	Bsn                 string      `json:"bsn"`
+	Street              string      `json:"street"`
+	HouseNumber         string      `json:"house_number"`
+	HouseNumberAddition *string     `json:"house_number_addition"`
+	PostalCode          string      `json:"postal_code"`
+	City                string      `json:"city"`
+	ManagerEmployeeID   *uuid.UUID  `json:"manager_employee_id"`
+	EmployeeNumber      *string     `json:"employee_number"`
+	EmploymentNumber    *string     `json:"employment_number"`
+	PrivateEmailAddress *string     `json:"private_email_address"`
+	WorkEmailAddress    *string     `json:"work_email_address"`
+	WorkPhoneNumber     *string     `json:"work_phone_number"`
+	PrivatePhoneNumber  *string     `json:"private_phone_number"`
+	DateOfBirth         pgtype.Date `json:"date_of_birth"`
+	HomeTelephoneNumber *string     `json:"home_telephone_number"`
+	Gender              GenderEnum  `json:"gender"`
 }
 
 func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeProfileParams) (EmployeeProfile, error) {
@@ -128,8 +115,6 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		arg.HouseNumberAddition,
 		arg.PostalCode,
 		arg.City,
-		arg.Position,
-		arg.DepartmentID,
 		arg.ManagerEmployeeID,
 		arg.EmployeeNumber,
 		arg.EmploymentNumber,
@@ -140,13 +125,6 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		arg.DateOfBirth,
 		arg.HomeTelephoneNumber,
 		arg.Gender,
-		arg.LocationID,
-		arg.ContractHours,
-		arg.ContractEndDate,
-		arg.ContractStartDate,
-		arg.ContractType,
-		arg.ContractRate,
-		arg.IrregularHoursProfile,
 	)
 	var i EmployeeProfile
 	err := row.Scan(
@@ -154,13 +132,14 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		&i.UserID,
 		&i.FirstName,
 		&i.LastName,
+		&i.NameInUse,
+		&i.MaritalStatus,
 		&i.Bsn,
 		&i.Street,
 		&i.HouseNumber,
 		&i.HouseNumberAddition,
 		&i.PostalCode,
 		&i.City,
-		&i.Position,
 		&i.EmployeeNumber,
 		&i.EmploymentNumber,
 		&i.PrivateEmailAddress,
@@ -171,74 +150,66 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		&i.HomeTelephoneNumber,
 		&i.CreatedAt,
 		&i.Gender,
-		&i.LocationID,
-		&i.DepartmentID,
 		&i.ManagerEmployeeID,
 		&i.HasBorrowed,
 		&i.OutOfService,
 		&i.IsArchived,
-		&i.ContractHours,
-		&i.ContractEndDate,
-		&i.ContractStartDate,
-		&i.ContractType,
-		&i.ContractRate,
-		&i.IrregularHoursProfile,
 	)
 	return i, err
 }
 
 const getEmployeeProfileByID = `-- name: GetEmployeeProfileByID :one
 SELECT
-    ep.id, ep.user_id, ep.first_name, ep.last_name, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.position, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.location_id, ep.department_id, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived, ep.contract_hours, ep.contract_end_date, ep.contract_start_date, ep.contract_type, ep.contract_rate, ep.irregular_hours_profile,
+    ep.id, ep.user_id, ep.first_name, ep.last_name, ep.name_in_use, ep.marital_status, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived,
     cu.profile_picture as profile_picture,
     d.name AS department_name,
     mgr.first_name AS manager_first_name,
     mgr.last_name AS manager_last_name
 FROM employee_profile ep
 JOIN custom_user cu ON ep.user_id = cu.id
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN LATERAL (
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
+LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN employee_profile mgr ON mgr.id = ep.manager_employee_id
 WHERE ep.id = $1
 `
 
 type GetEmployeeProfileByIDRow struct {
-	ID                    uuid.UUID                 `json:"id"`
-	UserID                uuid.UUID                 `json:"user_id"`
-	FirstName             string                    `json:"first_name"`
-	LastName              string                    `json:"last_name"`
-	Bsn                   string                    `json:"bsn"`
-	Street                string                    `json:"street"`
-	HouseNumber           string                    `json:"house_number"`
-	HouseNumberAddition   *string                   `json:"house_number_addition"`
-	PostalCode            string                    `json:"postal_code"`
-	City                  string                    `json:"city"`
-	Position              *string                   `json:"position"`
-	EmployeeNumber        *string                   `json:"employee_number"`
-	EmploymentNumber      *string                   `json:"employment_number"`
-	PrivateEmailAddress   *string                   `json:"private_email_address"`
-	WorkEmailAddress      *string                   `json:"work_email_address"`
-	PrivatePhoneNumber    *string                   `json:"private_phone_number"`
-	WorkPhoneNumber       *string                   `json:"work_phone_number"`
-	DateOfBirth           pgtype.Date               `json:"date_of_birth"`
-	HomeTelephoneNumber   *string                   `json:"home_telephone_number"`
-	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
-	Gender                GenderEnum                `json:"gender"`
-	LocationID            *uuid.UUID                `json:"location_id"`
-	DepartmentID          *uuid.UUID                `json:"department_id"`
-	ManagerEmployeeID     *uuid.UUID                `json:"manager_employee_id"`
-	HasBorrowed           bool                      `json:"has_borrowed"`
-	OutOfService          *bool                     `json:"out_of_service"`
-	IsArchived            bool                      `json:"is_archived"`
-	ContractHours         *float64                  `json:"contract_hours"`
-	ContractEndDate       pgtype.Date               `json:"contract_end_date"`
-	ContractStartDate     pgtype.Date               `json:"contract_start_date"`
-	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
-	ContractRate          *float64                  `json:"contract_rate"`
-	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
-	ProfilePicture        *string                   `json:"profile_picture"`
-	DepartmentName        *string                   `json:"department_name"`
-	ManagerFirstName      *string                   `json:"manager_first_name"`
-	ManagerLastName       *string                   `json:"manager_last_name"`
+	ID                  uuid.UUID          `json:"id"`
+	UserID              uuid.UUID          `json:"user_id"`
+	FirstName           string             `json:"first_name"`
+	LastName            string             `json:"last_name"`
+	NameInUse           NameInUseEnum      `json:"name_in_use"`
+	MaritalStatus       *MaritalStatusEnum `json:"marital_status"`
+	Bsn                 string             `json:"bsn"`
+	Street              string             `json:"street"`
+	HouseNumber         string             `json:"house_number"`
+	HouseNumberAddition *string            `json:"house_number_addition"`
+	PostalCode          string             `json:"postal_code"`
+	City                string             `json:"city"`
+	EmployeeNumber      *string            `json:"employee_number"`
+	EmploymentNumber    *string            `json:"employment_number"`
+	PrivateEmailAddress *string            `json:"private_email_address"`
+	WorkEmailAddress    *string            `json:"work_email_address"`
+	PrivatePhoneNumber  *string            `json:"private_phone_number"`
+	WorkPhoneNumber     *string            `json:"work_phone_number"`
+	DateOfBirth         pgtype.Date        `json:"date_of_birth"`
+	HomeTelephoneNumber *string            `json:"home_telephone_number"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	Gender              GenderEnum         `json:"gender"`
+	ManagerEmployeeID   *uuid.UUID         `json:"manager_employee_id"`
+	HasBorrowed         bool               `json:"has_borrowed"`
+	OutOfService        *bool              `json:"out_of_service"`
+	IsArchived          bool               `json:"is_archived"`
+	ProfilePicture      *string            `json:"profile_picture"`
+	DepartmentName      *string            `json:"department_name"`
+	ManagerFirstName    *string            `json:"manager_first_name"`
+	ManagerLastName     *string            `json:"manager_last_name"`
 }
 
 func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByIDRow, error) {
@@ -249,13 +220,14 @@ func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (Get
 		&i.UserID,
 		&i.FirstName,
 		&i.LastName,
+		&i.NameInUse,
+		&i.MaritalStatus,
 		&i.Bsn,
 		&i.Street,
 		&i.HouseNumber,
 		&i.HouseNumberAddition,
 		&i.PostalCode,
 		&i.City,
-		&i.Position,
 		&i.EmployeeNumber,
 		&i.EmploymentNumber,
 		&i.PrivateEmailAddress,
@@ -266,18 +238,10 @@ func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (Get
 		&i.HomeTelephoneNumber,
 		&i.CreatedAt,
 		&i.Gender,
-		&i.LocationID,
-		&i.DepartmentID,
 		&i.ManagerEmployeeID,
 		&i.HasBorrowed,
 		&i.OutOfService,
 		&i.IsArchived,
-		&i.ContractHours,
-		&i.ContractEndDate,
-		&i.ContractStartDate,
-		&i.ContractType,
-		&i.ContractRate,
-		&i.IrregularHoursProfile,
 		&i.ProfilePicture,
 		&i.DepartmentName,
 		&i.ManagerFirstName,
@@ -372,18 +336,24 @@ func (q *Queries) GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) 
 }
 
 const listEmployeeProfile = `-- name: ListEmployeeProfile :many
+WITH latest_contract AS (
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts
+    ORDER BY employee_id, start_date DESC, created_at DESC
+)
 SELECT
     ep.id,
     ep.first_name,
     ep.last_name,
     ep.bsn,
-    ep.contract_type,
+    ec.contract_type,
     d.name AS department_name,
-    ep.contract_end_date,
+    ec.contract_end_date,
     concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address
 FROM employee_profile ep
-LEFT JOIN location l ON l.id = ep.location_id
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
+LEFT JOIN location l ON l.id = ec.location_id
+LEFT JOIN departments d ON d.id = ec.department_id
 WHERE
     (CASE
         WHEN $3::boolean IS NULL THEN true
@@ -395,8 +365,8 @@ WHERE
         WHEN $4::boolean = false THEN NOT COALESCE(ep.out_of_service, false)
         ELSE true
     END) AND
-    (ep.location_id = $5 OR $5 IS NULL) AND
-    (ep.contract_type = $6 OR $6 IS NULL) AND
+    ($5::uuid IS NULL OR ec.location_id = $5::uuid) AND
+    ($6::employee_contract_type_enum IS NULL OR ec.contract_type = $6::employee_contract_type_enum) AND
     ($7::TEXT IS NULL OR
         ep.first_name ILIKE '%' || $7 || '%' OR
         ep.last_name ILIKE '%' || $7 || '%')
@@ -415,14 +385,14 @@ type ListEmployeeProfileParams struct {
 }
 
 type ListEmployeeProfileRow struct {
-	ID              uuid.UUID                `json:"id"`
-	FirstName       string                   `json:"first_name"`
-	LastName        string                   `json:"last_name"`
-	Bsn             string                   `json:"bsn"`
-	ContractType    EmployeeContractTypeEnum `json:"contract_type"`
-	DepartmentName  *string                  `json:"department_name"`
-	ContractEndDate pgtype.Date              `json:"contract_end_date"`
-	LocationAddress string                   `json:"location_address"`
+	ID              uuid.UUID                 `json:"id"`
+	FirstName       string                    `json:"first_name"`
+	LastName        string                    `json:"last_name"`
+	Bsn             string                    `json:"bsn"`
+	ContractType    *EmployeeContractTypeEnum `json:"contract_type"`
+	DepartmentName  *string                   `json:"department_name"`
+	ContractEndDate pgtype.Date               `json:"contract_end_date"`
+	LocationAddress string                    `json:"location_address"`
 }
 
 func (q *Queries) ListEmployeeProfile(ctx context.Context, arg ListEmployeeProfileParams) ([]ListEmployeeProfileRow, error) {
@@ -467,56 +437,46 @@ UPDATE employee_profile
 SET
     first_name = COALESCE($1, first_name),
     last_name = COALESCE($2, last_name),
-    position = COALESCE($3, position),
-    department_id = COALESCE($4, department_id),
-    manager_employee_id = COALESCE($5, manager_employee_id),
-    employee_number = COALESCE($6, employee_number),
-    employment_number = COALESCE($7, employment_number),
-    private_email_address = COALESCE($8, private_email_address),
-    work_email_address = COALESCE($9, work_email_address),
-    private_phone_number = COALESCE($10, private_phone_number),
-    work_phone_number = COALESCE($11, work_phone_number),
-    date_of_birth = COALESCE($12, date_of_birth),
-    home_telephone_number = COALESCE($13, home_telephone_number),
-    gender = COALESCE($14, gender),
-    location_id = COALESCE($15, location_id),
-    irregular_hours_profile = COALESCE($16, irregular_hours_profile),
-    has_borrowed = COALESCE($17, has_borrowed),
-    out_of_service = COALESCE($18, out_of_service),
-    is_archived = COALESCE($19, is_archived)
-WHERE id = $20
-RETURNING id, user_id, first_name, last_name, bsn, street, house_number, house_number_addition, postal_code, city, position, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, location_id, department_id, manager_employee_id, has_borrowed, out_of_service, is_archived, contract_hours, contract_end_date, contract_start_date, contract_type, contract_rate, irregular_hours_profile
+    manager_employee_id = COALESCE($3, manager_employee_id),
+    employee_number = COALESCE($4, employee_number),
+    employment_number = COALESCE($5, employment_number),
+    private_email_address = COALESCE($6, private_email_address),
+    work_email_address = COALESCE($7, work_email_address),
+    private_phone_number = COALESCE($8, private_phone_number),
+    work_phone_number = COALESCE($9, work_phone_number),
+    date_of_birth = COALESCE($10, date_of_birth),
+    home_telephone_number = COALESCE($11, home_telephone_number),
+    gender = COALESCE($12, gender),
+    has_borrowed = COALESCE($13, has_borrowed),
+    out_of_service = COALESCE($14, out_of_service),
+    is_archived = COALESCE($15, is_archived)
+WHERE id = $16
+RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, has_borrowed, out_of_service, is_archived
 `
 
 type UpdateEmployeeProfileParams struct {
-	FirstName             *string                    `json:"first_name"`
-	LastName              *string                    `json:"last_name"`
-	Position              *string                    `json:"position"`
-	DepartmentID          *uuid.UUID                 `json:"department_id"`
-	ManagerEmployeeID     *uuid.UUID                 `json:"manager_employee_id"`
-	EmployeeNumber        *string                    `json:"employee_number"`
-	EmploymentNumber      *string                    `json:"employment_number"`
-	PrivateEmailAddress   *string                    `json:"private_email_address"`
-	WorkEmailAddress      *string                    `json:"work_email_address"`
-	PrivatePhoneNumber    *string                    `json:"private_phone_number"`
-	WorkPhoneNumber       *string                    `json:"work_phone_number"`
-	DateOfBirth           pgtype.Date                `json:"date_of_birth"`
-	HomeTelephoneNumber   *string                    `json:"home_telephone_number"`
-	Gender                *GenderEnum                `json:"gender"`
-	LocationID            *uuid.UUID                 `json:"location_id"`
-	IrregularHoursProfile *IrregularHoursProfileEnum `json:"irregular_hours_profile"`
-	HasBorrowed           *bool                      `json:"has_borrowed"`
-	OutOfService          *bool                      `json:"out_of_service"`
-	IsArchived            *bool                      `json:"is_archived"`
-	ID                    uuid.UUID                  `json:"id"`
+	FirstName           *string     `json:"first_name"`
+	LastName            *string     `json:"last_name"`
+	ManagerEmployeeID   *uuid.UUID  `json:"manager_employee_id"`
+	EmployeeNumber      *string     `json:"employee_number"`
+	EmploymentNumber    *string     `json:"employment_number"`
+	PrivateEmailAddress *string     `json:"private_email_address"`
+	WorkEmailAddress    *string     `json:"work_email_address"`
+	PrivatePhoneNumber  *string     `json:"private_phone_number"`
+	WorkPhoneNumber     *string     `json:"work_phone_number"`
+	DateOfBirth         pgtype.Date `json:"date_of_birth"`
+	HomeTelephoneNumber *string     `json:"home_telephone_number"`
+	Gender              *GenderEnum `json:"gender"`
+	HasBorrowed         *bool       `json:"has_borrowed"`
+	OutOfService        *bool       `json:"out_of_service"`
+	IsArchived          *bool       `json:"is_archived"`
+	ID                  uuid.UUID   `json:"id"`
 }
 
 func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeProfileParams) (EmployeeProfile, error) {
 	row := q.db.QueryRow(ctx, updateEmployeeProfile,
 		arg.FirstName,
 		arg.LastName,
-		arg.Position,
-		arg.DepartmentID,
 		arg.ManagerEmployeeID,
 		arg.EmployeeNumber,
 		arg.EmploymentNumber,
@@ -527,8 +487,6 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		arg.DateOfBirth,
 		arg.HomeTelephoneNumber,
 		arg.Gender,
-		arg.LocationID,
-		arg.IrregularHoursProfile,
 		arg.HasBorrowed,
 		arg.OutOfService,
 		arg.IsArchived,
@@ -540,13 +498,14 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		&i.UserID,
 		&i.FirstName,
 		&i.LastName,
+		&i.NameInUse,
+		&i.MaritalStatus,
 		&i.Bsn,
 		&i.Street,
 		&i.HouseNumber,
 		&i.HouseNumberAddition,
 		&i.PostalCode,
 		&i.City,
-		&i.Position,
 		&i.EmployeeNumber,
 		&i.EmploymentNumber,
 		&i.PrivateEmailAddress,
@@ -557,18 +516,10 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		&i.HomeTelephoneNumber,
 		&i.CreatedAt,
 		&i.Gender,
-		&i.LocationID,
-		&i.DepartmentID,
 		&i.ManagerEmployeeID,
 		&i.HasBorrowed,
 		&i.OutOfService,
 		&i.IsArchived,
-		&i.ContractHours,
-		&i.ContractEndDate,
-		&i.ContractStartDate,
-		&i.ContractType,
-		&i.ContractRate,
-		&i.IrregularHoursProfile,
 	)
 	return i, err
 }

@@ -329,8 +329,8 @@ func seedEmployeeDetails(ctx context.Context, env Env, employeeID uuid.UUID, ite
 	if _, err := env.DB.Exec(ctx, `DELETE FROM employee_education WHERE employee_id = $1`, employeeID); err != nil {
 		return fmt.Errorf("reset employee_education: %w", err)
 	}
-	if _, err := env.DB.Exec(ctx, `DELETE FROM certification WHERE employee_id = $1`, employeeID); err != nil {
-		return fmt.Errorf("reset certification: %w", err)
+	if _, err := env.DB.Exec(ctx, `DELETE FROM employee_qualifications WHERE employee_id = $1`, employeeID); err != nil {
+		return fmt.Errorf("reset employee_qualifications: %w", err)
 	}
 	if _, err := env.DB.Exec(ctx, `DELETE FROM employee_experience WHERE employee_id = $1`, employeeID); err != nil {
 		return fmt.Errorf("reset employee_experience: %w", err)
@@ -359,21 +359,42 @@ func seedEmployeeDetails(ctx context.Context, env Env, employeeID uuid.UUID, ite
 		}
 	}
 
-	certificationCount := gofakeit.Number(0, 2)
-	for i := 0; i < certificationCount; i++ {
+	qualificationCodes := []string{
+		"company_emergency_response_certificate",
+		"first_aid_diploma",
+		"cpr_resuscitation_certificate",
+		"big_registration_nurse",
+	}
+	qualificationCount := gofakeit.Number(0, 2)
+	seeded := map[string]bool{}
+	for i := 0; i < qualificationCount; i++ {
+		code := qualificationCodes[gofakeit.Number(0, len(qualificationCodes)-1)]
+		if seeded[code] {
+			continue
+		}
+		seeded[code] = true
+		achievedOn := time.Now().AddDate(-gofakeit.Number(1, 5), 0, 0)
+		var expirationDate *time.Time
+		if code != "big_registration_nurse" {
+			d := achievedOn.AddDate(gofakeit.Number(1, 2), 0, 0)
+			expirationDate = &d
+		}
+		certNumber := fmt.Sprintf("CERT-%d", gofakeit.Number(10000, 99999))
 		if _, err := env.DB.Exec(ctx, `
-			INSERT INTO certification (
+			INSERT INTO employee_qualifications (
 				employee_id,
-				name,
-				issued_by,
-				date_issued
-			) VALUES ($1, $2, $3, $4)
+				qualification_type_code,
+				achieved_on,
+				expiration_date,
+				certificate_number
+			) VALUES ($1, $2, $3, $4, $5)
 		`, employeeID,
-			randomFrom([]string{"BHV", "Medication Safety", "First Aid", "Care Compliance"}),
-			gofakeit.Company(),
-			time.Now().AddDate(-gofakeit.Number(1, 5), 0, 0),
+			code,
+			achievedOn,
+			expirationDate,
+			strPtr(certNumber),
 		); err != nil {
-			return fmt.Errorf("seed employee certification: %w", err)
+			return fmt.Errorf("seed employee qualification: %w", err)
 		}
 	}
 

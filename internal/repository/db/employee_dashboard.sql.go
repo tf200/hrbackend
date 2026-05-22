@@ -338,11 +338,18 @@ const listTeamHealthByDepartment = `-- name: ListTeamHealthByDepartment :many
 WITH active_employees AS (
     SELECT
         ep.id,
-        ep.department_id
+        ec.department_id
     FROM employee_profile ep
+    JOIN LATERAL (
+        SELECT department_id
+        FROM employee_contracts c
+        WHERE c.employee_id = ep.id
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) ec ON true
     WHERE ep.is_archived = FALSE
       AND COALESCE(ep.out_of_service, FALSE) = FALSE
-      AND ep.department_id IS NOT NULL
+      AND ec.department_id IS NOT NULL
 ), today_schedules AS (
     SELECT DISTINCT s.employee_id
     FROM schedules s

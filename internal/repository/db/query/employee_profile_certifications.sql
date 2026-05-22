@@ -1,25 +1,34 @@
--- name: AddEmployeeCertification :one
-INSERT INTO certification (
+-- name: AddEmployeeQualification :one
+INSERT INTO employee_qualifications (
     employee_id,
-    name,
-    issued_by,
-    date_issued
+    qualification_id,
+    achieved_on,
+    expiration_date,
+    certificate_number
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
 RETURNING *;
 
--- name: ListEmployeeCertifications :many
-SELECT * FROM certification WHERE employee_id = $1;
+-- name: ListEmployeeQualifications :many
+SELECT * FROM employee_qualifications WHERE employee_id = $1;
 
--- name: UpdateEmployeeCertification :one
-UPDATE certification
+-- name: UpdateEmployeeQualification :one
+UPDATE employee_qualifications
 SET
-    name = COALESCE(sqlc.narg('name'), name),
-    issued_by = COALESCE(sqlc.narg('issued_by'), issued_by),
-    date_issued = COALESCE(sqlc.narg('date_issued'), date_issued)
+    qualification_id = COALESCE(sqlc.narg('qualification_id'), qualification_id),
+    achieved_on = COALESCE(sqlc.narg('achieved_on'), achieved_on),
+    expiration_date = COALESCE(sqlc.narg('expiration_date'), expiration_date),
+    certificate_number = COALESCE(sqlc.narg('certificate_number'), certificate_number),
+    updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
 
--- name: DeleteEmployeeCertification :one
-DELETE FROM certification WHERE id = $1 RETURNING *;
+-- name: DeleteEmployeeQualification :one
+DELETE FROM employee_qualifications WHERE id = $1 RETURNING *;
+
+-- name: ListQualificationTypes :many
+SELECT * FROM qualifications WHERE is_active = TRUE ORDER BY english_name;
+
+-- name: GetQualificationType :one
+SELECT * FROM qualifications WHERE code = $1;

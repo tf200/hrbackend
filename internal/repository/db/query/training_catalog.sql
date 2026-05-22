@@ -63,7 +63,7 @@ SELECT
     ep.employment_number,
     ep.first_name,
     ep.last_name,
-    ep.department_id,
+    ec.department_id,
     d.name AS department_name,
     eta.training_id,
     tci.title AS training_title,
@@ -83,8 +83,15 @@ SELECT
     COUNT(*) OVER() AS total_count
 FROM employee_training_assignments eta
 JOIN employee_profile ep ON ep.id = eta.employee_id
+LEFT JOIN LATERAL (
+    SELECT department_id
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
 JOIN training_catalog_items tci ON tci.id = eta.training_id
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN employee_profile assigner ON assigner.id = eta.assigned_by_employee_id
 WHERE (
     sqlc.narg('employee_search')::text IS NULL
@@ -97,7 +104,7 @@ WHERE (
 )
 AND (
     sqlc.narg('department_id')::uuid IS NULL
-    OR ep.department_id = sqlc.narg('department_id')::uuid
+    OR ec.department_id = sqlc.narg('department_id')::uuid
 )
 AND (
     sqlc.narg('training_id')::uuid IS NULL

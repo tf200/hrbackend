@@ -129,20 +129,20 @@ SELECT
     te.end_time,
     te.break_minutes,
     te.hour_type,
-    COALESCE(cc.contract_type, ep.contract_type) AS contract_type,
-    COALESCE(cc.contract_rate, ep.contract_rate) AS contract_rate,
-    COALESCE(cc.irregular_hours_profile, ep.irregular_hours_profile) AS irregular_hours_profile
+    cc.contract_type,
+    NULL::numeric AS contract_rate,
+    NULL::text AS irregular_hours_profile
 FROM time_entries te
 JOIN employee_profile ep ON ep.id = te.employee_id
 LEFT JOIN LATERAL (
     SELECT
         c.contract_type,
-        c.contract_rate,
-        c.irregular_hours_profile
-    FROM employee_contract_changes c
+        c.contract_end_date
+    FROM employee_contracts c
     WHERE c.employee_id = te.employee_id
-      AND c.effective_from <= te.entry_date
-    ORDER BY c.effective_from DESC, c.created_at DESC
+      AND c.start_date <= te.entry_date
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
+    ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1
 ) cc ON TRUE
 WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
@@ -208,16 +208,17 @@ SELECT
             END
         ) / 60 - te.break_minutes
     )::INT AS worked_minutes,
-    COALESCE(cc.contract_type, ep.contract_type) AS contract_type
+    cc.contract_type
 FROM time_entries te
 JOIN employee_profile ep ON ep.id = te.employee_id
 LEFT JOIN LATERAL (
     SELECT
         c.contract_type
-    FROM employee_contract_changes c
+    FROM employee_contracts c
     WHERE c.employee_id = te.employee_id
-      AND c.effective_from <= te.entry_date
-    ORDER BY c.effective_from DESC, c.created_at DESC
+      AND c.start_date <= te.entry_date
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
+    ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1
 ) cc ON TRUE
 WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])

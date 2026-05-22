@@ -491,20 +491,20 @@ SELECT
     te.end_time,
     te.break_minutes,
     te.hour_type,
-    COALESCE(cc.contract_type, ep.contract_type) AS contract_type,
-    COALESCE(cc.contract_rate, ep.contract_rate) AS contract_rate,
-    COALESCE(cc.irregular_hours_profile, ep.irregular_hours_profile) AS irregular_hours_profile
+    cc.contract_type,
+    NULL::numeric AS contract_rate,
+    NULL::text AS irregular_hours_profile
 FROM time_entries te
 JOIN employee_profile ep ON ep.id = te.employee_id
 LEFT JOIN LATERAL (
     SELECT
         c.contract_type,
-        c.contract_rate,
-        c.irregular_hours_profile
-    FROM employee_contract_changes c
+        c.contract_end_date
+    FROM employee_contracts c
     WHERE c.employee_id = te.employee_id
-      AND c.effective_from <= te.entry_date
-    ORDER BY c.effective_from DESC, c.created_at DESC
+      AND c.start_date <= te.entry_date
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
+    ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1
 ) cc ON TRUE
 WHERE te.employee_id = $1
@@ -529,18 +529,18 @@ type LockPayrollPreviewTimeEntriesParams struct {
 }
 
 type LockPayrollPreviewTimeEntriesRow struct {
-	ID                    uuid.UUID                 `json:"id"`
-	EmployeeID            uuid.UUID                 `json:"employee_id"`
-	EmployeeFirstName     string                    `json:"employee_first_name"`
-	EmployeeLastName      string                    `json:"employee_last_name"`
-	EntryDate             pgtype.Date               `json:"entry_date"`
-	StartTime             pgtype.Time               `json:"start_time"`
-	EndTime               pgtype.Time               `json:"end_time"`
-	BreakMinutes          int32                     `json:"break_minutes"`
-	HourType              TimeEntryHourTypeEnum     `json:"hour_type"`
-	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
-	ContractRate          *float64                  `json:"contract_rate"`
-	IrregularHoursProfile IrregularHoursProfileEnum `json:"irregular_hours_profile"`
+	ID                    uuid.UUID                `json:"id"`
+	EmployeeID            uuid.UUID                `json:"employee_id"`
+	EmployeeFirstName     string                   `json:"employee_first_name"`
+	EmployeeLastName      string                   `json:"employee_last_name"`
+	EntryDate             pgtype.Date              `json:"entry_date"`
+	StartTime             pgtype.Time              `json:"start_time"`
+	EndTime               pgtype.Time              `json:"end_time"`
+	BreakMinutes          int32                    `json:"break_minutes"`
+	HourType              TimeEntryHourTypeEnum    `json:"hour_type"`
+	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
+	ContractRate          *float64                 `json:"contract_rate"`
+	IrregularHoursProfile *string                  `json:"irregular_hours_profile"`
 }
 
 func (q *Queries) LockPayrollPreviewTimeEntries(ctx context.Context, arg LockPayrollPreviewTimeEntriesParams) ([]LockPayrollPreviewTimeEntriesRow, error) {
