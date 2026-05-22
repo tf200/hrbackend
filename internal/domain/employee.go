@@ -174,10 +174,11 @@ type Experience struct {
 
 // QualificationType domain struct.
 type QualificationType struct {
+	ID                uuid.UUID
 	Code              string
-	OriginalDutchText string
+	OriginalDutchText *string
 	EnglishName       string
-	AppContext        string
+	AppContext        *string
 	IsActive          bool
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
@@ -185,14 +186,14 @@ type QualificationType struct {
 
 // Qualification domain struct.
 type Qualification struct {
-	ID                    uuid.UUID
-	EmployeeID            uuid.UUID
-	QualificationTypeCode string
-	AchievedOn            time.Time
-	ExpirationDate        *time.Time
-	CertificateNumber     *string
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
+	ID                uuid.UUID
+	EmployeeID        uuid.UUID
+	QualificationID   uuid.UUID
+	AchievedOn        time.Time
+	ExpirationDate    *time.Time
+	CertificateNumber *string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // --- Params ---
@@ -277,10 +278,6 @@ type UpdateEmployeeParams struct {
 	IsArchived          *bool
 }
 
-type UpdateIsSubcontractorParams struct {
-	IsSubcontractor bool
-}
-
 type ResetPasswordParams struct {
 	Generated bool
 	Password  *string
@@ -324,17 +321,17 @@ type UpdateExperienceParams struct {
 }
 
 type CreateQualificationParams struct {
-	QualificationTypeCode string
-	AchievedOn            time.Time
-	ExpirationDate        *time.Time
-	CertificateNumber     *string
+	QualificationID   uuid.UUID
+	AchievedOn        time.Time
+	ExpirationDate    *time.Time
+	CertificateNumber *string
 }
 
 type UpdateQualificationParams struct {
-	QualificationTypeCode *string
-	AchievedOn            *time.Time
-	ExpirationDate        *time.Time
-	CertificateNumber     *string
+	QualificationID   *uuid.UUID
+	AchievedOn        *time.Time
+	ExpirationDate    *time.Time
+	CertificateNumber *string
 }
 
 // --- Interfaces ---
@@ -356,13 +353,6 @@ type EmployeeRepository interface {
 		ctx context.Context,
 		search *string,
 	) ([]EmployeeSearchResult, error)
-
-	// Contract
-	UpdateIsSubcontractor(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		contractType string,
-	) (*EmployeeDetail, error)
 
 	// Education
 	ListEducation(ctx context.Context, employeeID uuid.UUID) ([]Education, error)
@@ -430,12 +420,6 @@ type EmployeeService interface {
 		ctx context.Context,
 		search *string,
 	) ([]EmployeeSearchResult, error)
-
-	UpdateIsSubcontractor(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		params UpdateIsSubcontractorParams,
-	) (*EmployeeDetail, error)
 
 	ListEducation(ctx context.Context, employeeID uuid.UUID) ([]Education, error)
 	AddEducation(

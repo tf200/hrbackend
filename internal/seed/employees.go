@@ -83,14 +83,6 @@ func (s EmployeesSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("seed employees[%s]: gender is required", item.Alias)
 		}
 
-		locationID, err := resolveOptionalLocationAlias(env, item.LocationAlias, item.Alias)
-		if err != nil {
-			return err
-		}
-		departmentID, err := resolveOptionalDepartmentAlias(env, item.DepartmentAlias, item.Alias)
-		if err != nil {
-			return err
-		}
 		roleID, err := resolveOptionalRoleID(ctx, env, roleIDs, item.RoleName)
 		if err != nil {
 			return fmt.Errorf("seed employees[%s]: %w", item.Alias, err)
@@ -363,32 +355,4 @@ func strPtr(value string) *string {
 	return &value
 }
 
-func resolveOptionalLocationAlias(env Env, alias *string, employeeAlias string) (*uuid.UUID, error) {
-	if alias == nil || strings.TrimSpace(*alias) == "" {
-		return nil, nil
-	}
-	id, ok := env.State.LocationID(strings.TrimSpace(*alias))
-	if !ok {
-		return nil, fmt.Errorf(
-			"seed employees[%s]: missing location alias %q in seed state",
-			employeeAlias,
-			strings.TrimSpace(*alias),
-		)
-	}
-	return &id, nil
-}
 
-func resolveOptionalDepartmentAlias(env Env, alias *string, employeeAlias string) (*uuid.UUID, error) {
-	if alias == nil || strings.TrimSpace(*alias) == "" {
-		return nil, nil
-	}
-	id, ok := env.State.DepartmentID(strings.TrimSpace(*alias))
-	if !ok {
-		return nil, fmt.Errorf(
-			"seed employees[%s]: missing department alias %q in seed state",
-			employeeAlias,
-			strings.TrimSpace(*alias),
-		)
-	}
-	return &id, nil
-}

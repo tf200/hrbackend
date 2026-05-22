@@ -14,12 +14,6 @@ func RegisterEmployeeRoutes(
 	rg.GET("/employees/:id", auth, requirePermission("EMPLOYEE.VIEW"), handler.GetEmployeeByID)
 	rg.PUT("/employees/:id", auth, requirePermission("EMPLOYEE.UPDATE"), handler.UpdateEmployee)
 	rg.GET("/employees/profile", auth, handler.GetEmployeeProfile)
-	rg.PUT(
-		"/employees/:id/is_subcontractor",
-		auth,
-		requirePermission("EMPLOYEE.UPDATE"),
-		handler.UpdateIsSubcontractor,
-	)
 	rg.POST(
 		"/employees/:id/education",
 		auth,

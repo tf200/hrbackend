@@ -34,17 +34,4 @@ INSERT INTO employee_contracts (
 )
 RETURNING *;
 
--- name: UpdateEmployeeIsSubcontractor :one
-UPDATE employee_contracts ec
-SET contract_type = $2,
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = (
-    SELECT c.id
-    FROM employee_contracts c
-    WHERE c.employee_id = $1
-    ORDER BY c.start_date DESC, c.created_at DESC
-    LIMIT 1
-)
-RETURNING *;
-
 

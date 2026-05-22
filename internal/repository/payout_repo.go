@@ -986,7 +986,7 @@ func (r *payoutTxRepo) LockPayrollPreviewTimeEntries(
 			HourType:              string(row.HourType),
 			ContractType:          string(row.ContractType),
 			ContractRate:          row.ContractRate,
-			IrregularHoursProfile: string(row.IrregularHoursProfile),
+			IrregularHoursProfile: nilStringOrEmpty(row.IrregularHoursProfile),
 		})
 	}
 
@@ -1348,6 +1348,13 @@ func isPayPeriodUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505" &&
 		strings.Contains(pgErr.ConstraintName, "pay_periods_unique_employee_period")
+}
+
+func nilStringOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 var _ domain.PayoutRepository = (*PayoutRepository)(nil)

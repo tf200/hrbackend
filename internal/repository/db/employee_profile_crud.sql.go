@@ -161,6 +161,7 @@ const getEmployeeProfileByID = `-- name: GetEmployeeProfileByID :one
 SELECT
     ep.id, ep.user_id, ep.first_name, ep.last_name, ep.name_in_use, ep.marital_status, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.manager_employee_id, ep.out_of_service, ep.is_archived,
     cu.profile_picture as profile_picture,
+    ec.department_id,
     d.name AS department_name,
     mgr.first_name AS manager_first_name,
     mgr.last_name AS manager_last_name
@@ -205,6 +206,7 @@ type GetEmployeeProfileByIDRow struct {
 	OutOfService        *bool              `json:"out_of_service"`
 	IsArchived          bool               `json:"is_archived"`
 	ProfilePicture      *string            `json:"profile_picture"`
+	DepartmentID        uuid.UUID          `json:"department_id"`
 	DepartmentName      *string            `json:"department_name"`
 	ManagerFirstName    *string            `json:"manager_first_name"`
 	ManagerLastName     *string            `json:"manager_last_name"`
@@ -240,6 +242,7 @@ func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (Get
 		&i.OutOfService,
 		&i.IsArchived,
 		&i.ProfilePicture,
+		&i.DepartmentID,
 		&i.DepartmentName,
 		&i.ManagerFirstName,
 		&i.ManagerLastName,

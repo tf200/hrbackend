@@ -494,7 +494,7 @@ func (r *HandbookRepository) ListEmployeeHandbookAssignments(
 			EmployeeID:             row.EmployeeID,
 			FirstName:              row.FirstName,
 			LastName:               row.LastName,
-			DepartmentID:           row.EmployeeDepartmentID,
+			DepartmentID:           &row.EmployeeDepartmentID,
 			DepartmentName:         row.DepartmentName,
 			EmployeeHandbookID:     row.EmployeeHandbookID,
 			TemplateID:             row.HandbookTemplateID,
@@ -579,9 +579,14 @@ func (r *HandbookRepository) GetEmployeeProfileByID(
 	if err != nil {
 		return nil, err
 	}
+	var deptID *uuid.UUID
+	if row.DepartmentID != uuid.Nil {
+		deptID = &row.DepartmentID
+	}
+
 	return &domain.HandbookEmployeeProfile{
 		ID:           row.ID,
-		DepartmentID: row.DepartmentID,
+		DepartmentID: deptID,
 	}, nil
 }
 
@@ -620,7 +625,7 @@ func (r *HandbookRepository) ListEligibleEmployeesForHandbookAssignment(
 			EmployeeID:     row.EmployeeID,
 			FirstName:      row.FirstName,
 			LastName:       row.LastName,
-			DepartmentID:   row.DepartmentID,
+			DepartmentID:   &row.DepartmentID,
 			DepartmentName: row.DepartmentName,
 		})
 	}

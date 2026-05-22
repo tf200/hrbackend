@@ -489,7 +489,7 @@ func (r *leaveTxRepo) GetLeaveHoursPerDay(
 		return 0, err
 	}
 
-	if row.ContractType != db.EmployeeContractTypeEnumLoondienst {
+	if row.ContractType != db.EmployeeContractTypeEnumPermanent {
 		return 8, nil
 	}
 	if row.ContractHours != nil && *row.ContractHours > 0 {

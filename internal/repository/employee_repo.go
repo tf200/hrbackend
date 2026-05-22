@@ -248,25 +248,6 @@ func (r *EmployeeRepository) SearchEmployeesByNameOrEmail(
 	return result, nil
 }
 
-func (r *EmployeeRepository) UpdateIsSubcontractor(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	contractType string,
-) (*domain.EmployeeDetail, error) {
-	row, err := r.store.UpdateEmployeeIsSubcontractor(ctx, db.UpdateEmployeeIsSubcontractorParams{
-		ID:           employeeID,
-		ContractType: contractTypeFromString(contractType),
-	})
-	if err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrEmployeeNotFound
-		}
-		return nil, err
-	}
-
-	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
-}
-
 func (r *EmployeeRepository) ListEducation(
 	ctx context.Context,
 	employeeID uuid.UUID,
@@ -446,11 +427,11 @@ func (r *EmployeeRepository) AddQualification(
 	params domain.CreateQualificationParams,
 ) (*domain.Qualification, error) {
 	row, err := r.store.AddEmployeeQualification(ctx, db.AddEmployeeQualificationParams{
-		EmployeeID:            employeeID,
-		QualificationTypeCode: params.QualificationTypeCode,
-		AchievedOn:            conv.PgDateFromTime(params.AchievedOn),
-		ExpirationDate:        pgDateFromPtr(params.ExpirationDate),
-		CertificateNumber:     params.CertificateNumber,
+		EmployeeID:        employeeID,
+		QualificationID:   params.QualificationID,
+		AchievedOn:        conv.PgDateFromTime(params.AchievedOn),
+		ExpirationDate:    pgDateFromPtr(params.ExpirationDate),
+		CertificateNumber: params.CertificateNumber,
 	})
 	if err != nil {
 		return nil, err
@@ -466,11 +447,11 @@ func (r *EmployeeRepository) UpdateQualification(
 	params domain.UpdateQualificationParams,
 ) (*domain.Qualification, error) {
 	row, err := r.store.UpdateEmployeeQualification(ctx, db.UpdateEmployeeQualificationParams{
-		ID:                    id,
-		QualificationTypeCode: params.QualificationTypeCode,
-		AchievedOn:            pgDateFromPtr(params.AchievedOn),
-		ExpirationDate:        pgDateFromPtr(params.ExpirationDate),
-		CertificateNumber:     params.CertificateNumber,
+		ID:                id,
+		QualificationID:   params.QualificationID,
+		AchievedOn:        pgDateFromPtr(params.AchievedOn),
+		ExpirationDate:    pgDateFromPtr(params.ExpirationDate),
+		CertificateNumber: params.CertificateNumber,
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -678,19 +659,20 @@ func toDomainExperience(row db.EmployeeExperience) domain.Experience {
 
 func toDomainQualification(row db.EmployeeQualification) domain.Qualification {
 	return domain.Qualification{
-		ID:                    row.ID,
-		EmployeeID:            row.EmployeeID,
-		QualificationTypeCode: row.QualificationTypeCode,
-		AchievedOn:            conv.TimeFromPgDate(row.AchievedOn),
-		ExpirationDate:        conv.TimePtrFromPgDate(row.ExpirationDate),
-		CertificateNumber:     row.CertificateNumber,
-		CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
-		UpdatedAt:             conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		ID:                row.ID,
+		EmployeeID:        row.EmployeeID,
+		QualificationID:   row.QualificationID,
+		AchievedOn:        conv.TimeFromPgDate(row.AchievedOn),
+		ExpirationDate:    conv.TimePtrFromPgDate(row.ExpirationDate),
+		CertificateNumber: row.CertificateNumber,
+		CreatedAt:         conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:         conv.TimeFromPgTimestamptz(row.UpdatedAt),
 	}
 }
 
-func toDomainQualificationType(row db.QualificationType) domain.QualificationType {
+func toDomainQualificationType(row db.Qualification) domain.QualificationType {
 	return domain.QualificationType{
+		ID:                row.ID,
 		Code:              row.Code,
 		OriginalDutchText: row.OriginalDutchText,
 		EnglishName:       row.EnglishName,
@@ -739,12 +721,12 @@ func contractTypePtrToString(ct *db.EmployeeContractTypeEnum) string {
 
 func contractTypeFromString(value string) db.EmployeeContractTypeEnum {
 	switch db.EmployeeContractTypeEnum(value) {
-	case db.EmployeeContractTypeEnumLoondienst,
-		db.EmployeeContractTypeEnumZZP,
-		db.EmployeeContractTypeEnumNone:
+	case db.EmployeeContractTypeEnumPermanent,
+		db.EmployeeContractTypeEnumTemporary,
+		db.EmployeeContractTypeEnumOnCall:
 		return db.EmployeeContractTypeEnum(value)
 	default:
-		return db.EmployeeContractTypeEnumNone
+		return db.EmployeeContractTypeEnumPermanent
 	}
 }
 

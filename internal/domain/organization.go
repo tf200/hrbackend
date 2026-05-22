@@ -158,6 +158,18 @@ type GlobalOrganizationCounts struct {
 	TotalEmployees int64
 }
 
+type OrganizationalRole struct {
+	ID          uuid.UUID
+	Name        string
+	Description *string
+	IsActive    bool
+}
+
+type ListOrganizationalRolesParams struct {
+	ActiveOnly bool
+	Search     *string
+}
+
 type OrganizationRepository interface {
 	CreateOrganization(ctx context.Context, params CreateOrganizationParams) (*Organization, error)
 	UpdateOrganization(
@@ -207,6 +219,10 @@ type OrganizationRepository interface {
 		ctx context.Context,
 		params ListAllLocationsParams,
 	) (*OrganizationLocationPage, error)
+	ListOrganizationalRoles(
+		ctx context.Context,
+		params ListOrganizationalRolesParams,
+	) ([]OrganizationalRole, error)
 }
 
 type OrganizationService interface {
@@ -258,4 +274,8 @@ type OrganizationService interface {
 		ctx context.Context,
 		params ListAllLocationsParams,
 	) (*OrganizationLocationPage, error)
+	ListOrganizationalRoles(
+		ctx context.Context,
+		params ListOrganizationalRolesParams,
+	) ([]OrganizationalRole, error)
 }

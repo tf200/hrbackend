@@ -84,10 +84,6 @@ type setProfilePictureRequest struct {
 	AttachmentID string `json:"attachement_id" binding:"required"`
 }
 
-type updateIsSubcontractorRequest struct {
-	IsSubcontractor *bool `json:"is_subcontractor" binding:"required"`
-}
-
 type createEducationRequest struct {
 	InstitutionName string `json:"institution_name" binding:"required"`
 	Degree          string `json:"degree"           binding:"required"`
@@ -121,17 +117,17 @@ type updateExperienceRequest struct {
 }
 
 type createQualificationRequest struct {
-	QualificationTypeCode string  `json:"qualification_type_code" binding:"required"`
-	AchievedOn            string  `json:"achieved_on"             binding:"required"`
-	ExpirationDate        *string `json:"expiration_date"`
-	CertificateNumber     *string `json:"certificate_number"`
+	QualificationID   string  `json:"qualification_id"   binding:"required"`
+	AchievedOn        string  `json:"achieved_on"        binding:"required"`
+	ExpirationDate    *string `json:"expiration_date"`
+	CertificateNumber *string `json:"certificate_number"`
 }
 
 type updateQualificationRequest struct {
-	QualificationTypeCode *string `json:"qualification_type_code"`
-	AchievedOn            *string `json:"achieved_on"`
-	ExpirationDate        *string `json:"expiration_date"`
-	CertificateNumber     *string `json:"certificate_number"`
+	QualificationID   *string `json:"qualification_id"`
+	AchievedOn        *string `json:"achieved_on"`
+	ExpirationDate    *string `json:"expiration_date"`
+	CertificateNumber *string `json:"certificate_number"`
 }
 
 type searchEmployeesRequest struct {
@@ -261,21 +257,22 @@ type experienceResponse struct {
 }
 
 type qualificationResponse struct {
-	ID                    uuid.UUID  `json:"id"`
-	EmployeeID            uuid.UUID  `json:"employee_id"`
-	QualificationTypeCode string     `json:"qualification_type_code"`
-	AchievedOn            time.Time  `json:"achieved_on"`
-	ExpirationDate        *time.Time `json:"expiration_date"`
-	CertificateNumber     *string    `json:"certificate_number"`
-	CreatedAt             time.Time  `json:"created_at"`
-	UpdatedAt             time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	EmployeeID        uuid.UUID  `json:"employee_id"`
+	QualificationID   uuid.UUID  `json:"qualification_id"`
+	AchievedOn        time.Time  `json:"achieved_on"`
+	ExpirationDate    *time.Time `json:"expiration_date"`
+	CertificateNumber *string    `json:"certificate_number"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 type qualificationTypeResponse struct {
+	ID                uuid.UUID `json:"id"`
 	Code              string    `json:"code"`
-	OriginalDutchText string    `json:"original_dutch_text"`
+	OriginalDutchText *string   `json:"original_dutch_text"`
 	EnglishName       string    `json:"english_name"`
-	AppContext        string    `json:"app_context"`
+	AppContext        *string   `json:"app_context"`
 	CreatedAt         time.Time `json:"created_at"`
 }
 
@@ -452,10 +449,10 @@ func toCreateQualificationParams(req createQualificationRequest) domain.CreateQu
 	expirationDate, _ := parseDatePtr(req.ExpirationDate)
 
 	return domain.CreateQualificationParams{
-		QualificationTypeCode: req.QualificationTypeCode,
-		AchievedOn:            achievedOn,
-		ExpirationDate:        expirationDate,
-		CertificateNumber:     req.CertificateNumber,
+		QualificationID:   uuid.MustParse(req.QualificationID),
+		AchievedOn:        achievedOn,
+		ExpirationDate:    expirationDate,
+		CertificateNumber: req.CertificateNumber,
 	}
 }
 
@@ -464,10 +461,10 @@ func toUpdateQualificationParams(req updateQualificationRequest) domain.UpdateQu
 	expirationDate, _ := parseDatePtr(req.ExpirationDate)
 
 	return domain.UpdateQualificationParams{
-		QualificationTypeCode: req.QualificationTypeCode,
-		AchievedOn:            achievedOn,
-		ExpirationDate:        expirationDate,
-		CertificateNumber:     req.CertificateNumber,
+		QualificationID:   uuidPtrFromStringPtr(req.QualificationID),
+		AchievedOn:        achievedOn,
+		ExpirationDate:    expirationDate,
+		CertificateNumber: req.CertificateNumber,
 	}
 }
 
@@ -594,19 +591,20 @@ func toExperienceResponse(experience *domain.Experience) experienceResponse {
 
 func toQualificationResponse(qualification *domain.Qualification) qualificationResponse {
 	return qualificationResponse{
-		ID:                    qualification.ID,
-		EmployeeID:            qualification.EmployeeID,
-		QualificationTypeCode: qualification.QualificationTypeCode,
-		AchievedOn:            qualification.AchievedOn,
-		ExpirationDate:        qualification.ExpirationDate,
-		CertificateNumber:     qualification.CertificateNumber,
-		CreatedAt:             qualification.CreatedAt,
-		UpdatedAt:             qualification.UpdatedAt,
+		ID:                qualification.ID,
+		EmployeeID:        qualification.EmployeeID,
+		QualificationID:   qualification.QualificationID,
+		AchievedOn:        qualification.AchievedOn,
+		ExpirationDate:    qualification.ExpirationDate,
+		CertificateNumber: qualification.CertificateNumber,
+		CreatedAt:         qualification.CreatedAt,
+		UpdatedAt:         qualification.UpdatedAt,
 	}
 }
 
 func toQualificationTypeResponse(qt *domain.QualificationType) qualificationTypeResponse {
 	return qualificationTypeResponse{
+		ID:                qt.ID,
 		Code:              qt.Code,
 		OriginalDutchText: qt.OriginalDutchText,
 		EnglishName:       qt.EnglishName,
@@ -639,4 +637,12 @@ func toEmployeeSearchResultResponse(
 		LastName:  result.LastName,
 		Email:     result.WorkEmailAddress,
 	}
+}
+
+func uuidPtrFromStringPtr(s *string) *uuid.UUID {
+	if s == nil {
+		return nil
+	}
+	id := uuid.MustParse(*s)
+	return &id
 }

@@ -204,6 +204,7 @@ type Querier interface {
 	ListOpenShiftCoverage(ctx context.Context, days int32) ([]ListOpenShiftCoverageRow, error)
 	ListOrganisations(ctx context.Context) ([]ListOrganisationsRow, error)
 	ListOrganisationsPaginated(ctx context.Context, arg ListOrganisationsPaginatedParams) ([]ListOrganisationsPaginatedRow, error)
+	ListOrganizationalRoles(ctx context.Context, arg ListOrganizationalRolesParams) ([]ListOrganizationalRolesRow, error)
 	ListPayPeriodLineItemsByPayPeriodID(ctx context.Context, payPeriodID uuid.UUID) ([]PayPeriodLineItem, error)
 	ListPayPeriodsByEmployeeIDsAndRange(ctx context.Context, arg ListPayPeriodsByEmployeeIDsAndRangeParams) ([]ListPayPeriodsByEmployeeIDsAndRangeRow, error)
 	ListPayPeriodsPaginated(ctx context.Context, arg ListPayPeriodsPaginatedParams) ([]ListPayPeriodsPaginatedRow, error)
@@ -225,6 +226,7 @@ type Querier interface {
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListRolePermissionsRow, error)
 	// Returns every role ordered by id with count of permissions and employees.
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
+	ListSalaryScaleSteps(ctx context.Context, activeOnly *bool) ([]ListSalaryScaleStepsRow, error)
 	ListShiftColleaguesByScheduleIDs(ctx context.Context, arg ListShiftColleaguesByScheduleIDsParams) ([]ListShiftColleaguesByScheduleIDsRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)
 	ListTeamHealthByDepartment(ctx context.Context) ([]ListTeamHealthByDepartmentRow, error)
@@ -261,7 +263,6 @@ type Querier interface {
 	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (Department, error)
 	UpdateEmployeeEducation(ctx context.Context, arg UpdateEmployeeEducationParams) (EmployeeEducation, error)
 	UpdateEmployeeExperience(ctx context.Context, arg UpdateEmployeeExperienceParams) (EmployeeExperience, error)
-	UpdateEmployeeIsSubcontractor(ctx context.Context, arg UpdateEmployeeIsSubcontractorParams) (EmployeeContract, error)
 	UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeProfileParams) (EmployeeProfile, error)
 	UpdateEmployeeQualification(ctx context.Context, arg UpdateEmployeeQualificationParams) (EmployeeQualification, error)
 	UpdateExpenseRequestEditableFields(ctx context.Context, arg UpdateExpenseRequestEditableFieldsParams) (ExpenseRequest, error)

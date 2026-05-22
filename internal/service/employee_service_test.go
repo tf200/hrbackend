@@ -147,9 +147,6 @@ func (f *fakeEmployeeRepo) GetEmployeeCounts(_ context.Context) (*domain.Employe
 func (f *fakeEmployeeRepo) SearchEmployeesByNameOrEmail(_ context.Context, _ *string) ([]domain.EmployeeSearchResult, error) {
 	return nil, f.err
 }
-func (f *fakeEmployeeRepo) UpdateIsSubcontractor(_ context.Context, _ uuid.UUID, _ string) (*domain.EmployeeDetail, error) {
-	return nil, f.err
-}
 func (f *fakeEmployeeRepo) ListEducation(_ context.Context, _ uuid.UUID) ([]domain.Education, error) {
 	return nil, f.err
 }

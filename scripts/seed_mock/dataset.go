@@ -37,10 +37,6 @@ type departmentTemplate struct {
 	Description   string
 }
 
-type ortSampleOverride struct {
-	IrregularHoursProfile string
-}
-
 func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	orgCount := intEnvOrDefault("SEED_ORGANIZATION_COUNT", 2)
 	locationsPerOrg := intEnvOrDefault("SEED_LOCATIONS_PER_ORG", 3)
@@ -130,12 +126,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	result.PayPeriods = make([]seed.PayPeriodSeed, 0, 2)
 	result.EmployeeHandbookAssignments = make([]seed.EmployeeHandbookAssignmentSeed, 0, len(departments)*3)
 	result.PerformanceAssessments = make([]seed.PerformanceSeed, 0, 6)
-	ortOverrides := map[string]ortSampleOverride{
-		"finance_head":        {IrregularHoursProfile: "roster"},
-		"care_staff_01":       {IrregularHoursProfile: "non_roster"},
-		"operations_staff_01": {IrregularHoursProfile: "none"},
-		"planning_staff_02":   {IrregularHoursProfile: "none"},
-	}
 
 	for deptIdx, department := range departments {
 		headAlias := fmt.Sprintf("%s_head", department.Alias)
@@ -144,12 +134,8 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			headAlias,
 			emailSuffix,
 			passwordValue,
-			headLocationAlias,
-			department.Alias,
 			nil,
-			department.HeadPosition,
 		)
-		headSeed = applyORTOverride(headSeed, ortOverrides)
 		result.Employees = append(result.Employees, headSeed)
 		result.DepartmentHeads = append(result.DepartmentHeads, seed.DepartmentHeadSeed{
 			DepartmentAlias: department.Alias,
@@ -208,12 +194,8 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 				employeeAlias,
 				emailSuffix,
 				passwordValue,
-				locationAlias,
-				department.Alias,
 				&managerAlias,
-				department.StaffPosition,
 			)
-			employeeSeed = applyORTOverride(employeeSeed, ortOverrides)
 			result.Employees = append(result.Employees, employeeSeed)
 			if empIdx < 2 {
 				result.EmployeeHandbookAssignments = append(result.EmployeeHandbookAssignments, seed.EmployeeHandbookAssignmentSeed{
@@ -550,32 +532,23 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	for zzpIdx := 0; zzpIdx < 3; zzpIdx++ {
 		zzpAlias := fmt.Sprintf("zzp_contractor_%02d", zzpIdx+1)
 		zzpSeed := seed.EmployeeSeed{
-			Alias:                 zzpAlias,
-			FirstName:             gofakeit.FirstName(),
-			LastName:              gofakeit.LastName(),
-			UserEmail:             fmt.Sprintf("%s+%s@example.com", sanitizeEmailPart(zzpAlias), emailSuffix),
-			UserPassword:          passwordValue,
-			Bsn:                   gofakeit.Numerify("#########"),
-			Street:                gofakeit.StreetName(),
-			HouseNumber:           fmt.Sprintf("%d", gofakeit.Number(1, 300)),
-			PostalCode:            gofakeit.Zip(),
-			City:                  gofakeit.City(),
-			Position:              strPtr(fmt.Sprintf("Freelance Consultant %d", zzpIdx+1)),
-			Gender:                randomGender(),
-			LocationAlias:         strPtr(zzpLocationAlias),
-			DepartmentAlias:       nil,
-			ManagerAlias:          nil,
-			EmployeeNumber:        strPtr(fmt.Sprintf("ZZP-%05d", 1000+zzpIdx)),
-			EmploymentNumber:      strPtr(fmt.Sprintf("FLC-%05d", 5000+zzpIdx)),
-			RoleName:              strPtr("employee"),
-			PrivatePhoneNumber:    strPtr(gofakeit.Phone()),
-			WorkPhoneNumber:       strPtr(gofakeit.Phone()),
-			ContractStartDate:     timePtr(time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)),
-			ContractEndDate:       nil,
-			ContractHours:         float64Ptr(float64([]int{20, 25, 30}[gofakeit.Number(0, 2)])),
-			ContractType:          "ZZP",
-			ContractRate:          float64Ptr(float64(gofakeit.Number(25, 55))),
-			IrregularHoursProfile: "none",
+			Alias:              zzpAlias,
+			FirstName:          gofakeit.FirstName(),
+			LastName:           gofakeit.LastName(),
+			UserEmail:          fmt.Sprintf("%s+%s@example.com", sanitizeEmailPart(zzpAlias), emailSuffix),
+			UserPassword:       passwordValue,
+			Bsn:                gofakeit.Numerify("#########"),
+			Street:             gofakeit.StreetName(),
+			HouseNumber:        fmt.Sprintf("%d", gofakeit.Number(1, 300)),
+			PostalCode:         gofakeit.Zip(),
+			City:               gofakeit.City(),
+			Gender:             randomGender(),
+			ManagerAlias:       nil,
+			EmployeeNumber:     strPtr(fmt.Sprintf("ZZP-%05d", 1000+zzpIdx)),
+			EmploymentNumber:   strPtr(fmt.Sprintf("FLC-%05d", 5000+zzpIdx)),
+			RoleName:           strPtr("employee"),
+			PrivatePhoneNumber: strPtr(gofakeit.Phone()),
+			WorkPhoneNumber:    strPtr(gofakeit.Phone()),
 		}
 		result.Employees = append(result.Employees, zzpSeed)
 
@@ -622,50 +595,30 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 }
 
 func generateEmployeeSeed(
-	alias, emailSuffix, passwordValue, locationAlias, departmentAlias string,
+	alias, emailSuffix, passwordValue string,
 	managerAlias *string,
-	position string,
 ) seed.EmployeeSeed {
 	firstName := gofakeit.FirstName()
 	lastName := gofakeit.LastName()
-	contractStartDate := time.Now().AddDate(-gofakeit.Number(1, 8), -gofakeit.Number(0, 11), 0)
 	return seed.EmployeeSeed{
-		Alias:                 alias,
-		FirstName:             firstName,
-		LastName:              lastName,
-		UserEmail:             fmt.Sprintf("%s+%s@example.com", sanitizeEmailPart(alias), emailSuffix),
-		UserPassword:          passwordValue,
-		Bsn:                   gofakeit.Numerify("#########"),
-		Street:                gofakeit.StreetName(),
-		HouseNumber:           fmt.Sprintf("%d", gofakeit.Number(1, 300)),
-		PostalCode:            gofakeit.Zip(),
-		City:                  gofakeit.City(),
-		Position:              strPtr(position),
-		Gender:                randomGender(),
-		LocationAlias:         strPtr(locationAlias),
-		DepartmentAlias:       strPtr(departmentAlias),
-		ManagerAlias:          managerAlias,
-		EmployeeNumber:        strPtr(gofakeit.Numerify("EMP-#####")),
-		EmploymentNumber:      strPtr(gofakeit.Numerify("JOB-#####")),
-		RoleName:              strPtr("employee"),
-		PrivatePhoneNumber:    strPtr(gofakeit.Phone()),
-		WorkPhoneNumber:       strPtr(gofakeit.Phone()),
-		ContractStartDate:     &contractStartDate,
-		ContractEndDate:       nil,
-		ContractHours:         float64Ptr(float64([]int{24, 28, 32, 36}[gofakeit.Number(0, 3)])),
-		ContractType:          "loondienst",
-		ContractRate:          float64Ptr(float64(gofakeit.Number(18, 34))),
-		IrregularHoursProfile: "none",
+		Alias:              alias,
+		FirstName:          firstName,
+		LastName:           lastName,
+		UserEmail:          fmt.Sprintf("%s+%s@example.com", sanitizeEmailPart(alias), emailSuffix),
+		UserPassword:       passwordValue,
+		Bsn:                gofakeit.Numerify("#########"),
+		Street:             gofakeit.StreetName(),
+		HouseNumber:        fmt.Sprintf("%d", gofakeit.Number(1, 300)),
+		PostalCode:         gofakeit.Zip(),
+		City:               gofakeit.City(),
+		Gender:             randomGender(),
+		ManagerAlias:       managerAlias,
+		EmployeeNumber:     strPtr(gofakeit.Numerify("EMP-#####")),
+		EmploymentNumber:   strPtr(gofakeit.Numerify("JOB-#####")),
+		RoleName:           strPtr("employee"),
+		PrivatePhoneNumber: strPtr(gofakeit.Phone()),
+		WorkPhoneNumber:    strPtr(gofakeit.Phone()),
 	}
-}
-
-func applyORTOverride(item seed.EmployeeSeed, overrides map[string]ortSampleOverride) seed.EmployeeSeed {
-	override, ok := overrides[item.Alias]
-	if !ok {
-		return item
-	}
-	item.IrregularHoursProfile = override.IrregularHoursProfile
-	return item
 }
 
 func intEnvOrDefault(key string, fallback int) int {

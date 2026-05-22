@@ -165,28 +165,6 @@ func (s *EmployeeService) SearchEmployeesByNameOrEmail(
 	return results, nil
 }
 
-func (s *EmployeeService) UpdateIsSubcontractor(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	params domain.UpdateIsSubcontractorParams,
-) (*domain.EmployeeDetail, error) {
-	contractType := "loondienst"
-	if params.IsSubcontractor {
-		contractType = "ZZP"
-	}
-	emp, err := s.repo.UpdateIsSubcontractor(ctx, employeeID, contractType)
-	if err != nil {
-		s.logError(
-			ctx,
-			"UpdateIsSubcontractor",
-			err,
-			zap.String("employee_id", employeeID.String()),
-		)
-		return nil, err
-	}
-	return emp, nil
-}
-
 func (s *EmployeeService) ListEducation(
 	ctx context.Context,
 	employeeID uuid.UUID,

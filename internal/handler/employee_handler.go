@@ -182,44 +182,6 @@ func (h *EmployeeHandler) GetEmployeeProfile(ctx *gin.Context) {
 	)
 }
 
-func (h *EmployeeHandler) UpdateIsSubcontractor(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
-		return
-	}
-
-	var req updateIsSubcontractorRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	employee, err := h.service.UpdateIsSubcontractor(
-		ctx.Request.Context(),
-		id,
-		domain.UpdateIsSubcontractorParams{IsSubcontractor: *req.IsSubcontractor},
-	)
-	if err != nil {
-		if errors.Is(err, domain.ErrEmployeeNotFound) {
-			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
-			return
-		}
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to update is subcontractor", ""),
-		)
-		return
-	}
-
-	ctx.JSON(
-		http.StatusOK,
-		httpapi.OK(
-			toEmployeeDetailResponse(employee),
-			"Employee subcontractor status updated successfully",
-		),
-	)
-}
 
 func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))

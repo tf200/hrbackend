@@ -142,6 +142,7 @@ WHERE cu.id = $1;
 SELECT
     ep.*,
     cu.profile_picture as profile_picture,
+    ec.department_id,
     d.name AS department_name,
     mgr.first_name AS manager_first_name,
     mgr.last_name AS manager_last_name

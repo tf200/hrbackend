@@ -110,7 +110,7 @@ func (r *TrainingRepository) ListTrainingAssignments(
 			EmploymentNumber:     row.EmploymentNumber,
 			FirstName:            row.FirstName,
 			LastName:             row.LastName,
-			DepartmentID:         row.DepartmentID,
+			DepartmentID:         &row.DepartmentID,
 			DepartmentName:       row.DepartmentName,
 			TrainingID:           row.TrainingID,
 			TrainingTitle:        row.TrainingTitle,
