@@ -76,7 +76,7 @@ type listEmployeesRequest struct {
 	IncludeArchived     *bool      `form:"is_archived"`
 	IncludeOutOfService *bool      `form:"out_of_service"`
 	LocationID          *uuid.UUID `form:"location_id,parser=encoding.TextUnmarshaler"`
-	ContractType        *string    `form:"contract_type" binding:"omitempty,oneof=loondienst ZZP none"`
+	ContractType        *string    `form:"contract_type" binding:"omitempty,oneof=permanent temporary on_call"`
 	Search              *string    `form:"search"`
 }
 

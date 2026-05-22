@@ -521,7 +521,7 @@ func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
 		FirstName:       row.FirstName,
 		LastName:        row.LastName,
 		Bsn:             row.Bsn,
-		ContractType:    string(row.ContractType),
+		ContractType:    contractTypePtrToString(row.ContractType),
 		DepartmentName:  row.DepartmentName,
 		ContractEndDate: conv.TimePtrFromPgDate(row.ContractEndDate),
 		LocationAddress: row.LocationAddress,
@@ -728,6 +728,13 @@ func genderEnumPtrFromStringPtr(value *string) *db.GenderEnum {
 	}
 
 	return enumPtr(genderEnumFromString(*value))
+}
+
+func contractTypePtrToString(ct *db.EmployeeContractTypeEnum) string {
+	if ct == nil {
+		return ""
+	}
+	return string(*ct)
 }
 
 func contractTypeFromString(value string) db.EmployeeContractTypeEnum {
