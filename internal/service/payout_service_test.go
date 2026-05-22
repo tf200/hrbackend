@@ -29,7 +29,7 @@ func TestPreviewPayrollRosterShiftSplitsAcrossEveningAndNight(t *testing.T) {
 				EndTime:               "23:00",
 				BreakMinutes:          30,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(20),
 				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
 			},
@@ -85,7 +85,7 @@ func TestPreviewPayrollNonRosterLeavesNineteenToTwentyAtZero(t *testing.T) {
 				EndTime:               "21:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -136,7 +136,7 @@ func TestPreviewPayrollSundayOverridesAllWindows(t *testing.T) {
 				EndTime:               "14:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(18),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -181,7 +181,7 @@ func TestPreviewPayrollZZPDoesNotReceiveORT(t *testing.T) {
 				EndTime:               "23:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "ZZP",
+				ContractType:          "on_call",
 				ContractRate:          ptrFloat(30),
 				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
 			},
@@ -250,7 +250,7 @@ func TestClosePayPeriodCreatesDraftAndAssignsEntries(t *testing.T) {
 				EndTime:               "21:00",
 				BreakMinutes:          15,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -435,7 +435,7 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 				{
 					PayPeriodID:        payPeriodID,
 					TimeEntryID:        uuidPtr(mustUUID("a1a1a1a1-5656-5656-5656-565656565656")),
-					ContractType:       "loondienst",
+					ContractType:       "permanent",
 					AppliedRatePercent: 25,
 					MinutesWorked:      60,
 					BaseAmount:         10,
@@ -453,13 +453,13 @@ func TestGetPayrollMonthSummaryCurrentMonthUsesLiveTotalsEvenWithLockedSnapshot(
 				EndTime:               "22:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
 		},
 		monthPendingEntries: []domain.PayrollMonthPendingEntry{
-			{EmployeeID: employeeID, WorkedMinutes: 30, ContractType: "loondienst"},
+			{EmployeeID: employeeID, WorkedMinutes: 30, ContractType: "permanent"},
 		},
 	}
 
@@ -532,7 +532,7 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 				{
 					PayPeriodID:        payPeriodID,
 					TimeEntryID:        uuidPtr(mustUUID("11111111-7878-7878-7878-787878787878")),
-					ContractType:       "loondienst",
+					ContractType:       "permanent",
 					AppliedRatePercent: 25,
 					MinutesWorked:      120,
 					BaseAmount:         50,
@@ -541,7 +541,7 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 				{
 					PayPeriodID:        payPeriodID,
 					TimeEntryID:        uuidPtr(mustUUID("22222222-7878-7878-7878-787878787878")),
-					ContractType:       "loondienst",
+					ContractType:       "permanent",
 					AppliedRatePercent: 45,
 					MinutesWorked:      90,
 					BaseAmount:         50,
@@ -559,7 +559,7 @@ func TestGetPayrollMonthSummaryPastMonthUsesLockedSnapshot(t *testing.T) {
 				EndTime:               "22:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(1),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -603,8 +603,8 @@ func TestGetPayrollMonthSummaryIncludesPendingOnlyEmployee(t *testing.T) {
 		},
 		monthEmployeeTotalCount: 1,
 		monthPendingEntries: []domain.PayrollMonthPendingEntry{
-			{EmployeeID: employeeID, WorkedMinutes: 120, ContractType: "loondienst"},
-			{EmployeeID: employeeID, WorkedMinutes: 60, ContractType: "loondienst"},
+			{EmployeeID: employeeID, WorkedMinutes: 120, ContractType: "permanent"},
+			{EmployeeID: employeeID, WorkedMinutes: 60, ContractType: "permanent"},
 		},
 	}
 
@@ -648,7 +648,7 @@ func TestGetPayrollMonthSummaryZZPFilterSplitsMixedMonthTotals(t *testing.T) {
 				EndTime:               "22:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -661,13 +661,13 @@ func TestGetPayrollMonthSummaryZZPFilterSplitsMixedMonthTotals(t *testing.T) {
 				EndTime:               "22:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "ZZP",
+				ContractType:          "on_call",
 				ContractRate:          ptrFloat(20),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
 		},
 		monthPendingEntries: []domain.PayrollMonthPendingEntry{
-			{EmployeeID: employeeID, WorkedMinutes: 30, ContractType: "ZZP"},
+			{EmployeeID: employeeID, WorkedMinutes: 30, ContractType: "on_call"},
 		},
 	}
 
@@ -722,7 +722,7 @@ func TestGetPayrollMonthORTOverviewCurrentMonthAggregatesAllFilteredEmployees(t 
 				EndTime:               "14:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -735,7 +735,7 @@ func TestGetPayrollMonthORTOverviewCurrentMonthAggregatesAllFilteredEmployees(t 
 				EndTime:               "12:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
 			},
@@ -748,7 +748,7 @@ func TestGetPayrollMonthORTOverviewCurrentMonthAggregatesAllFilteredEmployees(t 
 				EndTime:               "12:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileRoster,
 			},
@@ -836,7 +836,7 @@ func TestGetPayrollMonthORTOverviewPastMonthUsesLockedSnapshot(t *testing.T) {
 				EndTime:               "14:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -882,7 +882,7 @@ func TestGetPayrollMonthORTOverviewPastMonthFallsBackToLiveWithoutLockedSnapshot
 				EndTime:               "14:00",
 				BreakMinutes:          0,
 				HourType:              domain.TimeEntryHourTypeNormal,
-				ContractType:          "loondienst",
+				ContractType:          "permanent",
 				ContractRate:          ptrFloat(10),
 				IrregularHoursProfile: domain.IrregularHoursProfileNonRoster,
 			},
@@ -955,7 +955,7 @@ func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T)
 				{
 					PayPeriodID:        payPeriodID,
 					TimeEntryID:        &zzpEntryID,
-					ContractType:       "ZZP",
+					ContractType:       "on_call",
 					AppliedRatePercent: 0,
 					MinutesWorked:      120,
 					BaseAmount:         40,
@@ -963,7 +963,7 @@ func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T)
 				{
 					PayPeriodID:        payPeriodID,
 					TimeEntryID:        &loonEntryID,
-					ContractType:       "loondienst",
+					ContractType:       "permanent",
 					AppliedRatePercent: 25,
 					MinutesWorked:      120,
 					BaseAmount:         20,
@@ -989,8 +989,8 @@ func TestGetPayrollMonthDetailFiltersLockedPayPeriodByContractType(t *testing.T)
 	if detail.PayPeriod.GrossAmount != 40 || detail.PayPeriod.IrregularGrossAmount != 0 {
 		t.Fatalf("unexpected filtered pay period totals: %#v", detail.PayPeriod)
 	}
-	if len(detail.PayPeriod.LineItems) != 1 || detail.PayPeriod.LineItems[0].ContractType != "ZZP" {
-		t.Fatalf("expected one ZZP line item, got %#v", detail.PayPeriod.LineItems)
+	if len(detail.PayPeriod.LineItems) != 1 || detail.PayPeriod.LineItems[0].ContractType != "on_call" {
+		t.Fatalf("expected one on-call line item, got %#v", detail.PayPeriod.LineItems)
 	}
 }
 

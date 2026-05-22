@@ -32,12 +32,20 @@ LIMIT 10;
 
 -- name: GetEmployeeCounts :one
 SELECT
-    COUNT(*) FILTER (WHERE contract_type IS DISTINCT FROM 'ZZP') AS total_employees,
-    COUNT(*) FILTER (WHERE contract_type = 'ZZP') AS total_subcontractors,
-    COUNT(*) FILTER (WHERE is_archived = TRUE) AS total_archived,
-    COUNT(*) FILTER (WHERE out_of_service = TRUE) AS total_out_of_service
-FROM
-    employee_profile;
+    COUNT(*) FILTER (WHERE ec.contract_type = 'permanent') AS total_permanent,
+    COUNT(*) FILTER (WHERE ec.contract_type = 'temporary') AS total_temporary,
+    COUNT(*) FILTER (WHERE ec.contract_type = 'on_call') AS total_on_call,
+    COUNT(*) FILTER (WHERE ep.out_of_service = TRUE) AS total_out_of_service
+FROM employee_profile ep
+LEFT JOIN LATERAL (
+    SELECT c.contract_type
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+      AND c.start_date <= CURRENT_DATE
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= CURRENT_DATE)
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON TRUE;
 
 -- name: GetEmployeeDetailStats :one
 WITH ranges AS (

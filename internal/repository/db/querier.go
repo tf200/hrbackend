@@ -118,6 +118,8 @@ type Querier interface {
 	GetGlobalOrganisationCounts(ctx context.Context) (GetGlobalOrganisationCountsRow, error)
 	GetHandbookStepByID(ctx context.Context, id uuid.UUID) (HandbookStep, error)
 	GetHandbookTemplateByID(ctx context.Context, id uuid.UUID) (HandbookTemplate, error)
+	GetLatestEmployeeContractDetail(ctx context.Context, employeeID uuid.UUID) (GetLatestEmployeeContractDetailRow, error)
+	GetLatestEmployeeSalaryAssignmentDetail(ctx context.Context, employeeID uuid.UUID) (GetLatestEmployeeSalaryAssignmentDetailRow, error)
 	GetLeaveRequestStats(ctx context.Context) (GetLeaveRequestStatsRow, error)
 	GetLocation(ctx context.Context, id uuid.UUID) (Location, error)
 	GetMyCurrentMonthTimeEntryStats(ctx context.Context, employeeID uuid.UUID) (GetMyCurrentMonthTimeEntryStatsRow, error)

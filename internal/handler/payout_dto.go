@@ -60,7 +60,7 @@ type payrollMonthSummaryRequest struct {
 type payrollMonthDetailRequest struct {
 	EmployeeID   string  `form:"employee_id"   binding:"required"`
 	Month        string  `form:"month"         binding:"required,datetime=2006-01"`
-	ContractType *string `form:"contract_type" binding:"omitempty,oneof=loondienst ZZP"`
+	ContractType *string `form:"contract_type" binding:"omitempty,oneof=loondienst ZZP permanent temporary on_call"`
 }
 
 type previewPayrollRequest struct {
@@ -674,14 +674,14 @@ func normalizePayrollContractType(value *string) (*string, error) {
 
 	normalized := strings.ToLower(strings.TrimSpace(*value))
 	switch normalized {
-	case "loondienst":
+	case "loondienst", "permanent", "temporary":
 		value := "LOONDIENST"
 		return &value, nil
-	case "zzp":
+	case "zzp", "on_call":
 		value := "ZZP"
 		return &value, nil
 	default:
-		return nil, fmt.Errorf("invalid contract_type, expected loondienst or ZZP")
+		return nil, fmt.Errorf("invalid contract_type, expected loondienst, ZZP, permanent, temporary, or on_call")
 	}
 }
 
@@ -891,7 +891,7 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 	// Actions
 	hasData := (data.PayPeriod != nil && len(data.PayPeriod.LineItems) > 0) ||
 		(data.Preview != nil && len(data.Preview.LineItems) > 0)
-	canRequest := data.ContractType == "loondienst" && data.ExtraLeaveRemaining > 0
+	canRequest := isLoondienstContractType(data.ContractType) && data.ExtraLeaveRemaining > 0
 	pdfURL := fmt.Sprintf("/api/payouts/detail/pdf?month=%s", monthStr)
 
 	return &salaryPageResponse{
@@ -936,7 +936,7 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 			GrossAmount:            totalGross,
 		},
 		ORT: salaryPageORTResponse{
-			Applies: data.ContractType == "loondienst",
+			Applies: isLoondienstContractType(data.ContractType),
 			Profile: data.IrregularHoursProfile,
 			Buckets: ortBuckets,
 		},
@@ -955,12 +955,23 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 // Salary page helper functions
 // ---------------------------------------------------------------------------
 
+func isLoondienstContractType(ct string) bool {
+	switch strings.ToLower(strings.TrimSpace(ct)) {
+	case "permanent", "temporary":
+		return true
+	default:
+		return false
+	}
+}
+
 func contractTypeLabel(ct string) string {
 	switch strings.ToLower(strings.TrimSpace(ct)) {
-	case "loondienst":
-		return "Loondienst"
-	case "zzp":
-		return "ZZP"
+	case "loondienst", "permanent":
+		return "Permanent"
+	case "temporary":
+		return "Temporary"
+	case "zzp", "on_call":
+		return "On-call"
 	default:
 		return ct
 	}
@@ -1223,7 +1234,7 @@ func buildSalaryPagePendingEntries(items []domain.PayrollPendingEntryDetail) []s
 }
 
 func buildSalaryPageLeavePayout(data *domain.SalaryPageData) salaryPageLeavePayoutResponse {
-	applies := data.ContractType == "loondienst"
+	applies := isLoondienstContractType(data.ContractType)
 	canRequest := applies && data.ExtraLeaveRemaining > 0
 
 	var availPtr *int32

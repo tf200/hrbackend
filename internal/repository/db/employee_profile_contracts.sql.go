@@ -108,3 +108,151 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 	)
 	return i, err
 }
+
+const getLatestEmployeeContractDetail = `-- name: GetLatestEmployeeContractDetail :one
+SELECT
+    ec.id,
+    ec.employee_id,
+    ec.job_title,
+    ec.department_id,
+    d.name AS department_name,
+    ec.location_id,
+    concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address,
+    ec.organizational_role_id,
+    org_role.name AS organizational_role_name,
+    ec.contract_type,
+    ec.contract_hours_type,
+    ec.start_date,
+    ec.contract_end_date,
+    ec.hours_per_week,
+    ec.min_hours_per_week,
+    ec.max_hours_per_week,
+    ec.roster_free_day,
+    ec.wage_tax_table,
+    ec.created_at,
+    ec.updated_at
+FROM employee_contracts ec
+JOIN departments d ON d.id = ec.department_id
+JOIN location l ON l.id = ec.location_id
+LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
+WHERE ec.employee_id = $1
+ORDER BY ec.start_date DESC, ec.created_at DESC
+LIMIT 1
+`
+
+type GetLatestEmployeeContractDetailRow struct {
+	ID                     uuid.UUID                `json:"id"`
+	EmployeeID             uuid.UUID                `json:"employee_id"`
+	JobTitle               EmployeeJobTitleEnum     `json:"job_title"`
+	DepartmentID           uuid.UUID                `json:"department_id"`
+	DepartmentName         string                   `json:"department_name"`
+	LocationID             uuid.UUID                `json:"location_id"`
+	LocationAddress        string                   `json:"location_address"`
+	OrganizationalRoleID   *uuid.UUID               `json:"organizational_role_id"`
+	OrganizationalRoleName *string                  `json:"organizational_role_name"`
+	ContractType           EmployeeContractTypeEnum `json:"contract_type"`
+	ContractHoursType      ContractHoursTypeEnum    `json:"contract_hours_type"`
+	StartDate              pgtype.Date              `json:"start_date"`
+	ContractEndDate        pgtype.Date              `json:"contract_end_date"`
+	HoursPerWeek           *float64                 `json:"hours_per_week"`
+	MinHoursPerWeek        *float64                 `json:"min_hours_per_week"`
+	MaxHoursPerWeek        *float64                 `json:"max_hours_per_week"`
+	RosterFreeDay          *int16                   `json:"roster_free_day"`
+	WageTaxTable           *WageTaxTableEnum        `json:"wage_tax_table"`
+	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz       `json:"updated_at"`
+}
+
+func (q *Queries) GetLatestEmployeeContractDetail(ctx context.Context, employeeID uuid.UUID) (GetLatestEmployeeContractDetailRow, error) {
+	row := q.db.QueryRow(ctx, getLatestEmployeeContractDetail, employeeID)
+	var i GetLatestEmployeeContractDetailRow
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.JobTitle,
+		&i.DepartmentID,
+		&i.DepartmentName,
+		&i.LocationID,
+		&i.LocationAddress,
+		&i.OrganizationalRoleID,
+		&i.OrganizationalRoleName,
+		&i.ContractType,
+		&i.ContractHoursType,
+		&i.StartDate,
+		&i.ContractEndDate,
+		&i.HoursPerWeek,
+		&i.MinHoursPerWeek,
+		&i.MaxHoursPerWeek,
+		&i.RosterFreeDay,
+		&i.WageTaxTable,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getLatestEmployeeSalaryAssignmentDetail = `-- name: GetLatestEmployeeSalaryAssignmentDetail :one
+SELECT
+    esa.id,
+    esa.employee_id,
+    esa.contract_id,
+    esa.salary_scale_step_id,
+    cst.cao_code,
+    cst.name AS salary_table_name,
+    css.scale,
+    css.step,
+    css.ip_number,
+    css.monthly_salary,
+    css.hourly_rate,
+    esa.effective_from,
+    esa.effective_to,
+    esa.created_at,
+    esa.updated_at
+FROM employee_salary_assignments esa
+JOIN cao_salary_scale_steps css ON css.id = esa.salary_scale_step_id
+JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+WHERE esa.employee_id = $1
+ORDER BY esa.effective_from DESC, esa.created_at DESC
+LIMIT 1
+`
+
+type GetLatestEmployeeSalaryAssignmentDetailRow struct {
+	ID                uuid.UUID          `json:"id"`
+	EmployeeID        uuid.UUID          `json:"employee_id"`
+	ContractID        *uuid.UUID         `json:"contract_id"`
+	SalaryScaleStepID uuid.UUID          `json:"salary_scale_step_id"`
+	CaoCode           string             `json:"cao_code"`
+	SalaryTableName   string             `json:"salary_table_name"`
+	Scale             int32              `json:"scale"`
+	Step              string             `json:"step"`
+	IpNumber          *int32             `json:"ip_number"`
+	MonthlySalary     float64            `json:"monthly_salary"`
+	HourlyRate        float64            `json:"hourly_rate"`
+	EffectiveFrom     pgtype.Date        `json:"effective_from"`
+	EffectiveTo       pgtype.Date        `json:"effective_to"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetLatestEmployeeSalaryAssignmentDetail(ctx context.Context, employeeID uuid.UUID) (GetLatestEmployeeSalaryAssignmentDetailRow, error) {
+	row := q.db.QueryRow(ctx, getLatestEmployeeSalaryAssignmentDetail, employeeID)
+	var i GetLatestEmployeeSalaryAssignmentDetailRow
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ContractID,
+		&i.SalaryScaleStepID,
+		&i.CaoCode,
+		&i.SalaryTableName,
+		&i.Scale,
+		&i.Step,
+		&i.IpNumber,
+		&i.MonthlySalary,
+		&i.HourlyRate,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

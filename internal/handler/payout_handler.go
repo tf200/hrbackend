@@ -314,7 +314,7 @@ func (h *PayoutHandler) GetZZPPayrollMonthSummary(ctx *gin.Context) {
 		return
 	}
 
-	contractType := "ZZP"
+	contractType := "on_call"
 	params.ContractType = &contractType
 
 	page, err := h.service.GetPayrollMonthSummary(ctx.Request.Context(), params)
@@ -329,7 +329,7 @@ func (h *PayoutHandler) GetZZPPayrollMonthSummary(ctx *gin.Context) {
 		toPayrollMonthSummaryResponses(page.Items),
 		page.TotalCount,
 	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "ZZP payroll month summary retrieved successfully"))
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "On-call payroll month summary retrieved successfully"))
 }
 
 func (h *PayoutHandler) GetPayrollMonthDetail(ctx *gin.Context) {

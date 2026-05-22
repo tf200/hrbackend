@@ -148,11 +148,11 @@ WITH current_month AS (
 SELECT
     cm.month_start,
     COALESCE(
-        SUM(base_amount) FILTER (WHERE contract_type = 'loondienst'::employee_contract_type_enum),
+        SUM(base_amount) FILTER (WHERE contract_type IN ('permanent'::employee_contract_type_enum, 'temporary'::employee_contract_type_enum)),
         0
     )::double precision AS salary_total,
     COALESCE(
-        SUM(base_amount + premium_amount) FILTER (WHERE contract_type = 'ZZP'::employee_contract_type_enum),
+        SUM(base_amount + premium_amount) FILTER (WHERE contract_type = 'on_call'::employee_contract_type_enum),
         0
     )::double precision AS zzp_total,
     COALESCE(SUM(premium_amount), 0)::double precision AS ort_total

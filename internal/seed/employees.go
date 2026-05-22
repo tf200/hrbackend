@@ -36,8 +36,32 @@ type EmployeeSeed struct {
 	RoleName           *string
 	PrivatePhoneNumber *string
 	WorkPhoneNumber    *string
-	Contract           *domain.CreateEmployeeContractParams
-	SalaryAssignment   *domain.CreateEmployeeSalaryAssignmentParams
+	Contract           *EmployeeContractSeed
+	SalaryAssignment   *EmployeeSalaryAssignmentSeed
+}
+
+type EmployeeContractSeed struct {
+	JobTitle               string
+	DepartmentAlias        string
+	LocationAlias          string
+	OrganizationalRoleName *string
+	ContractType           string
+	ContractHoursType      string
+	StartDate              time.Time
+	ContractEndDate        *time.Time
+	HoursPerWeek           *float64
+	MinHoursPerWeek        *float64
+	MaxHoursPerWeek        *float64
+	RosterFreeDay          *int16
+	WageTaxTable           *string
+}
+
+type EmployeeSalaryAssignmentSeed struct {
+	CAOCode       string
+	Scale         int
+	Step          string
+	EffectiveFrom *time.Time
+	EffectiveTo   *time.Time
 }
 
 type EmployeesSeeder struct {
@@ -109,6 +133,9 @@ func (s EmployeesSeeder) Seed(ctx context.Context, env Env) error {
 		}
 
 		if err := seedEmployeeDetails(seedCtx, env, employeeID, item); err != nil {
+			return fmt.Errorf("seed employees[%s]: %w", item.Alias, err)
+		}
+		if err := ensureEmployeeContractAndSalary(seedCtx, env, employeeID, item); err != nil {
 			return fmt.Errorf("seed employees[%s]: %w", item.Alias, err)
 		}
 
@@ -183,8 +210,6 @@ func ensureEmployee(
 			RoleID:              resolvedRoleID,
 			UserEmail:           item.UserEmail,
 			UserPassword:        item.UserPassword,
-			Contract:            item.Contract,
-			SalaryAssignment:    item.SalaryAssignment,
 		})
 		if err != nil {
 			return uuid.Nil, uuid.Nil, fmt.Errorf("create employee via service: %w", err)
@@ -347,6 +372,125 @@ func seedEmployeeDetails(ctx context.Context, env Env, employeeID uuid.UUID, ite
 	return nil
 }
 
+func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uuid.UUID, item EmployeeSeed) error {
+	if item.Contract == nil {
+		return nil
+	}
+
+	departmentID, ok := env.State.DepartmentID(item.Contract.DepartmentAlias)
+	if !ok {
+		return fmt.Errorf("contract department alias %q not found in seed state", item.Contract.DepartmentAlias)
+	}
+	locationID, ok := env.State.LocationID(item.Contract.LocationAlias)
+	if !ok {
+		return fmt.Errorf("contract location alias %q not found in seed state", item.Contract.LocationAlias)
+	}
+
+	var organizationalRoleID *uuid.UUID
+	if item.Contract.OrganizationalRoleName != nil && strings.TrimSpace(*item.Contract.OrganizationalRoleName) != "" {
+		var id uuid.UUID
+		if err := env.DB.QueryRow(ctx, `SELECT id FROM organizational_roles WHERE name = $1`, strings.TrimSpace(*item.Contract.OrganizationalRoleName)).Scan(&id); err != nil {
+			return fmt.Errorf("resolve organizational role %q: %w", *item.Contract.OrganizationalRoleName, err)
+		}
+		organizationalRoleID = &id
+	}
+
+	var contractID uuid.UUID
+	err := env.DB.QueryRow(ctx, `
+		INSERT INTO employee_contracts (
+			employee_id,
+			job_title,
+			department_id,
+			location_id,
+			organizational_role_id,
+			contract_type,
+			contract_hours_type,
+			start_date,
+			contract_end_date,
+			hours_per_week,
+			min_hours_per_week,
+			max_hours_per_week,
+			roster_free_day,
+			wage_tax_table
+		)
+		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7::contract_hours_type_enum, $8, $9, $10, $11, $12, $13, $14::wage_tax_table_enum)
+		ON CONFLICT (employee_id, start_date) DO UPDATE
+		SET
+			job_title = EXCLUDED.job_title,
+			department_id = EXCLUDED.department_id,
+			location_id = EXCLUDED.location_id,
+			organizational_role_id = EXCLUDED.organizational_role_id,
+			contract_type = EXCLUDED.contract_type,
+			contract_hours_type = EXCLUDED.contract_hours_type,
+			contract_end_date = EXCLUDED.contract_end_date,
+			hours_per_week = EXCLUDED.hours_per_week,
+			min_hours_per_week = EXCLUDED.min_hours_per_week,
+			max_hours_per_week = EXCLUDED.max_hours_per_week,
+			roster_free_day = EXCLUDED.roster_free_day,
+			wage_tax_table = EXCLUDED.wage_tax_table,
+			updated_at = CURRENT_TIMESTAMP
+		RETURNING id
+	`, employeeID, item.Contract.JobTitle, departmentID, locationID, organizationalRoleID,
+		item.Contract.ContractType, item.Contract.ContractHoursType, item.Contract.StartDate,
+		item.Contract.ContractEndDate, item.Contract.HoursPerWeek, item.Contract.MinHoursPerWeek,
+		item.Contract.MaxHoursPerWeek, item.Contract.RosterFreeDay, item.Contract.WageTaxTable).Scan(&contractID)
+	if err != nil {
+		return fmt.Errorf("upsert employee contract: %w", err)
+	}
+
+	if item.SalaryAssignment == nil {
+		return nil
+	}
+
+	caoCode := strings.TrimSpace(item.SalaryAssignment.CAOCode)
+	if caoCode == "" {
+		caoCode = "CAO_JEUGDZORG"
+	}
+	effectiveFrom := item.SalaryAssignment.EffectiveFrom
+	if effectiveFrom == nil {
+		effectiveFrom = &item.Contract.StartDate
+	}
+
+	var salaryScaleStepID uuid.UUID
+	if err := env.DB.QueryRow(ctx, `
+		SELECT css.id
+		FROM cao_salary_scale_steps css
+		JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+		WHERE cst.cao_code = $1
+		  AND css.scale = $2
+		  AND css.step = $3
+		  AND cst.effective_from <= $4
+		  AND (cst.effective_to IS NULL OR cst.effective_to > $4)
+		ORDER BY cst.effective_from DESC
+		LIMIT 1
+	`, caoCode, item.SalaryAssignment.Scale, item.SalaryAssignment.Step, *effectiveFrom).Scan(&salaryScaleStepID); err != nil {
+		return fmt.Errorf("resolve salary scale step %s scale %d step %s: %w", caoCode, item.SalaryAssignment.Scale, item.SalaryAssignment.Step, err)
+	}
+
+	if _, err := env.DB.Exec(ctx, `
+		DELETE FROM employee_salary_assignments
+		WHERE employee_id = $1 AND effective_from = $2
+	`, employeeID, effectiveFrom); err != nil {
+		return fmt.Errorf("reset salary assignment: %w", err)
+	}
+
+	_, err = env.DB.Exec(ctx, `
+		INSERT INTO employee_salary_assignments (
+			employee_id,
+			contract_id,
+			salary_scale_step_id,
+			effective_from,
+			effective_to
+		)
+		VALUES ($1, $2, $3, $4, $5)
+	`, employeeID, contractID, salaryScaleStepID, effectiveFrom, item.SalaryAssignment.EffectiveTo)
+	if err != nil {
+		return fmt.Errorf("insert salary assignment: %w", err)
+	}
+
+	return nil
+}
+
 func randomFrom(values []string) string {
 	return values[gofakeit.Number(0, len(values)-1)]
 }
@@ -354,5 +498,3 @@ func randomFrom(values []string) string {
 func strPtr(value string) *string {
 	return &value
 }
-
-

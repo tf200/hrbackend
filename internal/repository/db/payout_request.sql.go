@@ -131,18 +131,38 @@ func (q *Queries) CreatePayoutRequest(ctx context.Context, arg CreatePayoutReque
 }
 
 const getEmployeePayoutContract = `-- name: GetEmployeePayoutContract :one
+WITH latest_contract AS (
+    SELECT
+        ec.id,
+        ec.contract_type
+    FROM employee_contracts ec
+    WHERE ec.employee_id = $1
+    ORDER BY ec.start_date DESC, ec.created_at DESC
+    LIMIT 1
+)
 SELECT
-    contract_type,
-    NULL::numeric AS contract_rate
-FROM employee_contracts
-WHERE employee_id = $1
-ORDER BY start_date DESC, created_at DESC
-LIMIT 1
+    lc.contract_type,
+    css.hourly_rate::double precision AS contract_rate
+FROM latest_contract lc
+JOIN LATERAL (
+    SELECT esa.salary_scale_step_id
+    FROM employee_salary_assignments esa
+    WHERE esa.employee_id = $1
+      AND (esa.contract_id IS NULL OR esa.contract_id = lc.id)
+      AND esa.effective_from <= CURRENT_DATE
+      AND (esa.effective_to IS NULL OR esa.effective_to > CURRENT_DATE)
+    ORDER BY
+      (esa.contract_id = lc.id) DESC,
+      esa.effective_from DESC,
+      esa.created_at DESC
+    LIMIT 1
+) latest_salary ON TRUE
+JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
 `
 
 type GetEmployeePayoutContractRow struct {
 	ContractType EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate *float64                 `json:"contract_rate"`
+	ContractRate float64                  `json:"contract_rate"`
 }
 
 func (q *Queries) GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (GetEmployeePayoutContractRow, error) {

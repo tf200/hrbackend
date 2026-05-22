@@ -95,6 +95,47 @@ type EmployeeDetail struct {
 	HoursPendingApproval       float64
 	TotalHoursWorkedThisYear   float64
 	LastPerformanceReviewScore *float64
+	Contract                   *EmployeeContractDetail
+	SalaryAssignment           *EmployeeSalaryAssignmentDetail
+}
+
+type EmployeeContractDetail struct {
+	ID                     uuid.UUID
+	JobTitle               string
+	DepartmentID           uuid.UUID
+	DepartmentName         *string
+	LocationID             uuid.UUID
+	LocationAddress        *string
+	OrganizationalRoleID   *uuid.UUID
+	OrganizationalRoleName *string
+	ContractType           string
+	ContractHoursType      string
+	StartDate              time.Time
+	ContractEndDate        *time.Time
+	HoursPerWeek           *float64
+	MinHoursPerWeek        *float64
+	MaxHoursPerWeek        *float64
+	RosterFreeDay          *int16
+	WageTaxTable           *string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+type EmployeeSalaryAssignmentDetail struct {
+	ID                uuid.UUID
+	ContractID        *uuid.UUID
+	SalaryScaleStepID uuid.UUID
+	CAOCode           string
+	SalaryTableName   string
+	Scale             int32
+	Step              string
+	IPNumber          *int32
+	MonthlySalary     float64
+	HourlyRate        float64
+	EffectiveFrom     time.Time
+	EffectiveTo       *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // Portal access types for frontend routing.
@@ -134,10 +175,10 @@ type Permission struct {
 
 // EmployeeCounts is the domain struct for employee count statistics.
 type EmployeeCounts struct {
-	TotalEmployees      int64
-	TotalSubcontractors int64
-	TotalArchived       int64
-	TotalOutOfService   int64
+	TotalPermanent    int64
+	TotalTemporary    int64
+	TotalOnCall       int64
+	TotalOutOfService int64
 }
 
 // EmployeeSearchResult is the domain struct for search results.

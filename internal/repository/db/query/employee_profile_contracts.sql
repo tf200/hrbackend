@@ -34,4 +34,57 @@ INSERT INTO employee_contracts (
 )
 RETURNING *;
 
+-- name: GetLatestEmployeeContractDetail :one
+SELECT
+    ec.id,
+    ec.employee_id,
+    ec.job_title,
+    ec.department_id,
+    d.name AS department_name,
+    ec.location_id,
+    concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address,
+    ec.organizational_role_id,
+    org_role.name AS organizational_role_name,
+    ec.contract_type,
+    ec.contract_hours_type,
+    ec.start_date,
+    ec.contract_end_date,
+    ec.hours_per_week,
+    ec.min_hours_per_week,
+    ec.max_hours_per_week,
+    ec.roster_free_day,
+    ec.wage_tax_table,
+    ec.created_at,
+    ec.updated_at
+FROM employee_contracts ec
+JOIN departments d ON d.id = ec.department_id
+JOIN location l ON l.id = ec.location_id
+LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
+WHERE ec.employee_id = $1
+ORDER BY ec.start_date DESC, ec.created_at DESC
+LIMIT 1;
+
+-- name: GetLatestEmployeeSalaryAssignmentDetail :one
+SELECT
+    esa.id,
+    esa.employee_id,
+    esa.contract_id,
+    esa.salary_scale_step_id,
+    cst.cao_code,
+    cst.name AS salary_table_name,
+    css.scale,
+    css.step,
+    css.ip_number,
+    css.monthly_salary,
+    css.hourly_rate,
+    esa.effective_from,
+    esa.effective_to,
+    esa.created_at,
+    esa.updated_at
+FROM employee_salary_assignments esa
+JOIN cao_salary_scale_steps css ON css.id = esa.salary_scale_step_id
+JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+WHERE esa.employee_id = $1
+ORDER BY esa.effective_from DESC, esa.created_at DESC
+LIMIT 1;
 

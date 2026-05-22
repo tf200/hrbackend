@@ -145,48 +145,89 @@ type resetPasswordResponse struct {
 }
 
 type employeeDetailResponse struct {
-	ID                         uuid.UUID  `json:"id"`
-	UserID                     uuid.UUID  `json:"user_id"`
-	FirstName                  string     `json:"first_name"`
-	LastName                   string     `json:"last_name"`
-	Bsn                        string     `json:"bsn"`
-	Street                     string     `json:"street"`
-	HouseNumber                string     `json:"house_number"`
-	HouseNumberAddition        *string    `json:"house_number_addition"`
-	PostalCode                 string     `json:"postal_code"`
-	City                       string     `json:"city"`
-	Position                   *string    `json:"position"`
-	EmployeeNumber             *string    `json:"employee_number"`
-	EmploymentNumber           *string    `json:"employment_number"`
-	PrivateEmailAddress        *string    `json:"private_email_address"`
-	WorkEmailAddress           *string    `json:"work_email_address"`
-	PrivatePhoneNumber         *string    `json:"private_phone_number"`
-	WorkPhoneNumber            *string    `json:"work_phone_number"`
-	DateOfBirth                *time.Time `json:"date_of_birth"`
-	HomeTelephoneNumber        *string    `json:"home_telephone_number"`
-	CreatedAt                  time.Time  `json:"created_at"`
-	Gender                     string     `json:"gender"`
-	LocationID                 *uuid.UUID `json:"location_id"`
-	DepartmentID               *uuid.UUID `json:"department_id"`
-	ManagerEmployeeID          *uuid.UUID `json:"manager_employee_id"`
-	HasBorrowed                bool       `json:"has_borrowed"`
-	OutOfService               *bool      `json:"out_of_service"`
-	IsArchived                 bool       `json:"is_archived"`
-	ContractHours              *float64   `json:"contract_hours"`
-	ContractEndDate            *time.Time `json:"contract_end_date"`
-	ContractStartDate          *time.Time `json:"contract_start_date"`
-	ContractType               string     `json:"contract_type"`
-	ContractRate               *float64   `json:"contract_rate"`
-	IrregularHoursProfile      string     `json:"irregular_hours_profile"`
-	ProfilePicture             *string    `json:"profile_picture"`
-	DepartmentName             *string    `json:"department_name"`
-	ManagerFirstName           *string    `json:"manager_first_name"`
-	ManagerLastName            *string    `json:"manager_last_name"`
-	RemainingLeaveBalanceHours int32      `json:"remaining_leave_balance_hours"`
-	HoursWorkedThisMonth       float64    `json:"hours_worked_this_month"`
-	HoursPendingApproval       float64    `json:"hours_pending_approval"`
-	TotalHoursWorkedThisYear   float64    `json:"total_hours_worked_this_year"`
-	LastPerformanceReviewScore *float64   `json:"last_performance_review_score"`
+	ID                         uuid.UUID                               `json:"id"`
+	UserID                     uuid.UUID                               `json:"user_id"`
+	FirstName                  string                                  `json:"first_name"`
+	LastName                   string                                  `json:"last_name"`
+	Bsn                        string                                  `json:"bsn"`
+	Street                     string                                  `json:"street"`
+	HouseNumber                string                                  `json:"house_number"`
+	HouseNumberAddition        *string                                 `json:"house_number_addition"`
+	PostalCode                 string                                  `json:"postal_code"`
+	City                       string                                  `json:"city"`
+	Position                   *string                                 `json:"position"`
+	EmployeeNumber             *string                                 `json:"employee_number"`
+	EmploymentNumber           *string                                 `json:"employment_number"`
+	PrivateEmailAddress        *string                                 `json:"private_email_address"`
+	WorkEmailAddress           *string                                 `json:"work_email_address"`
+	PrivatePhoneNumber         *string                                 `json:"private_phone_number"`
+	WorkPhoneNumber            *string                                 `json:"work_phone_number"`
+	DateOfBirth                *time.Time                              `json:"date_of_birth"`
+	HomeTelephoneNumber        *string                                 `json:"home_telephone_number"`
+	CreatedAt                  time.Time                               `json:"created_at"`
+	Gender                     string                                  `json:"gender"`
+	LocationID                 *uuid.UUID                              `json:"location_id"`
+	DepartmentID               *uuid.UUID                              `json:"department_id"`
+	ManagerEmployeeID          *uuid.UUID                              `json:"manager_employee_id"`
+	HasBorrowed                bool                                    `json:"has_borrowed"`
+	OutOfService               *bool                                   `json:"out_of_service"`
+	IsArchived                 bool                                    `json:"is_archived"`
+	ContractHours              *float64                                `json:"contract_hours"`
+	ContractEndDate            *time.Time                              `json:"contract_end_date"`
+	ContractStartDate          *time.Time                              `json:"contract_start_date"`
+	ContractType               string                                  `json:"contract_type"`
+	ContractRate               *float64                                `json:"contract_rate"`
+	IrregularHoursProfile      string                                  `json:"irregular_hours_profile"`
+	ProfilePicture             *string                                 `json:"profile_picture"`
+	DepartmentName             *string                                 `json:"department_name"`
+	ManagerFirstName           *string                                 `json:"manager_first_name"`
+	ManagerLastName            *string                                 `json:"manager_last_name"`
+	RemainingLeaveBalanceHours int32                                   `json:"remaining_leave_balance_hours"`
+	HoursWorkedThisMonth       float64                                 `json:"hours_worked_this_month"`
+	HoursPendingApproval       float64                                 `json:"hours_pending_approval"`
+	TotalHoursWorkedThisYear   float64                                 `json:"total_hours_worked_this_year"`
+	LastPerformanceReviewScore *float64                                `json:"last_performance_review_score"`
+	Contract                   *employeeContractDetailResponse         `json:"contract"`
+	SalaryAssignment           *employeeSalaryAssignmentDetailResponse `json:"salary_assignment"`
+}
+
+type employeeContractDetailResponse struct {
+	ID                     uuid.UUID  `json:"id"`
+	JobTitle               string     `json:"job_title"`
+	DepartmentID           uuid.UUID  `json:"department_id"`
+	DepartmentName         *string    `json:"department_name"`
+	LocationID             uuid.UUID  `json:"location_id"`
+	LocationAddress        *string    `json:"location_address"`
+	OrganizationalRoleID   *uuid.UUID `json:"organizational_role_id"`
+	OrganizationalRoleName *string    `json:"organizational_role_name"`
+	ContractType           string     `json:"contract_type"`
+	ContractHoursType      string     `json:"contract_hours_type"`
+	StartDate              time.Time  `json:"start_date"`
+	ContractEndDate        *time.Time `json:"contract_end_date"`
+	HoursPerWeek           *float64   `json:"hours_per_week"`
+	MinHoursPerWeek        *float64   `json:"min_hours_per_week"`
+	MaxHoursPerWeek        *float64   `json:"max_hours_per_week"`
+	RosterFreeDay          *int16     `json:"roster_free_day"`
+	WageTaxTable           *string    `json:"wage_tax_table"`
+	CreatedAt              time.Time  `json:"created_at"`
+	UpdatedAt              time.Time  `json:"updated_at"`
+}
+
+type employeeSalaryAssignmentDetailResponse struct {
+	ID                uuid.UUID  `json:"id"`
+	ContractID        *uuid.UUID `json:"contract_id"`
+	SalaryScaleStepID uuid.UUID  `json:"salary_scale_step_id"`
+	CAOCode           string     `json:"cao_code"`
+	SalaryTableName   string     `json:"salary_table_name"`
+	Scale             int32      `json:"scale"`
+	Step              string     `json:"step"`
+	IPNumber          *int32     `json:"ip_number"`
+	MonthlySalary     float64    `json:"monthly_salary"`
+	HourlyRate        float64    `json:"hourly_rate"`
+	EffectiveFrom     time.Time  `json:"effective_from"`
+	EffectiveTo       *time.Time `json:"effective_to"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 type employeeListItemResponse struct {
@@ -222,10 +263,10 @@ type employeeProfileResponse struct {
 }
 
 type employeeCountsResponse struct {
-	TotalEmployees      int64 `json:"total_employees"`
-	TotalSubcontractors int64 `json:"total_subcontractors"`
-	TotalArchived       int64 `json:"total_archived"`
-	TotalOutOfService   int64 `json:"total_out_of_service"`
+	TotalPermanent    int64 `json:"total_permanent"`
+	TotalTemporary    int64 `json:"total_temporary"`
+	TotalOnCall       int64 `json:"total_on_call"`
+	TotalOutOfService int64 `json:"total_out_of_service"`
 }
 
 type setProfilePictureResponse struct {
@@ -512,6 +553,57 @@ func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse
 		HoursPendingApproval:       emp.HoursPendingApproval,
 		TotalHoursWorkedThisYear:   emp.TotalHoursWorkedThisYear,
 		LastPerformanceReviewScore: emp.LastPerformanceReviewScore,
+		Contract:                   toEmployeeContractDetailResponse(emp.Contract),
+		SalaryAssignment:           toEmployeeSalaryAssignmentDetailResponse(emp.SalaryAssignment),
+	}
+}
+
+func toEmployeeContractDetailResponse(contract *domain.EmployeeContractDetail) *employeeContractDetailResponse {
+	if contract == nil {
+		return nil
+	}
+	return &employeeContractDetailResponse{
+		ID:                     contract.ID,
+		JobTitle:               contract.JobTitle,
+		DepartmentID:           contract.DepartmentID,
+		DepartmentName:         contract.DepartmentName,
+		LocationID:             contract.LocationID,
+		LocationAddress:        contract.LocationAddress,
+		OrganizationalRoleID:   contract.OrganizationalRoleID,
+		OrganizationalRoleName: contract.OrganizationalRoleName,
+		ContractType:           contract.ContractType,
+		ContractHoursType:      contract.ContractHoursType,
+		StartDate:              contract.StartDate,
+		ContractEndDate:        contract.ContractEndDate,
+		HoursPerWeek:           contract.HoursPerWeek,
+		MinHoursPerWeek:        contract.MinHoursPerWeek,
+		MaxHoursPerWeek:        contract.MaxHoursPerWeek,
+		RosterFreeDay:          contract.RosterFreeDay,
+		WageTaxTable:           contract.WageTaxTable,
+		CreatedAt:              contract.CreatedAt,
+		UpdatedAt:              contract.UpdatedAt,
+	}
+}
+
+func toEmployeeSalaryAssignmentDetailResponse(salary *domain.EmployeeSalaryAssignmentDetail) *employeeSalaryAssignmentDetailResponse {
+	if salary == nil {
+		return nil
+	}
+	return &employeeSalaryAssignmentDetailResponse{
+		ID:                salary.ID,
+		ContractID:        salary.ContractID,
+		SalaryScaleStepID: salary.SalaryScaleStepID,
+		CAOCode:           salary.CAOCode,
+		SalaryTableName:   salary.SalaryTableName,
+		Scale:             salary.Scale,
+		Step:              salary.Step,
+		IPNumber:          salary.IPNumber,
+		MonthlySalary:     salary.MonthlySalary,
+		HourlyRate:        salary.HourlyRate,
+		EffectiveFrom:     salary.EffectiveFrom,
+		EffectiveTo:       salary.EffectiveTo,
+		CreatedAt:         salary.CreatedAt,
+		UpdatedAt:         salary.UpdatedAt,
 	}
 }
 
@@ -556,10 +648,10 @@ func toEmployeeProfileResponse(profile *domain.EmployeeProfile) employeeProfileR
 
 func toEmployeeCountsResponse(counts *domain.EmployeeCounts) employeeCountsResponse {
 	return employeeCountsResponse{
-		TotalEmployees:      counts.TotalEmployees,
-		TotalSubcontractors: counts.TotalSubcontractors,
-		TotalArchived:       counts.TotalArchived,
-		TotalOutOfService:   counts.TotalOutOfService,
+		TotalPermanent:    counts.TotalPermanent,
+		TotalTemporary:    counts.TotalTemporary,
+		TotalOnCall:       counts.TotalOnCall,
+		TotalOutOfService: counts.TotalOutOfService,
 	}
 }
 

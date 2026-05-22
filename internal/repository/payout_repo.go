@@ -754,9 +754,10 @@ func (r *payoutTxRepo) GetEmployeePayoutContract(
 		return nil, err
 	}
 
+	contractRate := row.ContractRate
 	return &domain.PayoutContract{
 		ContractType: string(row.ContractType),
-		ContractRate: row.ContractRate,
+		ContractRate: &contractRate,
 	}, nil
 }
 
@@ -975,6 +976,7 @@ func (r *payoutTxRepo) LockPayrollPreviewTimeEntries(
 
 	items := make([]domain.PayrollPreviewTimeEntry, 0, len(rows))
 	for _, row := range rows {
+		contractRate := row.ContractRate
 		items = append(items, domain.PayrollPreviewTimeEntry{
 			ID:                    row.ID,
 			EmployeeID:            row.EmployeeID,
@@ -985,8 +987,8 @@ func (r *payoutTxRepo) LockPayrollPreviewTimeEntries(
 			BreakMinutes:          row.BreakMinutes,
 			HourType:              string(row.HourType),
 			ContractType:          string(row.ContractType),
-			ContractRate:          row.ContractRate,
-			IrregularHoursProfile: nilStringOrEmpty(row.IrregularHoursProfile),
+			ContractRate:          &contractRate,
+			IrregularHoursProfile: row.IrregularHoursProfile,
 		})
 	}
 

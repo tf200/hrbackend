@@ -24,6 +24,7 @@ type seedConfig struct {
 	Profile                     seed.AppOrganizationProfileDefaults
 	NationalHolidays            []seed.NationalHolidaySeed
 	Organizations               []seed.OrganizationSeed
+	SalaryTables                []seed.SalaryTableSeed
 	Locations                   []seed.LocationSeed
 	Departments                 []seed.DepartmentSeed
 	Employees                   []seed.EmployeeSeed
@@ -78,6 +79,9 @@ func main() {
 		"organisations": seed.OrganisationsSeeder{
 			Organizations: cfg.Organizations,
 		},
+		"salary_tables": seed.SalaryTablesSeeder{
+			Tables: cfg.SalaryTables,
+		},
 		"location": seed.LocationSeeder{
 			Locations: cfg.Locations,
 		},
@@ -125,9 +129,10 @@ func main() {
 		"app_organization_profile":      {},
 		"national_holidays":             {},
 		"organisations":                 {},
+		"salary_tables":                 {},
 		"location":                      {"organisations"},
 		"departments":                   {},
-		"employees":                     {"location", "departments"},
+		"employees":                     {"location", "departments", "salary_tables"},
 		"department_heads":              {"departments", "employees"},
 		"leave_requests":                {"employees"},
 		"payout_requests":               {"employees"},
@@ -144,6 +149,7 @@ func main() {
 		"app_organization_profile",
 		"national_holidays",
 		"organisations",
+		"salary_tables",
 		"location",
 		"departments",
 		"employees",
@@ -278,6 +284,7 @@ func loadConfigFromEnv() (seedConfig, error) {
 			{CountryCode: "NL", HolidayDate: time.Date(2026, time.December, 26, 0, 0, 0, 0, time.UTC), Name: "Tweede kerstdag", IsNational: true},
 		},
 		Organizations:     dataset.Organizations,
+		SalaryTables:      dataset.SalaryTables,
 		Locations:         dataset.Locations,
 		Departments:       dataset.Departments,
 		Employees:         dataset.Employees,

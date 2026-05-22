@@ -67,12 +67,13 @@ SELECT
     te.break_minutes,
     te.hour_type,
     cc.contract_type,
-    NULL::numeric AS contract_rate,
-    NULL::text AS irregular_hours_profile
+    css.hourly_rate::double precision AS contract_rate,
+    'none'::text AS irregular_hours_profile
 FROM time_entries te
 JOIN employee_profile ep ON ep.id = te.employee_id
-LEFT JOIN LATERAL (
+JOIN LATERAL (
     SELECT
+        c.id,
         c.contract_type,
         c.contract_end_date
     FROM employee_contracts c
@@ -82,6 +83,20 @@ LEFT JOIN LATERAL (
     ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1
 ) cc ON TRUE
+JOIN LATERAL (
+    SELECT esa.salary_scale_step_id
+    FROM employee_salary_assignments esa
+    WHERE esa.employee_id = te.employee_id
+      AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+      AND esa.effective_from <= te.entry_date
+      AND (esa.effective_to IS NULL OR esa.effective_to > te.entry_date)
+    ORDER BY
+      (esa.contract_id = cc.id) DESC,
+      esa.effective_from DESC,
+      esa.created_at DESC
+    LIMIT 1
+) latest_salary ON TRUE
+JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
 WHERE te.employee_id = $1
   AND te.status = 'approved'::time_entry_status_enum
   AND te.paid_period_id IS NULL
@@ -113,8 +128,8 @@ type ListPayrollPreviewTimeEntriesRow struct {
 	BreakMinutes          int32                    `json:"break_minutes"`
 	HourType              TimeEntryHourTypeEnum    `json:"hour_type"`
 	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate          *float64                 `json:"contract_rate"`
-	IrregularHoursProfile *string                  `json:"irregular_hours_profile"`
+	ContractRate          float64                  `json:"contract_rate"`
+	IrregularHoursProfile string                   `json:"irregular_hours_profile"`
 }
 
 func (q *Queries) ListPayrollPreviewTimeEntries(ctx context.Context, arg ListPayrollPreviewTimeEntriesParams) ([]ListPayrollPreviewTimeEntriesRow, error) {

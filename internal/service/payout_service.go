@@ -52,7 +52,7 @@ func (s *PayoutService) CreatePayoutRequest(
 		if err != nil {
 			return err
 		}
-		if contract.ContractType != "loondienst" {
+		if !isLoondienstContractType(contract.ContractType) {
 			return domain.ErrPayoutRequestInvalidRequest
 		}
 		if contract.ContractRate == nil || *contract.ContractRate <= 0 {
@@ -1137,10 +1137,10 @@ func normalizePayrollContractType(value *string) (*string, error) {
 	}
 
 	switch strings.ToLower(strings.TrimSpace(*value)) {
-	case "loondienst":
+	case "loondienst", "permanent", "temporary":
 		normalized := "LOONDIENST"
 		return &normalized, nil
-	case "zzp":
+	case "zzp", "on_call":
 		normalized := "ZZP"
 		return &normalized, nil
 	default:
@@ -1520,7 +1520,7 @@ func appliedPayrollRateForMinute(
 
 func isPayrollEligibleContractType(contractType string) bool {
 	switch strings.ToLower(strings.TrimSpace(contractType)) {
-	case "loondienst", "zzp":
+	case "permanent", "temporary", "on_call":
 		return true
 	default:
 		return false
@@ -1528,7 +1528,16 @@ func isPayrollEligibleContractType(contractType string) bool {
 }
 
 func isPayrollORTEligibleContractType(contractType string) bool {
-	return strings.EqualFold(strings.TrimSpace(contractType), "loondienst")
+	return isLoondienstContractType(contractType)
+}
+
+func isLoondienstContractType(contractType string) bool {
+	switch strings.ToLower(strings.TrimSpace(contractType)) {
+	case "permanent", "temporary":
+		return true
+	default:
+		return false
+	}
 }
 
 type payrollMonthLiveSummary struct {
@@ -1761,7 +1770,16 @@ func shouldIncludeContractFilteredPayrollRow(
 }
 
 func matchesPayrollContractType(actual, expected string) bool {
-	return strings.EqualFold(strings.TrimSpace(actual), strings.TrimSpace(expected))
+	a := strings.ToLower(strings.TrimSpace(actual))
+	e := strings.ToLower(strings.TrimSpace(expected))
+	switch e {
+	case "loondienst":
+		return a == "permanent" || a == "temporary"
+	case "zzp":
+		return a == "on_call"
+	default:
+		return a == e
+	}
 }
 
 func filterPayPeriodByContractType(

@@ -42,6 +42,16 @@ func (r *EmployeeRepository) GetEmployeeByID(
 	}
 
 	employee := toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row)
+	if contractRow, err := r.store.GetLatestEmployeeContractDetail(ctx, id); err == nil {
+		applyEmployeeContractDetail(employee, contractRow)
+	} else if !isDBNotFound(err) {
+		return nil, err
+	}
+	if salaryRow, err := r.store.GetLatestEmployeeSalaryAssignmentDetail(ctx, id); err == nil {
+		applyEmployeeSalaryAssignmentDetail(employee, salaryRow)
+	} else if !isDBNotFound(err) {
+		return nil, err
+	}
 	applyEmployeeDetailStats(employee, stats)
 
 	return employee, nil
@@ -512,7 +522,7 @@ func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
 func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 	row db.GetEmployeeProfileByIDRow,
 ) *domain.EmployeeDetail {
-	return &domain.EmployeeDetail{
+	employee := &domain.EmployeeDetail{
 		ID:                  row.ID,
 		UserID:              row.UserID,
 		FirstName:           row.FirstName,
@@ -540,6 +550,58 @@ func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 		DepartmentName:      row.DepartmentName,
 		ManagerFirstName:    row.ManagerFirstName,
 		ManagerLastName:     row.ManagerLastName,
+	}
+
+	return employee
+}
+
+func applyEmployeeContractDetail(employee *domain.EmployeeDetail, row db.GetLatestEmployeeContractDetailRow) {
+	employee.LocationID = &row.LocationID
+	employee.DepartmentID = &row.DepartmentID
+	employee.ContractType = string(row.ContractType)
+	employee.ContractStartDate = conv.TimePtrFromPgDate(row.StartDate)
+	employee.ContractEndDate = conv.TimePtrFromPgDate(row.ContractEndDate)
+	employee.ContractHours = row.HoursPerWeek
+	employee.Contract = &domain.EmployeeContractDetail{
+		ID:                     row.ID,
+		JobTitle:               string(row.JobTitle),
+		DepartmentID:           row.DepartmentID,
+		DepartmentName:         &row.DepartmentName,
+		LocationID:             row.LocationID,
+		LocationAddress:        &row.LocationAddress,
+		OrganizationalRoleID:   row.OrganizationalRoleID,
+		OrganizationalRoleName: row.OrganizationalRoleName,
+		ContractType:           string(row.ContractType),
+		ContractHoursType:      string(row.ContractHoursType),
+		StartDate:              conv.TimeFromPgDate(row.StartDate),
+		ContractEndDate:        conv.TimePtrFromPgDate(row.ContractEndDate),
+		HoursPerWeek:           row.HoursPerWeek,
+		MinHoursPerWeek:        row.MinHoursPerWeek,
+		MaxHoursPerWeek:        row.MaxHoursPerWeek,
+		RosterFreeDay:          row.RosterFreeDay,
+		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
+		CreatedAt:              conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:              conv.TimeFromPgTimestamptz(row.UpdatedAt),
+	}
+}
+
+func applyEmployeeSalaryAssignmentDetail(employee *domain.EmployeeDetail, row db.GetLatestEmployeeSalaryAssignmentDetailRow) {
+	employee.ContractRate = &row.HourlyRate
+	employee.SalaryAssignment = &domain.EmployeeSalaryAssignmentDetail{
+		ID:                row.ID,
+		ContractID:        row.ContractID,
+		SalaryScaleStepID: row.SalaryScaleStepID,
+		CAOCode:           row.CaoCode,
+		SalaryTableName:   row.SalaryTableName,
+		Scale:             row.Scale,
+		Step:              row.Step,
+		IPNumber:          row.IpNumber,
+		MonthlySalary:     row.MonthlySalary,
+		HourlyRate:        row.HourlyRate,
+		EffectiveFrom:     conv.TimeFromPgDate(row.EffectiveFrom),
+		EffectiveTo:       conv.TimePtrFromPgDate(row.EffectiveTo),
+		CreatedAt:         conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:         conv.TimeFromPgTimestamptz(row.UpdatedAt),
 	}
 }
 
@@ -613,10 +675,10 @@ func toDomainEmployeeProfile(
 
 func toDomainEmployeeCounts(row db.GetEmployeeCountsRow) *domain.EmployeeCounts {
 	return &domain.EmployeeCounts{
-		TotalEmployees:      row.TotalEmployees,
-		TotalSubcontractors: row.TotalSubcontractors,
-		TotalArchived:       row.TotalArchived,
-		TotalOutOfService:   row.TotalOutOfService,
+		TotalPermanent:    row.TotalPermanent,
+		TotalTemporary:    row.TotalTemporary,
+		TotalOnCall:       row.TotalOnCall,
+		TotalOutOfService: row.TotalOutOfService,
 	}
 }
 
@@ -776,6 +838,14 @@ func wageTaxTablePtrFromStringPtr(value *string) *db.WageTaxTableEnum {
 	default:
 		return nil
 	}
+}
+
+func wageTaxTablePtrToStringPtr(value *db.WageTaxTableEnum) *string {
+	if value == nil {
+		return nil
+	}
+	s := string(*value)
+	return &s
 }
 
 func enumPtr[T any](value T) *T {

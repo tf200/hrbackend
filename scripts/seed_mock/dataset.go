@@ -14,6 +14,7 @@ import (
 
 type generatedDataset struct {
 	Organizations               []seed.OrganizationSeed
+	SalaryTables                []seed.SalaryTableSeed
 	Locations                   []seed.LocationSeed
 	Departments                 []seed.DepartmentSeed
 	Employees                   []seed.EmployeeSeed
@@ -58,6 +59,7 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 
 	result := generatedDataset{
 		Organizations: make([]seed.OrganizationSeed, 0, orgCount),
+		SalaryTables:  buildCaoJeugdzorgSalaryTables(),
 		Locations:     make([]seed.LocationSeed, 0, orgCount*locationsPerOrg),
 		Departments:   make([]seed.DepartmentSeed, 0, len(departments)),
 	}
@@ -134,6 +136,11 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			headAlias,
 			emailSuffix,
 			passwordValue,
+			headLocationAlias,
+			department.Alias,
+			department.HeadPosition,
+			true,
+			deptIdx,
 			nil,
 		)
 		result.Employees = append(result.Employees, headSeed)
@@ -194,6 +201,11 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 				employeeAlias,
 				emailSuffix,
 				passwordValue,
+				locationAlias,
+				department.Alias,
+				department.StaffPosition,
+				false,
+				empIdx,
 				&managerAlias,
 			)
 			result.Employees = append(result.Employees, employeeSeed)
@@ -549,6 +561,15 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			RoleName:           strPtr("employee"),
 			PrivatePhoneNumber: strPtr(gofakeit.Phone()),
 			WorkPhoneNumber:    strPtr(gofakeit.Phone()),
+			Contract: &seed.EmployeeContractSeed{
+				JobTitle:          "administrative_employee",
+				DepartmentAlias:   "hr",
+				LocationAlias:     zzpLocationAlias,
+				ContractType:      "on_call",
+				ContractHoursType: "zero_hours",
+				StartDate:         time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+				WageTaxTable:      strPtr("white_table"),
+			},
 		}
 		result.Employees = append(result.Employees, zzpSeed)
 
@@ -596,10 +617,14 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 
 func generateEmployeeSeed(
 	alias, emailSuffix, passwordValue string,
+	locationAlias, departmentAlias, position string,
+	isHead bool,
+	index int,
 	managerAlias *string,
 ) seed.EmployeeSeed {
 	firstName := gofakeit.FirstName()
 	lastName := gofakeit.LastName()
+	contract := buildEmployeeContractSeed(locationAlias, departmentAlias, position, isHead)
 	return seed.EmployeeSeed{
 		Alias:              alias,
 		FirstName:          firstName,
@@ -618,6 +643,69 @@ func generateEmployeeSeed(
 		RoleName:           strPtr("employee"),
 		PrivatePhoneNumber: strPtr(gofakeit.Phone()),
 		WorkPhoneNumber:    strPtr(gofakeit.Phone()),
+		Contract:           &contract,
+		SalaryAssignment:   buildEmployeeSalaryAssignmentSeed(departmentAlias, isHead, index),
+	}
+}
+
+func buildEmployeeContractSeed(locationAlias, departmentAlias, position string, isHead bool) seed.EmployeeContractSeed {
+	jobTitle := employeeJobTitleForDepartment(departmentAlias, isHead)
+	if strings.Contains(strings.ToLower(position), "lead") {
+		jobTitle = "team_lead"
+	}
+	hoursPerWeek := 36.0
+	if !isHead && departmentAlias == "care" {
+		hoursPerWeek = 32.0
+	}
+
+	return seed.EmployeeContractSeed{
+		JobTitle:          jobTitle,
+		DepartmentAlias:   departmentAlias,
+		LocationAlias:     locationAlias,
+		ContractType:      "permanent",
+		ContractHoursType: "fixed",
+		StartDate:         time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		HoursPerWeek:      float64Ptr(hoursPerWeek),
+		WageTaxTable:      strPtr("white_table"),
+	}
+}
+
+func employeeJobTitleForDepartment(departmentAlias string, isHead bool) string {
+	if isHead {
+		return "team_lead"
+	}
+	switch departmentAlias {
+	case "care":
+		return "youth_worker_d"
+	case "operations":
+		return "care_coordinator"
+	case "planning", "finance", "hr":
+		return "administrative_employee"
+	default:
+		return "pedagogical_worker"
+	}
+}
+
+func buildEmployeeSalaryAssignmentSeed(departmentAlias string, isHead bool, index int) *seed.EmployeeSalaryAssignmentSeed {
+	scale := 8
+	step := fmt.Sprintf("%d", 3+(index%5))
+	if isHead {
+		scale = 11
+		step = "5"
+	} else {
+		switch departmentAlias {
+		case "care":
+			scale = 7
+		case "operations", "planning", "finance", "hr":
+			scale = 8
+		}
+	}
+	effectiveFrom := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	return &seed.EmployeeSalaryAssignmentSeed{
+		CAOCode:       "CAO_JEUGDZORG",
+		Scale:         scale,
+		Step:          step,
+		EffectiveFrom: &effectiveFrom,
 	}
 }
 
