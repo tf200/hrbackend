@@ -169,7 +169,6 @@ func ensureEmployeeProfile(
 			house_number_addition,
 			postal_code,
 			city,
-			position,
 			private_email_address,
 			work_email_address,
 			private_phone_number,
@@ -178,11 +177,11 @@ func ensureEmployeeProfile(
 			gender
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, $9, NULLIF($10, '')::employee_position_enum,
-			NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), NULLIF($15, ''), $16::gender_enum
+			$1, $2, $3, $4, $5, $6, NULLIF($7, ''), $8, $9,
+			NULLIF($10, ''), NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, ''), $15::gender_enum
 		)
 	`, userID, profile.FirstName, profile.LastName, profile.BSN, profile.Street, profile.HouseNumber,
-		profile.HouseNumberAddition, profile.PostalCode, profile.City, profile.Position,
+		profile.HouseNumberAddition, profile.PostalCode, profile.City,
 		profile.PrivateEmail, profile.WorkEmail, profile.PrivatePhone, profile.WorkPhone,
 		profile.HomeTelephone, profile.Gender); err != nil {
 		return false, fmt.Errorf("create admin employee profile: %w", err)

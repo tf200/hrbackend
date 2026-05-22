@@ -18,11 +18,16 @@ INSERT INTO employee_contracts (
     job_title,
     department_id,
     location_id,
+    organizational_role_id,
     contract_type,
     contract_hours_type,
     start_date,
     contract_end_date,
     hours_per_week,
+    min_hours_per_week,
+    max_hours_per_week,
+    roster_free_day,
+    wage_tax_table,
     created_by_employee_id
 ) VALUES (
     $1,
@@ -34,22 +39,32 @@ INSERT INTO employee_contracts (
     $7,
     $8,
     $9,
-    $10
+    $10,
+    $11,
+    $12,
+    $13,
+    $14,
+    $15
 )
 RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
 `
 
 type AddEmployeeContractDetailsParams struct {
-	EmployeeID          uuid.UUID                `json:"employee_id"`
-	JobTitle            EmployeeJobTitleEnum     `json:"job_title"`
-	DepartmentID        uuid.UUID                `json:"department_id"`
-	LocationID          uuid.UUID                `json:"location_id"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractHoursType   ContractHoursTypeEnum    `json:"contract_hours_type"`
-	StartDate           pgtype.Date              `json:"start_date"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	HoursPerWeek        *float64                 `json:"hours_per_week"`
-	CreatedByEmployeeID *uuid.UUID               `json:"created_by_employee_id"`
+	EmployeeID           uuid.UUID                `json:"employee_id"`
+	JobTitle             EmployeeJobTitleEnum     `json:"job_title"`
+	DepartmentID         uuid.UUID                `json:"department_id"`
+	LocationID           uuid.UUID                `json:"location_id"`
+	OrganizationalRoleID *uuid.UUID               `json:"organizational_role_id"`
+	ContractType         EmployeeContractTypeEnum `json:"contract_type"`
+	ContractHoursType    ContractHoursTypeEnum    `json:"contract_hours_type"`
+	StartDate            pgtype.Date              `json:"start_date"`
+	ContractEndDate      pgtype.Date              `json:"contract_end_date"`
+	HoursPerWeek         *float64                 `json:"hours_per_week"`
+	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
+	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
+	RosterFreeDay        *int16                   `json:"roster_free_day"`
+	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
+	CreatedByEmployeeID  *uuid.UUID               `json:"created_by_employee_id"`
 }
 
 func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmployeeContractDetailsParams) (EmployeeContract, error) {
@@ -58,11 +73,16 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 		arg.JobTitle,
 		arg.DepartmentID,
 		arg.LocationID,
+		arg.OrganizationalRoleID,
 		arg.ContractType,
 		arg.ContractHoursType,
 		arg.StartDate,
 		arg.ContractEndDate,
 		arg.HoursPerWeek,
+		arg.MinHoursPerWeek,
+		arg.MaxHoursPerWeek,
+		arg.RosterFreeDay,
+		arg.WageTaxTable,
 		arg.CreatedByEmployeeID,
 	)
 	var i EmployeeContract
@@ -85,282 +105,6 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 		&i.CreatedByEmployeeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const countEmployeeContractChanges = `-- name: CountEmployeeContractChanges :one
-SELECT COUNT(*)::bigint
-FROM employee_contracts
-WHERE employee_id = $1
-`
-
-func (q *Queries) CountEmployeeContractChanges(ctx context.Context, employeeID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countEmployeeContractChanges, employeeID)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
-const createEmployeeContractChange = `-- name: CreateEmployeeContractChange :one
-INSERT INTO employee_contracts (
-    employee_id,
-    job_title,
-    department_id,
-    location_id,
-    contract_type,
-    contract_hours_type,
-    start_date,
-    contract_end_date,
-    hours_per_week,
-    created_by_employee_id
-) VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5,
-    $6,
-    $7,
-    $8,
-    $9,
-    $10
-)
-RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
-`
-
-type CreateEmployeeContractChangeParams struct {
-	EmployeeID          uuid.UUID                `json:"employee_id"`
-	JobTitle            EmployeeJobTitleEnum     `json:"job_title"`
-	DepartmentID        uuid.UUID                `json:"department_id"`
-	LocationID          uuid.UUID                `json:"location_id"`
-	ContractType        EmployeeContractTypeEnum `json:"contract_type"`
-	ContractHoursType   ContractHoursTypeEnum    `json:"contract_hours_type"`
-	EffectiveFrom       pgtype.Date              `json:"effective_from"`
-	ContractEndDate     pgtype.Date              `json:"contract_end_date"`
-	ContractHours       *float64                 `json:"contract_hours"`
-	CreatedByEmployeeID *uuid.UUID               `json:"created_by_employee_id"`
-}
-
-func (q *Queries) CreateEmployeeContractChange(ctx context.Context, arg CreateEmployeeContractChangeParams) (EmployeeContract, error) {
-	row := q.db.QueryRow(ctx, createEmployeeContractChange,
-		arg.EmployeeID,
-		arg.JobTitle,
-		arg.DepartmentID,
-		arg.LocationID,
-		arg.ContractType,
-		arg.ContractHoursType,
-		arg.EffectiveFrom,
-		arg.ContractEndDate,
-		arg.ContractHours,
-		arg.CreatedByEmployeeID,
-	)
-	var i EmployeeContract
-	err := row.Scan(
-		&i.ID,
-		&i.EmployeeID,
-		&i.JobTitle,
-		&i.DepartmentID,
-		&i.LocationID,
-		&i.OrganizationalRoleID,
-		&i.ContractType,
-		&i.ContractHoursType,
-		&i.StartDate,
-		&i.ContractEndDate,
-		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
-		&i.RosterFreeDay,
-		&i.WageTaxTable,
-		&i.CreatedByEmployeeID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getEmployeeContractDetails = `-- name: GetEmployeeContractDetails :one
-SELECT
-    hours_per_week AS contract_hours,
-    start_date AS contract_start_date,
-    contract_end_date,
-    contract_type,
-    NULL::numeric AS contract_rate,
-    NULL::text AS irregular_hours_profile
-FROM employee_contracts
-WHERE employee_id = $1
-ORDER BY start_date DESC, created_at DESC
-LIMIT 1
-`
-
-type GetEmployeeContractDetailsRow struct {
-	ContractHours         *float64                 `json:"contract_hours"`
-	ContractStartDate     pgtype.Date              `json:"contract_start_date"`
-	ContractEndDate       pgtype.Date              `json:"contract_end_date"`
-	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate          *float64                 `json:"contract_rate"`
-	IrregularHoursProfile *string                  `json:"irregular_hours_profile"`
-}
-
-func (q *Queries) GetEmployeeContractDetails(ctx context.Context, employeeID uuid.UUID) (GetEmployeeContractDetailsRow, error) {
-	row := q.db.QueryRow(ctx, getEmployeeContractDetails, employeeID)
-	var i GetEmployeeContractDetailsRow
-	err := row.Scan(
-		&i.ContractHours,
-		&i.ContractStartDate,
-		&i.ContractEndDate,
-		&i.ContractType,
-		&i.ContractRate,
-		&i.IrregularHoursProfile,
-	)
-	return i, err
-}
-
-const getEmployeeContractSnapshotForContractChange = `-- name: GetEmployeeContractSnapshotForContractChange :one
-SELECT
-    hours_per_week AS contract_hours,
-    start_date AS contract_start_date,
-    contract_end_date,
-    contract_type,
-    NULL::numeric AS contract_rate,
-    NULL::text AS irregular_hours_profile
-FROM employee_contracts
-WHERE employee_id = $1
-ORDER BY start_date DESC, created_at DESC
-LIMIT 1
-`
-
-type GetEmployeeContractSnapshotForContractChangeRow struct {
-	ContractHours         *float64                 `json:"contract_hours"`
-	ContractStartDate     pgtype.Date              `json:"contract_start_date"`
-	ContractEndDate       pgtype.Date              `json:"contract_end_date"`
-	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate          *float64                 `json:"contract_rate"`
-	IrregularHoursProfile *string                  `json:"irregular_hours_profile"`
-}
-
-func (q *Queries) GetEmployeeContractSnapshotForContractChange(ctx context.Context, employeeID uuid.UUID) (GetEmployeeContractSnapshotForContractChangeRow, error) {
-	row := q.db.QueryRow(ctx, getEmployeeContractSnapshotForContractChange, employeeID)
-	var i GetEmployeeContractSnapshotForContractChangeRow
-	err := row.Scan(
-		&i.ContractHours,
-		&i.ContractStartDate,
-		&i.ContractEndDate,
-		&i.ContractType,
-		&i.ContractRate,
-		&i.IrregularHoursProfile,
-	)
-	return i, err
-}
-
-const listEmployeeContractChanges = `-- name: ListEmployeeContractChanges :many
-SELECT
-    c.id,
-    c.employee_id,
-    c.start_date AS effective_from,
-    (
-        LEAD(c.start_date) OVER (
-            PARTITION BY c.employee_id
-            ORDER BY c.start_date
-        ) - INTERVAL '1 day'
-    )::date AS effective_to,
-    c.hours_per_week AS contract_hours,
-    c.contract_type,
-    NULL::numeric AS contract_rate,
-    NULL::text AS irregular_hours_profile,
-    c.contract_end_date,
-    c.created_by_employee_id,
-    c.created_at,
-    c.updated_at
-FROM employee_contracts c
-WHERE c.employee_id = $1
-ORDER BY c.start_date DESC, c.created_at DESC
-`
-
-type ListEmployeeContractChangesRow struct {
-	ID                    uuid.UUID                `json:"id"`
-	EmployeeID            uuid.UUID                `json:"employee_id"`
-	EffectiveFrom         pgtype.Date              `json:"effective_from"`
-	EffectiveTo           pgtype.Date              `json:"effective_to"`
-	ContractHours         *float64                 `json:"contract_hours"`
-	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
-	ContractRate          *float64                 `json:"contract_rate"`
-	IrregularHoursProfile *string                  `json:"irregular_hours_profile"`
-	ContractEndDate       pgtype.Date              `json:"contract_end_date"`
-	CreatedByEmployeeID   *uuid.UUID               `json:"created_by_employee_id"`
-	CreatedAt             pgtype.Timestamptz       `json:"created_at"`
-	UpdatedAt             pgtype.Timestamptz       `json:"updated_at"`
-}
-
-func (q *Queries) ListEmployeeContractChanges(ctx context.Context, employeeID uuid.UUID) ([]ListEmployeeContractChangesRow, error) {
-	rows, err := q.db.Query(ctx, listEmployeeContractChanges, employeeID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListEmployeeContractChangesRow{}
-	for rows.Next() {
-		var i ListEmployeeContractChangesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.EmployeeID,
-			&i.EffectiveFrom,
-			&i.EffectiveTo,
-			&i.ContractHours,
-			&i.ContractType,
-			&i.ContractRate,
-			&i.IrregularHoursProfile,
-			&i.ContractEndDate,
-			&i.CreatedByEmployeeID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const syncEmployeeProfileContractFromLatestChange = `-- name: SyncEmployeeProfileContractFromLatestChange :one
-SELECT id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, has_borrowed, out_of_service, is_archived
-FROM employee_profile
-WHERE id = $1
-`
-
-func (q *Queries) SyncEmployeeProfileContractFromLatestChange(ctx context.Context, id uuid.UUID) (EmployeeProfile, error) {
-	row := q.db.QueryRow(ctx, syncEmployeeProfileContractFromLatestChange, id)
-	var i EmployeeProfile
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.FirstName,
-		&i.LastName,
-		&i.NameInUse,
-		&i.MaritalStatus,
-		&i.Bsn,
-		&i.Street,
-		&i.HouseNumber,
-		&i.HouseNumberAddition,
-		&i.PostalCode,
-		&i.City,
-		&i.EmployeeNumber,
-		&i.EmploymentNumber,
-		&i.PrivateEmailAddress,
-		&i.WorkEmailAddress,
-		&i.PrivatePhoneNumber,
-		&i.WorkPhoneNumber,
-		&i.DateOfBirth,
-		&i.HomeTelephoneNumber,
-		&i.CreatedAt,
-		&i.Gender,
-		&i.ManagerEmployeeID,
-		&i.HasBorrowed,
-		&i.OutOfService,
-		&i.IsArchived,
 	)
 	return i, err
 }

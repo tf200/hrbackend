@@ -86,11 +86,16 @@ type CreateEmployeeWithAccountTxParams struct {
 	CreateUserParams     CreateUserParams
 	CreateEmployeeParams CreateEmployeeProfileParams
 	RoleID               uuid.UUID
+	Contract             *AddEmployeeContractDetailsParams
+	SalaryAssignment     *CreateEmployeeSalaryAssignmentParams
+	CreatedByEmployeeID  *uuid.UUID
 }
 
 type CreateEmployeeWithAccountTxResult struct {
 	User     CustomUser
 	Employee EmployeeProfile
+	Contract *EmployeeContract
+	Salary   *EmployeeSalaryAssignment
 }
 
 func (store *Store) CreateEmployeeWithAccountTx(
@@ -118,6 +123,36 @@ func (store *Store) CreateEmployeeWithAccountTx(
 		})
 		if err != nil {
 			return err
+		}
+
+		if arg.Contract != nil {
+			arg.Contract.EmployeeID = result.Employee.ID
+			if arg.Contract.CreatedByEmployeeID == nil {
+				arg.Contract.CreatedByEmployeeID = arg.CreatedByEmployeeID
+			}
+			contract, err := q.AddEmployeeContractDetails(ctx, *arg.Contract)
+			if err != nil {
+				return err
+			}
+			result.Contract = &contract
+		}
+
+		if arg.SalaryAssignment != nil {
+			arg.SalaryAssignment.EmployeeID = result.Employee.ID
+			if result.Contract != nil {
+				arg.SalaryAssignment.ContractID = &result.Contract.ID
+			}
+			if arg.SalaryAssignment.CreatedByEmployeeID == nil {
+				arg.SalaryAssignment.CreatedByEmployeeID = arg.CreatedByEmployeeID
+			}
+			if !arg.SalaryAssignment.EffectiveFrom.Valid && result.Contract != nil {
+				arg.SalaryAssignment.EffectiveFrom = result.Contract.StartDate
+			}
+			salary, err := q.CreateEmployeeSalaryAssignment(ctx, *arg.SalaryAssignment)
+			if err != nil {
+				return err
+			}
+			result.Salary = &salary
 		}
 
 		return nil

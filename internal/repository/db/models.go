@@ -1698,7 +1698,6 @@ type EmployeeProfile struct {
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	Gender              GenderEnum         `json:"gender"`
 	ManagerEmployeeID   *uuid.UUID         `json:"manager_employee_id"`
-	HasBorrowed         bool               `json:"has_borrowed"`
 	OutOfService        *bool              `json:"out_of_service"`
 	IsArchived          bool               `json:"is_archived"`
 }

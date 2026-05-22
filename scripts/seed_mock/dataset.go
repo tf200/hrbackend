@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -19,7 +18,6 @@ type generatedDataset struct {
 	Departments                 []seed.DepartmentSeed
 	Employees                   []seed.EmployeeSeed
 	DepartmentHeads             []seed.DepartmentHeadSeed
-	EmployeeContractChanges     []seed.EmployeeContractChangeSeed
 	LeaveRequests               []seed.LeaveRequestSeed
 	PayoutRequests              []seed.PayoutRequestSeed
 	Schedules                   []seed.ScheduleSeed
@@ -123,7 +121,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 
 	result.Employees = make([]seed.EmployeeSeed, 0, len(departments)*(employeesPerDepartment+1))
 	result.DepartmentHeads = make([]seed.DepartmentHeadSeed, 0, len(departments))
-	result.EmployeeContractChanges = make([]seed.EmployeeContractChangeSeed, 0, len(departments)*2)
 	result.LeaveRequests = make([]seed.LeaveRequestSeed, 0, len(departments)*3)
 	result.PayoutRequests = make([]seed.PayoutRequestSeed, 0, 3)
 	result.Schedules = make([]seed.ScheduleSeed, 0, len(departments)*18)
@@ -164,9 +161,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			TemplateAlias:      templateAlias,
 			ActorEmployeeAlias: &headAlias,
 		})
-		result.EmployeeContractChanges = append(result.EmployeeContractChanges,
-			buildContractChangeSeed(headAlias, "hr_head", result.Employees[len(result.Employees)-1], 4, 2),
-		)
 		result.LeaveRequests = append(result.LeaveRequests, buildApprovedVacationLeaveSeed(
 			fmt.Sprintf("%s_head_vacation", department.Alias),
 			headAlias,
@@ -229,9 +223,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 				})
 			}
 			if empIdx == 0 {
-				result.EmployeeContractChanges = append(result.EmployeeContractChanges,
-					buildContractChangeSeed(employeeAlias, headAlias, employeeSeed, 8, 3),
-				)
 				result.LeaveRequests = append(result.LeaveRequests, buildPendingPersonalLeaveSeed(
 					fmt.Sprintf("%s_pending_personal", employeeAlias),
 					employeeAlias,
@@ -700,43 +691,6 @@ func float64Ptr(value float64) *float64 {
 
 func timePtr(value time.Time) *time.Time {
 	return &value
-}
-
-func buildContractChangeSeed(
-	employeeAlias, actorAlias string,
-	employee seed.EmployeeSeed,
-	monthsAfterStart int,
-	rateIncrease float64,
-) seed.EmployeeContractChangeSeed {
-	effectiveFrom := time.Now().UTC().AddDate(0, -monthsAfterStart, 0)
-	if employee.ContractStartDate != nil {
-		candidate := employee.ContractStartDate.AddDate(0, monthsAfterStart, 0)
-		if candidate.Before(effectiveFrom) {
-			effectiveFrom = candidate
-		}
-	}
-
-	contractHours := 36.0
-	if employee.ContractHours != nil {
-		contractHours = math.Min(40, *employee.ContractHours+4)
-	}
-
-	var contractRate *float64
-	if employee.ContractRate != nil {
-		updatedRate := *employee.ContractRate + rateIncrease
-		contractRate = &updatedRate
-	}
-
-	return seed.EmployeeContractChangeSeed{
-		EmployeeAlias:         employeeAlias,
-		ActorEmployeeAlias:    actorAlias,
-		EffectiveFrom:         effectiveFrom,
-		ContractHours:         contractHours,
-		ContractType:          employee.ContractType,
-		ContractRate:          contractRate,
-		IrregularHoursProfile: employee.IrregularHoursProfile,
-		ContractEndDate:       employee.ContractEndDate,
-	}
 }
 
 func buildApprovedVacationLeaveSeed(

@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"hrbackend/internal/domain"
@@ -14,7 +13,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -114,6 +112,44 @@ func (r *EmployeeRepository) CreateEmployee(
 	ctx context.Context,
 	params domain.CreateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
+	var contractParams *db.AddEmployeeContractDetailsParams
+	if params.Contract != nil {
+		cp := db.AddEmployeeContractDetailsParams{
+			EmployeeID:           uuid.Nil,
+			JobTitle:             employeeJobTitleEnumFromString(params.Contract.JobTitle),
+			DepartmentID:         params.Contract.DepartmentID,
+			LocationID:           params.Contract.LocationID,
+			OrganizationalRoleID: params.Contract.OrganizationalRoleID,
+			ContractType:         contractTypeFromString(params.Contract.ContractType),
+			ContractHoursType:    contractHoursTypeFromString(params.Contract.ContractHoursType),
+			StartDate:            conv.PgDateFromTime(params.Contract.StartDate),
+			ContractEndDate:      pgDateFromPtr(params.Contract.ContractEndDate),
+			HoursPerWeek:         params.Contract.HoursPerWeek,
+			MinHoursPerWeek:      params.Contract.MinHoursPerWeek,
+			MaxHoursPerWeek:      params.Contract.MaxHoursPerWeek,
+			RosterFreeDay:        params.Contract.RosterFreeDay,
+			WageTaxTable:         wageTaxTablePtrFromStringPtr(params.Contract.WageTaxTable),
+			CreatedByEmployeeID:  nil,
+		}
+		contractParams = &cp
+	}
+
+	var salaryParams *db.CreateEmployeeSalaryAssignmentParams
+	if params.SalaryAssignment != nil {
+		sp := db.CreateEmployeeSalaryAssignmentParams{
+			EmployeeID:          uuid.Nil,
+			ContractID:          nil,
+			SalaryScaleStepID:   params.SalaryAssignment.SalaryScaleStepID,
+			EffectiveFrom:       pgDateFromPtr(params.SalaryAssignment.EffectiveFrom),
+			EffectiveTo:         pgDateFromPtr(params.SalaryAssignment.EffectiveTo),
+			CreatedByEmployeeID: nil,
+		}
+		if !sp.EffectiveFrom.Valid && contractParams != nil {
+			sp.EffectiveFrom = contractParams.StartDate
+		}
+		salaryParams = &sp
+	}
+
 	result, err := r.store.CreateEmployeeWithAccountTx(ctx, db.CreateEmployeeWithAccountTxParams{
 		CreateUserParams: db.CreateUserParams{
 			Password: params.UserPassword,
@@ -121,35 +157,29 @@ func (r *EmployeeRepository) CreateEmployee(
 			IsActive: true,
 		},
 		CreateEmployeeParams: db.CreateEmployeeProfileParams{
-			FirstName:             params.FirstName,
-			LastName:              params.LastName,
-			Bsn:                   params.Bsn,
-			Street:                params.Street,
-			HouseNumber:           params.HouseNumber,
-			HouseNumberAddition:   params.HouseNumberAddition,
-			PostalCode:            params.PostalCode,
-			City:                  params.City,
-			Position:              positionEnumPtrFromStringPtr(params.Position),
-			DepartmentID:          params.DepartmentID,
-			ManagerEmployeeID:     params.ManagerEmployeeID,
-			EmployeeNumber:        params.EmployeeNumber,
-			EmploymentNumber:      params.EmploymentNumber,
-			PrivateEmailAddress:   params.PrivateEmailAddress,
-			WorkEmailAddress:      params.WorkEmailAddress,
-			WorkPhoneNumber:       params.WorkPhoneNumber,
-			PrivatePhoneNumber:    params.PrivatePhoneNumber,
-			DateOfBirth:           pgDateFromPtr(params.DateOfBirth),
-			HomeTelephoneNumber:   params.HomeTelephoneNumber,
-			Gender:                genderEnumFromString(params.Gender),
-			LocationID:            params.LocationID,
-			ContractHours:         params.ContractHours,
-			ContractEndDate:       pgDateFromPtr(params.ContractEndDate),
-			ContractStartDate:     pgDateFromPtr(params.ContractStartDate),
-			ContractType:          contractTypeFromString(params.ContractType),
-			ContractRate:          params.ContractRate,
-			IrregularHoursProfile: irregularHoursProfileFromString(params.IrregularHoursProfile),
+			FirstName:           params.FirstName,
+			LastName:            params.LastName,
+			Bsn:                 params.Bsn,
+			Street:              params.Street,
+			HouseNumber:         params.HouseNumber,
+			HouseNumberAddition: params.HouseNumberAddition,
+			PostalCode:          params.PostalCode,
+			City:                params.City,
+			ManagerEmployeeID:   params.ManagerEmployeeID,
+			EmployeeNumber:      params.EmployeeNumber,
+			EmploymentNumber:    params.EmploymentNumber,
+			PrivateEmailAddress: params.PrivateEmailAddress,
+			WorkEmailAddress:    params.WorkEmailAddress,
+			WorkPhoneNumber:     params.WorkPhoneNumber,
+			PrivatePhoneNumber:  params.PrivatePhoneNumber,
+			DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
+			HomeTelephoneNumber: params.HomeTelephoneNumber,
+			Gender:              genderEnumFromString(params.Gender),
 		},
-		RoleID: params.RoleID,
+		RoleID:              params.RoleID,
+		Contract:            contractParams,
+		SalaryAssignment:    salaryParams,
+		CreatedByEmployeeID: nil,
 	})
 	if err != nil {
 		return nil, err
@@ -164,26 +194,21 @@ func (r *EmployeeRepository) UpdateEmployee(
 	params domain.UpdateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
 	row, err := r.store.UpdateEmployeeProfile(ctx, db.UpdateEmployeeProfileParams{
-		FirstName:             params.FirstName,
-		LastName:              params.LastName,
-		Position:              positionEnumPtrFromStringPtr(params.Position),
-		DepartmentID:          params.DepartmentID,
-		ManagerEmployeeID:     params.ManagerEmployeeID,
-		EmployeeNumber:        params.EmployeeNumber,
-		EmploymentNumber:      params.EmploymentNumber,
-		PrivateEmailAddress:   params.PrivateEmailAddress,
-		WorkEmailAddress:      nil,
-		PrivatePhoneNumber:    params.PrivatePhoneNumber,
-		WorkPhoneNumber:       params.WorkPhoneNumber,
-		DateOfBirth:           pgDateFromPtr(params.DateOfBirth),
-		HomeTelephoneNumber:   params.HomeTelephoneNumber,
-		Gender:                genderEnumPtrFromStringPtr(params.Gender),
-		LocationID:            params.LocationID,
-		IrregularHoursProfile: irregularHoursProfilePtrFromStringPtr(params.IrregularHoursProfile),
-		HasBorrowed:           params.HasBorrowed,
-		OutOfService:          params.OutOfService,
-		IsArchived:            params.IsArchived,
-		ID:                    id,
+		FirstName:           params.FirstName,
+		LastName:            params.LastName,
+		ManagerEmployeeID:   params.ManagerEmployeeID,
+		EmployeeNumber:      params.EmployeeNumber,
+		EmploymentNumber:    params.EmploymentNumber,
+		PrivateEmailAddress: params.PrivateEmailAddress,
+		WorkEmailAddress:    nil,
+		PrivatePhoneNumber:  params.PrivatePhoneNumber,
+		WorkPhoneNumber:     params.WorkPhoneNumber,
+		DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
+		HomeTelephoneNumber: params.HomeTelephoneNumber,
+		Gender:              genderEnumPtrFromStringPtr(params.Gender),
+		OutOfService:        params.OutOfService,
+		IsArchived:          params.IsArchived,
+		ID:                  id,
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -218,194 +243,6 @@ func (r *EmployeeRepository) SearchEmployeesByNameOrEmail(
 	result := make([]domain.EmployeeSearchResult, 0, len(rows))
 	for _, row := range rows {
 		result = append(result, toDomainEmployeeSearchResult(row))
-	}
-
-	return result, nil
-}
-
-func (r *EmployeeRepository) GetContractDetails(
-	ctx context.Context,
-	employeeID uuid.UUID,
-) (*domain.ContractDetails, error) {
-	row, err := r.store.GetEmployeeContractDetails(ctx, employeeID)
-	if err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrEmployeeNotFound
-		}
-		return nil, err
-	}
-
-	return toDomainContractDetails(row), nil
-}
-
-func (r *EmployeeRepository) AddContractDetails(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	params domain.AddContractDetailsParams,
-) (*domain.EmployeeDetail, error) {
-	changeCount, err := r.store.CountEmployeeContractChanges(ctx, employeeID)
-	if err != nil {
-		return nil, err
-	}
-	if changeCount > 0 {
-		return nil, domain.ErrContractHistoryExists
-	}
-
-	row, err := r.store.AddEmployeeContractDetails(ctx, db.AddEmployeeContractDetailsParams{
-		ID:                employeeID,
-		ContractHours:     params.ContractHours,
-		ContractStartDate: conv.PgDateFromTime(params.ContractStartDate),
-		ContractEndDate:   conv.PgDateFromTime(params.ContractEndDate),
-		ContractType:      nil,
-		ContractRate:      params.ContractRate,
-		IrregularHoursProfile: enumPtr(irregularHoursProfileFromString(
-			params.IrregularHoursProfile,
-		)),
-	})
-	if err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrEmployeeNotFound
-		}
-		return nil, err
-	}
-
-	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
-}
-
-func (r *EmployeeRepository) ListContractChanges(
-	ctx context.Context,
-	employeeID uuid.UUID,
-) ([]domain.EmployeeContractChange, error) {
-	if _, err := r.store.GetEmployeeContractSnapshotForContractChange(ctx, employeeID); err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrEmployeeNotFound
-		}
-		return nil, err
-	}
-
-	rows, err := r.store.ListEmployeeContractChanges(ctx, employeeID)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]domain.EmployeeContractChange, 0, len(rows))
-	for _, row := range rows {
-		items = append(items, domain.EmployeeContractChange{
-			ID:                    row.ID,
-			EmployeeID:            row.EmployeeID,
-			EffectiveFrom:         conv.TimeFromPgDate(row.EffectiveFrom),
-			EffectiveTo:           conv.TimePtrFromPgDate(row.EffectiveTo),
-			ContractHours:         row.ContractHours,
-			ContractType:          string(row.ContractType),
-			ContractRate:          row.ContractRate,
-			IrregularHoursProfile: string(row.IrregularHoursProfile),
-			ContractEndDate:       conv.TimePtrFromPgDate(row.ContractEndDate),
-			CreatedByEmployeeID:   row.CreatedByEmployeeID,
-			CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
-			UpdatedAt:             conv.TimeFromPgTimestamptz(row.UpdatedAt),
-		})
-	}
-	return items, nil
-}
-
-func (r *EmployeeRepository) CreateContractChange(
-	ctx context.Context,
-	actorEmployeeID, employeeID uuid.UUID,
-	params domain.CreateEmployeeContractChangeParams,
-) (*domain.CreateEmployeeContractChangeResult, error) {
-	var result *domain.CreateEmployeeContractChangeResult
-
-	err := r.store.ExecTx(ctx, func(q *db.Queries) error {
-		snapshot, err := q.GetEmployeeContractSnapshotForContractChange(ctx, employeeID)
-		if err != nil {
-			if isDBNotFound(err) {
-				return domain.ErrEmployeeNotFound
-			}
-			return err
-		}
-
-		changeCount, err := q.CountEmployeeContractChanges(ctx, employeeID)
-		if err != nil {
-			return err
-		}
-
-		if changeCount == 0 {
-			if !snapshot.ContractStartDate.Valid {
-				return domain.ErrContractBaselineMissingStartDate
-			}
-
-			baselineDate := conv.TimeFromPgDate(snapshot.ContractStartDate).UTC()
-			effectiveDate := dateOnly(params.EffectiveFrom)
-			if !effectiveDate.Equal(dateOnly(baselineDate)) {
-				_, err = q.CreateEmployeeContractChange(ctx, db.CreateEmployeeContractChangeParams{
-					EmployeeID:            employeeID,
-					EffectiveFrom:         conv.PgDateFromTime(baselineDate),
-					ContractHours:         valueOrZero(snapshot.ContractHours),
-					ContractType:          snapshot.ContractType,
-					ContractRate:          snapshot.ContractRate,
-					IrregularHoursProfile: snapshot.IrregularHoursProfile,
-					ContractEndDate:       snapshot.ContractEndDate,
-					CreatedByEmployeeID:   actorEmployeeID,
-				})
-				if err != nil {
-					return mapContractChangeDBError(err)
-				}
-			}
-		}
-
-		created, err := q.CreateEmployeeContractChange(ctx, db.CreateEmployeeContractChangeParams{
-			EmployeeID:            employeeID,
-			EffectiveFrom:         conv.PgDateFromTime(dateOnly(params.EffectiveFrom)),
-			ContractHours:         params.ContractHours,
-			ContractType:          contractTypeFromString(params.ContractType),
-			ContractRate:          params.ContractRate,
-			IrregularHoursProfile: irregularHoursProfileFromString(params.IrregularHoursProfile),
-			ContractEndDate:       pgDateFromPtr(params.ContractEndDate),
-			CreatedByEmployeeID:   actorEmployeeID,
-		})
-		if err != nil {
-			return mapContractChangeDBError(err)
-		}
-
-		if _, err := q.SyncEmployeeProfileContractFromLatestChange(ctx, employeeID); err != nil {
-			return err
-		}
-
-		recalculations, err := recomputeLegalLeaveBalancesFromYear(
-			ctx,
-			q,
-			actorEmployeeID,
-			employeeID,
-			int32(created.EffectiveFrom.Time.Year()),
-			created.ID,
-			conv.TimeFromPgDate(created.EffectiveFrom),
-		)
-		if err != nil {
-			return err
-		}
-
-		result = &domain.CreateEmployeeContractChangeResult{
-			Change: domain.EmployeeContractChange{
-				ID:                    created.ID,
-				EmployeeID:            created.EmployeeID,
-				EffectiveFrom:         conv.TimeFromPgDate(created.EffectiveFrom),
-				EffectiveTo:           nil,
-				ContractHours:         created.ContractHours,
-				ContractType:          string(created.ContractType),
-				ContractRate:          created.ContractRate,
-				IrregularHoursProfile: string(created.IrregularHoursProfile),
-				ContractEndDate:       conv.TimePtrFromPgDate(created.ContractEndDate),
-				CreatedByEmployeeID:   created.CreatedByEmployeeID,
-				CreatedAt:             conv.TimeFromPgTimestamptz(created.CreatedAt),
-				UpdatedAt:             conv.TimeFromPgTimestamptz(created.UpdatedAt),
-			},
-			Recalculations: recalculations,
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	return result, nil
@@ -695,43 +532,33 @@ func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 	row db.GetEmployeeProfileByIDRow,
 ) *domain.EmployeeDetail {
 	return &domain.EmployeeDetail{
-		ID:                    row.ID,
-		UserID:                row.UserID,
-		FirstName:             row.FirstName,
-		LastName:              row.LastName,
-		Bsn:                   row.Bsn,
-		Street:                row.Street,
-		HouseNumber:           row.HouseNumber,
-		HouseNumberAddition:   row.HouseNumberAddition,
-		PostalCode:            row.PostalCode,
-		City:                  row.City,
-		Position:              positionEnumPtrToStringPtr(row.Position),
-		EmployeeNumber:        row.EmployeeNumber,
-		EmploymentNumber:      row.EmploymentNumber,
-		PrivateEmailAddress:   row.PrivateEmailAddress,
-		WorkEmailAddress:      row.WorkEmailAddress,
-		PrivatePhoneNumber:    row.PrivatePhoneNumber,
-		WorkPhoneNumber:       row.WorkPhoneNumber,
-		DateOfBirth:           conv.TimePtrFromPgDate(row.DateOfBirth),
-		HomeTelephoneNumber:   row.HomeTelephoneNumber,
-		CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
-		Gender:                string(row.Gender),
-		LocationID:            row.LocationID,
-		DepartmentID:          row.DepartmentID,
-		ManagerEmployeeID:     row.ManagerEmployeeID,
-		HasBorrowed:           row.HasBorrowed,
-		OutOfService:          row.OutOfService,
-		IsArchived:            row.IsArchived,
-		ContractHours:         row.ContractHours,
-		ContractEndDate:       conv.TimePtrFromPgDate(row.ContractEndDate),
-		ContractStartDate:     conv.TimePtrFromPgDate(row.ContractStartDate),
-		ContractType:          string(row.ContractType),
-		ContractRate:          row.ContractRate,
-		IrregularHoursProfile: string(row.IrregularHoursProfile),
-		ProfilePicture:        row.ProfilePicture,
-		DepartmentName:        row.DepartmentName,
-		ManagerFirstName:      row.ManagerFirstName,
-		ManagerLastName:       row.ManagerLastName,
+		ID:                  row.ID,
+		UserID:              row.UserID,
+		FirstName:           row.FirstName,
+		LastName:            row.LastName,
+		Bsn:                 row.Bsn,
+		Street:              row.Street,
+		HouseNumber:         row.HouseNumber,
+		HouseNumberAddition: row.HouseNumberAddition,
+		PostalCode:          row.PostalCode,
+		City:                row.City,
+		EmployeeNumber:      row.EmployeeNumber,
+		EmploymentNumber:    row.EmploymentNumber,
+		PrivateEmailAddress: row.PrivateEmailAddress,
+		WorkEmailAddress:    row.WorkEmailAddress,
+		PrivatePhoneNumber:  row.PrivatePhoneNumber,
+		WorkPhoneNumber:     row.WorkPhoneNumber,
+		DateOfBirth:         conv.TimePtrFromPgDate(row.DateOfBirth),
+		HomeTelephoneNumber: row.HomeTelephoneNumber,
+		CreatedAt:           conv.TimeFromPgTimestamptz(row.CreatedAt),
+		Gender:              string(row.Gender),
+		ManagerEmployeeID:   row.ManagerEmployeeID,
+		OutOfService:        row.OutOfService,
+		IsArchived:          row.IsArchived,
+		ProfilePicture:      row.ProfilePicture,
+		DepartmentName:      row.DepartmentName,
+		ManagerFirstName:    row.ManagerFirstName,
+		ManagerLastName:     row.ManagerLastName,
 	}
 }
 
@@ -748,39 +575,29 @@ func applyEmployeeDetailStats(
 
 func toDomainEmployeeDetailFromEmployeeProfile(row db.EmployeeProfile) *domain.EmployeeDetail {
 	return &domain.EmployeeDetail{
-		ID:                    row.ID,
-		UserID:                row.UserID,
-		FirstName:             row.FirstName,
-		LastName:              row.LastName,
-		Bsn:                   row.Bsn,
-		Street:                row.Street,
-		HouseNumber:           row.HouseNumber,
-		HouseNumberAddition:   row.HouseNumberAddition,
-		PostalCode:            row.PostalCode,
-		City:                  row.City,
-		Position:              positionEnumPtrToStringPtr(row.Position),
-		EmployeeNumber:        row.EmployeeNumber,
-		EmploymentNumber:      row.EmploymentNumber,
-		PrivateEmailAddress:   row.PrivateEmailAddress,
-		WorkEmailAddress:      row.WorkEmailAddress,
-		PrivatePhoneNumber:    row.PrivatePhoneNumber,
-		WorkPhoneNumber:       row.WorkPhoneNumber,
-		DateOfBirth:           conv.TimePtrFromPgDate(row.DateOfBirth),
-		HomeTelephoneNumber:   row.HomeTelephoneNumber,
-		CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
-		Gender:                string(row.Gender),
-		LocationID:            row.LocationID,
-		DepartmentID:          row.DepartmentID,
-		ManagerEmployeeID:     row.ManagerEmployeeID,
-		HasBorrowed:           row.HasBorrowed,
-		OutOfService:          row.OutOfService,
-		IsArchived:            row.IsArchived,
-		ContractHours:         row.ContractHours,
-		ContractEndDate:       conv.TimePtrFromPgDate(row.ContractEndDate),
-		ContractStartDate:     conv.TimePtrFromPgDate(row.ContractStartDate),
-		ContractType:          string(row.ContractType),
-		ContractRate:          row.ContractRate,
-		IrregularHoursProfile: string(row.IrregularHoursProfile),
+		ID:                  row.ID,
+		UserID:              row.UserID,
+		FirstName:           row.FirstName,
+		LastName:            row.LastName,
+		Bsn:                 row.Bsn,
+		Street:              row.Street,
+		HouseNumber:         row.HouseNumber,
+		HouseNumberAddition: row.HouseNumberAddition,
+		PostalCode:          row.PostalCode,
+		City:                row.City,
+		EmployeeNumber:      row.EmployeeNumber,
+		EmploymentNumber:    row.EmploymentNumber,
+		PrivateEmailAddress: row.PrivateEmailAddress,
+		WorkEmailAddress:    row.WorkEmailAddress,
+		PrivatePhoneNumber:  row.PrivatePhoneNumber,
+		WorkPhoneNumber:     row.WorkPhoneNumber,
+		DateOfBirth:         conv.TimePtrFromPgDate(row.DateOfBirth),
+		HomeTelephoneNumber: row.HomeTelephoneNumber,
+		CreatedAt:           conv.TimeFromPgTimestamptz(row.CreatedAt),
+		Gender:              string(row.Gender),
+		ManagerEmployeeID:   row.ManagerEmployeeID,
+		OutOfService:        row.OutOfService,
+		IsArchived:          row.IsArchived,
 	}
 }
 
@@ -833,20 +650,6 @@ func toDomainEmployeeSearchResult(
 	}
 }
 
-func toDomainContractDetails(row db.GetEmployeeContractDetailsRow) *domain.ContractDetails {
-	isSubcontractor := row.ContractType == db.EmployeeContractTypeEnumZZP
-
-	return &domain.ContractDetails{
-		ContractHours:         row.ContractHours,
-		ContractStartDate:     conv.TimeFromPgDate(row.ContractStartDate),
-		ContractEndDate:       conv.TimeFromPgDate(row.ContractEndDate),
-		ContractType:          string(row.ContractType),
-		ContractRate:          row.ContractRate,
-		IrregularHoursProfile: string(row.IrregularHoursProfile),
-		IsSubcontractor:       &isSubcontractor,
-	}
-}
-
 func toDomainEducation(row db.EmployeeEducation) domain.Education {
 	return domain.Education{
 		ID:              row.ID,
@@ -888,13 +691,13 @@ func toDomainQualification(row db.EmployeeQualification) domain.Qualification {
 
 func toDomainQualificationType(row db.QualificationType) domain.QualificationType {
 	return domain.QualificationType{
-		Code:               row.Code,
-		OriginalDutchText:  row.OriginalDutchText,
-		EnglishName:        row.EnglishName,
-		AppContext:         row.AppContext,
-		IsActive:           row.IsActive,
-		CreatedAt:          conv.TimeFromPgTimestamptz(row.CreatedAt),
-		UpdatedAt:          conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		Code:              row.Code,
+		OriginalDutchText: row.OriginalDutchText,
+		EnglishName:       row.EnglishName,
+		AppContext:        row.AppContext,
+		IsActive:          row.IsActive,
+		CreatedAt:         conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:         conv.TimeFromPgTimestamptz(row.UpdatedAt),
 	}
 }
 
@@ -946,193 +749,48 @@ func contractTypePtrFromStringPtr(value *string) *db.EmployeeContractTypeEnum {
 	return enumPtr(contractTypeFromString(*value))
 }
 
-func irregularHoursProfileFromString(value string) db.IrregularHoursProfileEnum {
-	switch db.IrregularHoursProfileEnum(value) {
-	case db.IrregularHoursProfileEnumNone,
-		db.IrregularHoursProfileEnumRoster,
-		db.IrregularHoursProfileEnumNonRoster:
-		return db.IrregularHoursProfileEnum(value)
-	default:
-		return db.IrregularHoursProfileEnumNone
-	}
-}
-
-func irregularHoursProfilePtrFromStringPtr(value *string) *db.IrregularHoursProfileEnum {
-	if value == nil {
-		return nil
-	}
-
-	return enumPtr(irregularHoursProfileFromString(*value))
-}
-
-func positionEnumFromString(value string) db.EmployeePositionEnum {
-	switch db.EmployeePositionEnum(value) {
-	case db.EmployeePositionEnumYouthworkerD,
-		db.EmployeePositionEnumCareCoordinator,
-		db.EmployeePositionEnumBehavioralScientist,
-		db.EmployeePositionEnumQualityemployee,
-		db.EmployeePositionEnumPedagogicalAssistant,
-		db.EmployeePositionEnumTeamLeader,
-		db.EmployeePositionEnumManager,
-		db.EmployeePositionEnumAdministrativeAssistant:
-		return db.EmployeePositionEnum(value)
+func employeeJobTitleEnumFromString(value string) db.EmployeeJobTitleEnum {
+	switch db.EmployeeJobTitleEnum(value) {
+	case db.EmployeeJobTitleEnumYouthWorkerD,
+		db.EmployeeJobTitleEnumCareCoordinator,
+		db.EmployeeJobTitleEnumBehavioralScientist,
+		db.EmployeeJobTitleEnumQualityOfficer,
+		db.EmployeeJobTitleEnumPedagogicalWorker,
+		db.EmployeeJobTitleEnumTeamLead,
+		db.EmployeeJobTitleEnumManager,
+		db.EmployeeJobTitleEnumAdministrativeEmployee:
+		return db.EmployeeJobTitleEnum(value)
 	default:
 		return ""
 	}
 }
 
-func positionEnumPtrFromStringPtr(value *string) *db.EmployeePositionEnum {
-	if value == nil {
-		return nil
+func contractHoursTypeFromString(value string) db.ContractHoursTypeEnum {
+	switch db.ContractHoursTypeEnum(value) {
+	case db.ContractHoursTypeEnumFixed,
+		db.ContractHoursTypeEnumZeroHours,
+		db.ContractHoursTypeEnumMinMax:
+		return db.ContractHoursTypeEnum(value)
+	default:
+		return ""
 	}
-	return enumPtr(positionEnumFromString(*value))
 }
 
-func positionEnumPtrToStringPtr(value *db.EmployeePositionEnum) *string {
+func wageTaxTablePtrFromStringPtr(value *string) *db.WageTaxTableEnum {
 	if value == nil {
 		return nil
 	}
-	s := string(*value)
-	return &s
+	switch db.WageTaxTableEnum(*value) {
+	case db.WageTaxTableEnumWhiteTable, db.WageTaxTableEnumGreenTable:
+		v := db.WageTaxTableEnum(*value)
+		return &v
+	default:
+		return nil
+	}
 }
 
 func enumPtr[T any](value T) *T {
 	return &value
-}
-
-func valueOrZero(value *float64) float64 {
-	if value == nil {
-		return 0
-	}
-	return *value
-}
-
-func dateOnly(value time.Time) time.Time {
-	return time.Date(
-		value.UTC().Year(),
-		value.UTC().Month(),
-		value.UTC().Day(),
-		0,
-		0,
-		0,
-		0,
-		time.UTC,
-	)
-}
-
-func recomputeLegalLeaveBalancesFromYear(
-	ctx context.Context,
-	q *db.Queries,
-	actorEmployeeID uuid.UUID,
-	employeeID uuid.UUID,
-	startYear int32,
-	contractChangeID uuid.UUID,
-	effectiveFrom time.Time,
-) ([]domain.LeaveRecalculationImpact, error) {
-	currentYear := int32(time.Now().UTC().Year())
-	if startYear > currentYear {
-		return []domain.LeaveRecalculationImpact{}, nil
-	}
-
-	reasons := make([]domain.LeaveRecalculationImpact, 0, currentYear-startYear+1)
-
-	for year := startYear; year <= currentYear; year++ {
-		if err := q.EnsureLeaveBalanceForYear(ctx, db.EnsureLeaveBalanceForYearParams{
-			EmployeeID: employeeID,
-			Year:       year,
-		}); err != nil {
-			return nil, err
-		}
-
-		balance, err := q.LockLeaveBalanceByEmployeeYear(
-			ctx,
-			db.LockLeaveBalanceByEmployeeYearParams{
-				EmployeeID: employeeID,
-				Year:       year,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		legalTotalAfter, err := q.ComputeLegalLeaveTotalForYear(
-			ctx,
-			db.ComputeLegalLeaveTotalForYearParams{
-				EmployeeID: employeeID,
-				Year:       year,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		if balance.LegalUsedHours > legalTotalAfter {
-			return nil, fmt.Errorf("%w: year %d", domain.ErrContractChangeLeaveConflict, year)
-		}
-
-		reasons = append(reasons, domain.LeaveRecalculationImpact{
-			Year:        year,
-			LegalBefore: balance.LegalTotalHours,
-			LegalAfter:  legalTotalAfter,
-			Delta:       legalTotalAfter - balance.LegalTotalHours,
-		})
-
-		legalDelta := legalTotalAfter - balance.LegalTotalHours
-		if legalDelta == 0 {
-			continue
-		}
-
-		updated, err := q.ApplyLeaveBalanceTotalAdjustment(
-			ctx,
-			db.ApplyLeaveBalanceTotalAdjustmentParams{
-				ID:              balance.ID,
-				LegalHoursDelta: legalDelta,
-				ExtraHoursDelta: 0,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		reason := fmt.Sprintf(
-			"contract change %s effective %s",
-			contractChangeID.String(),
-			effectiveFrom.UTC().Format("2006-01-02"),
-		)
-		if _, err := q.CreateLeaveBalanceAdjustmentAudit(
-			ctx,
-			db.CreateLeaveBalanceAdjustmentAuditParams{
-				LeaveBalanceID:        updated.ID,
-				EmployeeID:            employeeID,
-				Year:                  year,
-				LegalHoursDelta:       legalDelta,
-				ExtraHoursDelta:       0,
-				Reason:                reason,
-				AdjustedByEmployeeID:  actorEmployeeID,
-				LegalTotalHoursBefore: balance.LegalTotalHours,
-				ExtraTotalHoursBefore: balance.ExtraTotalHours,
-				LegalTotalHoursAfter:  updated.LegalTotalHours,
-				ExtraTotalHoursAfter:  updated.ExtraTotalHours,
-			},
-		); err != nil {
-			return nil, err
-		}
-	}
-
-	return reasons, nil
-}
-
-func mapContractChangeDBError(err error) error {
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		if pgErr.Code == "23505" {
-			return fmt.Errorf(
-				"%w: duplicate effective_from for employee",
-				domain.ErrContractChangeInvalid,
-			)
-		}
-	}
-	return err
 }
 
 func (r *EmployeeRepository) UpdatePassword(

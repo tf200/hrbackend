@@ -79,7 +79,7 @@ INSERT INTO employee_profile (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
     $11, $12, $13, $14, $15, $16, $17, $18, $19
-) RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, has_borrowed, out_of_service, is_archived
+) RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, out_of_service, is_archived
 `
 
 type CreateEmployeeProfileParams struct {
@@ -151,7 +151,6 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 		&i.CreatedAt,
 		&i.Gender,
 		&i.ManagerEmployeeID,
-		&i.HasBorrowed,
 		&i.OutOfService,
 		&i.IsArchived,
 	)
@@ -160,7 +159,7 @@ func (q *Queries) CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeP
 
 const getEmployeeProfileByID = `-- name: GetEmployeeProfileByID :one
 SELECT
-    ep.id, ep.user_id, ep.first_name, ep.last_name, ep.name_in_use, ep.marital_status, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.manager_employee_id, ep.has_borrowed, ep.out_of_service, ep.is_archived,
+    ep.id, ep.user_id, ep.first_name, ep.last_name, ep.name_in_use, ep.marital_status, ep.bsn, ep.street, ep.house_number, ep.house_number_addition, ep.postal_code, ep.city, ep.employee_number, ep.employment_number, ep.private_email_address, ep.work_email_address, ep.private_phone_number, ep.work_phone_number, ep.date_of_birth, ep.home_telephone_number, ep.created_at, ep.gender, ep.manager_employee_id, ep.out_of_service, ep.is_archived,
     cu.profile_picture as profile_picture,
     d.name AS department_name,
     mgr.first_name AS manager_first_name,
@@ -203,7 +202,6 @@ type GetEmployeeProfileByIDRow struct {
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	Gender              GenderEnum         `json:"gender"`
 	ManagerEmployeeID   *uuid.UUID         `json:"manager_employee_id"`
-	HasBorrowed         bool               `json:"has_borrowed"`
 	OutOfService        *bool              `json:"out_of_service"`
 	IsArchived          bool               `json:"is_archived"`
 	ProfilePicture      *string            `json:"profile_picture"`
@@ -239,7 +237,6 @@ func (q *Queries) GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (Get
 		&i.CreatedAt,
 		&i.Gender,
 		&i.ManagerEmployeeID,
-		&i.HasBorrowed,
 		&i.OutOfService,
 		&i.IsArchived,
 		&i.ProfilePicture,
@@ -447,11 +444,10 @@ SET
     date_of_birth = COALESCE($10, date_of_birth),
     home_telephone_number = COALESCE($11, home_telephone_number),
     gender = COALESCE($12, gender),
-    has_borrowed = COALESCE($13, has_borrowed),
-    out_of_service = COALESCE($14, out_of_service),
-    is_archived = COALESCE($15, is_archived)
-WHERE id = $16
-RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, has_borrowed, out_of_service, is_archived
+    out_of_service = COALESCE($13, out_of_service),
+    is_archived = COALESCE($14, is_archived)
+WHERE id = $15
+RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, out_of_service, is_archived
 `
 
 type UpdateEmployeeProfileParams struct {
@@ -467,7 +463,6 @@ type UpdateEmployeeProfileParams struct {
 	DateOfBirth         pgtype.Date `json:"date_of_birth"`
 	HomeTelephoneNumber *string     `json:"home_telephone_number"`
 	Gender              *GenderEnum `json:"gender"`
-	HasBorrowed         *bool       `json:"has_borrowed"`
 	OutOfService        *bool       `json:"out_of_service"`
 	IsArchived          *bool       `json:"is_archived"`
 	ID                  uuid.UUID   `json:"id"`
@@ -487,7 +482,6 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		arg.DateOfBirth,
 		arg.HomeTelephoneNumber,
 		arg.Gender,
-		arg.HasBorrowed,
 		arg.OutOfService,
 		arg.IsArchived,
 		arg.ID,
@@ -517,7 +511,6 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 		&i.CreatedAt,
 		&i.Gender,
 		&i.ManagerEmployeeID,
-		&i.HasBorrowed,
 		&i.OutOfService,
 		&i.IsArchived,
 	)

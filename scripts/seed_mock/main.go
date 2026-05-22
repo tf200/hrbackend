@@ -28,7 +28,6 @@ type seedConfig struct {
 	Departments                 []seed.DepartmentSeed
 	Employees                   []seed.EmployeeSeed
 	DepartmentHeads             []seed.DepartmentHeadSeed
-	EmployeeContractChanges     []seed.EmployeeContractChangeSeed
 	LeaveRequests               []seed.LeaveRequestSeed
 	PayoutRequests              []seed.PayoutRequestSeed
 	Schedules                   []seed.ScheduleSeed
@@ -91,10 +90,6 @@ func main() {
 		"department_heads": seed.DepartmentHeadsSeeder{
 			Assignments: cfg.DepartmentHeads,
 		},
-		"employee_contract_changes": seed.EmployeeContractChangesSeeder{
-			Employees: cfg.Employees,
-			Changes:   cfg.EmployeeContractChanges,
-		},
 		"leave_requests": seed.LeaveRequestsSeeder{
 			Requests: cfg.LeaveRequests,
 		},
@@ -134,9 +129,8 @@ func main() {
 		"departments":                   {},
 		"employees":                     {"location", "departments"},
 		"department_heads":              {"departments", "employees"},
-		"employee_contract_changes":     {"employees"},
-		"leave_requests":                {"employees", "employee_contract_changes"},
-		"payout_requests":               {"employees", "employee_contract_changes"},
+		"leave_requests":                {"employees"},
+		"payout_requests":               {"employees"},
 		"schedules":                     {"location", "employees"},
 		"shift_swap_requests":           {"employees", "schedules"},
 		"late_arrivals":                 {"employees", "schedules"},
@@ -154,7 +148,6 @@ func main() {
 		"departments",
 		"employees",
 		"department_heads",
-		"employee_contract_changes",
 		"leave_requests",
 		"payout_requests",
 		"schedules",
@@ -284,19 +277,18 @@ func loadConfigFromEnv() (seedConfig, error) {
 			{CountryCode: "NL", HolidayDate: time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC), Name: "Eerste kerstdag", IsNational: true},
 			{CountryCode: "NL", HolidayDate: time.Date(2026, time.December, 26, 0, 0, 0, 0, time.UTC), Name: "Tweede kerstdag", IsNational: true},
 		},
-		Organizations:           dataset.Organizations,
-		Locations:               dataset.Locations,
-		Departments:             dataset.Departments,
-		Employees:               dataset.Employees,
-		DepartmentHeads:         dataset.DepartmentHeads,
-		EmployeeContractChanges: dataset.EmployeeContractChanges,
-		LeaveRequests:           dataset.LeaveRequests,
-		PayoutRequests:          dataset.PayoutRequests,
-		Schedules:               dataset.Schedules,
-		ShiftSwapRequests:       dataset.ShiftSwapRequests,
-		LateArrivals:            dataset.LateArrivals,
-		TimeEntries:             dataset.TimeEntries,
-		PayPeriods:              dataset.PayPeriods,
+		Organizations:     dataset.Organizations,
+		Locations:         dataset.Locations,
+		Departments:       dataset.Departments,
+		Employees:         dataset.Employees,
+		DepartmentHeads:   dataset.DepartmentHeads,
+		LeaveRequests:     dataset.LeaveRequests,
+		PayoutRequests:    dataset.PayoutRequests,
+		Schedules:         dataset.Schedules,
+		ShiftSwapRequests: dataset.ShiftSwapRequests,
+		LateArrivals:      dataset.LateArrivals,
+		TimeEntries:       dataset.TimeEntries,
+		PayPeriods:        dataset.PayPeriods,
 		Handbooks: []seed.HandbookTemplateSeed{
 			{
 				Alias:              "care_baseline",

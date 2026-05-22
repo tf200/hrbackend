@@ -174,13 +174,13 @@ type Experience struct {
 
 // QualificationType domain struct.
 type QualificationType struct {
-	Code               string
-	OriginalDutchText  string
-	EnglishName        string
-	AppContext         string
-	IsActive           bool
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	Code              string
+	OriginalDutchText string
+	EnglishName       string
+	AppContext        string
+	IsActive          bool
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // Qualification domain struct.
@@ -193,44 +193,6 @@ type Qualification struct {
 	CertificateNumber     *string
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
-}
-
-// ContractDetails domain struct.
-type ContractDetails struct {
-	ContractHours         *float64
-	ContractStartDate     time.Time
-	ContractEndDate       time.Time
-	ContractType          string
-	ContractRate          *float64
-	IrregularHoursProfile string
-	IsSubcontractor       *bool
-}
-
-type EmployeeContractChange struct {
-	ID                    uuid.UUID
-	EmployeeID            uuid.UUID
-	EffectiveFrom         time.Time
-	EffectiveTo           *time.Time
-	ContractHours         float64
-	ContractType          string
-	ContractRate          *float64
-	IrregularHoursProfile string
-	ContractEndDate       *time.Time
-	CreatedByEmployeeID   uuid.UUID
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
-}
-
-type LeaveRecalculationImpact struct {
-	Year        int32
-	LegalBefore int32
-	LegalAfter  int32
-	Delta       int32
-}
-
-type CreateEmployeeContractChangeResult struct {
-	Change         EmployeeContractChange
-	Recalculations []LeaveRecalculationImpact
 }
 
 // --- Params ---
@@ -250,66 +212,69 @@ type EmployeePage struct {
 	TotalCount int64
 }
 
+type CreateEmployeeContractParams struct {
+	JobTitle             string
+	DepartmentID         uuid.UUID
+	LocationID           uuid.UUID
+	OrganizationalRoleID *uuid.UUID
+	ContractType         string
+	ContractHoursType    string
+	StartDate            time.Time
+	ContractEndDate      *time.Time
+	HoursPerWeek         *float64
+	MinHoursPerWeek      *float64
+	MaxHoursPerWeek      *float64
+	RosterFreeDay        *int16
+	WageTaxTable         *string
+}
+
+type CreateEmployeeSalaryAssignmentParams struct {
+	SalaryScaleStepID uuid.UUID
+	EffectiveFrom     *time.Time
+	EffectiveTo       *time.Time
+}
+
 type CreateEmployeeParams struct {
-	FirstName             string
-	LastName              string
-	Bsn                   string
-	Street                string
-	HouseNumber           string
-	HouseNumberAddition   *string
-	PostalCode            string
-	City                  string
-	Position              *string
-	DepartmentID          *uuid.UUID
-	ManagerEmployeeID     *uuid.UUID
-	EmployeeNumber        *string
-	EmploymentNumber      *string
-	PrivateEmailAddress   *string
-	WorkEmailAddress      *string
-	WorkPhoneNumber       *string
-	PrivatePhoneNumber    *string
-	DateOfBirth           *time.Time
-	HomeTelephoneNumber   *string
-	Gender                string
-	LocationID            *uuid.UUID
-	ContractHours         *float64
-	ContractType          string
-	ContractStartDate     *time.Time
-	ContractEndDate       *time.Time
-	ContractRate          *float64
-	IrregularHoursProfile string
-	RoleID                uuid.UUID
-	UserEmail             string
-	UserPassword          string
+	FirstName           string
+	LastName            string
+	Bsn                 string
+	Street              string
+	HouseNumber         string
+	HouseNumberAddition *string
+	PostalCode          string
+	City                string
+	ManagerEmployeeID   *uuid.UUID
+	EmployeeNumber      *string
+	EmploymentNumber    *string
+	PrivateEmailAddress *string
+	WorkEmailAddress    *string
+	WorkPhoneNumber     *string
+	PrivatePhoneNumber  *string
+	DateOfBirth         *time.Time
+	HomeTelephoneNumber *string
+	Gender              string
+	RoleID              uuid.UUID
+	UserEmail           string
+	UserPassword        string
+
+	Contract         *CreateEmployeeContractParams
+	SalaryAssignment *CreateEmployeeSalaryAssignmentParams
 }
 
 type UpdateEmployeeParams struct {
-	FirstName             *string
-	LastName              *string
-	Position              *string
-	DepartmentID          *uuid.UUID
-	ManagerEmployeeID     *uuid.UUID
-	EmployeeNumber        *string
-	EmploymentNumber      *string
-	PrivateEmailAddress   *string
-	PrivatePhoneNumber    *string
-	WorkPhoneNumber       *string
-	DateOfBirth           *time.Time
-	HomeTelephoneNumber   *string
-	Gender                *string
-	LocationID            *uuid.UUID
-	IrregularHoursProfile *string
-	HasBorrowed           *bool
-	OutOfService          *bool
-	IsArchived            *bool
-}
-
-type AddContractDetailsParams struct {
-	ContractHours         *float64
-	ContractStartDate     time.Time
-	ContractEndDate       time.Time
-	ContractRate          *float64
-	IrregularHoursProfile string
+	FirstName           *string
+	LastName            *string
+	ManagerEmployeeID   *uuid.UUID
+	EmployeeNumber      *string
+	EmploymentNumber    *string
+	PrivateEmailAddress *string
+	PrivatePhoneNumber  *string
+	WorkPhoneNumber     *string
+	DateOfBirth         *time.Time
+	HomeTelephoneNumber *string
+	Gender              *string
+	OutOfService        *bool
+	IsArchived          *bool
 }
 
 type UpdateIsSubcontractorParams struct {
@@ -324,15 +289,6 @@ type ResetPasswordParams struct {
 
 type ResetPasswordResult struct {
 	TemporaryPassword string
-}
-
-type CreateEmployeeContractChangeParams struct {
-	EffectiveFrom         time.Time
-	ContractHours         float64
-	ContractType          string
-	ContractRate          *float64
-	IrregularHoursProfile string
-	ContractEndDate       *time.Time
 }
 
 type CreateEducationParams struct {
@@ -402,23 +358,11 @@ type EmployeeRepository interface {
 	) ([]EmployeeSearchResult, error)
 
 	// Contract
-	GetContractDetails(ctx context.Context, employeeID uuid.UUID) (*ContractDetails, error)
-	AddContractDetails(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		params AddContractDetailsParams,
-	) (*EmployeeDetail, error)
 	UpdateIsSubcontractor(
 		ctx context.Context,
 		employeeID uuid.UUID,
 		contractType string,
 	) (*EmployeeDetail, error)
-	ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractChange, error)
-	CreateContractChange(
-		ctx context.Context,
-		actorEmployeeID, employeeID uuid.UUID,
-		params CreateEmployeeContractChangeParams,
-	) (*CreateEmployeeContractChangeResult, error)
 
 	// Education
 	ListEducation(ctx context.Context, employeeID uuid.UUID) ([]Education, error)
@@ -487,23 +431,11 @@ type EmployeeService interface {
 		search *string,
 	) ([]EmployeeSearchResult, error)
 
-	GetContractDetails(ctx context.Context, employeeID uuid.UUID) (*ContractDetails, error)
-	AddContractDetails(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		params AddContractDetailsParams,
-	) (*EmployeeDetail, error)
 	UpdateIsSubcontractor(
 		ctx context.Context,
 		employeeID uuid.UUID,
 		params UpdateIsSubcontractorParams,
 	) (*EmployeeDetail, error)
-	ListContractChanges(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractChange, error)
-	CreateContractChange(
-		ctx context.Context,
-		actorEmployeeID, employeeID uuid.UUID,
-		params CreateEmployeeContractChangeParams,
-	) (*CreateEmployeeContractChangeResult, error)
 
 	ListEducation(ctx context.Context, employeeID uuid.UUID) ([]Education, error)
 	AddEducation(

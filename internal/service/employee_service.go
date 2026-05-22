@@ -94,8 +94,24 @@ func (s *EmployeeService) CreateEmployee(
 	ctx context.Context,
 	params domain.CreateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
-	if !isValidIrregularHoursProfile(params.IrregularHoursProfile) {
-		return nil, domain.ErrContractChangeInvalid
+	if params.Contract != nil {
+		if _, err := parseContractHoursType(params.Contract.ContractHoursType, params.Contract.HoursPerWeek, params.Contract.MinHoursPerWeek, params.Contract.MaxHoursPerWeek); err != nil {
+			return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+		}
+		if params.Contract.ContractEndDate != nil && params.Contract.ContractEndDate.Before(params.Contract.StartDate) {
+			return nil, fmt.Errorf("%w: contract_end_date cannot be before start_date", domain.ErrContractChangeInvalid)
+		}
+	}
+	if params.SalaryAssignment != nil {
+		if params.SalaryAssignment.EffectiveFrom == nil {
+			if params.Contract == nil {
+				return nil, fmt.Errorf("%w: salary effective_from is required without contract", domain.ErrContractChangeInvalid)
+			}
+			params.SalaryAssignment.EffectiveFrom = &params.Contract.StartDate
+		}
+		if params.SalaryAssignment.EffectiveTo != nil && !params.SalaryAssignment.EffectiveTo.After(*params.SalaryAssignment.EffectiveFrom) {
+			return nil, fmt.Errorf("%w: salary effective_to must be after effective_from", domain.ErrContractChangeInvalid)
+		}
 	}
 	hashedPassword, err := password.HashPassword(params.UserPassword)
 	if err != nil {
@@ -120,10 +136,6 @@ func (s *EmployeeService) UpdateEmployee(
 	id uuid.UUID,
 	params domain.UpdateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
-	if params.IrregularHoursProfile != nil &&
-		!isValidIrregularHoursProfile(*params.IrregularHoursProfile) {
-		return nil, domain.ErrContractChangeInvalid
-	}
 	emp, err := s.repo.UpdateEmployee(ctx, id, params)
 	if err != nil {
 		s.logError(ctx, "UpdateEmployee", err, zap.String("employee_id", id.String()))
@@ -151,85 +163,6 @@ func (s *EmployeeService) SearchEmployeesByNameOrEmail(
 		return nil, err
 	}
 	return results, nil
-}
-
-func (s *EmployeeService) GetContractDetails(
-	ctx context.Context,
-	employeeID uuid.UUID,
-) (*domain.ContractDetails, error) {
-	details, err := s.repo.GetContractDetails(ctx, employeeID)
-	if err != nil {
-		s.logError(ctx, "GetContractDetails", err, zap.String("employee_id", employeeID.String()))
-		return nil, err
-	}
-	return details, nil
-}
-
-func (s *EmployeeService) AddContractDetails(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	params domain.AddContractDetailsParams,
-) (*domain.EmployeeDetail, error) {
-	if !isValidIrregularHoursProfile(params.IrregularHoursProfile) {
-		return nil, domain.ErrContractChangeInvalid
-	}
-	emp, err := s.repo.AddContractDetails(ctx, employeeID, params)
-	if err != nil {
-		s.logError(ctx, "AddContractDetails", err, zap.String("employee_id", employeeID.String()))
-		return nil, err
-	}
-	return emp, nil
-}
-
-func (s *EmployeeService) ListContractChanges(
-	ctx context.Context,
-	employeeID uuid.UUID,
-) ([]domain.EmployeeContractChange, error) {
-	if employeeID == uuid.Nil {
-		return nil, domain.ErrContractChangeInvalid
-	}
-	items, err := s.repo.ListContractChanges(ctx, employeeID)
-	if err != nil {
-		s.logError(ctx, "ListContractChanges", err, zap.String("employee_id", employeeID.String()))
-		return nil, err
-	}
-	return items, nil
-}
-
-func (s *EmployeeService) CreateContractChange(
-	ctx context.Context,
-	actorEmployeeID, employeeID uuid.UUID,
-	params domain.CreateEmployeeContractChangeParams,
-) (*domain.CreateEmployeeContractChangeResult, error) {
-	if actorEmployeeID == uuid.Nil || employeeID == uuid.Nil {
-		return nil, domain.ErrContractChangeInvalid
-	}
-	if params.EffectiveFrom.IsZero() {
-		return nil, domain.ErrContractChangeInvalid
-	}
-	if params.ContractHours < 0 {
-		return nil, fmt.Errorf("%w: contract_hours must be >= 0", domain.ErrContractChangeInvalid)
-	}
-	if params.ContractType != "loondienst" && params.ContractType != "ZZP" &&
-		params.ContractType != "none" {
-		return nil, fmt.Errorf("%w: invalid contract_type", domain.ErrContractChangeInvalid)
-	}
-	if !isValidIrregularHoursProfile(params.IrregularHoursProfile) {
-		return nil, fmt.Errorf(
-			"%w: invalid irregular_hours_profile",
-			domain.ErrContractChangeInvalid,
-		)
-	}
-
-	result, err := s.repo.CreateContractChange(ctx, actorEmployeeID, employeeID, params)
-	if err != nil {
-		s.logError(ctx, "CreateContractChange", err,
-			zap.String("employee_id", employeeID.String()),
-			zap.String("actor_employee_id", actorEmployeeID.String()),
-		)
-		return nil, err
-	}
-	return result, nil
 }
 
 func (s *EmployeeService) UpdateIsSubcontractor(
@@ -500,4 +433,27 @@ func isValidIrregularHoursProfile(value string) bool {
 	default:
 		return false
 	}
+}
+
+func parseContractHoursType(ct string, hoursPerWeek, minHours, maxHours *float64) (string, error) {
+	switch ct {
+	case "fixed":
+		if hoursPerWeek == nil || *hoursPerWeek <= 0 {
+			return "", fmt.Errorf("fixed contract requires hours_per_week > 0")
+		}
+	case "min_max":
+		if minHours == nil || *minHours <= 0 {
+			return "", fmt.Errorf("min_max contract requires min_hours_per_week > 0")
+		}
+		if maxHours == nil || *maxHours <= 0 {
+			return "", fmt.Errorf("min_max contract requires max_hours_per_week > 0")
+		}
+		if *minHours > *maxHours {
+			return "", fmt.Errorf("min_hours_per_week cannot exceed max_hours_per_week")
+		}
+	case "zero_hours":
+	default:
+		return "", fmt.Errorf("invalid contract_hours_type: %s", ct)
+	}
+	return ct, nil
 }

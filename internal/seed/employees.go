@@ -19,32 +19,25 @@ import (
 )
 
 type EmployeeSeed struct {
-	Alias                 string
-	FirstName             string
-	LastName              string
-	UserEmail             string
-	UserPassword          string
-	Bsn                   string
-	Street                string
-	HouseNumber           string
-	PostalCode            string
-	City                  string
-	Position              *string
-	Gender                string
-	LocationAlias         *string
-	DepartmentAlias       *string
-	ManagerAlias          *string
-	EmployeeNumber        *string
-	EmploymentNumber      *string
-	RoleName              *string
-	PrivatePhoneNumber    *string
-	WorkPhoneNumber       *string
-	ContractStartDate     *time.Time
-	ContractEndDate       *time.Time
-	ContractHours         *float64
-	ContractType          string
-	ContractRate          *float64
-	IrregularHoursProfile string
+	Alias              string
+	FirstName          string
+	LastName           string
+	UserEmail          string
+	UserPassword       string
+	Bsn                string
+	Street             string
+	HouseNumber        string
+	PostalCode         string
+	City               string
+	Gender             string
+	ManagerAlias       *string
+	EmployeeNumber     *string
+	EmploymentNumber   *string
+	RoleName           *string
+	PrivatePhoneNumber *string
+	WorkPhoneNumber    *string
+	Contract           *domain.CreateEmployeeContractParams
+	SalaryAssignment   *domain.CreateEmployeeSalaryAssignmentParams
 }
 
 type EmployeesSeeder struct {
@@ -108,8 +101,6 @@ func (s EmployeesSeeder) Seed(ctx context.Context, env Env) error {
 			store,
 			employeeService,
 			item,
-			locationID,
-			departmentID,
 			roleID,
 		)
 		if err != nil {
@@ -168,7 +159,6 @@ func ensureEmployee(
 	store *dbrepo.Store,
 	employeeService domain.EmployeeService,
 	item EmployeeSeed,
-	locationID, departmentID *uuid.UUID,
 	roleID *uuid.UUID,
 ) (uuid.UUID, uuid.UUID, error) {
 	existingUser, err := store.GetUserByEmail(ctx, item.UserEmail)
@@ -183,33 +173,26 @@ func ensureEmployee(
 		}
 
 		createdEmployee, err := employeeService.CreateEmployee(ctx, domain.CreateEmployeeParams{
-			FirstName:             item.FirstName,
-			LastName:              item.LastName,
-			Bsn:                   item.Bsn,
-			Street:                item.Street,
-			HouseNumber:           item.HouseNumber,
-			PostalCode:            item.PostalCode,
-			City:                  item.City,
-			Position:              item.Position,
-			DepartmentID:          departmentID,
-			ManagerEmployeeID:     nil,
-			EmployeeNumber:        item.EmployeeNumber,
-			EmploymentNumber:      item.EmploymentNumber,
-			PrivateEmailAddress:   &item.UserEmail,
-			WorkEmailAddress:      &item.UserEmail,
-			PrivatePhoneNumber:    item.PrivatePhoneNumber,
-			WorkPhoneNumber:       item.WorkPhoneNumber,
-			Gender:                item.Gender,
-			LocationID:            locationID,
-			ContractHours:         item.ContractHours,
-			ContractType:          item.ContractType,
-			ContractStartDate:     item.ContractStartDate,
-			ContractEndDate:       item.ContractEndDate,
-			ContractRate:          item.ContractRate,
-			IrregularHoursProfile: item.IrregularHoursProfile,
-			RoleID:                resolvedRoleID,
-			UserEmail:             item.UserEmail,
-			UserPassword:          item.UserPassword,
+			FirstName:           item.FirstName,
+			LastName:            item.LastName,
+			Bsn:                 item.Bsn,
+			Street:              item.Street,
+			HouseNumber:         item.HouseNumber,
+			PostalCode:          item.PostalCode,
+			City:                item.City,
+			ManagerEmployeeID:   nil,
+			EmployeeNumber:      item.EmployeeNumber,
+			EmploymentNumber:    item.EmploymentNumber,
+			PrivateEmailAddress: &item.UserEmail,
+			WorkEmailAddress:    &item.UserEmail,
+			PrivatePhoneNumber:  item.PrivatePhoneNumber,
+			WorkPhoneNumber:     item.WorkPhoneNumber,
+			Gender:              item.Gender,
+			RoleID:              resolvedRoleID,
+			UserEmail:           item.UserEmail,
+			UserPassword:        item.UserPassword,
+			Contract:            item.Contract,
+			SalaryAssignment:    item.SalaryAssignment,
 		})
 		if err != nil {
 			return uuid.Nil, uuid.Nil, fmt.Errorf("create employee via service: %w", err)
@@ -232,74 +215,17 @@ func ensureEmployee(
 	if _, err := employeeService.UpdateEmployee(ctx, existingUser.EmployeeID, domain.UpdateEmployeeParams{
 		FirstName:           &item.FirstName,
 		LastName:            &item.LastName,
-		Position:            item.Position,
-		DepartmentID:        departmentID,
 		EmployeeNumber:      item.EmployeeNumber,
 		EmploymentNumber:    item.EmploymentNumber,
 		PrivateEmailAddress: &item.UserEmail,
 		PrivatePhoneNumber:  item.PrivatePhoneNumber,
 		WorkPhoneNumber:     item.WorkPhoneNumber,
 		Gender:              &item.Gender,
-		LocationID:          locationID,
 	}); err != nil {
 		return uuid.Nil, uuid.Nil, fmt.Errorf("update existing employee via service: %w", err)
 	}
 
-	if err := syncExistingEmployeeContract(ctx, store, employeeService, existingUser.EmployeeID, item); err != nil {
-		return uuid.Nil, uuid.Nil, fmt.Errorf("sync existing employee contract via service: %w", err)
-	}
-
 	return existingUser.ID, existingUser.EmployeeID, nil
-}
-
-func syncExistingEmployeeContract(
-	ctx context.Context,
-	store *dbrepo.Store,
-	employeeService domain.EmployeeService,
-	employeeID uuid.UUID,
-	item EmployeeSeed,
-) error {
-	changeCount, err := store.CountEmployeeContractChanges(ctx, employeeID)
-	if err != nil {
-		return fmt.Errorf("count contract changes: %w", err)
-	}
-	if changeCount > 0 {
-		return nil
-	}
-
-	if item.ContractStartDate != nil {
-		var contractEndDate time.Time
-		if item.ContractEndDate != nil {
-			contractEndDate = *item.ContractEndDate
-		}
-
-		if _, err := employeeService.AddContractDetails(ctx, employeeID, domain.AddContractDetailsParams{
-			ContractHours:         item.ContractHours,
-			ContractStartDate:     *item.ContractStartDate,
-			ContractEndDate:       contractEndDate,
-			ContractRate:          item.ContractRate,
-			IrregularHoursProfile: item.IrregularHoursProfile,
-		}); err != nil {
-			return fmt.Errorf("add contract details: %w", err)
-		}
-	}
-
-	switch item.ContractType {
-	case "loondienst":
-		if _, err := employeeService.UpdateIsSubcontractor(ctx, employeeID, domain.UpdateIsSubcontractorParams{
-			IsSubcontractor: false,
-		}); err != nil {
-			return fmt.Errorf("set contract type loondienst: %w", err)
-		}
-	case "ZZP":
-		if _, err := employeeService.UpdateIsSubcontractor(ctx, employeeID, domain.UpdateIsSubcontractorParams{
-			IsSubcontractor: true,
-		}); err != nil {
-			return fmt.Errorf("set contract type ZZP: %w", err)
-		}
-	}
-
-	return nil
 }
 
 func resolveOptionalRoleID(
@@ -380,16 +306,20 @@ func seedEmployeeDetails(ctx context.Context, env Env, employeeID uuid.UUID, ite
 			expirationDate = &d
 		}
 		certNumber := fmt.Sprintf("CERT-%d", gofakeit.Number(10000, 99999))
+		var qualificationID uuid.UUID
+		if err := env.DB.QueryRow(ctx, `SELECT id FROM qualifications WHERE code = $1`, code).Scan(&qualificationID); err != nil {
+			return fmt.Errorf("lookup qualification code %q: %w", code, err)
+		}
 		if _, err := env.DB.Exec(ctx, `
-			INSERT INTO employee_qualifications (
-				employee_id,
-				qualification_type_code,
-				achieved_on,
-				expiration_date,
-				certificate_number
-			) VALUES ($1, $2, $3, $4, $5)
-		`, employeeID,
-			code,
+		INSERT INTO employee_qualifications (
+			employee_id,
+			qualification_id,
+			achieved_on,
+			expiration_date,
+			certificate_number
+		) VALUES ($1, $2, $3, $4, $5)
+	`, employeeID,
+			qualificationID,
 			achievedOn,
 			expirationDate,
 			strPtr(certNumber),

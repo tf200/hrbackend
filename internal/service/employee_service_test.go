@@ -147,19 +147,7 @@ func (f *fakeEmployeeRepo) GetEmployeeCounts(_ context.Context) (*domain.Employe
 func (f *fakeEmployeeRepo) SearchEmployeesByNameOrEmail(_ context.Context, _ *string) ([]domain.EmployeeSearchResult, error) {
 	return nil, f.err
 }
-func (f *fakeEmployeeRepo) GetContractDetails(_ context.Context, _ uuid.UUID) (*domain.ContractDetails, error) {
-	return nil, f.err
-}
-func (f *fakeEmployeeRepo) AddContractDetails(_ context.Context, _ uuid.UUID, _ domain.AddContractDetailsParams) (*domain.EmployeeDetail, error) {
-	return nil, f.err
-}
 func (f *fakeEmployeeRepo) UpdateIsSubcontractor(_ context.Context, _ uuid.UUID, _ string) (*domain.EmployeeDetail, error) {
-	return nil, f.err
-}
-func (f *fakeEmployeeRepo) ListContractChanges(_ context.Context, _ uuid.UUID) ([]domain.EmployeeContractChange, error) {
-	return nil, f.err
-}
-func (f *fakeEmployeeRepo) CreateContractChange(_ context.Context, _, _ uuid.UUID, _ domain.CreateEmployeeContractChangeParams) (*domain.CreateEmployeeContractChangeResult, error) {
 	return nil, f.err
 }
 func (f *fakeEmployeeRepo) ListEducation(_ context.Context, _ uuid.UUID) ([]domain.Education, error) {
@@ -221,9 +209,15 @@ func (f *fakeTaskQueue) EnqueueEmailDelivery(_ context.Context, payload domain.E
 	f.enqueuedPayload = payload
 	return nil
 }
-func (f *fakeTaskQueue) EnqueueIncident(_ context.Context, _ domain.IncidentTaskPayload, _ *domain.TaskEnqueueOptions) error { return nil }
-func (f *fakeTaskQueue) EnqueueIncidentConfirmedEmail(_ context.Context, _ domain.IncidentConfirmedEmailTaskPayload, _ *domain.TaskEnqueueOptions) error { return nil }
-func (f *fakeTaskQueue) EnqueueNotificationTask(_ context.Context, _ domain.NotificationTaskPayload, _ *domain.TaskEnqueueOptions) error { return nil }
+func (f *fakeTaskQueue) EnqueueIncident(_ context.Context, _ domain.IncidentTaskPayload, _ *domain.TaskEnqueueOptions) error {
+	return nil
+}
+func (f *fakeTaskQueue) EnqueueIncidentConfirmedEmail(_ context.Context, _ domain.IncidentConfirmedEmailTaskPayload, _ *domain.TaskEnqueueOptions) error {
+	return nil
+}
+func (f *fakeTaskQueue) EnqueueNotificationTask(_ context.Context, _ domain.NotificationTaskPayload, _ *domain.TaskEnqueueOptions) error {
+	return nil
+}
 func (f *fakeTaskQueue) Close() error { return nil }
 
 func employeeDetailWithWorkEmail(email string) *domain.EmployeeDetail {

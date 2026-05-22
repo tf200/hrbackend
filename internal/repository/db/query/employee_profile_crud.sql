@@ -173,7 +173,6 @@ SET
     date_of_birth = COALESCE(sqlc.narg('date_of_birth'), date_of_birth),
     home_telephone_number = COALESCE(sqlc.narg('home_telephone_number'), home_telephone_number),
     gender = COALESCE(sqlc.narg('gender'), gender),
-    has_borrowed = COALESCE(sqlc.narg('has_borrowed'), has_borrowed),
     out_of_service = COALESCE(sqlc.narg('out_of_service'), out_of_service),
     is_archived = COALESCE(sqlc.narg('is_archived'), is_archived)
 WHERE id = sqlc.arg('id')
