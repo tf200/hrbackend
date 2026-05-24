@@ -695,26 +695,25 @@ CREATE INDEX education_employee_id_idx ON employee_education(employee_id);
 CREATE TABLE qualifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code TEXT NOT NULL UNIQUE,
-    original_dutch_text TEXT NULL,
-    english_name TEXT NOT NULL,
+    name TEXT NOT NULL,
     app_context TEXT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT qualifications_code_not_blank CHECK (btrim(code) <> ''),
-    CONSTRAINT qualifications_english_name_not_blank CHECK (btrim(english_name) <> '')
+    CONSTRAINT qualifications_name_not_blank CHECK (btrim(name) <> '')
 );
 
 CREATE INDEX idx_qualifications_is_active ON qualifications(is_active);
 
-INSERT INTO qualifications (code, original_dutch_text, english_name, app_context) VALUES
-    ('company_emergency_response_certificate', 'BHV certificaat', 'Company Emergency Response certificate', 'General safety cert (usually gives a small monthly bonus, not a scale bump).'),
-    ('first_aid_diploma', 'EHBO diploma', 'First Aid diploma', 'Standard first aid qualification.'),
-    ('cpr_resuscitation_certificate', 'Reanimatie certificaat', 'CPR / Resuscitation certificate', 'Standard CPR qualification.'),
-    ('hbo_nursing', 'HBO Verpleegkunde', 'Higher Professional Education in Nursing', 'Bachelor''s degree in Nursing. Typically maps to FWG 50 / 55.'),
-    ('mbo_nursing_level_4', 'MBO Verpleegkunde niveau 4', 'Vocational Education in Nursing level 4', 'Senior practical nurse qualification. Typically maps to FWG 45.'),
-    ('mbo_individual_healthcare_caregiver_level_3', 'MBO Verzorgende IG niveau 3', 'Individual Healthcare Caregiver level 3', 'Certified nursing assistant/carer. Typically maps to FWG 35 / 40.'),
-    ('big_registration_nurse', 'BIG registratie Verpleegkundige', 'BIG registration Nurse', 'The official legal registry for medical professionals in NL. Absolute prerequisite to practice as a nurse.');
+INSERT INTO qualifications (code, name, app_context) VALUES
+    ('company_emergency_response_certificate', 'BHV certificaat', 'General safety cert (usually gives a small monthly bonus, not a scale bump).'),
+    ('first_aid_diploma', 'EHBO diploma', 'Standard first aid qualification.'),
+    ('cpr_resuscitation_certificate', 'Reanimatie certificaat', 'Standard CPR qualification.'),
+    ('hbo_nursing', 'HBO Verpleegkunde', 'Bachelor''s degree in Nursing. Typically maps to FWG 50 / 55.'),
+    ('mbo_nursing_level_4', 'MBO Verpleegkunde niveau 4', 'Senior practical nurse qualification. Typically maps to FWG 45.'),
+    ('mbo_individual_healthcare_caregiver_level_3', 'MBO Verzorgende IG niveau 3', 'Certified nursing assistant/carer. Typically maps to FWG 35 / 40.'),
+    ('big_registration_nurse', 'BIG registratie Verpleegkundige', 'The official legal registry for medical professionals in NL. Absolute prerequisite to practice as a nurse.');
 
 -- Employee qualification assignments (junction)
 CREATE TABLE employee_qualifications (
@@ -1831,3 +1830,14 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- Employee attachments
+CREATE TABLE employee_attachment (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    attachment_id UUID NOT NULL UNIQUE REFERENCES attachment_file(uuid) ON DELETE CASCADE,
+    category VARCHAR(50) NOT NULL DEFAULT 'document',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+

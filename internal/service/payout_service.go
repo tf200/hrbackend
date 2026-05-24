@@ -1059,7 +1059,7 @@ func (s *PayoutService) GetMySalaryPage(
 		ContractType:          employee.ContractType,
 		ContractRate:          employee.ContractRate,
 		ContractHours:         employee.ContractHours,
-		IrregularHoursProfile: employee.IrregularHoursProfile,
+		IrregularHoursProfile: "",
 		ContractStartDate:     employee.ContractStartDate,
 		ContractEndDate:       employee.ContractEndDate,
 		DataSource:            dataSource,

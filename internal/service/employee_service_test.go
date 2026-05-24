@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"hrbackend/internal/domain"
 
@@ -110,9 +111,100 @@ func TestEmployeeServiceGetEmployeeProfile_repoError(t *testing.T) {
 // --- Fake repository ---
 
 type fakeEmployeeRepo struct {
-	profile        *domain.EmployeeProfile
-	employeeDetail *domain.EmployeeDetail
-	err            error
+	profile           *domain.EmployeeProfile
+	employeeDetail    *domain.EmployeeDetail
+	err               error
+	linkedAttachments []uuid.UUID
+	linkedEmployeeID  uuid.UUID
+	markedAttachments []uuid.UUID
+	markedAsUsed      bool
+}
+
+func (f *fakeEmployeeRepo) WithTx(ctx context.Context, fn func(tx domain.EmployeeTxRepository) error) error {
+	return fn(f)
+}
+
+func (f *fakeEmployeeRepo) LinkEmployeeAttachments(_ context.Context, employeeID uuid.UUID, attachmentIDs []uuid.UUID, _ string) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.linkedEmployeeID = employeeID
+	f.linkedAttachments = attachmentIDs
+	return nil
+}
+
+func (f *fakeEmployeeRepo) ListEmployeeAttachments(_ context.Context, _ uuid.UUID) ([]domain.EmployeeAttachmentDetail, error) {
+	return nil, f.err
+}
+
+func (f *fakeEmployeeRepo) UpdateAttachmentsUsed(_ context.Context, ids []uuid.UUID, isUsed bool) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.markedAttachments = ids
+	f.markedAsUsed = isUsed
+	return nil
+}
+
+func (f *fakeEmployeeRepo) AddEmployeeQualificationsBatch(_ context.Context, _ uuid.UUID, _ []domain.CreateQualificationParams) error {
+	return f.err
+}
+
+func (f *fakeEmployeeRepo) AddEmployeeAuthorizationsBatch(_ context.Context, _ uuid.UUID, _ []domain.CreateEmployeeAuthorizationParams) error {
+	return f.err
+}
+
+func (f *fakeEmployeeRepo) ListEmployeeAuthorizations(_ context.Context, _ uuid.UUID) ([]domain.EmployeeAuthorization, error) {
+	return nil, f.err
+}
+
+func (f *fakeEmployeeRepo) AddEmployeeAuthorization(_ context.Context, _ uuid.UUID, _ domain.CreateEmployeeAuthorizationParams) (*domain.EmployeeAuthorization, error) {
+	return nil, f.err
+}
+
+func (f *fakeEmployeeRepo) UpdateEmployeeAuthorization(_ context.Context, _ uuid.UUID, _ domain.UpdateEmployeeAuthorizationParams) (*domain.EmployeeAuthorization, error) {
+	return nil, f.err
+}
+
+func (f *fakeEmployeeRepo) DeleteEmployeeAuthorization(_ context.Context, _ uuid.UUID) (*domain.EmployeeAuthorization, error) {
+	return nil, f.err
+}
+
+func (f *fakeEmployeeRepo) CreateUser(_ context.Context, _, _ string) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return uuid.New(), nil
+}
+
+func (f *fakeEmployeeRepo) CreateEmployeeProfile(_ context.Context, _ uuid.UUID, _ domain.CreateEmployeeParams) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return uuid.New(), nil
+}
+
+func (f *fakeEmployeeRepo) AssignRoleToUser(_ context.Context, _, _ uuid.UUID) error {
+	return f.err
+}
+
+func (f *fakeEmployeeRepo) AddEmployeeContractDetails(_ context.Context, _ uuid.UUID, _ domain.CreateEmployeeContractParams) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return uuid.New(), nil
+}
+
+func (f *fakeEmployeeRepo) CreateEmployeeSalaryAssignment(
+	_ context.Context,
+	_ uuid.UUID,
+	_ *uuid.UUID,
+	_ domain.CreateEmployeeSalaryAssignmentParams,
+) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return uuid.New(), nil
 }
 
 func (f *fakeEmployeeRepo) GetEmployeeByUserID(_ context.Context, _ uuid.UUID) (*domain.EmployeeProfile, error) {
@@ -181,9 +273,6 @@ func (f *fakeEmployeeRepo) UpdateQualification(_ context.Context, _ uuid.UUID, _
 	return nil, f.err
 }
 func (f *fakeEmployeeRepo) DeleteQualification(_ context.Context, _ uuid.UUID) (*domain.Qualification, error) {
-	return nil, f.err
-}
-func (f *fakeEmployeeRepo) ListQualificationTypes(_ context.Context) ([]domain.QualificationType, error) {
 	return nil, f.err
 }
 func (f *fakeEmployeeRepo) UpdatePassword(_ context.Context, _ uuid.UUID, _ string) error {
@@ -380,5 +469,88 @@ func TestResetPassword_employeeNotFoundError(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrEmployeeNotFound) {
 		t.Fatalf("expected ErrEmployeeNotFound, got %v", err)
+	}
+}
+
+func TestCreateEmployee_withAttachments(t *testing.T) {
+	repo := &fakeEmployeeRepo{
+		employeeDetail: &domain.EmployeeDetail{
+			ID: uuid.New(),
+		},
+	}
+	tq := &fakeTaskQueue{}
+	svc := &EmployeeService{repo: repo, taskQueue: tq}
+
+	attachmentIDs := []uuid.UUID{uuid.New(), uuid.New()}
+	workEmail := "jane@example.com"
+	params := domain.CreateEmployeeParams{
+		FirstName:        "Jane",
+		LastName:         "Doe",
+		Bsn:              "123456789",
+		WorkEmailAddress: &workEmail,
+		AttachmentIDs:    attachmentIDs,
+	}
+
+	emp, err := svc.CreateEmployee(context.Background(), params)
+	if err != nil {
+		t.Fatalf("CreateEmployee returned error: %v", err)
+	}
+
+	if emp == nil {
+		t.Fatal("expected non-nil employee")
+	}
+
+	if len(repo.linkedAttachments) != 2 {
+		t.Errorf("expected 2 linked attachments, got %d", len(repo.linkedAttachments))
+	}
+
+	if len(repo.markedAttachments) != 2 {
+		t.Errorf("expected 2 marked attachments, got %d", len(repo.markedAttachments))
+	}
+
+	if !repo.markedAsUsed {
+		t.Errorf("expected attachments to be marked as used")
+	}
+}
+
+func TestCreateEmployee_withQualificationsAndAuthorizations(t *testing.T) {
+	repo := &fakeEmployeeRepo{
+		employeeDetail: &domain.EmployeeDetail{
+			ID: uuid.New(),
+		},
+	}
+	svc := &EmployeeService{repo: repo}
+
+	workEmail := "jane.doe@example.com"
+	qualID := uuid.New()
+	authID := uuid.New()
+
+	params := domain.CreateEmployeeParams{
+		FirstName:        "Jane",
+		LastName:         "Doe",
+		Bsn:              "123456789",
+		WorkEmailAddress: &workEmail,
+		Qualifications: []domain.CreateQualificationParams{
+			{
+				QualificationID: qualID,
+				AchievedOn:      time.Now(),
+			},
+		},
+		Authorizations: []domain.CreateEmployeeAuthorizationParams{
+			{
+				AuthorizationID: authID,
+				GrantedDate:     time.Now(),
+				ExpiryDate:      time.Now().AddDate(1, 0, 0),
+			},
+		},
+	}
+
+	emp, err := svc.CreateEmployee(context.Background(), params)
+	if err != nil {
+		t.Fatalf("CreateEmployee returned error: %v", err)
+	}
+
+	if emp == nil {
+		t.Fatal("expected non-nil employee")
 	}
 }

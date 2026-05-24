@@ -12,9 +12,12 @@ import (
 
 type Querier interface {
 	AddEducationToEmployeeProfile(ctx context.Context, arg AddEducationToEmployeeProfileParams) (EmployeeEducation, error)
+	AddEmployeeAuthorization(ctx context.Context, arg AddEmployeeAuthorizationParams) (EmployeeAuthorization, error)
+	AddEmployeeAuthorizationsBatch(ctx context.Context, arg []AddEmployeeAuthorizationsBatchParams) (int64, error)
 	AddEmployeeContractDetails(ctx context.Context, arg AddEmployeeContractDetailsParams) (EmployeeContract, error)
 	AddEmployeeExperience(ctx context.Context, arg AddEmployeeExperienceParams) (EmployeeExperience, error)
 	AddEmployeeQualification(ctx context.Context, arg AddEmployeeQualificationParams) (EmployeeQualification, error)
+	AddEmployeeQualificationsBatch(ctx context.Context, arg []AddEmployeeQualificationsBatchParams) (int64, error)
 	// Bulk-insert permission IDs into a role (idempotent).
 	AddPermissionsToRole(ctx context.Context, arg AddPermissionsToRoleParams) error
 	// Bulk-insert explicit overrides for a user (idempotent by replacement flow).
@@ -42,7 +45,10 @@ type Querier interface {
 	CountHandbookStepsByTemplateID(ctx context.Context, templateID uuid.UUID) (int32, error)
 	CountRemainingRequiredHandbookSteps(ctx context.Context, employeeHandbookID uuid.UUID) (int32, error)
 	CountScheduleOverlapsForEmployee(ctx context.Context, arg CountScheduleOverlapsForEmployeeParams) (int64, error)
+	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AttachmentFile, error)
+	CreateAuthorization(ctx context.Context, arg CreateAuthorizationParams) (Authorization, error)
 	CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (Department, error)
+	CreateEmployeeAttachments(ctx context.Context, arg CreateEmployeeAttachmentsParams) error
 	CreateEmployeeHandbookAssignmentHistory(ctx context.Context, arg CreateEmployeeHandbookAssignmentHistoryParams) (EmployeeHandbookAssignmentHistory, error)
 	CreateEmployeeHandbookFromTemplate(ctx context.Context, arg CreateEmployeeHandbookFromTemplateParams) (CreateEmployeeHandbookFromTemplateRow, error)
 	CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeProfileParams) (EmployeeProfile, error)
@@ -60,6 +66,7 @@ type Querier interface {
 	CreatePayoutRequest(ctx context.Context, arg CreatePayoutRequestParams) (LeavePayoutRequest, error)
 	CreatePerformanceAssessment(ctx context.Context, arg CreatePerformanceAssessmentParams) (CreatePerformanceAssessmentRow, error)
 	CreatePerformanceAssessmentScore(ctx context.Context, arg CreatePerformanceAssessmentScoreParams) error
+	CreateQualificationType(ctx context.Context, arg CreateQualificationTypeParams) (Qualification, error)
 	// ---------- 1. ROLES ----------
 	// Insert a new role and return the created row.
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
@@ -72,7 +79,9 @@ type Querier interface {
 	CreateTimeEntryUpdateAudit(ctx context.Context, arg CreateTimeEntryUpdateAuditParams) error
 	CreateTrainingCatalogItem(ctx context.Context, arg CreateTrainingCatalogItemParams) (TrainingCatalogItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CustomUser, error)
+	DeleteAttachment(ctx context.Context, argUuid uuid.UUID) error
 	DeleteDepartment(ctx context.Context, id uuid.UUID) (Department, error)
+	DeleteEmployeeAuthorization(ctx context.Context, id uuid.UUID) (EmployeeAuthorization, error)
 	DeleteEmployeeEducation(ctx context.Context, id uuid.UUID) (EmployeeEducation, error)
 	DeleteEmployeeExperience(ctx context.Context, id uuid.UUID) (EmployeeExperience, error)
 	DeleteEmployeeQualification(ctx context.Context, id uuid.UUID) (EmployeeQualification, error)
@@ -97,6 +106,7 @@ type Querier interface {
 	GetAdminRoleId(ctx context.Context) (uuid.UUID, error)
 	GetAllAdminUsers(ctx context.Context) ([]CustomUser, error)
 	GetAppOrganizationProfile(ctx context.Context) (GetAppOrganizationProfileRow, error)
+	GetAttachment(ctx context.Context, argUuid uuid.UUID) (AttachmentFile, error)
 	GetCriticalActionStats(ctx context.Context) (GetCriticalActionStatsRow, error)
 	GetCurrentMonthTimeEntryStats(ctx context.Context) (GetCurrentMonthTimeEntryStatsRow, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
@@ -162,11 +172,14 @@ type Querier interface {
 	// Returns every permission ordered by id.
 	ListAllPermissions(ctx context.Context) ([]Permission, error)
 	ListAssignedSchedulesForEmployeeOnDate(ctx context.Context, arg ListAssignedSchedulesForEmployeeOnDateParams) ([]ListAssignedSchedulesForEmployeeOnDateRow, error)
+	ListAuthorizations(ctx context.Context) ([]Authorization, error)
 	ListDepartmentsPaginated(ctx context.Context, arg ListDepartmentsPaginatedParams) ([]ListDepartmentsPaginatedRow, error)
 	ListEducations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeEducation, error)
 	// Returns effective permissions after applying role inheritance and overrides.
 	ListEffectiveUserPermissions(ctx context.Context, userID uuid.UUID) ([]ListEffectiveUserPermissionsRow, error)
 	ListEligibleEmployeesForHandbookAssignment(ctx context.Context, arg ListEligibleEmployeesForHandbookAssignmentParams) ([]ListEligibleEmployeesForHandbookAssignmentRow, error)
+	ListEmployeeAttachments(ctx context.Context, employeeID uuid.UUID) ([]ListEmployeeAttachmentsRow, error)
+	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
 	ListEmployeeExperience(ctx context.Context, employeeID uuid.UUID) ([]EmployeeExperience, error)
 	ListEmployeeHandbookAssignmentHistoryByEmployeeID(ctx context.Context, arg ListEmployeeHandbookAssignmentHistoryByEmployeeIDParams) ([]EmployeeHandbookAssignmentHistory, error)
 	ListEmployeeHandbookAssignments(ctx context.Context, arg ListEmployeeHandbookAssignmentsParams) ([]ListEmployeeHandbookAssignmentsRow, error)
@@ -262,7 +275,11 @@ type Querier interface {
 	SearchEmployeesByNameOrEmail(ctx context.Context, search *string) ([]SearchEmployeesByNameOrEmailRow, error)
 	SetEmployeeProfilePicture(ctx context.Context, arg SetEmployeeProfilePictureParams) (CustomUser, error)
 	UpdateAppOrganizationProfile(ctx context.Context, arg UpdateAppOrganizationProfileParams) (UpdateAppOrganizationProfileRow, error)
+	UpdateAttachmentUsed(ctx context.Context, arg UpdateAttachmentUsedParams) (AttachmentFile, error)
+	UpdateAttachmentsUsed(ctx context.Context, arg UpdateAttachmentsUsedParams) error
+	UpdateAuthorization(ctx context.Context, arg UpdateAuthorizationParams) (Authorization, error)
 	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (Department, error)
+	UpdateEmployeeAuthorization(ctx context.Context, arg UpdateEmployeeAuthorizationParams) (EmployeeAuthorization, error)
 	UpdateEmployeeEducation(ctx context.Context, arg UpdateEmployeeEducationParams) (EmployeeEducation, error)
 	UpdateEmployeeExperience(ctx context.Context, arg UpdateEmployeeExperienceParams) (EmployeeExperience, error)
 	UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeProfileParams) (EmployeeProfile, error)
@@ -277,6 +294,7 @@ type Querier interface {
 	UpdateOrganisation(ctx context.Context, arg UpdateOrganisationParams) (Organisation, error)
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
 	UpdatePerformanceWorkAssignmentDecision(ctx context.Context, arg UpdatePerformanceWorkAssignmentDecisionParams) error
+	UpdateQualificationType(ctx context.Context, arg UpdateQualificationTypeParams) (Qualification, error)
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) (UpdateScheduleRow, error)
 	UpdateScheduleEmployeeAssignment(ctx context.Context, arg UpdateScheduleEmployeeAssignmentParams) error
 	UpdateShift(ctx context.Context, arg UpdateShiftParams) (LocationShift, error)

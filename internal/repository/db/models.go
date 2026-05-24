@@ -1585,6 +1585,15 @@ type Department struct {
 	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
 }
 
+type EmployeeAttachment struct {
+	ID           uuid.UUID          `json:"id"`
+	EmployeeID   uuid.UUID          `json:"employee_id"`
+	AttachmentID uuid.UUID          `json:"attachment_id"`
+	Category     string             `json:"category"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
 type EmployeeAuthorization struct {
 	ID              uuid.UUID          `json:"id"`
 	EmployeeID      uuid.UUID          `json:"employee_id"`
@@ -2072,14 +2081,13 @@ type Permission struct {
 }
 
 type Qualification struct {
-	ID                uuid.UUID          `json:"id"`
-	Code              string             `json:"code"`
-	OriginalDutchText *string            `json:"original_dutch_text"`
-	EnglishName       string             `json:"english_name"`
-	AppContext        *string            `json:"app_context"`
-	IsActive          bool               `json:"is_active"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	ID         uuid.UUID          `json:"id"`
+	Code       string             `json:"code"`
+	Name       string             `json:"name"`
+	AppContext *string            `json:"app_context"`
+	IsActive   bool               `json:"is_active"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Role struct {

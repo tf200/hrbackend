@@ -53,6 +53,9 @@ type createEmployeeRequest struct {
 	RoleID              uuid.UUID                              `json:"role_id"                 binding:"required"`
 	Contract            *createEmployeeContractRequest         `json:"contract,omitempty"`
 	SalaryAssignment    *createEmployeeSalaryAssignmentRequest `json:"salary_assignment,omitempty"`
+	AttachmentIDs       []uuid.UUID                            `json:"attachment_ids"          binding:"omitempty"`
+	Qualifications      []createQualificationRequest           `json:"qualifications,omitempty" binding:"dive"`
+	Authorizations      []createEmployeeAuthorizationRequest   `json:"authorizations,omitempty" binding:"dive"`
 }
 
 type updateEmployeeRequest struct {
@@ -130,6 +133,21 @@ type updateQualificationRequest struct {
 	CertificateNumber *string `json:"certificate_number"`
 }
 
+type createEmployeeAuthorizationRequest struct {
+	AuthorizationID string  `json:"authorization_id" binding:"required"`
+	GrantedDate     string  `json:"granted_date"     binding:"required,datetime=2006-01-02"`
+	ExpiryDate      string  `json:"expiry_date"      binding:"required,datetime=2006-01-02"`
+	Notes           *string `json:"notes"`
+}
+
+type updateEmployeeAuthorizationRequest struct {
+	AuthorizationID *string `json:"authorization_id"`
+	GrantedDate     *string `json:"granted_date"     binding:"omitempty,datetime=2006-01-02"`
+	ExpiryDate      *string `json:"expiry_date"      binding:"omitempty,datetime=2006-01-02"`
+	IsActive        *bool   `json:"is_active"`
+	Notes           *string `json:"notes"`
+}
+
 type searchEmployeesRequest struct {
 	Search *string `form:"search" binding:"required"`
 }
@@ -144,18 +162,31 @@ type resetPasswordResponse struct {
 	TemporaryPassword string `json:"temporary_password"`
 }
 
+type employeeAttachmentDetailResponse struct {
+	ID           uuid.UUID `json:"id"`
+	AttachmentID uuid.UUID `json:"attachment_id"`
+	Category     string    `json:"category"`
+	Name         string    `json:"name"`
+	File         string    `json:"file"`
+	Size         int32     `json:"size"`
+	Tag          *string   `json:"tag"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
 type employeeDetailResponse struct {
 	ID                         uuid.UUID                               `json:"id"`
 	UserID                     uuid.UUID                               `json:"user_id"`
 	FirstName                  string                                  `json:"first_name"`
 	LastName                   string                                  `json:"last_name"`
+	NameInUse                  string                                  `json:"name_in_use"`
+	MaritalStatus              *string                                 `json:"marital_status"`
 	Bsn                        string                                  `json:"bsn"`
 	Street                     string                                  `json:"street"`
 	HouseNumber                string                                  `json:"house_number"`
 	HouseNumberAddition        *string                                 `json:"house_number_addition"`
 	PostalCode                 string                                  `json:"postal_code"`
 	City                       string                                  `json:"city"`
-	Position                   *string                                 `json:"position"`
 	EmployeeNumber             *string                                 `json:"employee_number"`
 	EmploymentNumber           *string                                 `json:"employment_number"`
 	PrivateEmailAddress        *string                                 `json:"private_email_address"`
@@ -167,19 +198,12 @@ type employeeDetailResponse struct {
 	CreatedAt                  time.Time                               `json:"created_at"`
 	Gender                     string                                  `json:"gender"`
 	LocationID                 *uuid.UUID                              `json:"location_id"`
-	DepartmentID               *uuid.UUID                              `json:"department_id"`
 	ManagerEmployeeID          *uuid.UUID                              `json:"manager_employee_id"`
-	HasBorrowed                bool                                    `json:"has_borrowed"`
 	OutOfService               *bool                                   `json:"out_of_service"`
 	IsArchived                 bool                                    `json:"is_archived"`
 	ContractHours              *float64                                `json:"contract_hours"`
-	ContractEndDate            *time.Time                              `json:"contract_end_date"`
-	ContractStartDate          *time.Time                              `json:"contract_start_date"`
-	ContractType               string                                  `json:"contract_type"`
 	ContractRate               *float64                                `json:"contract_rate"`
-	IrregularHoursProfile      string                                  `json:"irregular_hours_profile"`
 	ProfilePicture             *string                                 `json:"profile_picture"`
-	DepartmentName             *string                                 `json:"department_name"`
 	ManagerFirstName           *string                                 `json:"manager_first_name"`
 	ManagerLastName            *string                                 `json:"manager_last_name"`
 	RemainingLeaveBalanceHours int32                                   `json:"remaining_leave_balance_hours"`
@@ -189,6 +213,9 @@ type employeeDetailResponse struct {
 	LastPerformanceReviewScore *float64                                `json:"last_performance_review_score"`
 	Contract                   *employeeContractDetailResponse         `json:"contract"`
 	SalaryAssignment           *employeeSalaryAssignmentDetailResponse `json:"salary_assignment"`
+	Attachments                []employeeAttachmentDetailResponse      `json:"attachments"`
+	Qualifications             []qualificationResponse                 `json:"qualifications"`
+	Authorizations             []employeeAuthorizationResponse         `json:"authorizations"`
 }
 
 type employeeContractDetailResponse struct {
@@ -239,6 +266,7 @@ type employeeListItemResponse struct {
 	DepartmentName  *string    `json:"department_name"`
 	LocationAddress string     `json:"location_address"`
 	ContractEndDate *time.Time `json:"contract_end_date"`
+	LeaveStatus     string     `json:"leave_status"`
 }
 
 type permissionResponse struct {
@@ -308,13 +336,16 @@ type qualificationResponse struct {
 	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
-type qualificationTypeResponse struct {
-	ID                uuid.UUID `json:"id"`
-	Code              string    `json:"code"`
-	OriginalDutchText *string   `json:"original_dutch_text"`
-	EnglishName       string    `json:"english_name"`
-	AppContext        *string   `json:"app_context"`
-	CreatedAt         time.Time `json:"created_at"`
+type employeeAuthorizationResponse struct {
+	ID              uuid.UUID `json:"id"`
+	EmployeeID      uuid.UUID `json:"employee_id"`
+	AuthorizationID uuid.UUID `json:"authorization_id"`
+	GrantedDate     time.Time `json:"granted_date"`
+	ExpiryDate      time.Time `json:"expiry_date"`
+	IsActive        bool      `json:"is_active"`
+	Notes           *string   `json:"notes"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type employeeSearchResultResponse struct {
@@ -374,6 +405,22 @@ func toCreateEmployeeParams(req createEmployeeRequest) domain.CreateEmployeePara
 		}
 	}
 
+	var qualifications []domain.CreateQualificationParams
+	if len(req.Qualifications) > 0 {
+		qualifications = make([]domain.CreateQualificationParams, len(req.Qualifications))
+		for i, q := range req.Qualifications {
+			qualifications[i] = toCreateQualificationParams(q)
+		}
+	}
+
+	var authorizations []domain.CreateEmployeeAuthorizationParams
+	if len(req.Authorizations) > 0 {
+		authorizations = make([]domain.CreateEmployeeAuthorizationParams, len(req.Authorizations))
+		for i, a := range req.Authorizations {
+			authorizations[i] = toCreateEmployeeAuthorizationParams(a)
+		}
+	}
+
 	return domain.CreateEmployeeParams{
 		FirstName:           req.FirstName,
 		LastName:            req.LastName,
@@ -398,6 +445,9 @@ func toCreateEmployeeParams(req createEmployeeRequest) domain.CreateEmployeePara
 		UserPassword:        "",
 		Contract:            contract,
 		SalaryAssignment:    salaryAssignment,
+		AttachmentIDs:       req.AttachmentIDs,
+		Qualifications:      qualifications,
+		Authorizations:      authorizations,
 	}
 }
 
@@ -509,19 +559,84 @@ func toUpdateQualificationParams(req updateQualificationRequest) domain.UpdateQu
 	}
 }
 
+func toCreateEmployeeAuthorizationParams(req createEmployeeAuthorizationRequest) domain.CreateEmployeeAuthorizationParams {
+	grantedDate, _ := parseDate(req.GrantedDate)
+	expiryDate, _ := parseDate(req.ExpiryDate)
+
+	return domain.CreateEmployeeAuthorizationParams{
+		AuthorizationID: uuid.MustParse(req.AuthorizationID),
+		GrantedDate:     grantedDate,
+		ExpiryDate:      expiryDate,
+		Notes:           req.Notes,
+	}
+}
+
+func toUpdateEmployeeAuthorizationParams(req updateEmployeeAuthorizationRequest) domain.UpdateEmployeeAuthorizationParams {
+	var grantedDate *time.Time
+	if req.GrantedDate != nil {
+		d, _ := parseDate(*req.GrantedDate)
+		grantedDate = &d
+	}
+	var expiryDate *time.Time
+	if req.ExpiryDate != nil {
+		d, _ := parseDate(*req.ExpiryDate)
+		expiryDate = &d
+	}
+
+	return domain.UpdateEmployeeAuthorizationParams{
+		AuthorizationID: uuidPtrFromStringPtr(req.AuthorizationID),
+		GrantedDate:     grantedDate,
+		ExpiryDate:      expiryDate,
+		IsActive:        req.IsActive,
+		Notes:           req.Notes,
+	}
+}
+
+func toEmployeeAttachmentDetailResponse(a *domain.EmployeeAttachmentDetail) employeeAttachmentDetailResponse {
+	return employeeAttachmentDetailResponse{
+		ID:           a.ID,
+		AttachmentID: a.AttachmentID,
+		Category:     a.Category,
+		Name:         a.Name,
+		File:         a.File,
+		Size:         a.Size,
+		Tag:          a.Tag,
+		CreatedAt:    a.CreatedAt,
+		UpdatedAt:    a.UpdatedAt,
+	}
+}
+
 func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse {
+	attachments := make([]employeeAttachmentDetailResponse, len(emp.Attachments))
+	for i, a := range emp.Attachments {
+		attachments[i] = toEmployeeAttachmentDetailResponse(&a)
+	}
+
+	qualifications := make([]qualificationResponse, len(emp.Qualifications))
+	for i, q := range emp.Qualifications {
+		q := q
+		qualifications[i] = toQualificationResponse(&q)
+	}
+
+	authorizations := make([]employeeAuthorizationResponse, len(emp.Authorizations))
+	for i, a := range emp.Authorizations {
+		a := a
+		authorizations[i] = toEmployeeAuthorizationResponse(&a)
+	}
+
 	return employeeDetailResponse{
 		ID:                         emp.ID,
 		UserID:                     emp.UserID,
 		FirstName:                  emp.FirstName,
 		LastName:                   emp.LastName,
+		NameInUse:                  emp.NameInUse,
+		MaritalStatus:              emp.MaritalStatus,
 		Bsn:                        emp.Bsn,
 		Street:                     emp.Street,
 		HouseNumber:                emp.HouseNumber,
 		HouseNumberAddition:        emp.HouseNumberAddition,
 		PostalCode:                 emp.PostalCode,
 		City:                       emp.City,
-		Position:                   emp.Position,
 		EmployeeNumber:             emp.EmployeeNumber,
 		EmploymentNumber:           emp.EmploymentNumber,
 		PrivateEmailAddress:        emp.PrivateEmailAddress,
@@ -533,19 +648,12 @@ func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse
 		CreatedAt:                  emp.CreatedAt,
 		Gender:                     emp.Gender,
 		LocationID:                 emp.LocationID,
-		DepartmentID:               emp.DepartmentID,
 		ManagerEmployeeID:          emp.ManagerEmployeeID,
-		HasBorrowed:                emp.HasBorrowed,
 		OutOfService:               emp.OutOfService,
 		IsArchived:                 emp.IsArchived,
 		ContractHours:              emp.ContractHours,
-		ContractEndDate:            emp.ContractEndDate,
-		ContractStartDate:          emp.ContractStartDate,
-		ContractType:               emp.ContractType,
 		ContractRate:               emp.ContractRate,
-		IrregularHoursProfile:      emp.IrregularHoursProfile,
 		ProfilePicture:             emp.ProfilePicture,
-		DepartmentName:             emp.DepartmentName,
 		ManagerFirstName:           emp.ManagerFirstName,
 		ManagerLastName:            emp.ManagerLastName,
 		RemainingLeaveBalanceHours: emp.RemainingLeaveBalanceHours,
@@ -555,6 +663,9 @@ func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse
 		LastPerformanceReviewScore: emp.LastPerformanceReviewScore,
 		Contract:                   toEmployeeContractDetailResponse(emp.Contract),
 		SalaryAssignment:           toEmployeeSalaryAssignmentDetailResponse(emp.SalaryAssignment),
+		Attachments:                attachments,
+		Qualifications:             qualifications,
+		Authorizations:             authorizations,
 	}
 }
 
@@ -617,6 +728,7 @@ func toEmployeeListItemResponse(emp domain.Employee) employeeListItemResponse {
 		DepartmentName:  emp.DepartmentName,
 		LocationAddress: emp.LocationAddress,
 		ContractEndDate: emp.ContractEndDate,
+		LeaveStatus:     emp.LeaveStatus,
 	}
 }
 
@@ -694,14 +806,17 @@ func toQualificationResponse(qualification *domain.Qualification) qualificationR
 	}
 }
 
-func toQualificationTypeResponse(qt *domain.QualificationType) qualificationTypeResponse {
-	return qualificationTypeResponse{
-		ID:                qt.ID,
-		Code:              qt.Code,
-		OriginalDutchText: qt.OriginalDutchText,
-		EnglishName:       qt.EnglishName,
-		AppContext:        qt.AppContext,
-		CreatedAt:         qt.CreatedAt,
+func toEmployeeAuthorizationResponse(a *domain.EmployeeAuthorization) employeeAuthorizationResponse {
+	return employeeAuthorizationResponse{
+		ID:              a.ID,
+		EmployeeID:      a.EmployeeID,
+		AuthorizationID: a.AuthorizationID,
+		GrantedDate:     a.GrantedDate,
+		ExpiryDate:      a.ExpiryDate,
+		IsActive:        a.IsActive,
+		Notes:           a.Notes,
+		CreatedAt:       a.CreatedAt,
+		UpdatedAt:       a.UpdatedAt,
 	}
 }
 

@@ -32,6 +32,8 @@ DROP FUNCTION IF EXISTS is_coordinator();
 -- DROP TABLES (reverse dependency order)
 -- ==========================================
 
+DROP TABLE IF EXISTS employee_attachment CASCADE;
+
 -- Calendar tables
 DROP TABLE IF EXISTS calendar_event_reminders;
 DROP TABLE IF EXISTS calendar_event_attendees;

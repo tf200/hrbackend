@@ -24,6 +24,210 @@ func NewEmployeeRepository(store *db.Store) domain.EmployeeRepository {
 	return &EmployeeRepository{store: store}
 }
 
+func (r *EmployeeRepository) WithTx(
+	ctx context.Context,
+	fn func(tx domain.EmployeeTxRepository) error,
+) error {
+	return r.store.ExecTx(ctx, func(q *db.Queries) error {
+		return fn(&employeeTxRepo{queries: q})
+	})
+}
+
+type employeeTxRepo struct {
+	queries *db.Queries
+}
+
+func (tx *employeeTxRepo) CreateUser(ctx context.Context, email, password string) (uuid.UUID, error) {
+	user, err := tx.queries.CreateUser(ctx, db.CreateUserParams{
+		Email:    email,
+		Password: password,
+		IsActive: true,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return user.ID, nil
+}
+
+func (tx *employeeTxRepo) CreateEmployeeProfile(ctx context.Context, userID uuid.UUID, params domain.CreateEmployeeParams) (uuid.UUID, error) {
+	empProfile, err := tx.queries.CreateEmployeeProfile(ctx, db.CreateEmployeeProfileParams{
+		UserID:              userID,
+		FirstName:           params.FirstName,
+		LastName:            params.LastName,
+		Bsn:                 params.Bsn,
+		Street:              params.Street,
+		HouseNumber:         params.HouseNumber,
+		HouseNumberAddition: params.HouseNumberAddition,
+		PostalCode:          params.PostalCode,
+		City:                params.City,
+		ManagerEmployeeID:   params.ManagerEmployeeID,
+		EmployeeNumber:      params.EmployeeNumber,
+		EmploymentNumber:    params.EmploymentNumber,
+		PrivateEmailAddress: params.PrivateEmailAddress,
+		WorkEmailAddress:    params.WorkEmailAddress,
+		WorkPhoneNumber:     params.WorkPhoneNumber,
+		PrivatePhoneNumber:  params.PrivatePhoneNumber,
+		DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
+		HomeTelephoneNumber: params.HomeTelephoneNumber,
+		Gender:              genderEnumFromString(params.Gender),
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return empProfile.ID, nil
+}
+
+func (tx *employeeTxRepo) AssignRoleToUser(ctx context.Context, userID, roleID uuid.UUID) error {
+	return tx.queries.AssignRoleToUser(ctx, db.AssignRoleToUserParams{
+		UserID: userID,
+		RoleID: roleID,
+	})
+}
+
+func (tx *employeeTxRepo) AddEmployeeContractDetails(ctx context.Context, employeeID uuid.UUID, params domain.CreateEmployeeContractParams) (uuid.UUID, error) {
+	contract, err := tx.queries.AddEmployeeContractDetails(ctx, db.AddEmployeeContractDetailsParams{
+		EmployeeID:           employeeID,
+		JobTitle:             employeeJobTitleEnumFromString(params.JobTitle),
+		DepartmentID:         params.DepartmentID,
+		LocationID:           params.LocationID,
+		OrganizationalRoleID: params.OrganizationalRoleID,
+		ContractType:         contractTypeFromString(params.ContractType),
+		ContractHoursType:    contractHoursTypeFromString(params.ContractHoursType),
+		StartDate:            conv.PgDateFromTime(params.StartDate),
+		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
+		HoursPerWeek:         params.HoursPerWeek,
+		MinHoursPerWeek:      params.MinHoursPerWeek,
+		MaxHoursPerWeek:      params.MaxHoursPerWeek,
+		RosterFreeDay:        params.RosterFreeDay,
+		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
+		CreatedByEmployeeID:  nil,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return contract.ID, nil
+}
+
+func (tx *employeeTxRepo) CreateEmployeeSalaryAssignment(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	contractID *uuid.UUID,
+	params domain.CreateEmployeeSalaryAssignmentParams,
+) (uuid.UUID, error) {
+	salary, err := tx.queries.CreateEmployeeSalaryAssignment(ctx, db.CreateEmployeeSalaryAssignmentParams{
+		EmployeeID:          employeeID,
+		ContractID:          contractID,
+		SalaryScaleStepID:   params.SalaryScaleStepID,
+		EffectiveFrom:       pgDateFromPtr(params.EffectiveFrom),
+		EffectiveTo:         pgDateFromPtr(params.EffectiveTo),
+		CreatedByEmployeeID: nil,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return salary.ID, nil
+}
+
+func (tx *employeeTxRepo) GetEmployeeByID(ctx context.Context, id uuid.UUID) (*domain.EmployeeDetail, error) {
+	row, err := tx.queries.GetEmployeeProfileByID(ctx, id)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+
+	stats, err := tx.queries.GetEmployeeDetailStats(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	employee := toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row)
+	if contractRow, err := tx.queries.GetLatestEmployeeContractDetail(ctx, id); err == nil {
+		applyEmployeeContractDetail(employee, contractRow)
+	} else if !isDBNotFound(err) {
+		return nil, err
+	}
+	if salaryRow, err := tx.queries.GetLatestEmployeeSalaryAssignmentDetail(ctx, id); err == nil {
+		applyEmployeeSalaryAssignmentDetail(employee, salaryRow)
+	} else if !isDBNotFound(err) {
+		return nil, err
+	}
+	applyEmployeeDetailStats(employee, stats)
+
+	return employee, nil
+}
+
+func (tx *employeeTxRepo) LinkEmployeeAttachments(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	attachmentIDs []uuid.UUID,
+	category string,
+) error {
+	return tx.queries.CreateEmployeeAttachments(ctx, db.CreateEmployeeAttachmentsParams{
+		EmployeeID:    employeeID,
+		AttachmentIds: attachmentIDs,
+		Category:      category,
+	})
+}
+
+func (tx *employeeTxRepo) UpdateAttachmentsUsed(
+	ctx context.Context,
+	ids []uuid.UUID,
+	isUsed bool,
+) error {
+	return tx.queries.UpdateAttachmentsUsed(ctx, db.UpdateAttachmentsUsedParams{
+		AttachmentIds: ids,
+		IsUsed:        isUsed,
+	})
+}
+
+func (tx *employeeTxRepo) AddEmployeeQualificationsBatch(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params []domain.CreateQualificationParams,
+) error {
+	if len(params) == 0 {
+		return nil
+	}
+	arg := make([]db.AddEmployeeQualificationsBatchParams, len(params))
+	for i, p := range params {
+		arg[i] = db.AddEmployeeQualificationsBatchParams{
+			EmployeeID:        employeeID,
+			QualificationID:   p.QualificationID,
+			AchievedOn:        conv.PgDateFromTime(p.AchievedOn),
+			ExpirationDate:    pgDateFromPtr(p.ExpirationDate),
+			CertificateNumber: p.CertificateNumber,
+		}
+	}
+	_, err := tx.queries.AddEmployeeQualificationsBatch(ctx, arg)
+	return err
+}
+
+func (tx *employeeTxRepo) AddEmployeeAuthorizationsBatch(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params []domain.CreateEmployeeAuthorizationParams,
+) error {
+	if len(params) == 0 {
+		return nil
+	}
+	arg := make([]db.AddEmployeeAuthorizationsBatchParams, len(params))
+	for i, p := range params {
+		isActive := !p.ExpiryDate.Before(time.Now().UTC().Truncate(24 * time.Hour))
+		arg[i] = db.AddEmployeeAuthorizationsBatchParams{
+			EmployeeID:      employeeID,
+			AuthorizationID: p.AuthorizationID,
+			GrantedDate:     conv.PgDateFromTime(p.GrantedDate),
+			ExpiryDate:      conv.PgDateFromTime(p.ExpiryDate),
+			IsActive:        isActive,
+			Notes:           p.Notes,
+		}
+	}
+	_, err := tx.queries.AddEmployeeAuthorizationsBatch(ctx, arg)
+	return err
+}
+
 func (r *EmployeeRepository) GetEmployeeByID(
 	ctx context.Context,
 	id uuid.UUID,
@@ -122,80 +326,50 @@ func (r *EmployeeRepository) CreateEmployee(
 	ctx context.Context,
 	params domain.CreateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
-	var contractParams *db.AddEmployeeContractDetailsParams
-	if params.Contract != nil {
-		cp := db.AddEmployeeContractDetailsParams{
-			EmployeeID:           uuid.Nil,
-			JobTitle:             employeeJobTitleEnumFromString(params.Contract.JobTitle),
-			DepartmentID:         params.Contract.DepartmentID,
-			LocationID:           params.Contract.LocationID,
-			OrganizationalRoleID: params.Contract.OrganizationalRoleID,
-			ContractType:         contractTypeFromString(params.Contract.ContractType),
-			ContractHoursType:    contractHoursTypeFromString(params.Contract.ContractHoursType),
-			StartDate:            conv.PgDateFromTime(params.Contract.StartDate),
-			ContractEndDate:      pgDateFromPtr(params.Contract.ContractEndDate),
-			HoursPerWeek:         params.Contract.HoursPerWeek,
-			MinHoursPerWeek:      params.Contract.MinHoursPerWeek,
-			MaxHoursPerWeek:      params.Contract.MaxHoursPerWeek,
-			RosterFreeDay:        params.Contract.RosterFreeDay,
-			WageTaxTable:         wageTaxTablePtrFromStringPtr(params.Contract.WageTaxTable),
-			CreatedByEmployeeID:  nil,
+	var emp *domain.EmployeeDetail
+	err := r.WithTx(ctx, func(tx domain.EmployeeTxRepository) error {
+		userID, err := tx.CreateUser(ctx, params.UserEmail, params.UserPassword)
+		if err != nil {
+			return err
 		}
-		contractParams = &cp
-	}
 
-	var salaryParams *db.CreateEmployeeSalaryAssignmentParams
-	if params.SalaryAssignment != nil {
-		sp := db.CreateEmployeeSalaryAssignmentParams{
-			EmployeeID:          uuid.Nil,
-			ContractID:          nil,
-			SalaryScaleStepID:   params.SalaryAssignment.SalaryScaleStepID,
-			EffectiveFrom:       pgDateFromPtr(params.SalaryAssignment.EffectiveFrom),
-			EffectiveTo:         pgDateFromPtr(params.SalaryAssignment.EffectiveTo),
-			CreatedByEmployeeID: nil,
+		empID, err := tx.CreateEmployeeProfile(ctx, userID, params)
+		if err != nil {
+			return err
 		}
-		if !sp.EffectiveFrom.Valid && contractParams != nil {
-			sp.EffectiveFrom = contractParams.StartDate
-		}
-		salaryParams = &sp
-	}
 
-	result, err := r.store.CreateEmployeeWithAccountTx(ctx, db.CreateEmployeeWithAccountTxParams{
-		CreateUserParams: db.CreateUserParams{
-			Password: params.UserPassword,
-			Email:    params.UserEmail,
-			IsActive: true,
-		},
-		CreateEmployeeParams: db.CreateEmployeeProfileParams{
-			FirstName:           params.FirstName,
-			LastName:            params.LastName,
-			Bsn:                 params.Bsn,
-			Street:              params.Street,
-			HouseNumber:         params.HouseNumber,
-			HouseNumberAddition: params.HouseNumberAddition,
-			PostalCode:          params.PostalCode,
-			City:                params.City,
-			ManagerEmployeeID:   params.ManagerEmployeeID,
-			EmployeeNumber:      params.EmployeeNumber,
-			EmploymentNumber:    params.EmploymentNumber,
-			PrivateEmailAddress: params.PrivateEmailAddress,
-			WorkEmailAddress:    params.WorkEmailAddress,
-			WorkPhoneNumber:     params.WorkPhoneNumber,
-			PrivatePhoneNumber:  params.PrivatePhoneNumber,
-			DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
-			HomeTelephoneNumber: params.HomeTelephoneNumber,
-			Gender:              genderEnumFromString(params.Gender),
-		},
-		RoleID:              params.RoleID,
-		Contract:            contractParams,
-		SalaryAssignment:    salaryParams,
-		CreatedByEmployeeID: nil,
+		err = tx.AssignRoleToUser(ctx, userID, params.RoleID)
+		if err != nil {
+			return err
+		}
+
+		var contractID *uuid.UUID
+		if params.Contract != nil {
+			cid, err := tx.AddEmployeeContractDetails(ctx, empID, *params.Contract)
+			if err != nil {
+				return err
+			}
+			contractID = &cid
+		}
+
+		if params.SalaryAssignment != nil {
+			salaryParams := *params.SalaryAssignment
+			if salaryParams.EffectiveFrom == nil && params.Contract != nil {
+				salaryParams.EffectiveFrom = &params.Contract.StartDate
+			}
+			_, err = tx.CreateEmployeeSalaryAssignment(ctx, empID, contractID, salaryParams)
+			if err != nil {
+				return err
+			}
+		}
+
+		emp, err = tx.GetEmployeeByID(ctx, empID)
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	return toDomainEmployeeDetailFromEmployeeProfile(result.Employee), nil
+	return emp, nil
 }
 
 func (r *EmployeeRepository) UpdateEmployee(
@@ -490,20 +664,110 @@ func (r *EmployeeRepository) DeleteQualification(
 	return &result, nil
 }
 
-func (r *EmployeeRepository) ListQualificationTypes(
+func (r *EmployeeRepository) ListEmployeeAuthorizations(
 	ctx context.Context,
-) ([]domain.QualificationType, error) {
-	rows, err := r.store.ListQualificationTypes(ctx)
+	employeeID uuid.UUID,
+) ([]domain.EmployeeAuthorization, error) {
+	rows, err := r.store.ListEmployeeAuthorizations(ctx, employeeID)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]domain.QualificationType, 0, len(rows))
+	result := make([]domain.EmployeeAuthorization, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, toDomainQualificationType(row))
+		result = append(result, toDomainEmployeeAuthorization(row))
 	}
 
 	return result, nil
+}
+
+func (r *EmployeeRepository) ListEmployeeAttachments(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.EmployeeAttachmentDetail, error) {
+	rows, err := r.store.ListEmployeeAttachments(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]domain.EmployeeAttachmentDetail, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, toDomainEmployeeAttachmentDetail(row))
+	}
+
+	return result, nil
+}
+
+func (r *EmployeeRepository) AddEmployeeAuthorization(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateEmployeeAuthorizationParams,
+) (*domain.EmployeeAuthorization, error) {
+	isActive := !params.ExpiryDate.Before(time.Now().UTC().Truncate(24 * time.Hour))
+
+	row, err := r.store.AddEmployeeAuthorization(ctx, db.AddEmployeeAuthorizationParams{
+		EmployeeID:      employeeID,
+		AuthorizationID: params.AuthorizationID,
+		GrantedDate:     conv.PgDateFromTime(params.GrantedDate),
+		ExpiryDate:      conv.PgDateFromTime(params.ExpiryDate),
+		IsActive:        isActive,
+		Notes:           params.Notes,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := toDomainEmployeeAuthorization(row)
+	return &result, nil
+}
+
+func (r *EmployeeRepository) UpdateEmployeeAuthorization(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateEmployeeAuthorizationParams,
+) (*domain.EmployeeAuthorization, error) {
+	var grantedDate pgtype.Date
+	if params.GrantedDate != nil {
+		grantedDate = conv.PgDateFromTime(*params.GrantedDate)
+	}
+	var expiryDate pgtype.Date
+	if params.ExpiryDate != nil {
+		expiryDate = conv.PgDateFromTime(*params.ExpiryDate)
+	}
+
+	row, err := r.store.UpdateEmployeeAuthorization(ctx, db.UpdateEmployeeAuthorizationParams{
+		ID:              id,
+		AuthorizationID: params.AuthorizationID,
+		GrantedDate:     grantedDate,
+		ExpiryDate:      expiryDate,
+		IsActive:        params.IsActive,
+		Notes:           params.Notes,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeAuthorizationNotFound
+		}
+		return nil, err
+	}
+
+	result := toDomainEmployeeAuthorization(row)
+	return &result, nil
+}
+
+func (r *EmployeeRepository) DeleteEmployeeAuthorization(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.EmployeeAuthorization, error) {
+	row, err := r.store.DeleteEmployeeAuthorization(ctx, id)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeAuthorizationNotFound
+		}
+		return nil, err
+	}
+
+	result := toDomainEmployeeAuthorization(row)
+	return &result, nil
 }
 
 func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
@@ -516,6 +780,7 @@ func toDomainEmployee(row db.ListEmployeeProfileRow) domain.Employee {
 		DepartmentName:  row.DepartmentName,
 		ContractEndDate: conv.TimePtrFromPgDate(row.ContractEndDate),
 		LocationAddress: row.LocationAddress,
+		LeaveStatus:     row.LeaveStatus,
 	}
 }
 
@@ -527,6 +792,8 @@ func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 		UserID:              row.UserID,
 		FirstName:           row.FirstName,
 		LastName:            row.LastName,
+		NameInUse:           string(row.NameInUse),
+		MaritalStatus:       maritalStatusEnumPtrToStringPtr(row.MaritalStatus),
 		Bsn:                 row.Bsn,
 		Street:              row.Street,
 		HouseNumber:         row.HouseNumber,
@@ -622,6 +889,8 @@ func toDomainEmployeeDetailFromEmployeeProfile(row db.EmployeeProfile) *domain.E
 		UserID:              row.UserID,
 		FirstName:           row.FirstName,
 		LastName:            row.LastName,
+		NameInUse:           string(row.NameInUse),
+		MaritalStatus:       maritalStatusEnumPtrToStringPtr(row.MaritalStatus),
 		Bsn:                 row.Bsn,
 		Street:              row.Street,
 		HouseNumber:         row.HouseNumber,
@@ -732,16 +1001,32 @@ func toDomainQualification(row db.EmployeeQualification) domain.Qualification {
 	}
 }
 
-func toDomainQualificationType(row db.Qualification) domain.QualificationType {
-	return domain.QualificationType{
-		ID:                row.ID,
-		Code:              row.Code,
-		OriginalDutchText: row.OriginalDutchText,
-		EnglishName:       row.EnglishName,
-		AppContext:        row.AppContext,
-		IsActive:          row.IsActive,
-		CreatedAt:         conv.TimeFromPgTimestamptz(row.CreatedAt),
-		UpdatedAt:         conv.TimeFromPgTimestamptz(row.UpdatedAt),
+func toDomainEmployeeAuthorization(row db.EmployeeAuthorization) domain.EmployeeAuthorization {
+	return domain.EmployeeAuthorization{
+		ID:              row.ID,
+		EmployeeID:      row.EmployeeID,
+		AuthorizationID: row.AuthorizationID,
+		GrantedDate:     conv.TimeFromPgDate(row.GrantedDate),
+		ExpiryDate:      conv.TimeFromPgDate(row.ExpiryDate),
+		IsActive:        row.IsActive,
+		Notes:           row.Notes,
+		CreatedAt:       conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:       conv.TimeFromPgTimestamptz(row.UpdatedAt),
+	}
+}
+
+func toDomainEmployeeAttachmentDetail(row db.ListEmployeeAttachmentsRow) domain.EmployeeAttachmentDetail {
+	return domain.EmployeeAttachmentDetail{
+		ID:           row.ID,
+		EmployeeID:   row.EmployeeID,
+		AttachmentID: row.AttachmentID,
+		Category:     row.Category,
+		CreatedAt:    conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:    conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		Name:         row.Name,
+		File:         row.File,
+		Size:         row.Size,
+		Tag:          row.Tag,
 	}
 }
 
@@ -772,6 +1057,14 @@ func genderEnumPtrFromStringPtr(value *string) *db.GenderEnum {
 	}
 
 	return enumPtr(genderEnumFromString(*value))
+}
+
+func maritalStatusEnumPtrToStringPtr(v *db.MaritalStatusEnum) *string {
+	if v == nil {
+		return nil
+	}
+	s := string(*v)
+	return &s
 }
 
 func contractTypePtrToString(ct *db.EmployeeContractTypeEnum) string {

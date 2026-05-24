@@ -36,6 +36,28 @@ func (s *EmployeeService) GetEmployeeByID(
 		s.logError(ctx, "GetEmployeeByID", err, zap.String("employee_id", id.String()))
 		return nil, err
 	}
+
+	attachments, err := s.repo.ListEmployeeAttachments(ctx, id)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeByID", err, zap.String("employee_id", id.String()))
+		return nil, err
+	}
+	emp.Attachments = attachments
+
+	qualifications, err := s.repo.ListQualifications(ctx, id)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeByID", err, zap.String("employee_id", id.String()))
+		return nil, err
+	}
+	emp.Qualifications = qualifications
+
+	authorizations, err := s.repo.ListEmployeeAuthorizations(ctx, id)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeByID", err, zap.String("employee_id", id.String()))
+		return nil, err
+	}
+	emp.Authorizations = authorizations
+
 	return emp, nil
 }
 
@@ -120,7 +142,67 @@ func (s *EmployeeService) CreateEmployee(
 	}
 	params.UserPassword = hashedPassword
 
-	emp, err := s.repo.CreateEmployee(ctx, params)
+	var emp *domain.EmployeeDetail
+	err = s.repo.WithTx(ctx, func(tx domain.EmployeeTxRepository) error {
+		userID, err := tx.CreateUser(ctx, params.UserEmail, params.UserPassword)
+		if err != nil {
+			return err
+		}
+
+		empID, err := tx.CreateEmployeeProfile(ctx, userID, params)
+		if err != nil {
+			return err
+		}
+
+		err = tx.AssignRoleToUser(ctx, userID, params.RoleID)
+		if err != nil {
+			return err
+		}
+
+		var contractID *uuid.UUID
+		if params.Contract != nil {
+			cid, err := tx.AddEmployeeContractDetails(ctx, empID, *params.Contract)
+			if err != nil {
+				return err
+			}
+			contractID = &cid
+		}
+
+		if params.SalaryAssignment != nil {
+			_, err = tx.CreateEmployeeSalaryAssignment(ctx, empID, contractID, *params.SalaryAssignment)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(params.AttachmentIDs) > 0 {
+			err = tx.LinkEmployeeAttachments(ctx, empID, params.AttachmentIDs, "document")
+			if err != nil {
+				return err
+			}
+			err = tx.UpdateAttachmentsUsed(ctx, params.AttachmentIDs, true)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(params.Qualifications) > 0 {
+			err = tx.AddEmployeeQualificationsBatch(ctx, empID, params.Qualifications)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(params.Authorizations) > 0 {
+			err = tx.AddEmployeeAuthorizationsBatch(ctx, empID, params.Authorizations)
+			if err != nil {
+				return err
+			}
+		}
+
+		emp, err = tx.GetEmployeeByID(ctx, empID)
+		return err
+	})
 	if err != nil {
 		s.logError(ctx, "CreateEmployee", err,
 			zap.String("first_name", params.FirstName),
@@ -315,13 +397,54 @@ func (s *EmployeeService) DeleteQualification(
 	return qual, nil
 }
 
-func (s *EmployeeService) ListQualificationTypes(ctx context.Context) ([]domain.QualificationType, error) {
-	items, err := s.repo.ListQualificationTypes(ctx)
+func (s *EmployeeService) ListEmployeeAuthorizations(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.EmployeeAuthorization, error) {
+	items, err := s.repo.ListEmployeeAuthorizations(ctx, employeeID)
 	if err != nil {
-		s.logError(ctx, "ListQualificationTypes", err)
+		s.logError(ctx, "ListEmployeeAuthorizations", err, zap.String("employee_id", employeeID.String()))
 		return nil, err
 	}
 	return items, nil
+}
+
+func (s *EmployeeService) AddEmployeeAuthorization(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateEmployeeAuthorizationParams,
+) (*domain.EmployeeAuthorization, error) {
+	authRecord, err := s.repo.AddEmployeeAuthorization(ctx, employeeID, params)
+	if err != nil {
+		s.logError(ctx, "AddEmployeeAuthorization", err, zap.String("employee_id", employeeID.String()))
+		return nil, err
+	}
+	return authRecord, nil
+}
+
+func (s *EmployeeService) UpdateEmployeeAuthorization(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateEmployeeAuthorizationParams,
+) (*domain.EmployeeAuthorization, error) {
+	authRecord, err := s.repo.UpdateEmployeeAuthorization(ctx, id, params)
+	if err != nil {
+		s.logError(ctx, "UpdateEmployeeAuthorization", err, zap.String("authorization_id", id.String()))
+		return nil, err
+	}
+	return authRecord, nil
+}
+
+func (s *EmployeeService) DeleteEmployeeAuthorization(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.EmployeeAuthorization, error) {
+	authRecord, err := s.repo.DeleteEmployeeAuthorization(ctx, id)
+	if err != nil {
+		s.logError(ctx, "DeleteEmployeeAuthorization", err, zap.String("authorization_id", id.String()))
+		return nil, err
+	}
+	return authRecord, nil
 }
 
 func (s *EmployeeService) ResetPassword(

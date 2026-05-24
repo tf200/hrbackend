@@ -182,7 +182,6 @@ func (h *EmployeeHandler) GetEmployeeProfile(ctx *gin.Context) {
 	)
 }
 
-
 func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -627,21 +626,6 @@ func (h *EmployeeHandler) DeleteQualification(ctx *gin.Context) {
 	)
 }
 
-func (h *EmployeeHandler) ListQualificationTypes(ctx *gin.Context) {
-	types, err := h.service.ListQualificationTypes(ctx.Request.Context())
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list qualification types", ""))
-		return
-	}
-
-	response := make([]qualificationTypeResponse, len(types))
-	for i := range types {
-		response[i] = toQualificationTypeResponse(&types[i])
-	}
-
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Qualification types retrieved successfully"))
-}
-
 func (h *EmployeeHandler) ResetPassword(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -697,3 +681,108 @@ func (h *EmployeeHandler) SearchEmployeesByNameOrEmail(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Employees retrieved successfully"))
 }
+
+func (h *EmployeeHandler) AddEmployeeAuthorization(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	var req createEmployeeAuthorizationRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request payload", err.Error()))
+		return
+	}
+
+	authRecord, err := h.service.AddEmployeeAuthorization(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateEmployeeAuthorizationParams(req),
+	)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add employee authorization", ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK,
+		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization added successfully"),
+	)
+}
+
+func (h *EmployeeHandler) ListEmployeeAuthorizations(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	authorizations, err := h.service.ListEmployeeAuthorizations(ctx.Request.Context(), employeeID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list employee authorizations", ""))
+		return
+	}
+
+	response := make([]employeeAuthorizationResponse, len(authorizations))
+	for i := range authorizations {
+		response[i] = toEmployeeAuthorizationResponse(&authorizations[i])
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Employee authorizations retrieved successfully"))
+}
+
+func (h *EmployeeHandler) UpdateEmployeeAuthorization(ctx *gin.Context) {
+	authID, err := uuid.Parse(ctx.Param("authorization_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee authorization ID", ""))
+		return
+	}
+
+	var req updateEmployeeAuthorizationRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request payload", err.Error()))
+		return
+	}
+
+	authRecord, err := h.service.UpdateEmployeeAuthorization(
+		ctx.Request.Context(),
+		authID,
+		toUpdateEmployeeAuthorizationParams(req),
+	)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeAuthorizationNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update employee authorization", ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK,
+		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization updated successfully"),
+	)
+}
+
+func (h *EmployeeHandler) DeleteEmployeeAuthorization(ctx *gin.Context) {
+	authID, err := uuid.Parse(ctx.Param("authorization_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee authorization ID", ""))
+		return
+	}
+
+	authRecord, err := h.service.DeleteEmployeeAuthorization(ctx.Request.Context(), authID)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeAuthorizationNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to delete employee authorization", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization deleted successfully"),
+	)
+}
+

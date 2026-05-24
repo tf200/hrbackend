@@ -86,11 +86,29 @@ func RegisterEmployeeRoutes(
 		requirePermission("EMPLOYEE.DELETE"),
 		handler.DeleteQualification,
 	)
+	rg.POST(
+		"/employees/:id/authorizations",
+		auth,
+		requirePermission("EMPLOYEE.CREATE"),
+		handler.AddEmployeeAuthorization,
+	)
 	rg.GET(
-		"/qualification-types",
+		"/employees/:id/authorizations",
 		auth,
 		requirePermission("EMPLOYEE.VIEW"),
-		handler.ListQualificationTypes,
+		handler.ListEmployeeAuthorizations,
+	)
+	rg.PUT(
+		"/employees/:id/authorizations/:authorization_id",
+		auth,
+		requirePermission("EMPLOYEE.UPDATE"),
+		handler.UpdateEmployeeAuthorization,
+	)
+	rg.DELETE(
+		"/employees/:id/authorizations/:authorization_id",
+		auth,
+		requirePermission("EMPLOYEE.DELETE"),
+		handler.DeleteEmployeeAuthorization,
 	)
 	rg.POST(
 		"/employees/:id/reset_password",

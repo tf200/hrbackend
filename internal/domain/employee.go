@@ -9,19 +9,20 @@ import (
 )
 
 var (
-	ErrEmployeeNotFound       = errors.New("employee not found")
-	ErrEducationNotFound      = errors.New("education not found")
-	ErrExperienceNotFound     = errors.New("experience not found")
-	ErrQualificationNotFound  = errors.New("qualification not found")
-	ErrInvalidDateOfBirth     = errors.New("invalid date of birth format")
-	ErrInvalidContractDate    = errors.New("invalid contract date format")
-	ErrInvalidAttachmentID    = errors.New("invalid attachment ID")
-	ErrEmployeeCreateFailed   = errors.New("failed to create employee")
-	ErrPasswordHashFailed     = errors.New("failed to hash password")
-	ErrEmailDeliveryFailed    = errors.New("failed to enqueue email delivery")
-	ErrContractChangeInvalid  = errors.New("invalid contract change request")
-	ErrContractChangeNotFound = errors.New("contract change not found")
-	ErrContractHistoryExists  = errors.New(
+	ErrEmployeeNotFound              = errors.New("employee not found")
+	ErrEducationNotFound             = errors.New("education not found")
+	ErrExperienceNotFound            = errors.New("experience not found")
+	ErrQualificationNotFound         = errors.New("qualification not found")
+	ErrEmployeeAuthorizationNotFound = errors.New("employee authorization not found")
+	ErrInvalidDateOfBirth            = errors.New("invalid date of birth format")
+	ErrInvalidContractDate           = errors.New("invalid contract date format")
+	ErrInvalidAttachmentID           = errors.New("invalid attachment ID")
+	ErrEmployeeCreateFailed          = errors.New("failed to create employee")
+	ErrPasswordHashFailed            = errors.New("failed to hash password")
+	ErrEmailDeliveryFailed           = errors.New("failed to enqueue email delivery")
+	ErrContractChangeInvalid         = errors.New("invalid contract change request")
+	ErrContractChangeNotFound        = errors.New("contract change not found")
+	ErrContractHistoryExists         = errors.New(
 		"contract history exists; use contract changes endpoint",
 	)
 	ErrContractBaselineMissingStartDate = errors.New(
@@ -49,6 +50,21 @@ type Employee struct {
 	DepartmentName  *string
 	ContractEndDate *time.Time
 	LocationAddress string
+	LeaveStatus     string
+}
+
+// EmployeeAttachmentDetail combines employee_attachment + attachment_file for list views.
+type EmployeeAttachmentDetail struct {
+	ID           uuid.UUID
+	EmployeeID   uuid.UUID
+	AttachmentID uuid.UUID
+	Category     string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Name         string
+	File         string
+	Size         int32
+	Tag          *string
 }
 
 // EmployeeDetail is the rich domain struct for get-by-id queries (with joins).
@@ -57,13 +73,14 @@ type EmployeeDetail struct {
 	UserID                     uuid.UUID
 	FirstName                  string
 	LastName                   string
+	NameInUse                  string
+	MaritalStatus              *string
 	Bsn                        string
 	Street                     string
 	HouseNumber                string
 	HouseNumberAddition        *string
 	PostalCode                 string
 	City                       string
-	Position                   *string
 	EmployeeNumber             *string
 	EmploymentNumber           *string
 	PrivateEmailAddress        *string
@@ -77,7 +94,6 @@ type EmployeeDetail struct {
 	LocationID                 *uuid.UUID
 	DepartmentID               *uuid.UUID
 	ManagerEmployeeID          *uuid.UUID
-	HasBorrowed                bool
 	OutOfService               *bool
 	IsArchived                 bool
 	ContractHours              *float64
@@ -85,7 +101,6 @@ type EmployeeDetail struct {
 	ContractStartDate          *time.Time
 	ContractType               string
 	ContractRate               *float64
-	IrregularHoursProfile      string
 	ProfilePicture             *string
 	DepartmentName             *string
 	ManagerFirstName           *string
@@ -97,6 +112,9 @@ type EmployeeDetail struct {
 	LastPerformanceReviewScore *float64
 	Contract                   *EmployeeContractDetail
 	SalaryAssignment           *EmployeeSalaryAssignmentDetail
+	Attachments                []EmployeeAttachmentDetail
+	Qualifications             []Qualification
+	Authorizations             []EmployeeAuthorization
 }
 
 type EmployeeContractDetail struct {
@@ -213,18 +231,6 @@ type Experience struct {
 	CreatedAt   time.Time
 }
 
-// QualificationType domain struct.
-type QualificationType struct {
-	ID                uuid.UUID
-	Code              string
-	OriginalDutchText *string
-	EnglishName       string
-	AppContext        *string
-	IsActive          bool
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-}
-
 // Qualification domain struct.
 type Qualification struct {
 	ID                uuid.UUID
@@ -235,6 +241,19 @@ type Qualification struct {
 	CertificateNumber *string
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+}
+
+// EmployeeAuthorization domain struct.
+type EmployeeAuthorization struct {
+	ID              uuid.UUID
+	EmployeeID      uuid.UUID
+	AuthorizationID uuid.UUID
+	GrantedDate     time.Time
+	ExpiryDate      time.Time
+	IsActive        bool
+	Notes           *string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // --- Params ---
@@ -301,6 +320,9 @@ type CreateEmployeeParams struct {
 
 	Contract         *CreateEmployeeContractParams
 	SalaryAssignment *CreateEmployeeSalaryAssignmentParams
+	AttachmentIDs    []uuid.UUID
+	Qualifications   []CreateQualificationParams
+	Authorizations   []CreateEmployeeAuthorizationParams
 }
 
 type UpdateEmployeeParams struct {
@@ -375,9 +397,38 @@ type UpdateQualificationParams struct {
 	CertificateNumber *string
 }
 
+type CreateEmployeeAuthorizationParams struct {
+	AuthorizationID uuid.UUID
+	GrantedDate     time.Time
+	ExpiryDate      time.Time
+	Notes           *string
+}
+
+type UpdateEmployeeAuthorizationParams struct {
+	AuthorizationID *uuid.UUID
+	GrantedDate     *time.Time
+	ExpiryDate      *time.Time
+	IsActive        *bool
+	Notes           *string
+}
+
 // --- Interfaces ---
 
+type EmployeeTxRepository interface {
+	CreateUser(ctx context.Context, email, password string) (uuid.UUID, error)
+	CreateEmployeeProfile(ctx context.Context, userID uuid.UUID, params CreateEmployeeParams) (uuid.UUID, error)
+	AssignRoleToUser(ctx context.Context, userID, roleID uuid.UUID) error
+	AddEmployeeContractDetails(ctx context.Context, employeeID uuid.UUID, params CreateEmployeeContractParams) (uuid.UUID, error)
+	CreateEmployeeSalaryAssignment(ctx context.Context, employeeID uuid.UUID, contractID *uuid.UUID, params CreateEmployeeSalaryAssignmentParams) (uuid.UUID, error)
+	GetEmployeeByID(ctx context.Context, id uuid.UUID) (*EmployeeDetail, error)
+	LinkEmployeeAttachments(ctx context.Context, employeeID uuid.UUID, attachmentIDs []uuid.UUID, category string) error
+	UpdateAttachmentsUsed(ctx context.Context, ids []uuid.UUID, isUsed bool) error
+	AddEmployeeQualificationsBatch(ctx context.Context, employeeID uuid.UUID, params []CreateQualificationParams) error
+	AddEmployeeAuthorizationsBatch(ctx context.Context, employeeID uuid.UUID, params []CreateEmployeeAuthorizationParams) error
+}
+
 type EmployeeRepository interface {
+	WithTx(ctx context.Context, fn func(tx EmployeeTxRepository) error) error
 	// Profile CRUD
 	GetEmployeeByID(ctx context.Context, id uuid.UUID) (*EmployeeDetail, error)
 	GetEmployeeByUserID(ctx context.Context, userID uuid.UUID) (*EmployeeProfile, error)
@@ -436,7 +487,23 @@ type EmployeeRepository interface {
 		params UpdateQualificationParams,
 	) (*Qualification, error)
 	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
-	ListQualificationTypes(ctx context.Context) ([]QualificationType, error)
+
+	// Attachment
+	ListEmployeeAttachments(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAttachmentDetail, error)
+
+	// Employee Authorization
+	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
+	AddEmployeeAuthorization(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params CreateEmployeeAuthorizationParams,
+	) (*EmployeeAuthorization, error)
+	UpdateEmployeeAuthorization(
+		ctx context.Context,
+		id uuid.UUID,
+		params UpdateEmployeeAuthorizationParams,
+	) (*EmployeeAuthorization, error)
+	DeleteEmployeeAuthorization(ctx context.Context, id uuid.UUID) (*EmployeeAuthorization, error)
 
 	// Password
 	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
@@ -500,7 +567,19 @@ type EmployeeService interface {
 		params UpdateQualificationParams,
 	) (*Qualification, error)
 	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
-	ListQualificationTypes(ctx context.Context) ([]QualificationType, error)
+
+	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
+	AddEmployeeAuthorization(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params CreateEmployeeAuthorizationParams,
+	) (*EmployeeAuthorization, error)
+	UpdateEmployeeAuthorization(
+		ctx context.Context,
+		id uuid.UUID,
+		params UpdateEmployeeAuthorizationParams,
+	) (*EmployeeAuthorization, error)
+	DeleteEmployeeAuthorization(ctx context.Context, id uuid.UUID) (*EmployeeAuthorization, error)
 
 	// Password
 	ResetPassword(

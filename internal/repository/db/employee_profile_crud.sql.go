@@ -349,7 +349,27 @@ SELECT
     ec.contract_type,
     d.name AS department_name,
     ec.contract_end_date,
-    concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address
+    concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address,
+    COALESCE(
+        (
+            SELECT leave_type::text
+            FROM leave_requests
+            WHERE employee_id = ep.id
+              AND status = 'approved'
+              AND CURRENT_DATE BETWEEN start_date AND end_date
+            ORDER BY
+                CASE leave_type
+                    WHEN 'sick' THEN 1
+                    WHEN 'pregnancy' THEN 2
+                    WHEN 'vacation' THEN 3
+                    WHEN 'personal' THEN 4
+                    WHEN 'unpaid' THEN 5
+                    ELSE 6
+                END
+            LIMIT 1
+        ),
+        'active'
+    )::TEXT AS leave_status
 FROM employee_profile ep
 LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 LEFT JOIN location l ON l.id = ec.location_id
@@ -393,6 +413,7 @@ type ListEmployeeProfileRow struct {
 	DepartmentName  *string                   `json:"department_name"`
 	ContractEndDate pgtype.Date               `json:"contract_end_date"`
 	LocationAddress string                    `json:"location_address"`
+	LeaveStatus     string                    `json:"leave_status"`
 }
 
 func (q *Queries) ListEmployeeProfile(ctx context.Context, arg ListEmployeeProfileParams) ([]ListEmployeeProfileRow, error) {
@@ -421,6 +442,7 @@ func (q *Queries) ListEmployeeProfile(ctx context.Context, arg ListEmployeeProfi
 			&i.DepartmentName,
 			&i.ContractEndDate,
 			&i.LocationAddress,
+			&i.LeaveStatus,
 		); err != nil {
 			return nil, err
 		}

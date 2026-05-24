@@ -17,6 +17,7 @@ import (
 	"hrbackend/internal/service"
 	"hrbackend/internal/ws"
 	pkgasynq "hrbackend/pkg/asynq"
+	pkgbucket "hrbackend/pkg/bucket"
 	pkgjwt "hrbackend/pkg/jwt"
 	pkglogger "hrbackend/pkg/logger"
 
@@ -72,7 +73,26 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 	wsHub := ws.NewHub()
 	go wsHub.Run()
 	wsTicketStore := newWebSocketTicketStore(cfg)
-	router := buildRouter(cfg, logger, store, tokenMaker, taskQueue, wsHub, wsTicketStore)
+
+	var storageClient domain.Storage
+	if cfg.DisableBucket || cfg.B2Endpoint == "" || cfg.B2KeyID == "" || cfg.B2Key == "" || cfg.B2Bucket == "" {
+		storageClient = pkgbucket.NewNoop()
+	} else {
+		var err error
+		storageClient, err = pkgbucket.New(ctx, pkgbucket.Config{
+			Endpoint: cfg.B2Endpoint,
+			KeyID:    cfg.B2KeyID,
+			Key:      cfg.B2Key,
+			Bucket:   cfg.B2Bucket,
+			Secure:   true,
+		})
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("setup storage: %w", err)
+		}
+	}
+
+	router := buildRouter(cfg, logger, store, tokenMaker, taskQueue, wsHub, wsTicketStore, storageClient)
 
 	return &App{
 		Config:    cfg,
@@ -183,6 +203,7 @@ func buildRouter(
 	taskQueue domain.TaskQueue,
 	wsHub *ws.Hub,
 	wsTicketStore domain.WebSocketTicketStore,
+	storageClient domain.Storage,
 ) *gin.Engine {
 	setGinMode(cfg.Environment)
 
@@ -220,6 +241,12 @@ func buildRouter(
 	employeeRepo := repository.NewEmployeeRepository(store)
 	employeeService := service.NewEmployeeService(employeeRepo, taskQueue, logger)
 
+	qualificationRepo := repository.NewQualificationRepository(store)
+	qualificationService := service.NewQualificationService(qualificationRepo, logger)
+
+	authorizationRepo := repository.NewAuthorizationRepository(store)
+	authorizationService := service.NewAuthorizationService(authorizationRepo, logger)
+
 	organizationRepo := repository.NewOrganizationRepository(store)
 	organizationService := service.NewOrganizationService(organizationRepo, logger)
 
@@ -252,7 +279,7 @@ func buildRouter(
 
 	performanceRepo := repository.NewPerformanceRepository(store)
 	performanceService := service.NewPerformanceService(performanceRepo, logger)
-	
+
 	handbookRepo := repository.NewHandbookRepository(store)
 	handbookService := service.NewHandbookService(handbookRepo, logger)
 
@@ -262,10 +289,15 @@ func buildRouter(
 	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
 	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
 
+	attachmentRepo := repository.NewAttachmentRepository(store)
+	attachmentService := service.NewAttachmentService(attachmentRepo, storageClient, logger)
+
 	authHandler := handler.NewAuthHandler(authService)
 	wsAuthService := service.NewWebSocketAuthService(wsTicketStore, logger, cfg.WsTicketTTL)
 	wsHandler := handler.NewWebSocketHandler(wsAuthService, wsHub, logger, cfg.WsAllowedOrigins)
 	employeeHandler := handler.NewEmployeeHandler(employeeService)
+	qualificationHandler := handler.NewQualificationHandler(qualificationService)
+	authorizationHandler := handler.NewAuthorizationHandler(authorizationService)
 	organizationHandler := handler.NewOrganizationHandler(organizationService)
 	settingsHandler := handler.NewSettingsHandler(settingsService)
 	departmentHandler := handler.NewDepartmentHandler(departmentService)
@@ -282,6 +314,7 @@ func buildRouter(
 	handbookHandler := handler.NewHandbookHandler(handbookService)
 	trainingHandler := handler.NewTrainingHandler(trainingService)
 	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
+	attachmentHandler := handler.NewAttachmentHandler(attachmentService)
 
 	api := router.Group("/api")
 	auth := authMiddleware.Handle()
@@ -290,6 +323,8 @@ func buildRouter(
 	handler.RegisterAuthRoutes(api, authHandler, auth)
 	handler.RegisterWebSocketRoutes(api, wsHandler, auth)
 	handler.RegisterEmployeeRoutes(api, employeeHandler, auth, requirePermission)
+	handler.RegisterQualificationRoutes(api, qualificationHandler, auth, requirePermission)
+	handler.RegisterAuthorizationRoutes(api, authorizationHandler, auth, requirePermission)
 	handler.RegisterOrganizationRoutes(api, organizationHandler, auth, requirePermission)
 	handler.RegisterSettingsRoutes(api, settingsHandler, auth, requirePermission)
 	handler.RegisterDepartmentRoutes(api, departmentHandler, auth, requirePermission)
@@ -305,6 +340,7 @@ func buildRouter(
 	handler.RegisterHandbookRoutes(api, handbookHandler, auth, requirePermission)
 	handler.RegisterTrainingRoutes(api, trainingHandler, auth, requirePermission)
 	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
+	handler.RegisterAttachmentRoutes(api, attachmentHandler, auth)
 
 	return router
 }

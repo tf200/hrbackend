@@ -28,7 +28,38 @@ RETURNING *;
 DELETE FROM employee_qualifications WHERE id = $1 RETURNING *;
 
 -- name: ListQualificationTypes :many
-SELECT * FROM qualifications WHERE is_active = TRUE ORDER BY english_name;
+SELECT * FROM qualifications WHERE is_active = TRUE ORDER BY name;
 
 -- name: GetQualificationType :one
 SELECT * FROM qualifications WHERE code = $1;
+
+-- name: UpdateQualificationType :one
+UPDATE qualifications
+SET
+    code = $2,
+    name = $3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING *;
+
+-- name: CreateQualificationType :one
+INSERT INTO qualifications (
+    code,
+    name,
+    app_context
+) VALUES (
+    $1, $2, $3
+)
+RETURNING *;
+
+-- name: AddEmployeeQualificationsBatch :copyfrom
+INSERT INTO employee_qualifications (
+    employee_id,
+    qualification_id,
+    achieved_on,
+    expiration_date,
+    certificate_number
+) VALUES (
+    $1, $2, $3, $4, $5
+);
+

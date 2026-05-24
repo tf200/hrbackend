@@ -55,6 +55,46 @@ func (q *Queries) AddEmployeeQualification(ctx context.Context, arg AddEmployeeQ
 	return i, err
 }
 
+type AddEmployeeQualificationsBatchParams struct {
+	EmployeeID        uuid.UUID   `json:"employee_id"`
+	QualificationID   uuid.UUID   `json:"qualification_id"`
+	AchievedOn        pgtype.Date `json:"achieved_on"`
+	ExpirationDate    pgtype.Date `json:"expiration_date"`
+	CertificateNumber *string     `json:"certificate_number"`
+}
+
+const createQualificationType = `-- name: CreateQualificationType :one
+INSERT INTO qualifications (
+    code,
+    name,
+    app_context
+) VALUES (
+    $1, $2, $3
+)
+RETURNING id, code, name, app_context, is_active, created_at, updated_at
+`
+
+type CreateQualificationTypeParams struct {
+	Code       string  `json:"code"`
+	Name       string  `json:"name"`
+	AppContext *string `json:"app_context"`
+}
+
+func (q *Queries) CreateQualificationType(ctx context.Context, arg CreateQualificationTypeParams) (Qualification, error) {
+	row := q.db.QueryRow(ctx, createQualificationType, arg.Code, arg.Name, arg.AppContext)
+	var i Qualification
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.AppContext,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteEmployeeQualification = `-- name: DeleteEmployeeQualification :one
 DELETE FROM employee_qualifications WHERE id = $1 RETURNING id, employee_id, qualification_id, achieved_on, expiration_date, certificate_number, created_at, updated_at
 `
@@ -76,7 +116,7 @@ func (q *Queries) DeleteEmployeeQualification(ctx context.Context, id uuid.UUID)
 }
 
 const getQualificationType = `-- name: GetQualificationType :one
-SELECT id, code, original_dutch_text, english_name, app_context, is_active, created_at, updated_at FROM qualifications WHERE code = $1
+SELECT id, code, name, app_context, is_active, created_at, updated_at FROM qualifications WHERE code = $1
 `
 
 func (q *Queries) GetQualificationType(ctx context.Context, code string) (Qualification, error) {
@@ -85,8 +125,7 @@ func (q *Queries) GetQualificationType(ctx context.Context, code string) (Qualif
 	err := row.Scan(
 		&i.ID,
 		&i.Code,
-		&i.OriginalDutchText,
-		&i.EnglishName,
+		&i.Name,
 		&i.AppContext,
 		&i.IsActive,
 		&i.CreatedAt,
@@ -129,7 +168,7 @@ func (q *Queries) ListEmployeeQualifications(ctx context.Context, employeeID uui
 }
 
 const listQualificationTypes = `-- name: ListQualificationTypes :many
-SELECT id, code, original_dutch_text, english_name, app_context, is_active, created_at, updated_at FROM qualifications WHERE is_active = TRUE ORDER BY english_name
+SELECT id, code, name, app_context, is_active, created_at, updated_at FROM qualifications WHERE is_active = TRUE ORDER BY name
 `
 
 func (q *Queries) ListQualificationTypes(ctx context.Context) ([]Qualification, error) {
@@ -144,8 +183,7 @@ func (q *Queries) ListQualificationTypes(ctx context.Context) ([]Qualification, 
 		if err := rows.Scan(
 			&i.ID,
 			&i.Code,
-			&i.OriginalDutchText,
-			&i.EnglishName,
+			&i.Name,
 			&i.AppContext,
 			&i.IsActive,
 			&i.CreatedAt,
@@ -197,6 +235,37 @@ func (q *Queries) UpdateEmployeeQualification(ctx context.Context, arg UpdateEmp
 		&i.AchievedOn,
 		&i.ExpirationDate,
 		&i.CertificateNumber,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateQualificationType = `-- name: UpdateQualificationType :one
+UPDATE qualifications
+SET
+    code = $2,
+    name = $3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, code, name, app_context, is_active, created_at, updated_at
+`
+
+type UpdateQualificationTypeParams struct {
+	ID   uuid.UUID `json:"id"`
+	Code string    `json:"code"`
+	Name string    `json:"name"`
+}
+
+func (q *Queries) UpdateQualificationType(ctx context.Context, arg UpdateQualificationTypeParams) (Qualification, error) {
+	row := q.db.QueryRow(ctx, updateQualificationType, arg.ID, arg.Code, arg.Name)
+	var i Qualification
+	err := row.Scan(
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.AppContext,
+		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
