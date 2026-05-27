@@ -1,39 +1,43 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"hrbackend/internal/domain/permission"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterTrainingRoutes(
 	rg *gin.RouterGroup,
 	handler *TrainingHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	training := rg.Group("/training")
 	training.Use(auth)
 
 	training.GET(
 		"/catalog",
-		requirePermission("TRAINING.CATALOG.VIEW"),
+		requirePermission(permission.Training.Catalog.View),
 		handler.ListTrainingCatalogItems,
 	)
 	training.GET(
 		"/assignments",
-		requirePermission("TRAINING.ASSIGNMENTS.VIEW"),
+		requirePermission(permission.Training.AssignmentsView),
 		handler.ListTrainingAssignments,
 	)
 	training.POST(
 		"/assignments",
-		requirePermission("TRAINING.ASSIGN"),
+		requirePermission(permission.Training.Assign),
 		handler.AssignTrainingToEmployee,
 	)
 	training.POST(
 		"/assignments/:assignment_id/cancel",
-		requirePermission("TRAINING.ASSIGN"),
+		requirePermission(permission.Training.Assign),
 		handler.CancelTrainingAssignment,
 	)
 	training.POST(
 		"/catalog",
-		requirePermission("TRAINING.CATALOG.CREATE"),
+		requirePermission(permission.Training.Catalog.Create),
 		handler.CreateTrainingCatalogItem,
 	)
 }

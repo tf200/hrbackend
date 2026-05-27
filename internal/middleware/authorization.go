@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 	db "hrbackend/internal/repository/db"
 
@@ -24,7 +25,7 @@ func NewPermissionMiddleware(queries db.Querier, logger domain.Logger) *Permissi
 	}
 }
 
-func (m *PermissionMiddleware) Require(permission string) gin.HandlerFunc {
+func (m *PermissionMiddleware) Require(p permission.Permission) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		payload, ok := AuthPayloadFromContext(ctx.Request.Context())
 		if !ok || payload == nil {
@@ -39,7 +40,7 @@ func (m *PermissionMiddleware) Require(permission string) gin.HandlerFunc {
 			ctx.Request.Context(),
 			db.CheckUserPermissionParams{
 				UserID: payload.UserID,
-				Name:   permission,
+				Name:   string(p),
 			},
 		)
 		if err != nil {
@@ -49,7 +50,7 @@ func (m *PermissionMiddleware) Require(permission string) gin.HandlerFunc {
 					"PermissionMiddleware.Require",
 					"failed to verify permission",
 					err,
-					zap.String("permission", permission),
+					zap.String("permission", string(p)),
 					zap.String("user_id", payload.UserID.String()),
 				)
 			}
@@ -66,7 +67,7 @@ func (m *PermissionMiddleware) Require(permission string) gin.HandlerFunc {
 					ctx.Request.Context(),
 					"PermissionMiddleware.Require",
 					"permission denied",
-					zap.String("permission", permission),
+					zap.String("permission", string(p)),
 					zap.String("user_id", payload.UserID.String()),
 				)
 			}

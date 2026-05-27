@@ -1,126 +1,130 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"hrbackend/internal/domain/permission"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterPayoutRoutes(
 	rg *gin.RouterGroup,
 	handler *PayoutHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.GET(
 		"/payouts/salary-page/mine",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW"),
+		requirePermission(permission.Payout.Request.View),
 		handler.GetMySalaryPage,
 	)
 	rg.GET(
 		"/payouts/detail/pdf",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW"),
+		requirePermission(permission.Payout.Request.View),
 		handler.ExportMyPayrollMonthPDF,
 	)
 	rg.GET(
 		"/salary-page/mine",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW"),
+		requirePermission(permission.Payout.Request.View),
 		handler.GetMySalaryPage,
 	)
 	rg.GET(
 		"/payroll-preview/my",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW"),
+		requirePermission(permission.Payout.Request.View),
 		handler.PreviewMyPayroll,
 	)
 	rg.GET(
 		"/payroll-preview",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW_ALL"),
+		requirePermission(permission.Payout.Request.ViewAll),
 		handler.PreviewPayroll,
 	)
 	rg.GET(
 		"/payroll/ort-rules",
 		auth,
-		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetORTRules,
 	)
 	rg.GET(
 		"/payroll-month-summary",
 		auth,
-		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetPayrollMonthSummary,
 	)
 	rg.GET(
 		"/payroll-month-summary/ort-overview",
 		auth,
-		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetPayrollMonthORTOverview,
 	)
 	rg.GET(
 		"/payroll-month-summary/zzp",
 		auth,
-		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetZZPPayrollMonthSummary,
 	)
 	rg.GET(
 		"/payroll-month-summary/details",
 		auth,
-		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetPayrollMonthDetail,
 	)
 	rg.GET(
 		"/payroll-month-summary/export-pdf",
 		auth,
-		requirePermission("PAY_PERIOD.MONTH_SUMMARY_VIEW"),
+		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.ExportPayrollMonthSummaryPDF,
 	)
 	rg.POST(
 		"/pay-periods/close",
 		auth,
-		requirePermission("PAY_PERIOD.CLOSE"),
+		requirePermission(permission.PayPeriod.Close),
 		handler.ClosePayPeriod,
 	)
-	rg.GET("/pay-periods", auth, requirePermission("PAY_PERIOD.VIEW_ALL"), handler.ListPayPeriods)
+	rg.GET("/pay-periods", auth, requirePermission(permission.PayPeriod.ViewAll), handler.ListPayPeriods)
 	rg.GET(
 		"/pay-periods/:id",
 		auth,
-		requirePermission("PAY_PERIOD.VIEW_ALL"),
+		requirePermission(permission.PayPeriod.ViewAll),
 		handler.GetPayPeriodByID,
 	)
 	rg.POST(
 		"/pay-periods/:id/mark-paid",
 		auth,
-		requirePermission("PAY_PERIOD.MARK_PAID"),
+		requirePermission(permission.PayPeriod.MarkPaid),
 		handler.MarkPayPeriodPaidByAdmin,
 	)
 	rg.POST(
 		"/payout-requests",
 		auth,
-		requirePermission("PAYOUT.REQUEST.CREATE"),
+		requirePermission(permission.Payout.Request.Create),
 		handler.CreatePayoutRequest,
 	)
 	rg.GET(
 		"/payout-requests/my",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW"),
+		requirePermission(permission.Payout.Request.View),
 		handler.ListMyPayoutRequests,
 	)
 	rg.GET(
 		"/payout-requests",
 		auth,
-		requirePermission("PAYOUT.REQUEST.VIEW_ALL"),
+		requirePermission(permission.Payout.Request.ViewAll),
 		handler.ListPayoutRequests,
 	)
 	rg.POST(
 		"/payout-requests/:id/decision",
 		auth,
-		requirePermission("PAYOUT.REQUEST.DECIDE"),
+		requirePermission(permission.Payout.Request.Decide),
 		handler.DecidePayoutRequestByAdmin,
 	)
 	rg.POST(
 		"/payout-requests/:id/mark-paid",
 		auth,
-		requirePermission("PAYOUT.REQUEST.MARK_PAID"),
+		requirePermission(permission.Payout.Request.MarkPaid),
 		handler.MarkPayoutRequestPaidByAdmin,
 	)
 }

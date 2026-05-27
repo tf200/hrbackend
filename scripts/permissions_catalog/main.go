@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,7 +17,7 @@ const (
 	modeSync  = "sync"
 )
 
-var permissionPattern = regexp.MustCompile(`requirePermission\("([A-Z0-9_.]+)"\)`)
+var permissionValuePattern = regexp.MustCompile(`"([A-Z][A-Z0-9_.]+)"`)
 
 func main() {
 	mode := modeCheck
@@ -36,10 +35,10 @@ func main() {
 		fail("get working directory", err)
 	}
 
-	handlerDir := filepath.Join(repoRoot, "internal", "handler")
+	permGoPath := filepath.Join(repoRoot, "internal", "domain", "permission", "permission.go")
 	catalogPath := filepath.Join(repoRoot, "migrations", "permissions_catalog.txt")
 
-	actual, err := extractPermissions(handlerDir)
+	actual, err := extractPermissions(permGoPath)
 	if err != nil {
 		fail("extract permissions", err)
 	}
@@ -62,14 +61,14 @@ func main() {
 			fmt.Println("Permission catalog drift detected.")
 			if len(missing) > 0 {
 				fmt.Println()
-				fmt.Println("Present in handlers, missing in catalog:")
+				fmt.Println("Present in source, missing in catalog:")
 				for _, p := range missing {
 					fmt.Println(p)
 				}
 			}
 			if len(stale) > 0 {
 				fmt.Println()
-				fmt.Println("Present in catalog, missing in handlers:")
+				fmt.Println("Present in catalog, missing in source:")
 				for _, p := range stale {
 					fmt.Println(p)
 				}
@@ -87,37 +86,23 @@ func fail(step string, err error) {
 	os.Exit(1)
 }
 
-func extractPermissions(handlerDir string) ([]string, error) {
-	seen := make(map[string]struct{})
-
-	err := filepath.WalkDir(handlerDir, func(path string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if d.IsDir() || filepath.Ext(path) != ".go" {
-			return nil
-		}
-
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		matches := permissionPattern.FindAllSubmatch(content, -1)
-		for _, match := range matches {
-			if len(match) < 2 {
-				continue
-			}
-			seen[string(match[1])] = struct{}{}
-		}
-		return nil
-	})
+func extractPermissions(permGoPath string) ([]string, error) {
+	content, err := os.ReadFile(permGoPath)
 	if err != nil {
 		return nil, err
 	}
 
+	seen := make(map[string]struct{})
+	matches := permissionValuePattern.FindAllStringSubmatch(string(content), -1)
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		seen[match[1]] = struct{}{}
+	}
+
 	if len(seen) == 0 {
-		return nil, errors.New("no permissions found under internal/handler")
+		return nil, errors.New("no permission values found in permission.go")
 	}
 
 	out := make([]string, 0, len(seen))

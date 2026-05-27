@@ -1,14 +1,18 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"hrbackend/internal/domain/permission"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoleRoutes(
 	rg *gin.RouterGroup,
 	handler *RoleHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
-	rg.GET("/permissions", auth, requirePermission("ROLE.VIEW"), handler.ListAllPermissions)
-	rg.GET("/roles", auth, requirePermission("ROLE.VIEW"), handler.ListRoles)
-	rg.GET("/roles/:id/permissions", auth, requirePermission("ROLE.VIEW"), handler.ListRolePermissions)
+	rg.GET("/permissions", auth, requirePermission(permission.Role.View), handler.ListAllPermissions)
+	rg.GET("/roles", auth, requirePermission(permission.Role.View), handler.ListRoles)
+	rg.GET("/roles/:id/permissions", auth, requirePermission(permission.Role.View), handler.ListRolePermissions)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 	"hrbackend/internal/middleware"
 
@@ -16,30 +17,30 @@ func RegisterLateArrivalRoutes(
 	rg *gin.RouterGroup,
 	handler *LateArrivalHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.POST(
 		"/late-arrivals",
 		auth,
-		requirePermission("LATE_ARRIVAL.CREATE"),
+		requirePermission(permission.LateArrival.Create),
 		handler.CreateLateArrival,
 	)
 	rg.POST(
 		"/late-arrivals/admin",
 		auth,
-		requirePermission("LATE_ARRIVAL.CREATE_ALL"),
+		requirePermission(permission.LateArrival.CreateAll),
 		handler.CreateLateArrivalByAdmin,
 	)
 	rg.GET(
 		"/late-arrivals/my",
 		auth,
-		requirePermission("LATE_ARRIVAL.VIEW"),
+		requirePermission(permission.LateArrival.View),
 		handler.ListMyLateArrivals,
 	)
 	rg.GET(
 		"/late-arrivals",
 		auth,
-		requirePermission("LATE_ARRIVAL.VIEW_ALL"),
+		requirePermission(permission.LateArrival.ViewAll),
 		handler.ListLateArrivals,
 	)
 }

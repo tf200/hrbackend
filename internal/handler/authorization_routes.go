@@ -1,29 +1,33 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	"hrbackend/internal/domain/permission"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterAuthorizationRoutes(
 	rg *gin.RouterGroup,
 	handler *AuthorizationHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.GET(
 		"/authorizations",
 		auth,
-		requirePermission("EMPLOYEE.VIEW"),
+		requirePermission(permission.Employee.View),
 		handler.ListAuthorizations,
 	)
 	rg.POST(
 		"/authorizations",
 		auth,
-		requirePermission("EMPLOYEE.CREATE"),
+		requirePermission(permission.Employee.Create),
 		handler.CreateAuthorization,
 	)
 	rg.PUT(
 		"/authorizations/:id",
 		auth,
-		requirePermission("EMPLOYEE.CREATE"),
+		requirePermission(permission.Employee.Create),
 		handler.UpdateAuthorization,
 	)
 }

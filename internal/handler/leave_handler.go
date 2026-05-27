@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 	"hrbackend/internal/middleware"
 
@@ -16,85 +17,85 @@ func RegisterLeaveRoutes(
 	rg *gin.RouterGroup,
 	handler *LeaveHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.POST(
 		"/leave-requests",
 		auth,
-		requirePermission("LEAVE.REQUEST.CREATE"),
+		requirePermission(permission.Leave.Request.Create),
 		handler.CreateLeaveRequest,
 	)
 	rg.POST(
 		"/leave-requests/admin",
 		auth,
-		requirePermission("LEAVE.REQUEST.UPDATE_ALL"),
+		requirePermission(permission.Leave.Request.UpdateAll),
 		handler.CreateLeaveRequestByAdmin,
 	)
 	rg.POST(
 		"/leave-requests/:id/decision",
 		auth,
-		requirePermission("LEAVE.REQUEST.DECIDE"),
+		requirePermission(permission.Leave.Request.Decide),
 		handler.DecideLeaveRequestByAdmin,
 	)
 	rg.PUT(
 		"/leave-requests/:id",
 		auth,
-		requirePermission("LEAVE.REQUEST.UPDATE"),
+		requirePermission(permission.Leave.Request.Update),
 		handler.UpdateLeaveRequest,
 	)
 	rg.PUT(
 		"/leave-requests/:id/admin",
 		auth,
-		requirePermission("LEAVE.REQUEST.UPDATE_ALL"),
+		requirePermission(permission.Leave.Request.UpdateAll),
 		handler.UpdateLeaveRequestByAdmin,
 	)
 	rg.GET(
 		"/leave-requests",
 		auth,
-		requirePermission("LEAVE.REQUEST.VIEW_ALL"),
+		requirePermission(permission.Leave.Request.ViewAll),
 		handler.ListLeaveRequests,
 	)
 	rg.GET(
 		"/leave-requests/calendar",
 		auth,
-		requirePermission("LEAVE.REQUEST.VIEW_ALL"),
+		requirePermission(permission.Leave.Request.ViewAll),
 		handler.ListLeaveCalendar,
 	)
 	rg.GET(
 		"/leave-requests/my",
 		auth,
-		requirePermission("LEAVE.REQUEST.VIEW"),
+		requirePermission(permission.Leave.Request.View),
 		handler.ListMyLeaveRequests,
 	)
 	rg.GET(
 		"/leave-requests/my/stats",
 		auth,
-		requirePermission("LEAVE.REQUEST.VIEW"),
+		requirePermission(permission.Leave.Request.View),
 		handler.GetMyLeaveRequestStats,
 	)
 	rg.GET(
 		"/leave-requests/stats",
 		auth,
-		requirePermission("LEAVE.REQUEST.VIEW_ALL"),
+		requirePermission(permission.Leave.Request.ViewAll),
 		handler.GetLeaveRequestStats,
 	)
 
 	rg.GET(
 		"/leave-balances",
 		auth,
-		requirePermission("LEAVE.BALANCE.VIEW_ALL"),
+		requirePermission(permission.Leave.Balance.ViewAll),
 		handler.ListLeaveBalances,
 	)
 	rg.GET(
 		"/leave-balances/my",
 		auth,
-		requirePermission("LEAVE.BALANCE.VIEW"),
+		requirePermission(permission.Leave.Balance.View),
 		handler.ListMyLeaveBalances,
 	)
 	rg.POST(
 		"/leave-balances/adjust",
 		auth,
-		requirePermission("LEAVE.BALANCE.ADJUST"),
+		requirePermission(permission.Leave.Balance.Adjust),
 		handler.AdjustLeaveBalance,
 	)
 }

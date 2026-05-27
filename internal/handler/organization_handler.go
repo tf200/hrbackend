@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 
 	"github.com/gin-gonic/gin"
@@ -15,60 +16,60 @@ func RegisterOrganizationRoutes(
 	rg *gin.RouterGroup,
 	handler *OrganizationHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.POST(
 		"/organizations",
 		auth,
-		requirePermission("LOCATION.CREATE"),
+		requirePermission(permission.Location.Create),
 		handler.CreateOrganization,
 	)
-	rg.GET("/organizations", auth, requirePermission("LOCATION.VIEW"), handler.ListOrganizations)
+	rg.GET("/organizations", auth, requirePermission(permission.Location.View), handler.ListOrganizations)
 	rg.GET(
 		"/organizations/:id",
 		auth,
-		requirePermission("LOCATION.VIEW"),
+		requirePermission(permission.Location.View),
 		handler.GetOrganizationByID,
 	)
 	rg.GET(
 		"/organizations/:id/counts",
 		auth,
-		requirePermission("LOCATION.VIEW"),
+		requirePermission(permission.Location.View),
 		handler.GetOrganizationCounts,
 	)
 	rg.POST(
 		"/organizations/:id/locations",
 		auth,
-		requirePermission("LOCATION.CREATE"),
+		requirePermission(permission.Location.Create),
 		handler.CreateOrganizationLocation,
 	)
 	rg.GET(
 		"/organizations/:id/locations",
 		auth,
-		requirePermission("LOCATION.VIEW"),
+		requirePermission(permission.Location.View),
 		handler.ListOrganizationLocations,
 	)
-	rg.GET("/locations", auth, requirePermission("LOCATION.VIEW"), handler.ListAllLocations)
-	rg.GET("/locations/:id", auth, requirePermission("LOCATION.VIEW"), handler.GetLocationByID)
-	rg.PUT("/locations/:id", auth, requirePermission("LOCATION.UPDATE"), handler.UpdateLocation)
-	rg.DELETE("/locations/:id", auth, requirePermission("LOCATION.DELETE"), handler.DeleteLocation)
-	rg.POST("/locations/:id/shifts", auth, requirePermission("SHIFT.CREATE"), handler.CreateShift)
+	rg.GET("/locations", auth, requirePermission(permission.Location.View), handler.ListAllLocations)
+	rg.GET("/locations/:id", auth, requirePermission(permission.Location.View), handler.GetLocationByID)
+	rg.PUT("/locations/:id", auth, requirePermission(permission.Location.Update), handler.UpdateLocation)
+	rg.DELETE("/locations/:id", auth, requirePermission(permission.Location.Delete), handler.DeleteLocation)
+	rg.POST("/locations/:id/shifts", auth, requirePermission(permission.Shift.Create), handler.CreateShift)
 	rg.GET(
 		"/locations/:id/shifts",
 		auth,
-		requirePermission("SHIFT.VIEW"),
+		requirePermission(permission.Shift.View),
 		handler.ListShiftsByLocationID,
 	)
 	rg.PUT(
 		"/locations/:id/shifts/:shift_id",
 		auth,
-		requirePermission("SHIFT.UPDATE"),
+		requirePermission(permission.Shift.Update),
 		handler.UpdateShift,
 	)
 	rg.DELETE(
 		"/locations/:id/shifts/:shift_id",
 		auth,
-		requirePermission("SHIFT.DELETE"),
+		requirePermission(permission.Shift.Delete),
 		handler.DeleteShift,
 	)
 	rg.PUT(
@@ -80,19 +81,19 @@ func RegisterOrganizationRoutes(
 	rg.DELETE(
 		"/organizations/:id",
 		auth,
-		requirePermission("LOCATION.DELETE"),
+		requirePermission(permission.Location.Delete),
 		handler.DeleteOrganization,
 	)
 	rg.GET(
 		"/organizations/count",
 		auth,
-		requirePermission("LOCATION.VIEW"),
+		requirePermission(permission.Location.View),
 		handler.GetGlobalOrganizationCounts,
 	)
 	rg.GET(
 		"/organizational-roles",
 		auth,
-		requirePermission("EMPLOYEE.CREATE"),
+		requirePermission(permission.Employee.Create),
 		handler.ListOrganizationalRoles,
 	)
 }

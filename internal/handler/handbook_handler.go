@@ -8,6 +8,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 	"hrbackend/internal/middleware"
 
@@ -33,95 +34,95 @@ func RegisterHandbookRoutes(
 	rg *gin.RouterGroup,
 	handler *HandbookHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	handbook := rg.Group("/handbook")
 	handbook.Use(auth)
 
-	handbook.GET("/me", requirePermission("HANDBOOK.SELF.VIEW"), handler.GetMyActiveHandbook)
-	handbook.POST("/me/start", requirePermission("HANDBOOK.SELF.UPDATE"), handler.StartMyHandbook)
+	handbook.GET("/me", requirePermission(permission.Handbook.Self.View), handler.GetMyActiveHandbook)
+	handbook.POST("/me/start", requirePermission(permission.Handbook.Self.Update), handler.StartMyHandbook)
 	handbook.POST(
 		"/me/steps/:step_id/complete",
-		requirePermission("HANDBOOK.SELF.UPDATE"),
+		requirePermission(permission.Handbook.Self.Update),
 		handler.CompleteMyHandbookStep,
 	)
 
 	handbook.POST(
 		"/templates",
-		requirePermission("HANDBOOK.TEMPLATE.CREATE"),
+		requirePermission(permission.Handbook.Template.Create),
 		handler.CreateHandbookTemplate,
 	)
 	handbook.POST(
 		"/templates/clone",
-		requirePermission("HANDBOOK.TEMPLATE.CREATE"),
+		requirePermission(permission.Handbook.Template.Create),
 		handler.CloneHandbookTemplate,
 	)
 	handbook.PATCH(
 		"/templates/:template_id",
-		requirePermission("HANDBOOK.TEMPLATE.UPDATE"),
+		requirePermission(permission.Handbook.Template.Update),
 		handler.UpdateHandbookTemplate,
 	)
 	handbook.POST(
 		"/templates/publish",
-		requirePermission("HANDBOOK.TEMPLATE.PUBLISH"),
+		requirePermission(permission.Handbook.Template.Publish),
 		handler.PublishHandbookTemplate,
 	)
 	handbook.GET(
 		"/departments/:department_id/templates",
-		requirePermission("HANDBOOK.TEMPLATE.VIEW"),
+		requirePermission(permission.Handbook.Template.View),
 		handler.ListHandbookTemplatesByDepartment,
 	)
 
-	handbook.POST("/steps", requirePermission("HANDBOOK.STEP.CREATE"), handler.CreateHandbookStep)
+	handbook.POST("/steps", requirePermission(permission.Handbook.Step.Create), handler.CreateHandbookStep)
 	handbook.PATCH(
 		"/steps/:step_id",
-		requirePermission("HANDBOOK.STEP.UPDATE"),
+		requirePermission(permission.Handbook.Step.Update),
 		handler.UpdateHandbookStep,
 	)
 	handbook.DELETE(
 		"/steps/:step_id",
-		requirePermission("HANDBOOK.STEP.DELETE"),
+		requirePermission(permission.Handbook.Step.Delete),
 		handler.DeleteHandbookStep,
 	)
 	handbook.GET(
 		"/templates/:template_id/steps",
-		requirePermission("HANDBOOK.STEP.VIEW"),
+		requirePermission(permission.Handbook.Step.View),
 		handler.ListHandbookStepsByTemplate,
 	)
 	handbook.POST(
 		"/templates/:template_id/steps/reorder",
-		requirePermission("HANDBOOK.STEP.UPDATE"),
+		requirePermission(permission.Handbook.Step.Update),
 		handler.ReorderHandbookSteps,
 	)
 	handbook.GET(
 		"/employees/:employee_id/history",
-		requirePermission("HANDBOOK.ASSIGN"),
+		requirePermission(permission.Handbook.Assign),
 		handler.ListEmployeeHandbookHistory,
 	)
 
 	handbook.GET(
 		"/assignments",
-		requirePermission("HANDBOOK.ASSIGN"),
+		requirePermission(permission.Handbook.Assign),
 		handler.ListEmployeeHandbookAssignments,
 	)
 	handbook.GET(
 		"/assignments/eligible-employees",
-		requirePermission("HANDBOOK.ASSIGN"),
+		requirePermission(permission.Handbook.Assign),
 		handler.ListEligibleEmployees,
 	)
 	handbook.GET(
 		"/assignments/:handbook_id",
-		requirePermission("HANDBOOK.ASSIGN"),
+		requirePermission(permission.Handbook.Assign),
 		handler.GetEmployeeHandbookDetails,
 	)
 	handbook.POST(
 		"/assignments",
-		requirePermission("HANDBOOK.ASSIGN"),
+		requirePermission(permission.Handbook.Assign),
 		handler.AssignHandbookTemplateToEmployee,
 	)
 	handbook.POST(
 		"/assignments/:handbook_id/waive",
-		requirePermission("HANDBOOK.ASSIGN"),
+		requirePermission(permission.Handbook.Assign),
 		handler.WaiveEmployeeHandbook,
 	)
 }

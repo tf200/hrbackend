@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 	"hrbackend/internal/middleware"
 
@@ -16,42 +17,42 @@ func RegisterShiftSwapRoutes(
 	rg *gin.RouterGroup,
 	handler *ShiftSwapHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.POST(
 		"/shift-swaps",
 		auth,
-		requirePermission("SCHEDULE_SWAP.REQUEST"),
+		requirePermission(permission.ScheduleSwap.Request),
 		handler.CreateShiftSwapRequest,
 	)
 	rg.POST(
 		"/shift-swaps/admin",
 		auth,
-		requirePermission("SCHEDULE_SWAP.APPROVE"),
+		requirePermission(permission.ScheduleSwap.Approve),
 		handler.CreateAdminShiftSwapRequest,
 	)
 	rg.POST(
 		"/shift-swaps/:id/respond",
 		auth,
-		requirePermission("SCHEDULE_SWAP.RESPOND"),
+		requirePermission(permission.ScheduleSwap.Respond),
 		handler.RespondShiftSwapRequest,
 	)
 	rg.POST(
 		"/shift-swaps/:id/admin-decision",
 		auth,
-		requirePermission("SCHEDULE_SWAP.APPROVE"),
+		requirePermission(permission.ScheduleSwap.Approve),
 		handler.AdminDecisionShiftSwapRequest,
 	)
 	rg.GET(
 		"/shift-swaps",
 		auth,
-		requirePermission("SCHEDULE_SWAP.APPROVE"),
+		requirePermission(permission.ScheduleSwap.Approve),
 		handler.ListShiftSwapRequests,
 	)
 	rg.GET(
 		"/shift-swaps/my",
 		auth,
-		requirePermission("SCHEDULE_SWAP.VIEW"),
+		requirePermission(permission.ScheduleSwap.View),
 		handler.ListMyShiftSwapRequests,
 	)
 }

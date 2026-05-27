@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/domain/permission"
 	"hrbackend/internal/httpapi"
 
 	"github.com/gin-gonic/gin"
@@ -13,18 +14,18 @@ func RegisterSettingsRoutes(
 	rg *gin.RouterGroup,
 	handler *SettingsHandler,
 	auth gin.HandlerFunc,
-	requirePermission func(string) gin.HandlerFunc,
+	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.GET(
 		"/settings/organization-profile",
 		auth,
-		requirePermission("SETTINGS.VIEW"),
+		requirePermission(permission.Settings.View),
 		handler.GetOrganizationProfile,
 	)
 	rg.PUT(
 		"/settings/organization-profile",
 		auth,
-		requirePermission("SETTINGS.UPDATE"),
+		requirePermission(permission.Settings.Update),
 		handler.UpdateOrganizationProfile,
 	)
 }
