@@ -315,6 +315,24 @@ var Shift = struct {
 	View:   "SHIFT.VIEW",
 }
 
+var Overtime = struct {
+	Create    Permission
+	CreateAll Permission
+	Decide    Permission
+	Update    Permission
+	UpdateAll Permission
+	View      Permission
+	ViewAll   Permission
+}{
+	Create:    "OVERTIME.CREATE",
+	CreateAll: "OVERTIME.CREATE_ALL",
+	Decide:    "OVERTIME.DECIDE",
+	Update:    "OVERTIME.UPDATE",
+	UpdateAll: "OVERTIME.UPDATE_ALL",
+	View:      "OVERTIME.VIEW",
+	ViewAll:   "OVERTIME.VIEW_ALL",
+}
+
 var TimeEntry = struct {
 	Create    Permission
 	CreateAll Permission

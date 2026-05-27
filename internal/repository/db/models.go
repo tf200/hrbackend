@@ -980,6 +980,99 @@ func (ns NullNameInUseEnum) Value() (driver.Value, error) {
 	return string(ns.NameInUseEnum), nil
 }
 
+type OvertimeReasonEnum string
+
+const (
+	OvertimeReasonEnumClientCrisis             OvertimeReasonEnum = "client_crisis"
+	OvertimeReasonEnumUnderstaffing            OvertimeReasonEnum = "understaffing"
+	OvertimeReasonEnumMeetingConsultation      OvertimeReasonEnum = "meeting_consultation"
+	OvertimeReasonEnumTrainingEducation        OvertimeReasonEnum = "training_education"
+	OvertimeReasonEnumCompletingAdministration OvertimeReasonEnum = "completing_administration"
+	OvertimeReasonEnumHandover                 OvertimeReasonEnum = "handover"
+	OvertimeReasonEnumEmergency                OvertimeReasonEnum = "emergency"
+	OvertimeReasonEnumProjectWork              OvertimeReasonEnum = "project_work"
+	OvertimeReasonEnumEventActivity            OvertimeReasonEnum = "event_activity"
+	OvertimeReasonEnumOther                    OvertimeReasonEnum = "other"
+)
+
+func (e *OvertimeReasonEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OvertimeReasonEnum(s)
+	case string:
+		*e = OvertimeReasonEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OvertimeReasonEnum: %T", src)
+	}
+	return nil
+}
+
+type NullOvertimeReasonEnum struct {
+	OvertimeReasonEnum OvertimeReasonEnum `json:"overtime_reason_enum"`
+	Valid              bool               `json:"valid"` // Valid is true if OvertimeReasonEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOvertimeReasonEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.OvertimeReasonEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OvertimeReasonEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOvertimeReasonEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OvertimeReasonEnum), nil
+}
+
+type OvertimeStatusEnum string
+
+const (
+	OvertimeStatusEnumSubmitted OvertimeStatusEnum = "submitted"
+	OvertimeStatusEnumApproved  OvertimeStatusEnum = "approved"
+	OvertimeStatusEnumRejected  OvertimeStatusEnum = "rejected"
+)
+
+func (e *OvertimeStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OvertimeStatusEnum(s)
+	case string:
+		*e = OvertimeStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OvertimeStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullOvertimeStatusEnum struct {
+	OvertimeStatusEnum OvertimeStatusEnum `json:"overtime_status_enum"`
+	Valid              bool               `json:"valid"` // Valid is true if OvertimeStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOvertimeStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.OvertimeStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OvertimeStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOvertimeStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OvertimeStatusEnum), nil
+}
+
 type PayPeriodStatusEnum string
 
 const (
@@ -1974,6 +2067,24 @@ type OrganizationalRole struct {
 	IsActive    bool               `json:"is_active"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type OvertimeEntry struct {
+	ID                   uuid.UUID          `json:"id"`
+	EmployeeID           uuid.UUID          `json:"employee_id"`
+	ScheduleID           *uuid.UUID         `json:"schedule_id"`
+	EntryDate            pgtype.Date        `json:"entry_date"`
+	Minutes              int32              `json:"minutes"`
+	Reason               OvertimeReasonEnum `json:"reason"`
+	Description          *string            `json:"description"`
+	Status               OvertimeStatusEnum `json:"status"`
+	SubmittedAt          pgtype.Timestamptz `json:"submitted_at"`
+	ApprovedAt           pgtype.Timestamptz `json:"approved_at"`
+	ApprovedByEmployeeID *uuid.UUID         `json:"approved_by_employee_id"`
+	RejectionReason      *string            `json:"rejection_reason"`
+	PaidPeriodID         *uuid.UUID         `json:"paid_period_id"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 }
 
 type PayPeriod struct {

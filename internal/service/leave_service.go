@@ -544,6 +544,7 @@ func isValidLeaveStatus(value string) bool {
 	}
 }
 
+// [code_quality]: these need to be refactored into a shared utility package
 func currentUTCDate() time.Time {
 	now := time.Now().UTC()
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)

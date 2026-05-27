@@ -62,6 +62,9 @@ DROP TABLE IF EXISTS late_arrivals;
 -- Payroll tables
 DROP TABLE IF EXISTS pay_period_line_items;
 
+-- Overtime entries table
+DROP TABLE IF EXISTS overtime_entries CASCADE;
+
 -- Time entry audit table
 DROP TABLE IF EXISTS time_entry_update_audits;
 
@@ -139,6 +142,8 @@ DROP TYPE IF EXISTS attendee_response_enum;
 DROP TYPE IF EXISTS calendar_event_work_approval_status_enum;
 DROP TYPE IF EXISTS calendar_event_status_enum;
 DROP TYPE IF EXISTS calendar_event_kind_enum;
+DROP TYPE IF EXISTS overtime_reason_enum;
+DROP TYPE IF EXISTS overtime_status_enum;
 DROP TYPE IF EXISTS performance_work_assignment_status_enum;
 DROP TYPE IF EXISTS performance_assessment_status_enum;
 DROP TYPE IF EXISTS time_entry_hour_type_enum;

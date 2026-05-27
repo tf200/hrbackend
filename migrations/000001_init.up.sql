@@ -1549,6 +1549,55 @@ ALTER TABLE time_entries
 CREATE INDEX idx_time_entries_paid_period_id
 ON time_entries(paid_period_id);
 
+-- ==========================================
+-- OVERTIME ENTRIES
+-- ==========================================
+
+CREATE TYPE overtime_status_enum AS ENUM ('submitted', 'approved', 'rejected');
+
+CREATE TYPE overtime_reason_enum AS ENUM (
+    'client_crisis',
+    'understaffing',
+    'meeting_consultation',
+    'training_education',
+    'completing_administration',
+    'handover',
+    'emergency',
+    'project_work',
+    'event_activity',
+    'other'
+);
+
+CREATE TABLE overtime_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
+    entry_date DATE NOT NULL,
+    minutes INT NOT NULL CHECK (minutes > 0),
+    reason overtime_reason_enum NOT NULL,
+    description TEXT NULL,
+    status overtime_status_enum NOT NULL DEFAULT 'submitted',
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    approved_at TIMESTAMPTZ NULL,
+    approved_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    rejection_reason TEXT NULL,
+    paid_period_id UUID NULL REFERENCES pay_periods(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_overtime_entries_employee_date
+ON overtime_entries(employee_id, entry_date DESC);
+
+CREATE INDEX idx_overtime_entries_status
+ON overtime_entries(status);
+
+CREATE INDEX idx_overtime_entries_schedule_id
+ON overtime_entries(schedule_id);
+
+CREATE INDEX idx_overtime_entries_paid_period_id
+ON overtime_entries(paid_period_id);
+
 CREATE TYPE calendar_event_kind_enum AS ENUM ('appointment', 'reminder');
 CREATE TYPE calendar_event_status_enum AS ENUM ('confirmed', 'cancelled');
 -- Work approval status for appointments (hours are counted/billed only after admin approval)
