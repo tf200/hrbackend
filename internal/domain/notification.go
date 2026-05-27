@@ -11,6 +11,7 @@ const (
 	TypeNewAppointment          = "new_appointment"
 	TypeNewScheduleNotification = "new_schedule_notification"
 	TypeSystemReminder          = "system_reminder"
+	TypeShiftSwapRequested      = "shift_swap_requested"
 )
 
 type Notification struct {
@@ -41,6 +42,16 @@ type NotificationRequest struct {
 
 type NotificationData struct {
 	NewScheduleNotification *NewScheduleNotificationData `json:"new_schedule_notification,omitempty"`
+	ShiftSwapNotification   *ShiftSwapNotificationData   `json:"shift_swap_notification,omitempty"`
+}
+
+type ShiftSwapNotificationData struct {
+	SwapID                uuid.UUID `json:"swap_id"`
+	RequesterEmployeeID   uuid.UUID `json:"requester_employee_id"`
+	RequesterEmployeeName string    `json:"requester_employee_name"`
+	RecipientEmployeeID   uuid.UUID `json:"recipient_employee_id"`
+	RecipientEmployeeName string    `json:"recipient_employee_name"`
+	Status                string    `json:"status"`
 }
 
 type NewScheduleNotificationData struct {

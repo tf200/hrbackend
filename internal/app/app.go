@@ -263,8 +263,7 @@ func buildRouter(
 	notificationService := service.NewNotificationService(notificationRepo, wsHub, logger)
 
 	scheduleRepo := repository.NewScheduleRepository(store)
-	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, logger)
-	_ = notificationService
+	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, notificationService, logger)
 
 	leaveRepo := repository.NewLeaveRepository(store)
 	leaveService := service.NewLeaveService(leaveRepo, logger)

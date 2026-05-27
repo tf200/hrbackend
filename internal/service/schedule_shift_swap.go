@@ -67,6 +67,30 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 		return nil, err
 	}
 
+	notifData := domain.ShiftSwapNotificationData{
+		SwapID:              created.ID,
+		RequesterEmployeeID: requesterEmployeeID,
+		RecipientEmployeeID: req.RecipientEmployeeID,
+		Status:              created.Status,
+	}
+	details, err := s.repository.GetShiftSwapRequestDetailsByID(ctx, created.ID)
+	if err == nil {
+		notifData.RequesterEmployeeName = details.RequesterEmployeeName
+		notifData.RecipientEmployeeName = details.RecipientEmployeeName
+	}
+
+	s.notificationService.Notify(ctx, domain.NotificationRequest{
+		Recipients: domain.NotificationRecipients{
+			EmployeeIDs: []uuid.UUID{req.RecipientEmployeeID},
+			Roles:       []string{"admin"},
+		},
+		Type:    domain.TypeShiftSwapRequested,
+		Message: "A shift swap has been requested",
+		Data: domain.NotificationData{
+			ShiftSwapNotification: &notifData,
+		},
+	})
+
 	resp := &domain.CreateShiftSwapResponse{
 		ID:                  created.ID,
 		RequesterEmployeeID: created.RequesterEmployeeID,

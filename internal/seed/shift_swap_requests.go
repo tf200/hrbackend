@@ -51,7 +51,7 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 
 	store := dbrepo.NewStoreWithTx(tx)
 	scheduleRepo := repository.NewScheduleRepository(store)
-	scheduleService := service.NewScheduleService(scheduleRepo, nil, nil)
+	scheduleService := service.NewScheduleService(scheduleRepo, nil, nil, nil)
 
 	requestsByRequester := make(map[string][]ShiftSwapRequestSeed)
 	for _, item := range s.Requests {

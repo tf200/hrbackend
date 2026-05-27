@@ -48,7 +48,7 @@ func (s SchedulesSeeder) Seed(ctx context.Context, env Env) error {
 
 	store := dbrepo.NewStoreWithTx(tx)
 	scheduleRepo := repository.NewScheduleRepository(store)
-	scheduleService := service.NewScheduleService(scheduleRepo, nil, nil)
+	scheduleService := service.NewScheduleService(scheduleRepo, nil, nil, nil)
 
 	shiftsByLocationAlias := make(map[string]map[int16]domain.ScheduleLocationShift)
 
