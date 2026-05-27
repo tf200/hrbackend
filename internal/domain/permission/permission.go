@@ -333,20 +333,4 @@ var Overtime = struct {
 	ViewAll:   "OVERTIME.VIEW_ALL",
 }
 
-var TimeEntry = struct {
-	Create    Permission
-	CreateAll Permission
-	Decide    Permission
-	Update    Permission
-	UpdateAll Permission
-	View      Permission
-	ViewAll   Permission
-}{
-	Create:    "TIME_ENTRY.CREATE",
-	CreateAll: "TIME_ENTRY.CREATE_ALL",
-	Decide:    "TIME_ENTRY.DECIDE",
-	Update:    "TIME_ENTRY.UPDATE",
-	UpdateAll: "TIME_ENTRY.UPDATE_ALL",
-	View:      "TIME_ENTRY.VIEW",
-	ViewAll:   "TIME_ENTRY.VIEW_ALL",
-}
+

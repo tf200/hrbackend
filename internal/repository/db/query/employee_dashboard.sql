@@ -98,7 +98,7 @@ SELECT
     COALESCE(lr.pending, 0)::bigint AS pending_leave_requests,
     COALESCE(ss.pending_admin, 0)::bigint AS pending_shift_swaps,
     COALESCE(er.pending, 0)::bigint AS pending_expense_claims,
-    COALESCE(te.submitted, 0)::bigint AS pending_time_entries
+    COALESCE(oe.submitted, 0)::bigint AS pending_overtime_entries
 FROM (
     SELECT COUNT(*)::bigint AS pending
     FROM leave_requests
@@ -117,9 +117,9 @@ FROM (
 ) er,
 (
     SELECT COUNT(*)::bigint AS submitted
-    FROM time_entries
-    WHERE status = 'submitted'::time_entry_status_enum
-) te;
+    FROM overtime_entries
+    WHERE status = 'submitted'::overtime_status_enum
+) oe;
 
 -- name: GetPayrollTotalStats :one
 WITH current_month AS (

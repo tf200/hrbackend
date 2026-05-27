@@ -12,21 +12,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const assignTimeEntriesToPayPeriod = `-- name: AssignTimeEntriesToPayPeriod :exec
-UPDATE time_entries
+const assignOvertimeEntriesToPayPeriod = `-- name: AssignOvertimeEntriesToPayPeriod :exec
+UPDATE overtime_entries
 SET
     paid_period_id = $1,
     updated_at = NOW()
 WHERE id = ANY($2::uuid[])
 `
 
-type AssignTimeEntriesToPayPeriodParams struct {
-	PayPeriodID  *uuid.UUID  `json:"pay_period_id"`
-	TimeEntryIds []uuid.UUID `json:"time_entry_ids"`
+type AssignOvertimeEntriesToPayPeriodParams struct {
+	PayPeriodID      *uuid.UUID  `json:"pay_period_id"`
+	OvertimeEntryIds []uuid.UUID `json:"overtime_entry_ids"`
 }
 
-func (q *Queries) AssignTimeEntriesToPayPeriod(ctx context.Context, arg AssignTimeEntriesToPayPeriodParams) error {
-	_, err := q.db.Exec(ctx, assignTimeEntriesToPayPeriod, arg.PayPeriodID, arg.TimeEntryIds)
+func (q *Queries) AssignOvertimeEntriesToPayPeriod(ctx context.Context, arg AssignOvertimeEntriesToPayPeriodParams) error {
+	_, err := q.db.Exec(ctx, assignOvertimeEntriesToPayPeriod, arg.PayPeriodID, arg.OvertimeEntryIds)
 	return err
 }
 
@@ -94,7 +94,8 @@ func (q *Queries) CreatePayPeriod(ctx context.Context, arg CreatePayPeriodParams
 const createPayPeriodLineItem = `-- name: CreatePayPeriodLineItem :one
 INSERT INTO pay_period_line_items (
     pay_period_id,
-    time_entry_id,
+    schedule_id,
+    overtime_entry_id,
     contract_type,
     work_date,
     line_type,
@@ -115,14 +116,16 @@ INSERT INTO pay_period_line_items (
     $8,
     $9,
     $10,
-    COALESCE($11, '{}'::jsonb)
+    $11,
+    COALESCE($12, '{}'::jsonb)
 )
-RETURNING id, pay_period_id, time_entry_id, contract_type, work_date, line_type, irregular_hours_profile, applied_rate_percent, minutes_worked, base_amount, premium_amount, metadata, created_at, updated_at
+RETURNING id, pay_period_id, schedule_id, overtime_entry_id, contract_type, work_date, line_type, irregular_hours_profile, applied_rate_percent, minutes_worked, base_amount, premium_amount, metadata, created_at, updated_at
 `
 
 type CreatePayPeriodLineItemParams struct {
 	PayPeriodID           uuid.UUID                 `json:"pay_period_id"`
-	TimeEntryID           *uuid.UUID                `json:"time_entry_id"`
+	ScheduleID            *uuid.UUID                `json:"schedule_id"`
+	OvertimeEntryID       *uuid.UUID                `json:"overtime_entry_id"`
 	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
 	WorkDate              pgtype.Date               `json:"work_date"`
 	LineType              string                    `json:"line_type"`
@@ -137,7 +140,8 @@ type CreatePayPeriodLineItemParams struct {
 func (q *Queries) CreatePayPeriodLineItem(ctx context.Context, arg CreatePayPeriodLineItemParams) (PayPeriodLineItem, error) {
 	row := q.db.QueryRow(ctx, createPayPeriodLineItem,
 		arg.PayPeriodID,
-		arg.TimeEntryID,
+		arg.ScheduleID,
+		arg.OvertimeEntryID,
 		arg.ContractType,
 		arg.WorkDate,
 		arg.LineType,
@@ -152,7 +156,8 @@ func (q *Queries) CreatePayPeriodLineItem(ctx context.Context, arg CreatePayPeri
 	err := row.Scan(
 		&i.ID,
 		&i.PayPeriodID,
-		&i.TimeEntryID,
+		&i.ScheduleID,
+		&i.OvertimeEntryID,
 		&i.ContractType,
 		&i.WorkDate,
 		&i.LineType,
@@ -300,7 +305,8 @@ const listPayPeriodLineItemsByPayPeriodID = `-- name: ListPayPeriodLineItemsByPa
 SELECT
     id,
     pay_period_id,
-    time_entry_id,
+    schedule_id,
+    overtime_entry_id,
     contract_type,
     work_date,
     line_type,
@@ -329,7 +335,8 @@ func (q *Queries) ListPayPeriodLineItemsByPayPeriodID(ctx context.Context, payPe
 		if err := rows.Scan(
 			&i.ID,
 			&i.PayPeriodID,
-			&i.TimeEntryID,
+			&i.ScheduleID,
+			&i.OvertimeEntryID,
 			&i.ContractType,
 			&i.WorkDate,
 			&i.LineType,
@@ -480,104 +487,202 @@ func (q *Queries) LockPayPeriodByID(ctx context.Context, id uuid.UUID) (PayPerio
 	return i, err
 }
 
-const lockPayrollPreviewTimeEntries = `-- name: LockPayrollPreviewTimeEntries :many
-SELECT
-    te.id,
-    te.employee_id,
-    ep.first_name AS employee_first_name,
-    ep.last_name AS employee_last_name,
-    te.entry_date,
-    te.start_time,
-    te.end_time,
-    te.break_minutes,
-    te.hour_type,
-    cc.contract_type,
-    css.hourly_rate::double precision AS contract_rate,
-    'none'::text AS irregular_hours_profile
-FROM time_entries te
-JOIN employee_profile ep ON ep.id = te.employee_id
-JOIN LATERAL (
-    SELECT
-        c.id,
-        c.contract_type,
-        c.contract_end_date
-    FROM employee_contracts c
-    WHERE c.employee_id = te.employee_id
-      AND c.start_date <= te.entry_date
-      AND (c.effective_end_date IS NULL OR c.effective_end_date >= te.entry_date)
-      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
-    ORDER BY c.start_date DESC, c.created_at DESC
-    LIMIT 1
-) cc ON TRUE
-JOIN LATERAL (
-    SELECT esa.salary_scale_step_id
-    FROM employee_salary_assignments esa
-    WHERE esa.employee_id = te.employee_id
-      AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
-      AND esa.effective_from <= te.entry_date
-      AND (esa.effective_to IS NULL OR esa.effective_to > te.entry_date)
-    ORDER BY
-      (esa.contract_id = cc.id) DESC,
-      esa.effective_from DESC,
-      esa.created_at DESC
-    LIMIT 1
-) latest_salary ON TRUE
-JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
-WHERE te.employee_id = $1
-  AND te.status = 'approved'::time_entry_status_enum
-  AND te.paid_period_id IS NULL
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= $2
-  AND te.entry_date <= $3
-ORDER BY te.entry_date ASC, te.start_time ASC, te.created_at ASC
-FOR UPDATE OF te
+const lockPayrollOvertimeEntries = `-- name: LockPayrollOvertimeEntries :many
+SELECT id
+FROM overtime_entries
+WHERE employee_id = $1
+  AND status = 'approved'::overtime_status_enum
+  AND paid_period_id IS NULL
+  AND entry_date >= $2
+  AND entry_date <= $3
+FOR UPDATE
 `
 
-type LockPayrollPreviewTimeEntriesParams struct {
+type LockPayrollOvertimeEntriesParams struct {
 	EmployeeID  uuid.UUID   `json:"employee_id"`
 	PeriodStart pgtype.Date `json:"period_start"`
 	PeriodEnd   pgtype.Date `json:"period_end"`
 }
 
-type LockPayrollPreviewTimeEntriesRow struct {
-	ID                    uuid.UUID                `json:"id"`
+func (q *Queries) LockPayrollOvertimeEntries(ctx context.Context, arg LockPayrollOvertimeEntriesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, lockPayrollOvertimeEntries, arg.EmployeeID, arg.PeriodStart, arg.PeriodEnd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockPayrollPreviewWorkItems = `-- name: LockPayrollPreviewWorkItems :many
+WITH schedule_items AS (
+    SELECT
+        s.id AS source_id,
+        s.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(s.shift_name_snapshot), ''), 'Scheduled shift') AS label,
+        DATE(s.start_datetime) AS work_date,
+        s.start_datetime::time AS start_time_val,
+        s.end_datetime::time AS end_time_val,
+        0 AS break_minutes,
+        EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60 AS minutes_worked,
+        'schedule'::text AS source_type,
+        s.id AS schedule_id,
+        NULL::uuid AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM schedules s
+    JOIN employee_profile ep ON ep.id = s.employee_id
+    JOIN LATERAL (
+        SELECT
+            c.id,
+            c.contract_type,
+            c.contract_end_date
+        FROM employee_contracts c
+        WHERE c.employee_id = s.employee_id
+          AND c.start_date <= DATE(s.start_datetime)
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= DATE(s.start_datetime))
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= DATE(s.start_datetime))
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = s.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= DATE(s.start_datetime)
+          AND (esa.effective_to IS NULL OR esa.effective_to > DATE(s.start_datetime))
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE s.employee_id = $1
+      AND DATE(s.start_datetime) >= $2
+      AND DATE(s.start_datetime) <= $3
+),
+overtime_items AS (
+    SELECT
+        oe.id AS source_id,
+        oe.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(oe.reason::text), ''), 'Overtime') AS label,
+        oe.entry_date AS work_date,
+        NULL::time AS start_time_val,
+        NULL::time AS end_time_val,
+        0 AS break_minutes,
+        oe.minutes::double precision AS minutes_worked,
+        'overtime'::text AS source_type,
+        NULL::uuid AS schedule_id,
+        oe.id AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM overtime_entries oe
+    JOIN employee_profile ep ON ep.id = oe.employee_id
+    JOIN LATERAL (
+        SELECT
+            c.id,
+            c.contract_type,
+            c.contract_end_date
+        FROM employee_contracts c
+        WHERE c.employee_id = oe.employee_id
+          AND c.start_date <= oe.entry_date
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= oe.entry_date)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = oe.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= oe.entry_date
+          AND (esa.effective_to IS NULL OR esa.effective_to > oe.entry_date)
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE oe.employee_id = $1
+      AND oe.status = 'approved'::overtime_status_enum
+      AND oe.paid_period_id IS NULL
+      AND oe.entry_date >= $2
+      AND oe.entry_date <= $3
+)
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, contract_type, contract_rate, irregular_hours_profile FROM schedule_items
+UNION ALL
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, contract_type, contract_rate, irregular_hours_profile FROM overtime_items
+ORDER BY work_date ASC, source_type ASC, source_id ASC
+`
+
+type LockPayrollPreviewWorkItemsParams struct {
+	EmployeeID  uuid.UUID          `json:"employee_id"`
+	PeriodStart pgtype.Timestamptz `json:"period_start"`
+	PeriodEnd   pgtype.Timestamptz `json:"period_end"`
+}
+
+type LockPayrollPreviewWorkItemsRow struct {
+	SourceID              uuid.UUID                `json:"source_id"`
 	EmployeeID            uuid.UUID                `json:"employee_id"`
 	EmployeeFirstName     string                   `json:"employee_first_name"`
 	EmployeeLastName      string                   `json:"employee_last_name"`
-	EntryDate             pgtype.Date              `json:"entry_date"`
-	StartTime             pgtype.Time              `json:"start_time"`
-	EndTime               pgtype.Time              `json:"end_time"`
+	Label                 interface{}              `json:"label"`
+	WorkDate              pgtype.Date              `json:"work_date"`
+	StartTimeVal          pgtype.Time              `json:"start_time_val"`
+	EndTimeVal            pgtype.Time              `json:"end_time_val"`
 	BreakMinutes          int32                    `json:"break_minutes"`
-	HourType              TimeEntryHourTypeEnum    `json:"hour_type"`
+	MinutesWorked         int32                    `json:"minutes_worked"`
+	SourceType            string                   `json:"source_type"`
+	ScheduleID            uuid.UUID                `json:"schedule_id"`
+	OvertimeEntryID       *uuid.UUID               `json:"overtime_entry_id"`
 	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
 	ContractRate          float64                  `json:"contract_rate"`
 	IrregularHoursProfile string                   `json:"irregular_hours_profile"`
 }
 
-func (q *Queries) LockPayrollPreviewTimeEntries(ctx context.Context, arg LockPayrollPreviewTimeEntriesParams) ([]LockPayrollPreviewTimeEntriesRow, error) {
-	rows, err := q.db.Query(ctx, lockPayrollPreviewTimeEntries, arg.EmployeeID, arg.PeriodStart, arg.PeriodEnd)
+func (q *Queries) LockPayrollPreviewWorkItems(ctx context.Context, arg LockPayrollPreviewWorkItemsParams) ([]LockPayrollPreviewWorkItemsRow, error) {
+	rows, err := q.db.Query(ctx, lockPayrollPreviewWorkItems, arg.EmployeeID, arg.PeriodStart, arg.PeriodEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []LockPayrollPreviewTimeEntriesRow{}
+	items := []LockPayrollPreviewWorkItemsRow{}
 	for rows.Next() {
-		var i LockPayrollPreviewTimeEntriesRow
+		var i LockPayrollPreviewWorkItemsRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.SourceID,
 			&i.EmployeeID,
 			&i.EmployeeFirstName,
 			&i.EmployeeLastName,
-			&i.EntryDate,
-			&i.StartTime,
-			&i.EndTime,
+			&i.Label,
+			&i.WorkDate,
+			&i.StartTimeVal,
+			&i.EndTimeVal,
 			&i.BreakMinutes,
-			&i.HourType,
+			&i.MinutesWorked,
+			&i.SourceType,
+			&i.ScheduleID,
+			&i.OvertimeEntryID,
 			&i.ContractType,
 			&i.ContractRate,
 			&i.IrregularHoursProfile,

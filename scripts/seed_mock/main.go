@@ -34,7 +34,6 @@ type seedConfig struct {
 	Schedules                   []seed.ScheduleSeed
 	ShiftSwapRequests           []seed.ShiftSwapRequestSeed
 	LateArrivals                []seed.LateArrivalSeed
-	TimeEntries                 []seed.TimeEntrySeed
 	PayPeriods                  []seed.PayPeriodSeed
 	Handbooks                   []seed.HandbookTemplateSeed
 	EmployeeHandbookAssignments []seed.EmployeeHandbookAssignmentSeed
@@ -109,9 +108,6 @@ func main() {
 		"late_arrivals": seed.LateArrivalsSeeder{
 			Arrivals: cfg.LateArrivals,
 		},
-		"time_entries": seed.TimeEntriesSeeder{
-			Entries: cfg.TimeEntries,
-		},
 		"pay_periods": seed.PayPeriodsSeeder{
 			Periods: cfg.PayPeriods,
 		},
@@ -139,8 +135,7 @@ func main() {
 		"schedules":                     {"location", "employees"},
 		"shift_swap_requests":           {"employees", "schedules"},
 		"late_arrivals":                 {"employees", "schedules"},
-		"time_entries":                  {"employees", "schedules"},
-		"pay_periods":                   {"employees", "time_entries"},
+		"pay_periods":                   {"employees", "schedules"},
 		"handbooks":                     {"departments", "employees"},
 		"employee_handbook_assignments": {"employees", "handbooks"},
 		"performance":                   {"employees"},
@@ -157,7 +152,6 @@ func main() {
 		"leave_requests",
 		"payout_requests",
 		"schedules",
-		"time_entries",
 		"pay_periods",
 		"shift_swap_requests",
 		"late_arrivals",
@@ -294,7 +288,6 @@ func loadConfigFromEnv() (seedConfig, error) {
 		Schedules:         dataset.Schedules,
 		ShiftSwapRequests: dataset.ShiftSwapRequests,
 		LateArrivals:      dataset.LateArrivals,
-		TimeEntries:       dataset.TimeEntries,
 		PayPeriods:        dataset.PayPeriods,
 		Handbooks: []seed.HandbookTemplateSeed{
 			{

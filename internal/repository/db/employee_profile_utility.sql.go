@@ -57,54 +57,45 @@ WITH ranges AS (
         date_trunc('year', CURRENT_DATE)::date AS year_start,
         (date_trunc('year', CURRENT_DATE) + INTERVAL '1 year')::date AS next_year_start,
         EXTRACT(YEAR FROM CURRENT_DATE)::int AS balance_year
-), time_entry_minutes AS (
+), overtime_stats AS (
     SELECT
-        COALESCE(SUM(worked_minutes) FILTER (
-            WHERE te.status = 'approved'::time_entry_status_enum
-              AND te.entry_date >= r.month_start
-              AND te.entry_date < r.next_month_start
+        COALESCE(SUM(oe.minutes) FILTER (
+            WHERE oe.status = 'approved'::overtime_status_enum
+              AND oe.entry_date >= r.month_start
+              AND oe.entry_date < r.next_month_start
         ), 0)::double precision AS approved_month_minutes,
-        COALESCE(SUM(worked_minutes) FILTER (
-            WHERE te.status = 'submitted'::time_entry_status_enum
-              AND te.entry_date >= r.month_start
-              AND te.entry_date < r.next_month_start
+        COALESCE(SUM(oe.minutes) FILTER (
+            WHERE oe.status = 'submitted'::overtime_status_enum
+              AND oe.entry_date >= r.month_start
+              AND oe.entry_date < r.next_month_start
         ), 0)::double precision AS pending_month_minutes,
-        COALESCE(SUM(worked_minutes) FILTER (
-            WHERE te.status = 'approved'::time_entry_status_enum
-              AND te.entry_date >= r.year_start
-              AND te.entry_date < r.next_year_start
+        COALESCE(SUM(oe.minutes) FILTER (
+            WHERE oe.status = 'approved'::overtime_status_enum
+              AND oe.entry_date >= r.year_start
+              AND oe.entry_date < r.next_year_start
         ), 0)::double precision AS approved_year_minutes
     FROM ranges r
-    LEFT JOIN LATERAL (
-        SELECT
-            te.status,
-            te.entry_date,
-            GREATEST(
-                0,
-                (
-                    CASE
-                        WHEN te.end_time > te.start_time THEN
-                            EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
-                        ELSE
-                            EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
-                    END
-                ) / 60 - te.break_minutes
-            ) AS worked_minutes
-        FROM time_entries te
-        WHERE te.employee_id = $1
-          AND te.hour_type IN (
-              'normal'::time_entry_hour_type_enum,
-              'overtime'::time_entry_hour_type_enum,
-              'travel'::time_entry_hour_type_enum,
-              'training'::time_entry_hour_type_enum
-          )
-          AND te.status IN (
-              'approved'::time_entry_status_enum,
-              'submitted'::time_entry_status_enum
-          )
-          AND te.entry_date >= r.year_start
-          AND te.entry_date < r.next_year_start
-    ) te ON TRUE
+    LEFT JOIN overtime_entries oe ON oe.employee_id = $1
+      AND oe.entry_date >= r.year_start
+      AND oe.entry_date < r.next_year_start
+), schedule_stats AS (
+    SELECT
+        COALESCE(SUM(
+            EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60
+        ) FILTER (
+            WHERE DATE(s.start_datetime) >= r.month_start
+              AND DATE(s.start_datetime) < r.next_month_start
+        ), 0)::double precision AS scheduled_month_minutes,
+        COALESCE(SUM(
+            EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60
+        ) FILTER (
+            WHERE DATE(s.start_datetime) >= r.year_start
+              AND DATE(s.start_datetime) < r.next_year_start
+        ), 0)::double precision AS scheduled_year_minutes
+    FROM ranges r
+    LEFT JOIN schedules s ON s.employee_id = $1
+      AND DATE(s.start_datetime) >= r.year_start
+      AND DATE(s.start_datetime) < r.next_year_start
 ), leave_balance AS (
     SELECT
         COALESCE(
@@ -125,12 +116,13 @@ WITH ranges AS (
 )
 SELECT
     lb.remaining_leave_balance_hours,
-    (tem.approved_month_minutes / 60.0)::double precision AS hours_worked_this_month,
-    (tem.pending_month_minutes / 60.0)::double precision AS hours_pending_approval,
-    (tem.approved_year_minutes / 60.0)::double precision AS total_hours_worked_this_year,
+    ((os.approved_month_minutes + ss.scheduled_month_minutes) / 60.0)::double precision AS hours_worked_this_month,
+    (os.pending_month_minutes / 60.0)::double precision AS hours_pending_approval,
+    ((os.approved_year_minutes + ss.scheduled_year_minutes) / 60.0)::double precision AS total_hours_worked_this_year,
     lr.last_performance_review_score
 FROM leave_balance lb
-CROSS JOIN time_entry_minutes tem
+CROSS JOIN overtime_stats os
+CROSS JOIN schedule_stats ss
 LEFT JOIN last_review lr ON TRUE
 `
 

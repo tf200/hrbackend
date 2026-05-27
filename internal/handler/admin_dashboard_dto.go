@@ -111,7 +111,7 @@ type adminCriticalActionStatsResponse struct {
 	PendingLeaveRequests int64 `json:"pending_leave_requests"`
 	PendingShiftSwaps    int64 `json:"pending_shift_swaps"`
 	PendingExpenseClaims int64 `json:"pending_expense_claims"`
-	PendingTimeEntries   int64 `json:"pending_time_entries"`
+	PendingOvertimeEntries   int64 `json:"pending_overtime_entries"`
 	Total                int64 `json:"total"`
 }
 
@@ -122,11 +122,11 @@ func toAdminCriticalActionStatsResponse(
 		PendingLeaveRequests: stats.PendingLeaveRequests,
 		PendingShiftSwaps:    stats.PendingShiftSwaps,
 		PendingExpenseClaims: stats.PendingExpenseClaims,
-		PendingTimeEntries:   stats.PendingTimeEntries,
+		PendingOvertimeEntries:   stats.PendingOvertimeEntries,
 		Total: stats.PendingLeaveRequests +
 			stats.PendingShiftSwaps +
 			stats.PendingExpenseClaims +
-			stats.PendingTimeEntries,
+			stats.PendingOvertimeEntries,
 	}
 }
 

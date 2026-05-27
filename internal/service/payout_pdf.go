@@ -489,7 +489,7 @@ func addPayrollPreviewLineItems(m core.Maroto, preview *domain.PayrollPreview) {
 				Color: rgbaToPropsColor(colorText),
 			}),
 		), col.New(2).Add(
-			text.New(line.HourType, props.Text{
+			text.New(line.SourceType, props.Text{
 				Size:  9,
 				Color: rgbaToPropsColor(colorText),
 			}),

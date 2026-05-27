@@ -274,9 +274,6 @@ func buildRouter(
 	expenseRepo := repository.NewExpenseRepository(store)
 	expenseService := service.NewExpenseService(expenseRepo, logger)
 
-	timeEntryRepo := repository.NewTimeEntryRepository(store)
-	timeEntryService := service.NewTimeEntryService(timeEntryRepo, logger)
-
 	overtimeRepo := repository.NewOvertimeRepository(store)
 	overtimeService := service.NewOvertimeService(overtimeRepo, logger)
 
@@ -313,7 +310,6 @@ func buildRouter(
 	leaveHandler := handler.NewLeaveHandler(leaveService)
 	payoutHandler := handler.NewPayoutHandler(payoutService)
 	expenseHandler := handler.NewExpenseHandler(expenseService)
-	timeEntryHandler := handler.NewTimeEntryHandler(timeEntryService)
 	overtimeHandler := handler.NewOvertimeHandler(overtimeService)
 	salaryHandler := handler.NewSalaryHandler(salaryService)
 
@@ -342,7 +338,6 @@ func buildRouter(
 	handler.RegisterLeaveRoutes(api, leaveHandler, auth, requirePermission)
 	handler.RegisterPayoutRoutes(api, payoutHandler, auth, requirePermission)
 	handler.RegisterExpenseRoutes(api, expenseHandler, auth, requirePermission)
-	handler.RegisterTimeEntryRoutes(api, timeEntryHandler, auth, requirePermission)
 	handler.RegisterOvertimeRoutes(api, overtimeHandler, auth, requirePermission)
 	handler.RegisterSalaryRoutes(api, salaryHandler, auth, requirePermission)
 	handler.RegisterPerformanceRoutes(api, performanceHandler, auth, requirePermission)

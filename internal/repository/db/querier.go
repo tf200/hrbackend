@@ -29,9 +29,8 @@ type Querier interface {
 	ApproveExpenseRequest(ctx context.Context, arg ApproveExpenseRequestParams) (ExpenseRequest, error)
 	ApproveOvertimeEntry(ctx context.Context, arg ApproveOvertimeEntryParams) (ApproveOvertimeEntryRow, error)
 	ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutRequestParams) (LeavePayoutRequest, error)
-	ApproveTimeEntry(ctx context.Context, arg ApproveTimeEntryParams) (ApproveTimeEntryRow, error)
+	AssignOvertimeEntriesToPayPeriod(ctx context.Context, arg AssignOvertimeEntriesToPayPeriodParams) error
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
-	AssignTimeEntriesToPayPeriod(ctx context.Context, arg AssignTimeEntriesToPayPeriodParams) error
 	AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error)
 	CancelExpenseRequest(ctx context.Context, id uuid.UUID) (ExpenseRequest, error)
 	CancelTrainingAssignment(ctx context.Context, arg CancelTrainingAssignmentParams) (EmployeeTrainingAssignment, error)
@@ -82,8 +81,6 @@ type Querier interface {
 	CreateShift(ctx context.Context, arg CreateShiftParams) (LocationShift, error)
 	CreateShiftSwapRequest(ctx context.Context, arg CreateShiftSwapRequestParams) (ShiftSwapRequest, error)
 	CreateTemp2FaSecret(ctx context.Context, arg CreateTemp2FaSecretParams) (int64, error)
-	CreateTimeEntry(ctx context.Context, arg CreateTimeEntryParams) (CreateTimeEntryRow, error)
-	CreateTimeEntryUpdateAudit(ctx context.Context, arg CreateTimeEntryUpdateAuditParams) error
 	CreateTrainingCatalogItem(ctx context.Context, arg CreateTrainingCatalogItemParams) (TrainingCatalogItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CustomUser, error)
 	DeleteAttachment(ctx context.Context, argUuid uuid.UUID) error
@@ -119,7 +116,6 @@ type Querier interface {
 	GetAttachment(ctx context.Context, argUuid uuid.UUID) (AttachmentFile, error)
 	GetCriticalActionStats(ctx context.Context) (GetCriticalActionStatsRow, error)
 	GetCurrentMonthOvertimeStats(ctx context.Context) (GetCurrentMonthOvertimeStatsRow, error)
-	GetCurrentMonthTimeEntryStats(ctx context.Context) (GetCurrentMonthTimeEntryStatsRow, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEmployeeAvailabilityStats(ctx context.Context) (GetEmployeeAvailabilityStatsRow, error)
 	GetEmployeeContractAtDate(ctx context.Context, arg GetEmployeeContractAtDateParams) (EmployeeContract, error)
@@ -146,7 +142,6 @@ type Querier interface {
 	GetLeaveRequestStats(ctx context.Context) (GetLeaveRequestStatsRow, error)
 	GetLocation(ctx context.Context, id uuid.UUID) (Location, error)
 	GetMyCurrentMonthOvertimeStats(ctx context.Context, employeeID uuid.UUID) (GetMyCurrentMonthOvertimeStatsRow, error)
-	GetMyCurrentMonthTimeEntryStats(ctx context.Context, employeeID uuid.UUID) (GetMyCurrentMonthTimeEntryStatsRow, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (GetMyLeaveRequestStatsRow, error)
 	GetOrganisation(ctx context.Context, id uuid.UUID) (GetOrganisationRow, error)
 	GetOrganisationCounts(ctx context.Context, id uuid.UUID) (GetOrganisationCountsRow, error)
@@ -172,7 +167,6 @@ type Querier interface {
 	GetShiftSwapRequestDetailsByID(ctx context.Context, id uuid.UUID) (GetShiftSwapRequestDetailsByIDRow, error)
 	GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]LocationShift, error)
 	GetTemp2FaSecret(ctx context.Context, id uuid.UUID) (*string, error)
-	GetTimeEntryByID(ctx context.Context, id uuid.UUID) (GetTimeEntryByIDRow, error)
 	GetTrainingAssignmentByID(ctx context.Context, id uuid.UUID) (EmployeeTrainingAssignment, error)
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
@@ -232,7 +226,6 @@ type Querier interface {
 	ListMyOvertimeEntriesPaginated(ctx context.Context, arg ListMyOvertimeEntriesPaginatedParams) ([]ListMyOvertimeEntriesPaginatedRow, error)
 	ListMyPayoutRequestsPaginated(ctx context.Context, arg ListMyPayoutRequestsPaginatedParams) ([]ListMyPayoutRequestsPaginatedRow, error)
 	ListMyShiftSwapRequests(ctx context.Context, requesterEmployeeID uuid.UUID) ([]ListMyShiftSwapRequestsRow, error)
-	ListMyTimeEntriesPaginated(ctx context.Context, arg ListMyTimeEntriesPaginatedParams) ([]ListMyTimeEntriesPaginatedRow, error)
 	ListNationalHolidaysInRange(ctx context.Context, arg ListNationalHolidaysInRangeParams) ([]ListNationalHolidaysInRangeRow, error)
 	ListNotificationUserIDsByEmployeeIDs(ctx context.Context, employeeIds []uuid.UUID) ([]uuid.UUID, error)
 	ListNotificationUserIDsByPermissions(ctx context.Context, permissionNames []string) ([]uuid.UUID, error)
@@ -247,12 +240,12 @@ type Querier interface {
 	ListPayPeriodsByEmployeeIDsAndRange(ctx context.Context, arg ListPayPeriodsByEmployeeIDsAndRangeParams) ([]ListPayPeriodsByEmployeeIDsAndRangeRow, error)
 	ListPayPeriodsPaginated(ctx context.Context, arg ListPayPeriodsPaginatedParams) ([]ListPayPeriodsPaginatedRow, error)
 	ListPayoutRequestsPaginated(ctx context.Context, arg ListPayoutRequestsPaginatedParams) ([]ListPayoutRequestsPaginatedRow, error)
-	ListPayrollMonthApprovedTimeEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthApprovedTimeEntriesByEmployeeIDsParams) ([]ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow, error)
+	ListPayrollMonthApprovedWorkItems(ctx context.Context, arg ListPayrollMonthApprovedWorkItemsParams) ([]ListPayrollMonthApprovedWorkItemsRow, error)
 	ListPayrollMonthEmployeesAll(ctx context.Context, arg ListPayrollMonthEmployeesAllParams) ([]ListPayrollMonthEmployeesAllRow, error)
 	ListPayrollMonthEmployeesPaginated(ctx context.Context, arg ListPayrollMonthEmployeesPaginatedParams) ([]ListPayrollMonthEmployeesPaginatedRow, error)
-	ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingEntriesByEmployeeIDsParams) ([]ListPayrollMonthPendingEntriesByEmployeeIDsRow, error)
-	ListPayrollMonthPendingSummariesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingSummariesByEmployeeIDsParams) ([]ListPayrollMonthPendingSummariesByEmployeeIDsRow, error)
-	ListPayrollPreviewTimeEntries(ctx context.Context, arg ListPayrollPreviewTimeEntriesParams) ([]ListPayrollPreviewTimeEntriesRow, error)
+	ListPayrollMonthPendingOvertimeEntries(ctx context.Context, arg ListPayrollMonthPendingOvertimeEntriesParams) ([]ListPayrollMonthPendingOvertimeEntriesRow, error)
+	ListPayrollMonthPendingOvertimeSummaries(ctx context.Context, arg ListPayrollMonthPendingOvertimeSummariesParams) ([]ListPayrollMonthPendingOvertimeSummariesRow, error)
+	ListPayrollPreviewWorkItems(ctx context.Context, arg ListPayrollPreviewWorkItemsParams) ([]ListPayrollPreviewWorkItemsRow, error)
 	ListPerformanceAssessmentCatalog(ctx context.Context) ([]ListPerformanceAssessmentCatalogRow, error)
 	ListPerformanceAssessmentScores(ctx context.Context, assessmentID uuid.UUID) ([]ListPerformanceAssessmentScoresRow, error)
 	ListPerformanceAssessments(ctx context.Context, arg ListPerformanceAssessmentsParams) ([]ListPerformanceAssessmentsRow, error)
@@ -268,7 +261,6 @@ type Querier interface {
 	ListShiftColleaguesByScheduleIDs(ctx context.Context, arg ListShiftColleaguesByScheduleIDsParams) ([]ListShiftColleaguesByScheduleIDsRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)
 	ListTeamHealthByDepartment(ctx context.Context) ([]ListTeamHealthByDepartmentRow, error)
-	ListTimeEntriesPaginated(ctx context.Context, arg ListTimeEntriesPaginatedParams) ([]ListTimeEntriesPaginatedRow, error)
 	ListTrainingAssignmentsPaginated(ctx context.Context, arg ListTrainingAssignmentsPaginatedParams) ([]ListTrainingAssignmentsPaginatedRow, error)
 	ListTrainingCatalogItemsPaginated(ctx context.Context, arg ListTrainingCatalogItemsPaginatedParams) ([]ListTrainingCatalogItemsPaginatedRow, error)
 	ListUserIDsByEmployeeIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error)
@@ -280,10 +272,10 @@ type Querier interface {
 	LockOvertimeEntryByID(ctx context.Context, id uuid.UUID) (OvertimeEntry, error)
 	LockPayPeriodByID(ctx context.Context, id uuid.UUID) (PayPeriod, error)
 	LockPayoutRequestByID(ctx context.Context, id uuid.UUID) (LeavePayoutRequest, error)
-	LockPayrollPreviewTimeEntries(ctx context.Context, arg LockPayrollPreviewTimeEntriesParams) ([]LockPayrollPreviewTimeEntriesRow, error)
+	LockPayrollOvertimeEntries(ctx context.Context, arg LockPayrollOvertimeEntriesParams) ([]uuid.UUID, error)
+	LockPayrollPreviewWorkItems(ctx context.Context, arg LockPayrollPreviewWorkItemsParams) ([]LockPayrollPreviewWorkItemsRow, error)
 	LockSchedulesByIDsForSwap(ctx context.Context, dollar_1 []uuid.UUID) ([]LockSchedulesByIDsForSwapRow, error)
 	LockShiftSwapRequestForAdminDecision(ctx context.Context, id uuid.UUID) (ShiftSwapRequest, error)
-	LockTimeEntryByID(ctx context.Context, id uuid.UUID) (TimeEntry, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	MarkEmployeeHandbookCompleted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	MarkEmployeeHandbookStarted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
@@ -296,7 +288,6 @@ type Querier interface {
 	RejectExpenseRequest(ctx context.Context, arg RejectExpenseRequestParams) (ExpenseRequest, error)
 	RejectOvertimeEntry(ctx context.Context, arg RejectOvertimeEntryParams) (RejectOvertimeEntryRow, error)
 	RejectPayoutRequest(ctx context.Context, arg RejectPayoutRequestParams) (LeavePayoutRequest, error)
-	RejectTimeEntry(ctx context.Context, arg RejectTimeEntryParams) (RejectTimeEntryRow, error)
 	// Removes *all* permissions from the given role.
 	RemovePermissionsFromRole(ctx context.Context, roleID uuid.UUID) error
 	SearchEmployeesByNameOrEmail(ctx context.Context, search *string) ([]SearchEmployeesByNameOrEmailRow, error)
@@ -329,7 +320,6 @@ type Querier interface {
 	UpdateShift(ctx context.Context, arg UpdateShiftParams) (LocationShift, error)
 	UpdateShiftSwapAdminDecision(ctx context.Context, arg UpdateShiftSwapAdminDecisionParams) (ShiftSwapRequest, error)
 	UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, arg UpdateShiftSwapStatusAfterRecipientResponseParams) (ShiftSwapRequest, error)
-	UpdateTimeEntryByAdmin(ctx context.Context, arg UpdateTimeEntryByAdminParams) (UpdateTimeEntryByAdminRow, error)
 	WaiveActiveEmployeeHandbooksByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 	WaiveEmployeeHandbookByID(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 }

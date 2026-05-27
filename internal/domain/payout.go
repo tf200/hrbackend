@@ -32,6 +32,9 @@ const (
 
 	PayPeriodStatusDraft = "draft"
 	PayPeriodStatusPaid  = "paid"
+
+	PayrollSourceSchedule = "schedule"
+	PayrollSourceOvertime = "overtime"
 )
 
 type PayoutRequest struct {
@@ -118,11 +121,12 @@ type PayrollPreview struct {
 }
 
 type PayrollPreviewLineItem struct {
-	TimeEntryID           uuid.UUID
+	ScheduleID            *uuid.UUID
+	OvertimeEntryID       *uuid.UUID
+	SourceType            string
 	Label                 string
 	ContractType          string
 	WorkDate              time.Time
-	HourType              string
 	StartTime             string
 	EndTime               string
 	BreakMinutes          int32
@@ -134,16 +138,19 @@ type PayrollPreviewLineItem struct {
 	PremiumAmount         float64
 }
 
-type PayrollPreviewTimeEntry struct {
+type PayrollWorkItem struct {
 	ID                    uuid.UUID
 	EmployeeID            uuid.UUID
 	EmployeeName          string
 	Label                 string
-	EntryDate             time.Time
+	WorkDate              time.Time
 	StartTime             string
 	EndTime               string
 	BreakMinutes          int32
-	HourType              string
+	MinutesWorked         float64
+	SourceType            string
+	ScheduleID            *uuid.UUID
+	OvertimeEntryID       *uuid.UUID
 	ContractType          string
 	ContractRate          *float64
 	IrregularHoursProfile string
@@ -174,7 +181,8 @@ type PayPeriod struct {
 type PayPeriodLineItem struct {
 	ID                    uuid.UUID
 	PayPeriodID           uuid.UUID
-	TimeEntryID           *uuid.UUID
+	ScheduleID            *uuid.UUID
+	OvertimeEntryID       *uuid.UUID
 	ContractType          string
 	WorkDate              time.Time
 	LineType              string
@@ -404,10 +412,14 @@ type PayoutTxRepository interface {
 		employeeID uuid.UUID,
 		periodStart, periodEnd time.Time,
 	) (*PayPeriod, error)
-	LockPayrollPreviewTimeEntries(
+	LockPayrollOvertimeEntries(
 		ctx context.Context,
 		params PayrollPreviewParams,
-	) ([]PayrollPreviewTimeEntry, error)
+	) ([]uuid.UUID, error)
+	LockPayrollPreviewWorkItems(
+		ctx context.Context,
+		params PayrollPreviewParams,
+	) ([]PayrollWorkItem, error)
 	CreatePayPeriod(
 		ctx context.Context,
 		params ClosePayPeriodParams,
@@ -419,10 +431,10 @@ type PayoutTxRepository interface {
 		payPeriodID uuid.UUID,
 		item PayPeriodLineItem,
 	) (*PayPeriodLineItem, error)
-	AssignTimeEntriesToPayPeriod(
+	AssignOvertimeEntriesToPayPeriod(
 		ctx context.Context,
 		payPeriodID uuid.UUID,
-		timeEntryIDs []uuid.UUID,
+		overtimeEntryIDs []uuid.UUID,
 	) error
 	GetPayPeriodForUpdate(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	MarkPayPeriodPaid(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
@@ -449,10 +461,10 @@ type PayoutRepository interface {
 		params ListPayoutRequestsParams,
 	) (*PayoutRequestPage, error)
 	GetPayrollPreviewEmployee(ctx context.Context, employeeID uuid.UUID) (*EmployeeDetail, error)
-	ListPayrollPreviewTimeEntries(
+	ListPayrollPreviewWorkItems(
 		ctx context.Context,
 		params PayrollPreviewParams,
-	) ([]PayrollPreviewTimeEntry, error)
+	) ([]PayrollWorkItem, error)
 	ListNationalHolidays(
 		ctx context.Context,
 		countryCode string,
@@ -480,11 +492,11 @@ type PayoutRepository interface {
 		ctx context.Context,
 		payPeriodIDs []uuid.UUID,
 	) ([]PayrollLockedMultiplierSummary, error)
-	ListPayrollMonthApprovedTimeEntries(
+	ListPayrollMonthApprovedWorkItems(
 		ctx context.Context,
 		employeeIDs []uuid.UUID,
 		monthStart, monthEnd time.Time,
-	) ([]PayrollPreviewTimeEntry, error)
+	) ([]PayrollWorkItem, error)
 	ListPayrollMonthPendingSummaries(
 		ctx context.Context,
 		employeeIDs []uuid.UUID,
@@ -497,7 +509,7 @@ type PayoutRepository interface {
 	) ([]PayrollMonthPendingEntry, error)
 
 	// Salary page queries (single employee, mine endpoint)
-	ListPendingTimeEntriesDetail(
+	ListPendingOvertimeEntriesDetail(
 		ctx context.Context,
 		employeeID uuid.UUID,
 		monthStart, monthEnd time.Time,

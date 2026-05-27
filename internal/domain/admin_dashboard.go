@@ -34,7 +34,7 @@ type CriticalActionStats struct {
 	PendingLeaveRequests int64
 	PendingShiftSwaps    int64
 	PendingExpenseClaims int64
-	PendingTimeEntries   int64
+	PendingOvertimeEntries   int64
 }
 
 type PayrollTotalStats struct {

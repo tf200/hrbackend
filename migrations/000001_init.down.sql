@@ -65,12 +65,6 @@ DROP TABLE IF EXISTS pay_period_line_items;
 -- Overtime entries table
 DROP TABLE IF EXISTS overtime_entries CASCADE;
 
--- Time entry audit table
-DROP TABLE IF EXISTS time_entry_update_audits;
-
--- Time entry table
-DROP TABLE IF EXISTS time_entries;
-
 DROP TABLE IF EXISTS pay_periods;
 
 -- Expense management tables
@@ -146,8 +140,6 @@ DROP TYPE IF EXISTS overtime_reason_enum;
 DROP TYPE IF EXISTS overtime_status_enum;
 DROP TYPE IF EXISTS performance_work_assignment_status_enum;
 DROP TYPE IF EXISTS performance_assessment_status_enum;
-DROP TYPE IF EXISTS time_entry_hour_type_enum;
-DROP TYPE IF EXISTS time_entry_status_enum;
 DROP TYPE IF EXISTS payout_request_status_enum;
 DROP TYPE IF EXISTS leave_request_status_enum;
 DROP TYPE IF EXISTS leave_request_type_enum;

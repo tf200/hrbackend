@@ -144,102 +144,158 @@ func (q *Queries) ListPayPeriodsByEmployeeIDsAndRange(ctx context.Context, arg L
 	return items, nil
 }
 
-const listPayrollMonthApprovedTimeEntriesByEmployeeIDs = `-- name: ListPayrollMonthApprovedTimeEntriesByEmployeeIDs :many
-SELECT
-    te.id,
-    te.employee_id,
-    ep.first_name AS employee_first_name,
-    ep.last_name AS employee_last_name,
-    te.entry_date,
-    te.start_time,
-    te.end_time,
-    te.break_minutes,
-    te.hour_type,
-    cc.contract_type,
-    css.hourly_rate::double precision AS contract_rate,
-    'none'::text AS irregular_hours_profile
-FROM time_entries te
-JOIN employee_profile ep ON ep.id = te.employee_id
-JOIN LATERAL (
+const listPayrollMonthApprovedWorkItems = `-- name: ListPayrollMonthApprovedWorkItems :many
+WITH schedule_items AS (
     SELECT
-        c.id,
-        c.contract_type,
-        c.contract_end_date
-    FROM employee_contracts c
-    WHERE c.employee_id = te.employee_id
-      AND c.start_date <= te.entry_date
-      AND (c.effective_end_date IS NULL OR c.effective_end_date >= te.entry_date)
-      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
-    ORDER BY c.start_date DESC, c.created_at DESC
-    LIMIT 1
-) cc ON TRUE
-JOIN LATERAL (
-    SELECT esa.salary_scale_step_id
-    FROM employee_salary_assignments esa
-    WHERE esa.employee_id = te.employee_id
-      AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
-      AND esa.effective_from <= te.entry_date
-      AND (esa.effective_to IS NULL OR esa.effective_to > te.entry_date)
-    ORDER BY
-      (esa.contract_id = cc.id) DESC,
-      esa.effective_from DESC,
-      esa.created_at DESC
-    LIMIT 1
-) latest_salary ON TRUE
-JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
-WHERE te.employee_id = ANY($1::uuid[])
-  AND te.status = 'approved'::time_entry_status_enum
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= $2
-  AND te.entry_date <= $3
-ORDER BY te.employee_id ASC, te.entry_date ASC, te.start_time ASC, te.created_at ASC
+        s.id AS source_id,
+        s.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(s.shift_name_snapshot), ''), 'Scheduled shift') AS label,
+        DATE(s.start_datetime) AS work_date,
+        s.start_datetime::time AS start_time_val,
+        s.end_datetime::time AS end_time_val,
+        0 AS break_minutes,
+        EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60 AS minutes_worked,
+        'schedule'::text AS source_type,
+        s.id AS schedule_id,
+        NULL::uuid AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM schedules s
+    JOIN employee_profile ep ON ep.id = s.employee_id
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = s.employee_id
+          AND c.start_date <= DATE(s.start_datetime)
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= DATE(s.start_datetime))
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= DATE(s.start_datetime))
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = s.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= DATE(s.start_datetime)
+          AND (esa.effective_to IS NULL OR esa.effective_to > DATE(s.start_datetime))
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE s.employee_id = ANY($1::uuid[])
+      AND DATE(s.start_datetime) >= $2
+      AND DATE(s.start_datetime) <= $3
+),
+overtime_items AS (
+    SELECT
+        oe.id AS source_id,
+        oe.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(oe.reason::text), ''), 'Overtime') AS label,
+        oe.entry_date AS work_date,
+        NULL::time AS start_time_val,
+        NULL::time AS end_time_val,
+        0 AS break_minutes,
+        oe.minutes::double precision AS minutes_worked,
+        'overtime'::text AS source_type,
+        NULL::uuid AS schedule_id,
+        oe.id AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM overtime_entries oe
+    JOIN employee_profile ep ON ep.id = oe.employee_id
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = oe.employee_id
+          AND c.start_date <= oe.entry_date
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= oe.entry_date)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = oe.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= oe.entry_date
+          AND (esa.effective_to IS NULL OR esa.effective_to > oe.entry_date)
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE oe.employee_id = ANY($1::uuid[])
+      AND oe.status = 'approved'::overtime_status_enum
+      AND oe.entry_date >= $2
+      AND oe.entry_date <= $3
+)
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, contract_type, contract_rate, irregular_hours_profile FROM schedule_items
+UNION ALL
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, contract_type, contract_rate, irregular_hours_profile FROM overtime_items
+ORDER BY employee_id ASC, work_date ASC, source_type ASC, source_id ASC
 `
 
-type ListPayrollMonthApprovedTimeEntriesByEmployeeIDsParams struct {
-	EmployeeIds []uuid.UUID `json:"employee_ids"`
-	MonthStart  pgtype.Date `json:"month_start"`
-	MonthEnd    pgtype.Date `json:"month_end"`
+type ListPayrollMonthApprovedWorkItemsParams struct {
+	EmployeeIds []uuid.UUID        `json:"employee_ids"`
+	MonthStart  pgtype.Timestamptz `json:"month_start"`
+	MonthEnd    pgtype.Timestamptz `json:"month_end"`
 }
 
-type ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow struct {
-	ID                    uuid.UUID                `json:"id"`
+type ListPayrollMonthApprovedWorkItemsRow struct {
+	SourceID              uuid.UUID                `json:"source_id"`
 	EmployeeID            uuid.UUID                `json:"employee_id"`
 	EmployeeFirstName     string                   `json:"employee_first_name"`
 	EmployeeLastName      string                   `json:"employee_last_name"`
-	EntryDate             pgtype.Date              `json:"entry_date"`
-	StartTime             pgtype.Time              `json:"start_time"`
-	EndTime               pgtype.Time              `json:"end_time"`
+	Label                 interface{}              `json:"label"`
+	WorkDate              pgtype.Date              `json:"work_date"`
+	StartTimeVal          pgtype.Time              `json:"start_time_val"`
+	EndTimeVal            pgtype.Time              `json:"end_time_val"`
 	BreakMinutes          int32                    `json:"break_minutes"`
-	HourType              TimeEntryHourTypeEnum    `json:"hour_type"`
+	MinutesWorked         int32                    `json:"minutes_worked"`
+	SourceType            string                   `json:"source_type"`
+	ScheduleID            uuid.UUID                `json:"schedule_id"`
+	OvertimeEntryID       *uuid.UUID               `json:"overtime_entry_id"`
 	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
 	ContractRate          float64                  `json:"contract_rate"`
 	IrregularHoursProfile string                   `json:"irregular_hours_profile"`
 }
 
-func (q *Queries) ListPayrollMonthApprovedTimeEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthApprovedTimeEntriesByEmployeeIDsParams) ([]ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow, error) {
-	rows, err := q.db.Query(ctx, listPayrollMonthApprovedTimeEntriesByEmployeeIDs, arg.EmployeeIds, arg.MonthStart, arg.MonthEnd)
+func (q *Queries) ListPayrollMonthApprovedWorkItems(ctx context.Context, arg ListPayrollMonthApprovedWorkItemsParams) ([]ListPayrollMonthApprovedWorkItemsRow, error) {
+	rows, err := q.db.Query(ctx, listPayrollMonthApprovedWorkItems, arg.EmployeeIds, arg.MonthStart, arg.MonthEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow{}
+	items := []ListPayrollMonthApprovedWorkItemsRow{}
 	for rows.Next() {
-		var i ListPayrollMonthApprovedTimeEntriesByEmployeeIDsRow
+		var i ListPayrollMonthApprovedWorkItemsRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.SourceID,
 			&i.EmployeeID,
 			&i.EmployeeFirstName,
 			&i.EmployeeLastName,
-			&i.EntryDate,
-			&i.StartTime,
-			&i.EndTime,
+			&i.Label,
+			&i.WorkDate,
+			&i.StartTimeVal,
+			&i.EndTimeVal,
 			&i.BreakMinutes,
-			&i.HourType,
+			&i.MinutesWorked,
+			&i.SourceType,
+			&i.ScheduleID,
+			&i.OvertimeEntryID,
 			&i.ContractType,
 			&i.ContractRate,
 			&i.IrregularHoursProfile,
@@ -263,21 +319,18 @@ WITH month_employees AS (
 
     UNION
 
-    SELECT DISTINCT te.employee_id
-    FROM time_entries te
-    WHERE te.entry_date >= $2
-      AND te.entry_date <= $3
-      AND te.hour_type IN (
-          'normal'::time_entry_hour_type_enum,
-          'overtime'::time_entry_hour_type_enum,
-          'travel'::time_entry_hour_type_enum,
-          'training'::time_entry_hour_type_enum
-      )
-      AND te.status IN (
-          'approved'::time_entry_status_enum,
-          'draft'::time_entry_status_enum,
-          'submitted'::time_entry_status_enum
-      )
+    SELECT DISTINCT s.employee_id
+    FROM schedules s
+    WHERE DATE(s.start_datetime) >= $2
+      AND DATE(s.start_datetime) <= $3
+
+    UNION
+
+    SELECT DISTINCT oe.employee_id
+    FROM overtime_entries oe
+    WHERE oe.entry_date >= $2
+      AND oe.entry_date <= $3
+      AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
 )
 SELECT
     ep.id AS employee_id,
@@ -337,21 +390,18 @@ WITH month_employees AS (
 
     UNION
 
-    SELECT DISTINCT te.employee_id
-    FROM time_entries te
-    WHERE te.entry_date >= $4
-      AND te.entry_date <= $5
-      AND te.hour_type IN (
-          'normal'::time_entry_hour_type_enum,
-          'overtime'::time_entry_hour_type_enum,
-          'travel'::time_entry_hour_type_enum,
-          'training'::time_entry_hour_type_enum
-      )
-      AND te.status IN (
-          'approved'::time_entry_status_enum,
-          'draft'::time_entry_status_enum,
-          'submitted'::time_entry_status_enum
-      )
+    SELECT DISTINCT s.employee_id
+    FROM schedules s
+    WHERE DATE(s.start_datetime) >= $4
+      AND DATE(s.start_datetime) <= $5
+
+    UNION
+
+    SELECT DISTINCT oe.employee_id
+    FROM overtime_entries oe
+    WHERE oe.entry_date >= $4
+      AND oe.entry_date <= $5
+      AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
 )
 SELECT
     ep.id AS employee_id,
@@ -418,70 +468,50 @@ func (q *Queries) ListPayrollMonthEmployeesPaginated(ctx context.Context, arg Li
 	return items, nil
 }
 
-const listPayrollMonthPendingEntriesByEmployeeIDs = `-- name: ListPayrollMonthPendingEntriesByEmployeeIDs :many
+const listPayrollMonthPendingOvertimeEntries = `-- name: ListPayrollMonthPendingOvertimeEntries :many
 SELECT
-    te.employee_id,
-    GREATEST(
-        0,
-        (
-            CASE
-                WHEN te.end_time > te.start_time THEN
-                    EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
-                ELSE
-                    EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
-            END
-        ) / 60 - te.break_minutes
-    )::INT AS worked_minutes,
+    oe.employee_id,
+    oe.minutes AS worked_minutes,
     cc.contract_type
-FROM time_entries te
-JOIN employee_profile ep ON ep.id = te.employee_id
+FROM overtime_entries oe
+JOIN employee_profile ep ON ep.id = oe.employee_id
 LEFT JOIN LATERAL (
-    SELECT
-        c.contract_type
+    SELECT c.contract_type
     FROM employee_contracts c
-    WHERE c.employee_id = te.employee_id
-      AND c.start_date <= te.entry_date
-      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
+    WHERE c.employee_id = oe.employee_id
+      AND c.start_date <= oe.entry_date
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
     ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1
 ) cc ON TRUE
-WHERE te.employee_id = ANY($1::uuid[])
-  AND te.status IN (
-      'draft'::time_entry_status_enum,
-      'submitted'::time_entry_status_enum
-  )
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= $2
-  AND te.entry_date <= $3
-ORDER BY te.employee_id ASC, te.entry_date ASC, te.start_time ASC, te.created_at ASC
+WHERE oe.employee_id = ANY($1::uuid[])
+  AND oe.status = 'submitted'::overtime_status_enum
+  AND oe.entry_date >= $2
+  AND oe.entry_date <= $3
+ORDER BY oe.employee_id ASC, oe.entry_date ASC, oe.created_at ASC
 `
 
-type ListPayrollMonthPendingEntriesByEmployeeIDsParams struct {
+type ListPayrollMonthPendingOvertimeEntriesParams struct {
 	EmployeeIds []uuid.UUID `json:"employee_ids"`
 	MonthStart  pgtype.Date `json:"month_start"`
 	MonthEnd    pgtype.Date `json:"month_end"`
 }
 
-type ListPayrollMonthPendingEntriesByEmployeeIDsRow struct {
+type ListPayrollMonthPendingOvertimeEntriesRow struct {
 	EmployeeID    uuid.UUID                `json:"employee_id"`
 	WorkedMinutes int32                    `json:"worked_minutes"`
 	ContractType  EmployeeContractTypeEnum `json:"contract_type"`
 }
 
-func (q *Queries) ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingEntriesByEmployeeIDsParams) ([]ListPayrollMonthPendingEntriesByEmployeeIDsRow, error) {
-	rows, err := q.db.Query(ctx, listPayrollMonthPendingEntriesByEmployeeIDs, arg.EmployeeIds, arg.MonthStart, arg.MonthEnd)
+func (q *Queries) ListPayrollMonthPendingOvertimeEntries(ctx context.Context, arg ListPayrollMonthPendingOvertimeEntriesParams) ([]ListPayrollMonthPendingOvertimeEntriesRow, error) {
+	rows, err := q.db.Query(ctx, listPayrollMonthPendingOvertimeEntries, arg.EmployeeIds, arg.MonthStart, arg.MonthEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListPayrollMonthPendingEntriesByEmployeeIDsRow{}
+	items := []ListPayrollMonthPendingOvertimeEntriesRow{}
 	for rows.Next() {
-		var i ListPayrollMonthPendingEntriesByEmployeeIDsRow
+		var i ListPayrollMonthPendingOvertimeEntriesRow
 		if err := rows.Scan(&i.EmployeeID, &i.WorkedMinutes, &i.ContractType); err != nil {
 			return nil, err
 		}
@@ -493,65 +523,41 @@ func (q *Queries) ListPayrollMonthPendingEntriesByEmployeeIDs(ctx context.Contex
 	return items, nil
 }
 
-const listPayrollMonthPendingSummariesByEmployeeIDs = `-- name: ListPayrollMonthPendingSummariesByEmployeeIDs :many
+const listPayrollMonthPendingOvertimeSummaries = `-- name: ListPayrollMonthPendingOvertimeSummaries :many
 SELECT
-    te.employee_id,
+    oe.employee_id,
     COUNT(*)::INT AS pending_entry_count,
-    COALESCE(
-        SUM(
-            GREATEST(
-                0,
-                (
-                    CASE
-                        WHEN te.end_time > te.start_time THEN
-                            EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
-                        ELSE
-                            EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
-                    END
-                ) / 60 - te.break_minutes
-            )
-        ),
-        0
-    )::INT AS pending_worked_minutes
-FROM time_entries te
-WHERE te.employee_id = ANY($1::uuid[])
-  AND te.status IN (
-      'draft'::time_entry_status_enum,
-      'submitted'::time_entry_status_enum
-  )
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= $2
-  AND te.entry_date <= $3
-GROUP BY te.employee_id
-ORDER BY te.employee_id ASC
+    COALESCE(SUM(oe.minutes), 0)::INT AS pending_worked_minutes
+FROM overtime_entries oe
+WHERE oe.employee_id = ANY($1::uuid[])
+  AND oe.status = 'submitted'::overtime_status_enum
+  AND oe.entry_date >= $2
+  AND oe.entry_date <= $3
+GROUP BY oe.employee_id
+ORDER BY oe.employee_id ASC
 `
 
-type ListPayrollMonthPendingSummariesByEmployeeIDsParams struct {
+type ListPayrollMonthPendingOvertimeSummariesParams struct {
 	EmployeeIds []uuid.UUID `json:"employee_ids"`
 	MonthStart  pgtype.Date `json:"month_start"`
 	MonthEnd    pgtype.Date `json:"month_end"`
 }
 
-type ListPayrollMonthPendingSummariesByEmployeeIDsRow struct {
+type ListPayrollMonthPendingOvertimeSummariesRow struct {
 	EmployeeID           uuid.UUID `json:"employee_id"`
 	PendingEntryCount    int32     `json:"pending_entry_count"`
 	PendingWorkedMinutes int32     `json:"pending_worked_minutes"`
 }
 
-func (q *Queries) ListPayrollMonthPendingSummariesByEmployeeIDs(ctx context.Context, arg ListPayrollMonthPendingSummariesByEmployeeIDsParams) ([]ListPayrollMonthPendingSummariesByEmployeeIDsRow, error) {
-	rows, err := q.db.Query(ctx, listPayrollMonthPendingSummariesByEmployeeIDs, arg.EmployeeIds, arg.MonthStart, arg.MonthEnd)
+func (q *Queries) ListPayrollMonthPendingOvertimeSummaries(ctx context.Context, arg ListPayrollMonthPendingOvertimeSummariesParams) ([]ListPayrollMonthPendingOvertimeSummariesRow, error) {
+	rows, err := q.db.Query(ctx, listPayrollMonthPendingOvertimeSummaries, arg.EmployeeIds, arg.MonthStart, arg.MonthEnd)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListPayrollMonthPendingSummariesByEmployeeIDsRow{}
+	items := []ListPayrollMonthPendingOvertimeSummariesRow{}
 	for rows.Next() {
-		var i ListPayrollMonthPendingSummariesByEmployeeIDsRow
+		var i ListPayrollMonthPendingOvertimeSummariesRow
 		if err := rows.Scan(&i.EmployeeID, &i.PendingEntryCount, &i.PendingWorkedMinutes); err != nil {
 			return nil, err
 		}

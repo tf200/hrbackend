@@ -20,62 +20,125 @@ WHERE pp.employee_id = sqlc.arg('employee_id')
   AND pp.period_start = sqlc.arg('period_start')
   AND pp.period_end = sqlc.arg('period_end');
 
--- name: LockPayrollPreviewTimeEntries :many
-SELECT
-    te.id,
-    te.employee_id,
-    ep.first_name AS employee_first_name,
-    ep.last_name AS employee_last_name,
-    te.entry_date,
-    te.start_time,
-    te.end_time,
-    te.break_minutes,
-    te.hour_type,
-    cc.contract_type,
-    css.hourly_rate::double precision AS contract_rate,
-    'none'::text AS irregular_hours_profile
-FROM time_entries te
-JOIN employee_profile ep ON ep.id = te.employee_id
-JOIN LATERAL (
+-- name: LockPayrollPreviewWorkItems :many
+WITH schedule_items AS (
     SELECT
-        c.id,
-        c.contract_type,
-        c.contract_end_date
-    FROM employee_contracts c
-    WHERE c.employee_id = te.employee_id
-      AND c.start_date <= te.entry_date
-      AND (c.effective_end_date IS NULL OR c.effective_end_date >= te.entry_date)
-      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
-    ORDER BY c.start_date DESC, c.created_at DESC
-    LIMIT 1
-) cc ON TRUE
-JOIN LATERAL (
-    SELECT esa.salary_scale_step_id
-    FROM employee_salary_assignments esa
-    WHERE esa.employee_id = te.employee_id
-      AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
-      AND esa.effective_from <= te.entry_date
-      AND (esa.effective_to IS NULL OR esa.effective_to > te.entry_date)
-    ORDER BY
-      (esa.contract_id = cc.id) DESC,
-      esa.effective_from DESC,
-      esa.created_at DESC
-    LIMIT 1
-) latest_salary ON TRUE
-JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
-WHERE te.employee_id = sqlc.arg(employee_id)
-  AND te.status = 'approved'::time_entry_status_enum
-  AND te.paid_period_id IS NULL
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= sqlc.arg(period_start)
-  AND te.entry_date <= sqlc.arg(period_end)
-ORDER BY te.entry_date ASC, te.start_time ASC, te.created_at ASC
-FOR UPDATE OF te;
+        s.id AS source_id,
+        s.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(s.shift_name_snapshot), ''), 'Scheduled shift') AS label,
+        DATE(s.start_datetime) AS work_date,
+        s.start_datetime::time AS start_time_val,
+        s.end_datetime::time AS end_time_val,
+        0 AS break_minutes,
+        EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60 AS minutes_worked,
+        'schedule'::text AS source_type,
+        s.id AS schedule_id,
+        NULL::uuid AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM schedules s
+    JOIN employee_profile ep ON ep.id = s.employee_id
+    JOIN LATERAL (
+        SELECT
+            c.id,
+            c.contract_type,
+            c.contract_end_date
+        FROM employee_contracts c
+        WHERE c.employee_id = s.employee_id
+          AND c.start_date <= DATE(s.start_datetime)
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= DATE(s.start_datetime))
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= DATE(s.start_datetime))
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = s.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= DATE(s.start_datetime)
+          AND (esa.effective_to IS NULL OR esa.effective_to > DATE(s.start_datetime))
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE s.employee_id = sqlc.arg(employee_id)
+      AND DATE(s.start_datetime) >= sqlc.arg(period_start)
+      AND DATE(s.start_datetime) <= sqlc.arg(period_end)
+),
+overtime_items AS (
+    SELECT
+        oe.id AS source_id,
+        oe.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(oe.reason::text), ''), 'Overtime') AS label,
+        oe.entry_date AS work_date,
+        NULL::time AS start_time_val,
+        NULL::time AS end_time_val,
+        0 AS break_minutes,
+        oe.minutes::double precision AS minutes_worked,
+        'overtime'::text AS source_type,
+        NULL::uuid AS schedule_id,
+        oe.id AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM overtime_entries oe
+    JOIN employee_profile ep ON ep.id = oe.employee_id
+    JOIN LATERAL (
+        SELECT
+            c.id,
+            c.contract_type,
+            c.contract_end_date
+        FROM employee_contracts c
+        WHERE c.employee_id = oe.employee_id
+          AND c.start_date <= oe.entry_date
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= oe.entry_date)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = oe.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= oe.entry_date
+          AND (esa.effective_to IS NULL OR esa.effective_to > oe.entry_date)
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE oe.employee_id = sqlc.arg(employee_id)
+      AND oe.status = 'approved'::overtime_status_enum
+      AND oe.paid_period_id IS NULL
+      AND oe.entry_date >= sqlc.arg(period_start)
+      AND oe.entry_date <= sqlc.arg(period_end)
+)
+SELECT * FROM schedule_items
+UNION ALL
+SELECT * FROM overtime_items
+ORDER BY work_date ASC, source_type ASC, source_id ASC;
+
+-- name: LockPayrollOvertimeEntries :many
+SELECT id
+FROM overtime_entries
+WHERE employee_id = sqlc.arg(employee_id)
+  AND status = 'approved'::overtime_status_enum
+  AND paid_period_id IS NULL
+  AND entry_date >= sqlc.arg(period_start)
+  AND entry_date <= sqlc.arg(period_end)
+FOR UPDATE;
 
 -- name: CreatePayPeriod :one
 INSERT INTO pay_periods (
@@ -102,7 +165,8 @@ RETURNING *;
 -- name: CreatePayPeriodLineItem :one
 INSERT INTO pay_period_line_items (
     pay_period_id,
-    time_entry_id,
+    schedule_id,
+    overtime_entry_id,
     contract_type,
     work_date,
     line_type,
@@ -114,7 +178,8 @@ INSERT INTO pay_period_line_items (
     metadata
 ) VALUES (
     sqlc.arg('pay_period_id'),
-    sqlc.narg('time_entry_id'),
+    sqlc.narg('schedule_id'),
+    sqlc.narg('overtime_entry_id'),
     sqlc.arg('contract_type'),
     sqlc.arg('work_date'),
     sqlc.arg('line_type'),
@@ -127,12 +192,12 @@ INSERT INTO pay_period_line_items (
 )
 RETURNING *;
 
--- name: AssignTimeEntriesToPayPeriod :exec
-UPDATE time_entries
+-- name: AssignOvertimeEntriesToPayPeriod :exec
+UPDATE overtime_entries
 SET
     paid_period_id = sqlc.arg('pay_period_id'),
     updated_at = NOW()
-WHERE id = ANY(sqlc.arg('time_entry_ids')::uuid[]);
+WHERE id = ANY(sqlc.arg('overtime_entry_ids')::uuid[]);
 
 -- name: GetPayPeriodByID :one
 SELECT
@@ -192,7 +257,8 @@ LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 SELECT
     id,
     pay_period_id,
-    time_entry_id,
+    schedule_id,
+    overtime_entry_id,
     contract_type,
     work_date,
     line_type,

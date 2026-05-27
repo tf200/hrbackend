@@ -1375,96 +1375,6 @@ func (ns NullShiftSwapStatusEnum) Value() (driver.Value, error) {
 	return string(ns.ShiftSwapStatusEnum), nil
 }
 
-type TimeEntryHourTypeEnum string
-
-const (
-	TimeEntryHourTypeEnumNormal   TimeEntryHourTypeEnum = "normal"
-	TimeEntryHourTypeEnumOvertime TimeEntryHourTypeEnum = "overtime"
-	TimeEntryHourTypeEnumTravel   TimeEntryHourTypeEnum = "travel"
-	TimeEntryHourTypeEnumLeave    TimeEntryHourTypeEnum = "leave"
-	TimeEntryHourTypeEnumSick     TimeEntryHourTypeEnum = "sick"
-	TimeEntryHourTypeEnumTraining TimeEntryHourTypeEnum = "training"
-)
-
-func (e *TimeEntryHourTypeEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = TimeEntryHourTypeEnum(s)
-	case string:
-		*e = TimeEntryHourTypeEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for TimeEntryHourTypeEnum: %T", src)
-	}
-	return nil
-}
-
-type NullTimeEntryHourTypeEnum struct {
-	TimeEntryHourTypeEnum TimeEntryHourTypeEnum `json:"time_entry_hour_type_enum"`
-	Valid                 bool                  `json:"valid"` // Valid is true if TimeEntryHourTypeEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullTimeEntryHourTypeEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.TimeEntryHourTypeEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.TimeEntryHourTypeEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullTimeEntryHourTypeEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.TimeEntryHourTypeEnum), nil
-}
-
-type TimeEntryStatusEnum string
-
-const (
-	TimeEntryStatusEnumDraft     TimeEntryStatusEnum = "draft"
-	TimeEntryStatusEnumSubmitted TimeEntryStatusEnum = "submitted"
-	TimeEntryStatusEnumApproved  TimeEntryStatusEnum = "approved"
-	TimeEntryStatusEnumRejected  TimeEntryStatusEnum = "rejected"
-)
-
-func (e *TimeEntryStatusEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = TimeEntryStatusEnum(s)
-	case string:
-		*e = TimeEntryStatusEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for TimeEntryStatusEnum: %T", src)
-	}
-	return nil
-}
-
-type NullTimeEntryStatusEnum struct {
-	TimeEntryStatusEnum TimeEntryStatusEnum `json:"time_entry_status_enum"`
-	Valid               bool                `json:"valid"` // Valid is true if TimeEntryStatusEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullTimeEntryStatusEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.TimeEntryStatusEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.TimeEntryStatusEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullTimeEntryStatusEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.TimeEntryStatusEnum), nil
-}
-
 type TrainingAssignmentStatusEnum string
 
 const (
@@ -2105,7 +2015,8 @@ type PayPeriod struct {
 type PayPeriodLineItem struct {
 	ID                    uuid.UUID                 `json:"id"`
 	PayPeriodID           uuid.UUID                 `json:"pay_period_id"`
-	TimeEntryID           *uuid.UUID                `json:"time_entry_id"`
+	ScheduleID            *uuid.UUID                `json:"schedule_id"`
+	OvertimeEntryID       *uuid.UUID                `json:"overtime_entry_id"`
 	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
 	WorkDate              pgtype.Date               `json:"work_date"`
 	LineType              string                    `json:"line_type"`
@@ -2269,41 +2180,6 @@ type TemporaryFile struct {
 	ID         uuid.UUID          `json:"id"`
 	File       string             `json:"file"`
 	UploadedAt pgtype.Timestamptz `json:"uploaded_at"`
-}
-
-type TimeEntry struct {
-	ID                   uuid.UUID             `json:"id"`
-	EmployeeID           uuid.UUID             `json:"employee_id"`
-	ScheduleID           *uuid.UUID            `json:"schedule_id"`
-	EntryDate            pgtype.Date           `json:"entry_date"`
-	StartTime            pgtype.Time           `json:"start_time"`
-	EndTime              pgtype.Time           `json:"end_time"`
-	BreakMinutes         int32                 `json:"break_minutes"`
-	HourType             TimeEntryHourTypeEnum `json:"hour_type"`
-	ProjectName          *string               `json:"project_name"`
-	ProjectNumber        *string               `json:"project_number"`
-	ClientName           *string               `json:"client_name"`
-	ActivityCategory     *string               `json:"activity_category"`
-	ActivityDescription  *string               `json:"activity_description"`
-	Status               TimeEntryStatusEnum   `json:"status"`
-	SubmittedAt          pgtype.Timestamptz    `json:"submitted_at"`
-	ApprovedAt           pgtype.Timestamptz    `json:"approved_at"`
-	ApprovedByEmployeeID *uuid.UUID            `json:"approved_by_employee_id"`
-	RejectionReason      *string               `json:"rejection_reason"`
-	Notes                *string               `json:"notes"`
-	CreatedAt            pgtype.Timestamptz    `json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz    `json:"updated_at"`
-	PaidPeriodID         *uuid.UUID            `json:"paid_period_id"`
-}
-
-type TimeEntryUpdateAudit struct {
-	ID              uuid.UUID          `json:"id"`
-	TimeEntryID     uuid.UUID          `json:"time_entry_id"`
-	AdminEmployeeID uuid.UUID          `json:"admin_employee_id"`
-	AdminUpdateNote string             `json:"admin_update_note"`
-	BeforeSnapshot  []byte             `json:"before_snapshot"`
-	AfterSnapshot   []byte             `json:"after_snapshot"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
 type TrainingCatalogItem struct {

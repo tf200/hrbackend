@@ -45,7 +45,7 @@ func (r *AdminDashboardRepository) GetCriticalActionStats(
 		PendingLeaveRequests: row.PendingLeaveRequests,
 		PendingShiftSwaps:    row.PendingShiftSwaps,
 		PendingExpenseClaims: row.PendingExpenseClaims,
-		PendingTimeEntries:   row.PendingTimeEntries,
+		PendingOvertimeEntries:   row.PendingOvertimeEntries,
 	}, nil
 }
 

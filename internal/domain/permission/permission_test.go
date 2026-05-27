@@ -28,7 +28,6 @@ func TestPermissionValues_NonEmpty(t *testing.T) {
 		Settings.View, Settings.Update,
 		ScheduleSwap.Approve, ScheduleSwap.Request, ScheduleSwap.Respond, ScheduleSwap.View,
 		Shift.Create, Shift.Delete, Shift.Update, Shift.View,
-		TimeEntry.Create, TimeEntry.CreateAll, TimeEntry.Decide, TimeEntry.Update, TimeEntry.UpdateAll, TimeEntry.View, TimeEntry.ViewAll,
 	}
 
 	seen := make(map[Permission]struct{}, len(all))

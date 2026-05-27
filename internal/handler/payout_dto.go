@@ -14,7 +14,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const payoutMonthLayout = "2006-01"
+const (
+	payoutMonthLayout    = "2006-01"
+	timeEntryDateLayout  = "2006-01-02"
+)
 
 type createPayoutRequestRequest struct {
 	RequestedHours int32   `json:"requested_hours" binding:"required,min=1"`
@@ -109,17 +112,18 @@ type payrollPreviewResponse struct {
 }
 
 type payrollPreviewLineResponse struct {
-	TimeEntryID           uuid.UUID `json:"time_entry_id"`
-	WorkDate              string    `json:"work_date"`
-	HourType              string    `json:"hour_type"`
-	StartTime             string    `json:"start_time"`
-	EndTime               string    `json:"end_time"`
-	IrregularHoursProfile string    `json:"irregular_hours_profile"`
-	AppliedRatePercent    float64   `json:"applied_rate_percent"`
-	MinutesWorked         int32     `json:"minutes_worked"`
-	PaidMinutes           float64   `json:"paid_minutes"`
-	BaseAmount            float64   `json:"base_amount"`
-	PremiumAmount         float64   `json:"premium_amount"`
+	ScheduleID            *uuid.UUID `json:"schedule_id,omitempty"`
+	OvertimeEntryID       *uuid.UUID `json:"overtime_entry_id,omitempty"`
+	SourceType            string     `json:"source_type"`
+	WorkDate              string     `json:"work_date"`
+	StartTime             string     `json:"start_time"`
+	EndTime               string     `json:"end_time"`
+	IrregularHoursProfile string     `json:"irregular_hours_profile"`
+	AppliedRatePercent    float64    `json:"applied_rate_percent"`
+	MinutesWorked         int32      `json:"minutes_worked"`
+	PaidMinutes           float64    `json:"paid_minutes"`
+	BaseAmount            float64    `json:"base_amount"`
+	PremiumAmount         float64    `json:"premium_amount"`
 }
 
 type payPeriodResponse struct {
@@ -142,7 +146,8 @@ type payPeriodResponse struct {
 type payPeriodLineResponse struct {
 	ID                    uuid.UUID       `json:"id"`
 	PayPeriodID           uuid.UUID       `json:"pay_period_id"`
-	TimeEntryID           *uuid.UUID      `json:"time_entry_id,omitempty"`
+	ScheduleID            *uuid.UUID      `json:"schedule_id,omitempty"`
+	OvertimeEntryID       *uuid.UUID      `json:"overtime_entry_id,omitempty"`
 	WorkDate              string          `json:"work_date"`
 	LineType              string          `json:"line_type"`
 	IrregularHoursProfile string          `json:"irregular_hours_profile"`
@@ -410,9 +415,10 @@ func toPayrollPreviewResponse(item *domain.PayrollPreview) payrollPreviewRespons
 	lines := make([]payrollPreviewLineResponse, len(item.LineItems))
 	for i, line := range item.LineItems {
 		lines[i] = payrollPreviewLineResponse{
-			TimeEntryID:           line.TimeEntryID,
+			ScheduleID:            line.ScheduleID,
+			OvertimeEntryID:       line.OvertimeEntryID,
+			SourceType:            line.SourceType,
 			WorkDate:              line.WorkDate.UTC().Format(timeEntryDateLayout),
-			HourType:              line.HourType,
 			StartTime:             line.StartTime,
 			EndTime:               line.EndTime,
 			IrregularHoursProfile: line.IrregularHoursProfile,
@@ -443,7 +449,8 @@ func toPayPeriodResponse(item *domain.PayPeriod) payPeriodResponse {
 		lines[i] = payPeriodLineResponse{
 			ID:                    line.ID,
 			PayPeriodID:           line.PayPeriodID,
-			TimeEntryID:           line.TimeEntryID,
+			ScheduleID:            line.ScheduleID,
+			OvertimeEntryID:       line.OvertimeEntryID,
 			WorkDate:              line.WorkDate.UTC().Format(timeEntryDateLayout),
 			LineType:              line.LineType,
 			IrregularHoursProfile: line.IrregularHoursProfile,
@@ -776,22 +783,24 @@ type salaryPageORTResponse struct {
 }
 
 type salaryPageLineItemResponse struct {
-	ID                 uuid.UUID `json:"id"`
-	TimeEntryID        uuid.UUID `json:"time_entry_id"`
-	WorkDate           string    `json:"work_date"`
-	DisplayDate        string    `json:"display_date"`
-	LineType           string    `json:"line_type"`
-	Label              string    `json:"label"`
-	StartTime          string    `json:"start_time"`
-	EndTime            string    `json:"end_time"`
-	BreakMinutes       int32     `json:"break_minutes"`
-	WorkedMinutes      int32     `json:"worked_minutes"`
-	PaidMinutes        float64   `json:"paid_minutes"`
-	PaidHours          float64   `json:"paid_hours"`
-	AppliedRatePercent float64   `json:"applied_rate_percent"`
-	BaseAmount         float64   `json:"base_amount"`
-	PremiumAmount      float64   `json:"premium_amount"`
-	GrossAmount        float64   `json:"gross_amount"`
+	ID                 uuid.UUID  `json:"id"`
+	ScheduleID         *uuid.UUID `json:"schedule_id,omitempty"`
+	OvertimeEntryID    *uuid.UUID `json:"overtime_entry_id,omitempty"`
+	SourceType         string     `json:"source_type"`
+	WorkDate           string     `json:"work_date"`
+	DisplayDate        string     `json:"display_date"`
+	LineType           string     `json:"line_type"`
+	Label              string     `json:"label"`
+	StartTime          string     `json:"start_time"`
+	EndTime            string     `json:"end_time"`
+	BreakMinutes       int32      `json:"break_minutes"`
+	WorkedMinutes      int32      `json:"worked_minutes"`
+	PaidMinutes        float64    `json:"paid_minutes"`
+	PaidHours          float64    `json:"paid_hours"`
+	AppliedRatePercent float64    `json:"applied_rate_percent"`
+	BaseAmount         float64    `json:"base_amount"`
+	PremiumAmount      float64    `json:"premium_amount"`
+	GrossAmount        float64    `json:"gross_amount"`
 }
 
 type salaryPagePendingEntryResponse struct {
@@ -1016,8 +1025,8 @@ func computeShiftCount(data *domain.SalaryPageData) int32 {
 	if data.PayPeriod != nil {
 		seen := make(map[uuid.UUID]struct{})
 		for _, item := range data.PayPeriod.LineItems {
-			if item.TimeEntryID != nil {
-				seen[*item.TimeEntryID] = struct{}{}
+			if item.ScheduleID != nil {
+				seen[*item.ScheduleID] = struct{}{}
 			}
 		}
 		return int32(len(seen))
@@ -1025,7 +1034,9 @@ func computeShiftCount(data *domain.SalaryPageData) int32 {
 	if data.Preview != nil {
 		seen := make(map[uuid.UUID]struct{})
 		for _, item := range data.Preview.LineItems {
-			seen[item.TimeEntryID] = struct{}{}
+			if item.ScheduleID != nil {
+				seen[*item.ScheduleID] = struct{}{}
+			}
 		}
 		return int32(len(seen))
 	}
@@ -1143,12 +1154,20 @@ func buildSalaryPageLineItems(data *domain.SalaryPageData) []salaryPageLineItemR
 func lineItemsFromPreview(items []domain.PayrollPreviewLineItem) []salaryPageLineItemResponse {
 	res := make([]salaryPageLineItemResponse, 0, len(items))
 	for _, item := range items {
+		var id uuid.UUID
+		if item.ScheduleID != nil {
+			id = *item.ScheduleID
+		} else if item.OvertimeEntryID != nil {
+			id = *item.OvertimeEntryID
+		}
 		res = append(res, salaryPageLineItemResponse{
-			ID:                 item.TimeEntryID, // use time_entry_id as id for live
-			TimeEntryID:        item.TimeEntryID,
+			ID:                 id,
+			ScheduleID:         item.ScheduleID,
+			OvertimeEntryID:    item.OvertimeEntryID,
+			SourceType:         item.SourceType,
 			WorkDate:           item.WorkDate.Format("2006-01-02"),
 			DisplayDate:        item.WorkDate.Format("Mon 2 Jan"),
-			LineType:           item.HourType,
+			LineType:           item.SourceType,
 			Label:              item.Label,
 			StartTime:          item.StartTime,
 			EndTime:            item.EndTime,
@@ -1190,7 +1209,9 @@ func lineItemsFromPayPeriod(items []domain.PayPeriodLineItem) []salaryPageLineIt
 
 		res = append(res, salaryPageLineItemResponse{
 			ID:                 item.ID,
-			TimeEntryID:        ptrOrDefault(item.TimeEntryID),
+			ScheduleID:         item.ScheduleID,
+			OvertimeEntryID:    item.OvertimeEntryID,
+			SourceType:         item.LineType,
 			WorkDate:           item.WorkDate.Format("2006-01-02"),
 			DisplayDate:        item.WorkDate.Format("Mon 2 Jan"),
 			LineType:           item.LineType,
@@ -1208,13 +1229,6 @@ func lineItemsFromPayPeriod(items []domain.PayPeriodLineItem) []salaryPageLineIt
 		})
 	}
 	return res
-}
-
-func ptrOrDefault(p *uuid.UUID) uuid.UUID {
-	if p == nil {
-		return uuid.Nil
-	}
-	return *p
 }
 
 func buildSalaryPagePendingEntries(items []domain.PayrollPendingEntryDetail) []salaryPagePendingEntryResponse {

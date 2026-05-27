@@ -210,13 +210,6 @@ WITH seeded(name, sort_order) AS (
         ('SHIFT.DELETE', 470),
         ('SHIFT.UPDATE', 480),
         ('SHIFT.VIEW', 490),
-        ('TIME_ENTRY.CREATE', 500),
-        ('TIME_ENTRY.CREATE_ALL', 510),
-        ('TIME_ENTRY.UPDATE', 520),
-        ('TIME_ENTRY.UPDATE_ALL', 530),
-        ('TIME_ENTRY.VIEW', 540),
-        ('TIME_ENTRY.VIEW_ALL', 550),
-        ('TIME_ENTRY.DECIDE', 560),
         ('PORTAL.ADMIN.ACCESS', 700),
         ('PORTAL.EMPLOYEE.ACCESS', 710)
     )
@@ -334,14 +327,7 @@ WHERE p.name IN (
     'SHIFT.CREATE',
     'SHIFT.DELETE',
     'SHIFT.UPDATE',
-    'SHIFT.VIEW',
-    'TIME_ENTRY.CREATE',
-    'TIME_ENTRY.CREATE_ALL',
-    'TIME_ENTRY.UPDATE',
-    'TIME_ENTRY.UPDATE_ALL',
-    'TIME_ENTRY.VIEW',
-    'TIME_ENTRY.VIEW_ALL',
-    'TIME_ENTRY.DECIDE'
+    'SHIFT.VIEW'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -372,9 +358,6 @@ WHERE p.name IN (
     'SCHEDULE_SWAP.RESPOND',
     'SCHEDULE_SWAP.VIEW',
     'SHIFT.VIEW',
-    'TIME_ENTRY.CREATE',
-    'TIME_ENTRY.VIEW',
-    'TIME_ENTRY.UPDATE',
     'TRAINING.CATALOG.VIEW',
     'TRAINING.ASSIGNMENTS.VIEW',
     'PERFORMANCE.ASSESSMENT.VIEW'
@@ -988,53 +971,6 @@ CREATE TABLE schedules (
 -- ==========================================
 -- TIME ENTRIES
 -- ==========================================
-
-CREATE TYPE time_entry_status_enum AS ENUM ('draft', 'submitted', 'approved', 'rejected');
-CREATE TYPE time_entry_hour_type_enum AS ENUM ('normal', 'overtime', 'travel', 'leave', 'sick', 'training');
-
-CREATE TABLE time_entries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
-    entry_date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    break_minutes INTEGER NOT NULL DEFAULT 0 CHECK (break_minutes >= 0),
-    hour_type time_entry_hour_type_enum NOT NULL DEFAULT 'normal',
-    project_name TEXT,
-    project_number TEXT,
-    client_name TEXT,
-    activity_category TEXT,
-    activity_description TEXT,
-    status time_entry_status_enum NOT NULL DEFAULT 'draft',
-    submitted_at TIMESTAMPTZ NULL,
-    approved_at TIMESTAMPTZ NULL,
-    approved_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
-    rejection_reason TEXT,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT time_entries_non_zero_duration CHECK (start_time <> end_time)
-);
-
-CREATE INDEX idx_time_entries_employee_date ON time_entries(employee_id, entry_date DESC);
-CREATE INDEX idx_time_entries_status ON time_entries(status);
-CREATE INDEX idx_time_entries_schedule_id ON time_entries(schedule_id);
-
-CREATE TABLE time_entry_update_audits (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    time_entry_id UUID NOT NULL REFERENCES time_entries(id) ON DELETE CASCADE,
-    admin_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
-    admin_update_note TEXT NOT NULL CHECK (btrim(admin_update_note) <> ''),
-    before_snapshot JSONB NOT NULL,
-    after_snapshot JSONB NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_time_entry_update_audits_entry_created_at
-ON time_entry_update_audits(time_entry_id, created_at DESC);
-
--- ==========================================
 -- LATE ARRIVALS
 -- ==========================================
 
@@ -1289,45 +1225,6 @@ BEGIN
     WHERE segments.segment_end >= make_date(p_year, 1, 1)
       AND segments.start_date <= make_date(p_year, 12, 31);
 
-    IF COALESCE(computed_legal_hours, 0) > 0 THEN
-        RETURN COALESCE(computed_legal_hours, 0);
-    END IF;
-
-    SELECT
-        GREATEST(
-            0,
-            ROUND(
-                COALESCE(
-                    SUM(
-                        GREATEST(
-                            0,
-                            (
-                                CASE
-                                    WHEN te.end_time > te.start_time THEN
-                                        EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
-                                    ELSE
-                                        EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
-                                END
-                            ) / 3600.0 - (te.break_minutes::numeric / 60.0)
-                        )
-                    ) * (4.0 / 52.0),
-                    0
-                )::numeric
-            )::INT
-        )
-    INTO computed_legal_hours
-    FROM time_entries te
-    WHERE te.employee_id = p_employee_id
-      AND te.status = 'approved'::time_entry_status_enum
-      AND te.hour_type IN (
-          'normal'::time_entry_hour_type_enum,
-          'overtime'::time_entry_hour_type_enum,
-          'travel'::time_entry_hour_type_enum,
-          'training'::time_entry_hour_type_enum
-      )
-      AND te.entry_date >= make_date(p_year, 1, 1)
-      AND te.entry_date < make_date(p_year + 1, 1, 1);
-
     RETURN COALESCE(computed_legal_hours, 0);
 END;
 $$ LANGUAGE plpgsql;
@@ -1521,7 +1418,8 @@ ON pay_periods(status, period_start DESC, period_end DESC);
 CREATE TABLE pay_period_line_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pay_period_id UUID NOT NULL REFERENCES pay_periods(id) ON DELETE CASCADE,
-    time_entry_id UUID NULL REFERENCES time_entries(id) ON DELETE SET NULL,
+    schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
+    overtime_entry_id UUID NULL REFERENCES overtime_entries(id) ON DELETE SET NULL,
     contract_type employee_contract_type_enum NOT NULL DEFAULT 'permanent',
     work_date DATE NOT NULL,
     line_type TEXT NOT NULL,
@@ -1537,17 +1435,21 @@ CREATE TABLE pay_period_line_items (
     CONSTRAINT pay_period_line_items_applied_rate_non_negative CHECK (applied_rate_percent >= 0),
     CONSTRAINT pay_period_line_items_minutes_non_negative CHECK (minutes_worked >= 0),
     CONSTRAINT pay_period_line_items_base_non_negative CHECK (base_amount >= 0),
-    CONSTRAINT pay_period_line_items_premium_non_negative CHECK (premium_amount >= 0)
+    CONSTRAINT pay_period_line_items_premium_non_negative CHECK (premium_amount >= 0),
+    CONSTRAINT pay_period_line_items_one_source CHECK (
+        (schedule_id IS NOT NULL AND overtime_entry_id IS NULL)
+        OR (schedule_id IS NULL AND overtime_entry_id IS NOT NULL)
+    )
 );
 
 CREATE INDEX idx_pay_period_line_items_pay_period
 ON pay_period_line_items(pay_period_id, work_date ASC, created_at ASC);
 
-ALTER TABLE time_entries
-    ADD COLUMN paid_period_id UUID NULL REFERENCES pay_periods(id) ON DELETE SET NULL;
+CREATE INDEX idx_pay_period_line_items_schedule_id
+ON pay_period_line_items(schedule_id);
 
-CREATE INDEX idx_time_entries_paid_period_id
-ON time_entries(paid_period_id);
+CREATE INDEX idx_pay_period_line_items_overtime_entry_id
+ON pay_period_line_items(overtime_entry_id);
 
 -- ==========================================
 -- OVERTIME ENTRIES

@@ -24,7 +24,6 @@ type generatedDataset struct {
 	Schedules                   []seed.ScheduleSeed
 	ShiftSwapRequests           []seed.ShiftSwapRequestSeed
 	LateArrivals                []seed.LateArrivalSeed
-	TimeEntries                 []seed.TimeEntrySeed
 	PayPeriods                  []seed.PayPeriodSeed
 	EmployeeHandbookAssignments []seed.EmployeeHandbookAssignmentSeed
 	PerformanceAssessments      []seed.PerformanceSeed
@@ -124,7 +123,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	result.Schedules = make([]seed.ScheduleSeed, 0, len(departments)*18)
 	result.ShiftSwapRequests = make([]seed.ShiftSwapRequestSeed, 0, 4)
 	result.LateArrivals = make([]seed.LateArrivalSeed, 0, len(departments)+2)
-	result.TimeEntries = make([]seed.TimeEntrySeed, 0, len(departments)*6)
 	result.PayPeriods = make([]seed.PayPeriodSeed, 0, 2)
 	result.EmployeeHandbookAssignments = make([]seed.EmployeeHandbookAssignmentSeed, 0, len(departments)*3)
 	result.PerformanceAssessments = make([]seed.PerformanceSeed, 0, 6)
@@ -166,24 +164,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			buildPresetScheduleSeed(fmt.Sprintf("%s_head_wed", headAlias), headAlias, headLocationAlias, headAlias, 2, time.Date(2026, time.July, 8, 0, 0, 0, 0, time.UTC)),
 			buildPresetScheduleSeed(fmt.Sprintf("%s_head_fri", headAlias), headAlias, headLocationAlias, headAlias, 1, time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC)),
 		)
-		headTimeEntries := []seed.TimeEntrySeed{
-			buildApprovedTimeEntrySeed(fmt.Sprintf("%s_head_mon_entry", headAlias), fmt.Sprintf("%s_head_mon", headAlias), headAlias, headAlias, "07:30", "15:30", 30, "normal", nil),
-			buildSubmittedTimeEntrySeed(fmt.Sprintf("%s_head_wed_entry", headAlias), fmt.Sprintf("%s_head_wed", headAlias), headAlias, headAlias, "15:00", "23:00", 30, "normal"),
-		}
-		if headAlias == "finance_head" {
-			headTimeEntries[1] = buildApprovedTimeEntrySeed(
-				fmt.Sprintf("%s_head_wed_entry", headAlias),
-				fmt.Sprintf("%s_head_wed", headAlias),
-				headAlias,
-				headAlias,
-				"19:00",
-				"23:00",
-				30,
-				"normal",
-				strPtr("Approved roster evening sample for ORT payroll seeding"),
-			)
-		}
-		result.TimeEntries = append(result.TimeEntries, headTimeEntries...)
 		result.LateArrivals = append(result.LateArrivals, seed.LateArrivalSeed{
 			Alias:                  fmt.Sprintf("%s_late_mon", headAlias),
 			EmployeeAlias:          headAlias,
@@ -274,19 +254,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 						time.Date(2026, time.July, 25+deptIdx, 0, 0, 0, 0, time.UTC),
 					),
 				)
-				result.TimeEntries = append(result.TimeEntries,
-					buildApprovedTimeEntrySeed(
-						fmt.Sprintf("%s_entry_a", employeeAlias),
-						shiftAAlias,
-						employeeAlias,
-						headAlias,
-						"07:30",
-						"15:30",
-						30,
-						"normal",
-						nil,
-					),
-				)
 				switch employeeAlias {
 				case "care_staff_01":
 					ortShiftAlias := fmt.Sprintf("%s_ort_weekday", employeeAlias)
@@ -298,19 +265,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 							headAlias,
 							2,
 							time.Date(2026, time.July, 13, 0, 0, 0, 0, time.UTC),
-						),
-					)
-					result.TimeEntries = append(result.TimeEntries,
-						buildApprovedTimeEntrySeed(
-							fmt.Sprintf("%s_ort_weekday_entry", employeeAlias),
-							ortShiftAlias,
-							employeeAlias,
-							headAlias,
-							"20:00",
-							"23:00",
-							15,
-							"normal",
-							strPtr("Approved non-roster weekday evening sample for ORT payroll seeding"),
 						),
 					)
 				case "operations_staff_01":
@@ -325,19 +279,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 							time.Date(2026, time.July, 18, 0, 0, 0, 0, time.UTC),
 						),
 					)
-					result.TimeEntries = append(result.TimeEntries,
-						buildApprovedTimeEntrySeed(
-							fmt.Sprintf("%s_ort_saturday_entry", employeeAlias),
-							ortShiftAlias,
-							employeeAlias,
-							headAlias,
-							"21:00",
-							"23:30",
-							15,
-							"overtime",
-							strPtr("Approved Saturday evening and night sample for ORT payroll seeding"),
-						),
-					)
 				case "planning_staff_02":
 					ortShiftAlias := fmt.Sprintf("%s_ort_sunday", employeeAlias)
 					result.Schedules = append(result.Schedules,
@@ -350,19 +291,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 							time.Date(2026, time.July, 19, 0, 0, 0, 0, time.UTC),
 						),
 					)
-					result.TimeEntries = append(result.TimeEntries,
-						buildApprovedTimeEntrySeed(
-							fmt.Sprintf("%s_ort_sunday_entry", employeeAlias),
-							ortShiftAlias,
-							employeeAlias,
-							headAlias,
-							"12:00",
-							"18:00",
-							30,
-							"travel",
-							strPtr("Approved Sunday sample for ORT payroll seeding"),
-						),
-					)
 				}
 				if empIdx == 0 {
 					result.LateArrivals = append(result.LateArrivals, seed.LateArrivalSeed{
@@ -373,21 +301,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 						ArrivalTime:            lateArrivalTimeForShiftSlot(shiftASlot),
 						Reason:                 "Seeded late arrival reported by department lead",
 					})
-				}
-				if empIdx == 0 {
-					result.TimeEntries = append(result.TimeEntries,
-						buildRejectedTimeEntrySeed(
-							fmt.Sprintf("%s_entry_b", employeeAlias),
-							shiftBAlias,
-							employeeAlias,
-							headAlias,
-							"15:00",
-							"22:45",
-							15,
-							"training",
-							"Training time needs corrected classification",
-						),
-					)
 				}
 			}
 		}
@@ -573,10 +486,9 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 		}
 		result.Employees = append(result.Employees, zzpSeed)
 
-		// Add time entries for ZZP employees
+		// Add schedules for ZZP employees
 		if zzpIdx < 2 {
 			scheduleAlias := fmt.Sprintf("%s_schedule", zzpAlias)
-			timeEntryAlias := fmt.Sprintf("%s_entry", zzpAlias)
 			result.Schedules = append(result.Schedules,
 				buildPresetScheduleSeed(
 					scheduleAlias,
@@ -585,19 +497,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 					"hr_head",
 					1,
 					time.Date(2026, time.July, 8+zzpIdx, 0, 0, 0, 0, time.UTC),
-				),
-			)
-			result.TimeEntries = append(result.TimeEntries,
-				buildApprovedTimeEntrySeed(
-					timeEntryAlias,
-					scheduleAlias,
-					zzpAlias,
-					"hr_head",
-					"09:00",
-					"17:00",
-					30,
-					"normal",
-					strPtr("Freelance project work"),
 				),
 			)
 		}
@@ -837,65 +736,9 @@ func lateArrivalTimeForShiftSlot(slot int16) string {
 	}
 }
 
-func buildApprovedTimeEntrySeed(
-	alias, scheduleAlias, employeeAlias, adminAlias, startTime, endTime string,
-	breakMinutes int32,
-	hourType string,
-	notes *string,
-) seed.TimeEntrySeed {
-	return seed.TimeEntrySeed{
-		Alias:                   alias,
-		ScheduleAlias:           scheduleAlias,
-		EmployeeAlias:           employeeAlias,
-		Status:                  "approved",
-		StartTime:               startTime,
-		EndTime:                 endTime,
-		BreakMinutes:            breakMinutes,
-		HourType:                hourType,
-		Notes:                   notes,
-		ApprovedByEmployeeAlias: strPtr(adminAlias),
-	}
-}
 
-func buildSubmittedTimeEntrySeed(
-	alias, scheduleAlias, employeeAlias, adminAlias, startTime, endTime string,
-	breakMinutes int32,
-	hourType string,
-) seed.TimeEntrySeed {
-	return seed.TimeEntrySeed{
-		Alias:                    alias,
-		ScheduleAlias:            scheduleAlias,
-		EmployeeAlias:            employeeAlias,
-		Status:                   "submitted",
-		StartTime:                startTime,
-		EndTime:                  endTime,
-		BreakMinutes:             breakMinutes,
-		HourType:                 hourType,
-		SubmittedByEmployeeAlias: strPtr(employeeAlias),
-		ApprovedByEmployeeAlias:  strPtr(adminAlias),
-	}
-}
 
-func buildRejectedTimeEntrySeed(
-	alias, scheduleAlias, employeeAlias, adminAlias, startTime, endTime string,
-	breakMinutes int32,
-	hourType string,
-	rejectionReason string,
-) seed.TimeEntrySeed {
-	return seed.TimeEntrySeed{
-		Alias:                    alias,
-		ScheduleAlias:            scheduleAlias,
-		EmployeeAlias:            employeeAlias,
-		Status:                   "rejected",
-		StartTime:                startTime,
-		EndTime:                  endTime,
-		BreakMinutes:             breakMinutes,
-		HourType:                 hourType,
-		SubmittedByEmployeeAlias: strPtr(employeeAlias),
-		ApprovedByEmployeeAlias:  strPtr(adminAlias),
-		RejectionReason:          strPtr(rejectionReason),
-	}
-}
+
 
 func sanitizeEmailPart(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))

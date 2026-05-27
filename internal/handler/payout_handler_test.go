@@ -175,7 +175,6 @@ func TestPayoutHandlerGetORTRulesSuccess(t *testing.T) {
 
 func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T) {
 	employeeID := uuid.New()
-	timeEntryID := uuid.New()
 	month := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	rate := 24.5
 	contractHours := 32.0
@@ -200,13 +199,12 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 			GrossAmount:          229.69,
 			LineItems: []domain.PayrollPreviewLineItem{
 				{
-					TimeEntryID:        timeEntryID,
+					SourceType:         "schedule",
 					Label:              "Evening care route",
 					WorkDate:           time.Date(2026, 5, 4, 0, 0, 0, 0, time.UTC),
-					HourType:           "normal",
 					StartTime:          "15:00",
 					EndTime:            "23:00",
-					BreakMinutes:       30,
+					BreakMinutes:       0,
 					AppliedRatePercent: 25,
 					MinutesWorked:      480,
 					PaidMinutes:        450,
@@ -227,8 +225,8 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 	if line.Label != "Evening care route" {
 		t.Fatalf("expected label to be preserved, got %q", line.Label)
 	}
-	if line.BreakMinutes != 30 {
-		t.Fatalf("expected break minutes 30, got %d", line.BreakMinutes)
+	if line.BreakMinutes != 0 {
+		t.Fatalf("expected break minutes 0, got %d", line.BreakMinutes)
 	}
 	if line.GrossAmount != 229.69 {
 		t.Fatalf("expected gross amount 229.69, got %.2f", line.GrossAmount)

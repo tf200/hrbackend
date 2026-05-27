@@ -7,21 +7,18 @@ WITH month_employees AS (
 
     UNION
 
-    SELECT DISTINCT te.employee_id
-    FROM time_entries te
-    WHERE te.entry_date >= sqlc.arg('month_start')
-      AND te.entry_date <= sqlc.arg('month_end')
-      AND te.hour_type IN (
-          'normal'::time_entry_hour_type_enum,
-          'overtime'::time_entry_hour_type_enum,
-          'travel'::time_entry_hour_type_enum,
-          'training'::time_entry_hour_type_enum
-      )
-      AND te.status IN (
-          'approved'::time_entry_status_enum,
-          'draft'::time_entry_status_enum,
-          'submitted'::time_entry_status_enum
-      )
+    SELECT DISTINCT s.employee_id
+    FROM schedules s
+    WHERE DATE(s.start_datetime) >= sqlc.arg('month_start')
+      AND DATE(s.start_datetime) <= sqlc.arg('month_end')
+
+    UNION
+
+    SELECT DISTINCT oe.employee_id
+    FROM overtime_entries oe
+    WHERE oe.entry_date >= sqlc.arg('month_start')
+      AND oe.entry_date <= sqlc.arg('month_end')
+      AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
 )
 SELECT
     ep.id AS employee_id,
@@ -50,21 +47,18 @@ WITH month_employees AS (
 
     UNION
 
-    SELECT DISTINCT te.employee_id
-    FROM time_entries te
-    WHERE te.entry_date >= sqlc.arg('month_start')
-      AND te.entry_date <= sqlc.arg('month_end')
-      AND te.hour_type IN (
-          'normal'::time_entry_hour_type_enum,
-          'overtime'::time_entry_hour_type_enum,
-          'travel'::time_entry_hour_type_enum,
-          'training'::time_entry_hour_type_enum
-      )
-      AND te.status IN (
-          'approved'::time_entry_status_enum,
-          'draft'::time_entry_status_enum,
-          'submitted'::time_entry_status_enum
-      )
+    SELECT DISTINCT s.employee_id
+    FROM schedules s
+    WHERE DATE(s.start_datetime) >= sqlc.arg('month_start')
+      AND DATE(s.start_datetime) <= sqlc.arg('month_end')
+
+    UNION
+
+    SELECT DISTINCT oe.employee_id
+    FROM overtime_entries oe
+    WHERE oe.entry_date >= sqlc.arg('month_start')
+      AND oe.entry_date <= sqlc.arg('month_end')
+      AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
 )
 SELECT
     ep.id AS employee_id,
@@ -118,136 +112,140 @@ WHERE ppl.pay_period_id = ANY(sqlc.arg('pay_period_ids')::uuid[])
 GROUP BY ppl.pay_period_id, ppl.applied_rate_percent
 ORDER BY ppl.pay_period_id ASC, ppl.applied_rate_percent ASC;
 
--- name: ListPayrollMonthApprovedTimeEntriesByEmployeeIDs :many
-SELECT
-    te.id,
-    te.employee_id,
-    ep.first_name AS employee_first_name,
-    ep.last_name AS employee_last_name,
-    te.entry_date,
-    te.start_time,
-    te.end_time,
-    te.break_minutes,
-    te.hour_type,
-    cc.contract_type,
-    css.hourly_rate::double precision AS contract_rate,
-    'none'::text AS irregular_hours_profile
-FROM time_entries te
-JOIN employee_profile ep ON ep.id = te.employee_id
-JOIN LATERAL (
+-- name: ListPayrollMonthApprovedWorkItems :many
+WITH schedule_items AS (
     SELECT
-        c.id,
-        c.contract_type,
-        c.contract_end_date
-    FROM employee_contracts c
-    WHERE c.employee_id = te.employee_id
-      AND c.start_date <= te.entry_date
-      AND (c.effective_end_date IS NULL OR c.effective_end_date >= te.entry_date)
-      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
-    ORDER BY c.start_date DESC, c.created_at DESC
-    LIMIT 1
-) cc ON TRUE
-JOIN LATERAL (
-    SELECT esa.salary_scale_step_id
-    FROM employee_salary_assignments esa
-    WHERE esa.employee_id = te.employee_id
-      AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
-      AND esa.effective_from <= te.entry_date
-      AND (esa.effective_to IS NULL OR esa.effective_to > te.entry_date)
-    ORDER BY
-      (esa.contract_id = cc.id) DESC,
-      esa.effective_from DESC,
-      esa.created_at DESC
-    LIMIT 1
-) latest_salary ON TRUE
-JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
-WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
-  AND te.status = 'approved'::time_entry_status_enum
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= sqlc.arg('month_start')
-  AND te.entry_date <= sqlc.arg('month_end')
-ORDER BY te.employee_id ASC, te.entry_date ASC, te.start_time ASC, te.created_at ASC;
+        s.id AS source_id,
+        s.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(s.shift_name_snapshot), ''), 'Scheduled shift') AS label,
+        DATE(s.start_datetime) AS work_date,
+        s.start_datetime::time AS start_time_val,
+        s.end_datetime::time AS end_time_val,
+        0 AS break_minutes,
+        EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60 AS minutes_worked,
+        'schedule'::text AS source_type,
+        s.id AS schedule_id,
+        NULL::uuid AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM schedules s
+    JOIN employee_profile ep ON ep.id = s.employee_id
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = s.employee_id
+          AND c.start_date <= DATE(s.start_datetime)
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= DATE(s.start_datetime))
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= DATE(s.start_datetime))
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = s.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= DATE(s.start_datetime)
+          AND (esa.effective_to IS NULL OR esa.effective_to > DATE(s.start_datetime))
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE s.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+      AND DATE(s.start_datetime) >= sqlc.arg('month_start')
+      AND DATE(s.start_datetime) <= sqlc.arg('month_end')
+),
+overtime_items AS (
+    SELECT
+        oe.id AS source_id,
+        oe.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        COALESCE(NULLIF(btrim(oe.reason::text), ''), 'Overtime') AS label,
+        oe.entry_date AS work_date,
+        NULL::time AS start_time_val,
+        NULL::time AS end_time_val,
+        0 AS break_minutes,
+        oe.minutes::double precision AS minutes_worked,
+        'overtime'::text AS source_type,
+        NULL::uuid AS schedule_id,
+        oe.id AS overtime_entry_id,
+        cc.contract_type,
+        css.hourly_rate::double precision AS contract_rate,
+        'none'::text AS irregular_hours_profile
+    FROM overtime_entries oe
+    JOIN employee_profile ep ON ep.id = oe.employee_id
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = oe.employee_id
+          AND c.start_date <= oe.entry_date
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= oe.entry_date)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    JOIN LATERAL (
+        SELECT esa.salary_scale_step_id
+        FROM employee_salary_assignments esa
+        WHERE esa.employee_id = oe.employee_id
+          AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+          AND esa.effective_from <= oe.entry_date
+          AND (esa.effective_to IS NULL OR esa.effective_to > oe.entry_date)
+        ORDER BY
+          (esa.contract_id = cc.id) DESC,
+          esa.effective_from DESC,
+          esa.created_at DESC
+        LIMIT 1
+    ) latest_salary ON TRUE
+    JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+    WHERE oe.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+      AND oe.status = 'approved'::overtime_status_enum
+      AND oe.entry_date >= sqlc.arg('month_start')
+      AND oe.entry_date <= sqlc.arg('month_end')
+)
+SELECT * FROM schedule_items
+UNION ALL
+SELECT * FROM overtime_items
+ORDER BY employee_id ASC, work_date ASC, source_type ASC, source_id ASC;
 
--- name: ListPayrollMonthPendingSummariesByEmployeeIDs :many
+-- name: ListPayrollMonthPendingOvertimeSummaries :many
 SELECT
-    te.employee_id,
+    oe.employee_id,
     COUNT(*)::INT AS pending_entry_count,
-    COALESCE(
-        SUM(
-            GREATEST(
-                0,
-                (
-                    CASE
-                        WHEN te.end_time > te.start_time THEN
-                            EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
-                        ELSE
-                            EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
-                    END
-                ) / 60 - te.break_minutes
-            )
-        ),
-        0
-    )::INT AS pending_worked_minutes
-FROM time_entries te
-WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
-  AND te.status IN (
-      'draft'::time_entry_status_enum,
-      'submitted'::time_entry_status_enum
-  )
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= sqlc.arg('month_start')
-  AND te.entry_date <= sqlc.arg('month_end')
-GROUP BY te.employee_id
-ORDER BY te.employee_id ASC;
+    COALESCE(SUM(oe.minutes), 0)::INT AS pending_worked_minutes
+FROM overtime_entries oe
+WHERE oe.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+  AND oe.status = 'submitted'::overtime_status_enum
+  AND oe.entry_date >= sqlc.arg('month_start')
+  AND oe.entry_date <= sqlc.arg('month_end')
+GROUP BY oe.employee_id
+ORDER BY oe.employee_id ASC;
 
--- name: ListPayrollMonthPendingEntriesByEmployeeIDs :many
+-- name: ListPayrollMonthPendingOvertimeEntries :many
 SELECT
-    te.employee_id,
-    GREATEST(
-        0,
-        (
-            CASE
-                WHEN te.end_time > te.start_time THEN
-                    EXTRACT(EPOCH FROM te.end_time) - EXTRACT(EPOCH FROM te.start_time)
-                ELSE
-                    EXTRACT(EPOCH FROM te.end_time) + 86400 - EXTRACT(EPOCH FROM te.start_time)
-            END
-        ) / 60 - te.break_minutes
-    )::INT AS worked_minutes,
+    oe.employee_id,
+    oe.minutes AS worked_minutes,
     cc.contract_type
-FROM time_entries te
-JOIN employee_profile ep ON ep.id = te.employee_id
+FROM overtime_entries oe
+JOIN employee_profile ep ON ep.id = oe.employee_id
 LEFT JOIN LATERAL (
-    SELECT
-        c.contract_type
+    SELECT c.contract_type
     FROM employee_contracts c
-    WHERE c.employee_id = te.employee_id
-      AND c.start_date <= te.entry_date
-      AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
+    WHERE c.employee_id = oe.employee_id
+      AND c.start_date <= oe.entry_date
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
     ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1
 ) cc ON TRUE
-WHERE te.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
-  AND te.status IN (
-      'draft'::time_entry_status_enum,
-      'submitted'::time_entry_status_enum
-  )
-  AND te.hour_type IN (
-      'normal'::time_entry_hour_type_enum,
-      'overtime'::time_entry_hour_type_enum,
-      'travel'::time_entry_hour_type_enum,
-      'training'::time_entry_hour_type_enum
-  )
-  AND te.entry_date >= sqlc.arg('month_start')
-  AND te.entry_date <= sqlc.arg('month_end')
-ORDER BY te.employee_id ASC, te.entry_date ASC, te.start_time ASC, te.created_at ASC;
+WHERE oe.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+  AND oe.status = 'submitted'::overtime_status_enum
+  AND oe.entry_date >= sqlc.arg('month_start')
+  AND oe.entry_date <= sqlc.arg('month_end')
+ORDER BY oe.employee_id ASC, oe.entry_date ASC, oe.created_at ASC;
