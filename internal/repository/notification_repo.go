@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"hrbackend/internal/domain"
@@ -64,6 +63,62 @@ func (r *NotificationRepository) ListUserIDsByRoles(
 	return r.queries.ListNotificationUserIDsByRoles(ctx, roleNames)
 }
 
+func (r *NotificationRepository) CountNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+) (int64, error) {
+	return r.queries.CountNotificationsByUserID(ctx, userID)
+}
+
+func (r *NotificationRepository) ListNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit, offset int32,
+) ([]domain.Notification, error) {
+	rows, err := r.queries.ListNotificationsByUserID(ctx, db.ListNotificationsByUserIDParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.Notification, 0, len(rows))
+	for _, row := range rows {
+		n, err := notificationFromDB(row)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, *n)
+	}
+	return items, nil
+}
+
+func (r *NotificationRepository) CountUnreadNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+) (int64, error) {
+	return r.queries.CountUnreadNotificationsByUserID(ctx, userID)
+}
+
+func (r *NotificationRepository) MarkNotificationRead(
+	ctx context.Context,
+	id, userID uuid.UUID,
+) error {
+	return r.queries.MarkNotificationRead(ctx, db.MarkNotificationReadParams{
+		ID:     id,
+		UserID: userID,
+	})
+}
+
+func (r *NotificationRepository) MarkAllNotificationsRead(
+	ctx context.Context,
+	userID uuid.UUID,
+) error {
+	return r.queries.MarkAllNotificationsRead(ctx, userID)
+}
+
 func (r *NotificationRepository) ListUserIDsByPermissions(
 	ctx context.Context,
 	permissionNames []string,
@@ -72,18 +127,13 @@ func (r *NotificationRepository) ListUserIDsByPermissions(
 }
 
 func notificationFromDB(row db.Notification) (*domain.Notification, error) {
-	data, err := UnmarshalNotificationData(row.Data)
-	if err != nil {
-		return nil, err
-	}
-
 	n := &domain.Notification{
 		ID:        row.ID,
 		UserID:    row.UserID,
 		Type:      row.Type,
 		Message:   row.Message,
 		IsRead:    row.IsRead,
-		Data:      data,
+		Data:      row.Data,
 		ReadAt:    timestamptzPtr(row.ReadAt),
 		CreatedAt: conv.TimeFromPgTimestamptz(row.CreatedAt),
 	}
@@ -97,17 +147,4 @@ func timestamptzPtr(t pgtype.Timestamptz) *time.Time {
 	return &t.Time
 }
 
-func MarshalNotificationData(data domain.NotificationData) ([]byte, error) {
-	return json.Marshal(data)
-}
 
-func UnmarshalNotificationData(data []byte) (domain.NotificationData, error) {
-	if len(data) == 0 {
-		return domain.NotificationData{}, nil
-	}
-	var out domain.NotificationData
-	if err := json.Unmarshal(data, &out); err != nil {
-		return domain.NotificationData{}, err
-	}
-	return out, nil
-}

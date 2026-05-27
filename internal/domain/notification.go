@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,14 +16,14 @@ const (
 )
 
 type Notification struct {
-	ID        uuid.UUID          `json:"id"`
-	UserID    uuid.UUID          `json:"user_id"`
-	Type      string             `json:"type"`
-	Message   string             `json:"message"`
-	IsRead    bool               `json:"is_read"`
-	Data      NotificationData   `json:"data"`
-	ReadAt    *time.Time         `json:"read_at"`
-	CreatedAt time.Time          `json:"created_at"`
+	ID        uuid.UUID       `json:"id"`
+	UserID    uuid.UUID       `json:"user_id"`
+	Type      string          `json:"type"`
+	Message   string          `json:"message"`
+	IsRead    bool            `json:"is_read"`
+	Data      json.RawMessage `json:"data"`
+	ReadAt    *time.Time      `json:"read_at"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
 type NotificationRecipients struct {
@@ -33,16 +34,14 @@ type NotificationRecipients struct {
 }
 
 type NotificationRequest struct {
-	Recipients NotificationRecipients `json:"recipients"`
-	Type       string                 `json:"type"`
-	Message    string                 `json:"message"`
-	Data       NotificationData       `json:"data"`
-	CreatedAt  *time.Time             `json:"created_at,omitempty"`
+	Recipients NotificationRecipients
+	Message    string
+	Data       NotificationData
+	CreatedAt *time.Time
 }
 
-type NotificationData struct {
-	NewScheduleNotification *NewScheduleNotificationData `json:"new_schedule_notification,omitempty"`
-	ShiftSwapNotification   *ShiftSwapNotificationData   `json:"shift_swap_notification,omitempty"`
+type NotificationData interface {
+	NotificationType() string
 }
 
 type ShiftSwapNotificationData struct {
@@ -54,6 +53,8 @@ type ShiftSwapNotificationData struct {
 	Status                string    `json:"status"`
 }
 
+func (ShiftSwapNotificationData) NotificationType() string { return TypeShiftSwapRequested }
+
 type NewScheduleNotificationData struct {
 	ScheduleID uuid.UUID `json:"schedule_id"`
 	CreatedBy  uuid.UUID `json:"created_by"`
@@ -61,6 +62,8 @@ type NewScheduleNotificationData struct {
 	EndTime    time.Time `json:"end_time"`
 	Location   string    `json:"location"`
 }
+
+func (NewScheduleNotificationData) NotificationType() string { return TypeNewScheduleNotification }
 
 type CreateNotificationsParams struct {
 	UserIDs   []uuid.UUID
@@ -75,6 +78,11 @@ type NotificationRepository interface {
 	ListUserIDsByEmployeeIDs(ctx context.Context, employeeIDs []uuid.UUID) ([]uuid.UUID, error)
 	ListUserIDsByRoles(ctx context.Context, roleNames []string) ([]uuid.UUID, error)
 	ListUserIDsByPermissions(ctx context.Context, permissionNames []string) ([]uuid.UUID, error)
+	ListNotifications(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]Notification, error)
+	CountNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
+	MarkNotificationRead(ctx context.Context, id, userID uuid.UUID) error
+	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 }
 
 type RealtimeSender interface {
@@ -83,4 +91,8 @@ type RealtimeSender interface {
 
 type NotificationService interface {
 	Notify(ctx context.Context, req NotificationRequest)
+	ListNotifications(ctx context.Context, userID uuid.UUID, page, pageSize int32) ([]Notification, int64, error)
+	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
+	MarkAsRead(ctx context.Context, id, userID uuid.UUID) error
+	MarkAllAsRead(ctx context.Context, userID uuid.UUID) error
 }

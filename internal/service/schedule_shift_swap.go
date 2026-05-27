@@ -84,11 +84,8 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 			EmployeeIDs: []uuid.UUID{req.RecipientEmployeeID},
 			Roles:       []string{"admin"},
 		},
-		Type:    domain.TypeShiftSwapRequested,
 		Message: "A shift swap has been requested",
-		Data: domain.NotificationData{
-			ShiftSwapNotification: &notifData,
-		},
+		Data:    notifData,
 	})
 
 	resp := &domain.CreateShiftSwapResponse{

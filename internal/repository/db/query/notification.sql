@@ -57,3 +57,30 @@ SELECT DISTINCT cu.id
 FROM effective_users eu
 JOIN custom_user cu ON cu.id = eu.user_id
 WHERE cu.is_active = TRUE;
+
+-- name: ListNotificationsByUserID :many
+SELECT *
+FROM notifications
+WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+
+-- name: CountUnreadNotificationsByUserID :one
+SELECT COUNT(*)
+FROM notifications
+WHERE user_id = $1 AND is_read = FALSE;
+
+-- name: CountNotificationsByUserID :one
+SELECT COUNT(*)
+FROM notifications
+WHERE user_id = $1;
+
+-- name: MarkNotificationRead :exec
+UPDATE notifications
+SET is_read = TRUE, read_at = NOW()
+WHERE id = $1 AND user_id = $2 AND is_read = FALSE;
+
+-- name: MarkAllNotificationsRead :exec
+UPDATE notifications
+SET is_read = TRUE, read_at = NOW()
+WHERE user_id = $1 AND is_read = FALSE;

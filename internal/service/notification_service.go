@@ -2,11 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
 	"hrbackend/internal/domain"
-	"hrbackend/internal/repository"
 	"hrbackend/internal/ws"
 
 	"github.com/google/uuid"
@@ -34,6 +34,36 @@ func (s *NotificationService) Notify(ctx context.Context, req domain.Notificatio
 	go s.worker(context.Background(), req)
 }
 
+func (s *NotificationService) ListNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, pageSize int32,
+) ([]domain.Notification, int64, error) {
+	count, err := s.repository.CountNotifications(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	items, err := s.repository.ListNotifications(ctx, userID, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return items, count, nil
+}
+
+func (s *NotificationService) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error) {
+	return s.repository.CountUnreadNotifications(ctx, userID)
+}
+
+func (s *NotificationService) MarkAsRead(ctx context.Context, id, userID uuid.UUID) error {
+	return s.repository.MarkNotificationRead(ctx, id, userID)
+}
+
+func (s *NotificationService) MarkAllAsRead(ctx context.Context, userID uuid.UUID) error {
+	return s.repository.MarkAllNotificationsRead(ctx, userID)
+}
+
 func (s *NotificationService) worker(ctx context.Context, req domain.NotificationRequest) {
 	workerCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -55,7 +85,7 @@ func (s *NotificationService) worker(ctx context.Context, req domain.Notificatio
 		now = &t
 	}
 
-	dataJSON, err := repository.MarshalNotificationData(req.Data)
+	dataJSON, err := json.Marshal(req.Data)
 	if err != nil {
 		if s.logger != nil {
 			s.logger.LogError(workerCtx, "NotificationService.worker", "failed to marshal notification data", err)
@@ -65,7 +95,7 @@ func (s *NotificationService) worker(ctx context.Context, req domain.Notificatio
 
 	notifications, err := s.repository.CreateNotifications(workerCtx, domain.CreateNotificationsParams{
 		UserIDs:   userIDs,
-		Type:      req.Type,
+		Type:      req.Data.NotificationType(),
 		Message:   req.Message,
 		Data:      dataJSON,
 		CreatedAt: *now,

@@ -318,6 +318,7 @@ func buildRouter(
 	trainingHandler := handler.NewTrainingHandler(trainingService)
 	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
 	attachmentHandler := handler.NewAttachmentHandler(attachmentService)
+	notificationHandler := handler.NewNotificationHandler(notificationService)
 
 	api := router.Group("/api")
 	auth := authMiddleware.Handle()
@@ -344,6 +345,7 @@ func buildRouter(
 	handler.RegisterTrainingRoutes(api, trainingHandler, auth, requirePermission)
 	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
 	handler.RegisterAttachmentRoutes(api, attachmentHandler, auth)
+	handler.RegisterNotificationRoutes(api, notificationHandler, auth)
 
 	return router
 }

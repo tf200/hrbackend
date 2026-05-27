@@ -12,6 +12,32 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countNotificationsByUserID = `-- name: CountNotificationsByUserID :one
+SELECT COUNT(*)
+FROM notifications
+WHERE user_id = $1
+`
+
+func (q *Queries) CountNotificationsByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countNotificationsByUserID, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countUnreadNotificationsByUserID = `-- name: CountUnreadNotificationsByUserID :one
+SELECT COUNT(*)
+FROM notifications
+WHERE user_id = $1 AND is_read = FALSE
+`
+
+func (q *Queries) CountUnreadNotificationsByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countUnreadNotificationsByUserID, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createNotifications = `-- name: CreateNotifications :many
 INSERT INTO notifications (user_id, type, message, data, created_at)
 SELECT
@@ -177,4 +203,74 @@ func (q *Queries) ListNotificationUserIDsByRoles(ctx context.Context, roleNames 
 		return nil, err
 	}
 	return items, nil
+}
+
+const listNotificationsByUserID = `-- name: ListNotificationsByUserID :many
+SELECT id, user_id, type, message, is_read, data, read_at, created_at
+FROM notifications
+WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListNotificationsByUserIDParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
+}
+
+func (q *Queries) ListNotificationsByUserID(ctx context.Context, arg ListNotificationsByUserIDParams) ([]Notification, error) {
+	rows, err := q.db.Query(ctx, listNotificationsByUserID, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Notification{}
+	for rows.Next() {
+		var i Notification
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Message,
+			&i.IsRead,
+			&i.Data,
+			&i.ReadAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markAllNotificationsRead = `-- name: MarkAllNotificationsRead :exec
+UPDATE notifications
+SET is_read = TRUE, read_at = NOW()
+WHERE user_id = $1 AND is_read = FALSE
+`
+
+func (q *Queries) MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markAllNotificationsRead, userID)
+	return err
+}
+
+const markNotificationRead = `-- name: MarkNotificationRead :exec
+UPDATE notifications
+SET is_read = TRUE, read_at = NOW()
+WHERE id = $1 AND user_id = $2 AND is_read = FALSE
+`
+
+type MarkNotificationReadParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) error {
+	_, err := q.db.Exec(ctx, markNotificationRead, arg.ID, arg.UserID)
+	return err
 }
