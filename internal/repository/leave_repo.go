@@ -258,6 +258,7 @@ func (r *LeaveRepository) ListLeaveBalances(
 			stringPtr(string(row.ContractType)),
 			conv.TimePtrFromPgDate(row.ContractStartDate),
 			conv.TimePtrFromPgDate(row.ContractEndDate),
+			conv.TimePtrFromPgDate(row.EffectiveEndDate),
 			row.CreatedAt,
 			row.UpdatedAt,
 		))
@@ -301,6 +302,7 @@ func (r *LeaveRepository) ListMyLeaveBalances(
 			stringPtr(string(row.ContractType)),
 			conv.TimePtrFromPgDate(row.ContractStartDate),
 			conv.TimePtrFromPgDate(row.ContractEndDate),
+			conv.TimePtrFromPgDate(row.EffectiveEndDate),
 			row.CreatedAt,
 			row.UpdatedAt,
 		))
@@ -471,6 +473,7 @@ func (r *leaveTxRepo) GetLeaveBalanceForUpdate(
 		nil,
 		nil,
 		nil,
+		nil,
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
@@ -528,6 +531,7 @@ func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(
 		nil,
 		nil,
 		nil,
+		nil,
 		row.CreatedAt,
 		row.UpdatedAt,
 	)
@@ -559,6 +563,7 @@ func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(
 		row.ExtraTotalHours,
 		row.LegalUsedHours,
 		row.ExtraUsedHours,
+		nil,
 		nil,
 		nil,
 		nil,
@@ -665,6 +670,7 @@ func toDomainLeaveBalance(
 	contractType *string,
 	contractStartDate *time.Time,
 	contractEndDate *time.Time,
+	effectiveEndDate *time.Time,
 	createdAt pgtype.Timestamptz,
 	updatedAt pgtype.Timestamptz,
 ) domain.LeaveBalance {
@@ -686,6 +692,7 @@ func toDomainLeaveBalance(
 		ContractType:      contractType,
 		ContractStartDate: contractStartDate,
 		ContractEndDate:   contractEndDate,
+		EffectiveEndDate:  effectiveEndDate,
 		CreatedAt:         conv.TimeFromPgTimestamptz(createdAt),
 		UpdatedAt:         conv.TimeFromPgTimestamptz(updatedAt),
 	}

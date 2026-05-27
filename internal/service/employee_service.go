@@ -359,17 +359,21 @@ func (s *EmployeeService) ListQualifications(
 	return items, nil
 }
 
-func (s *EmployeeService) AddQualification(
+func (s *EmployeeService) AddQualifications(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	params domain.CreateQualificationParams,
-) (*domain.Qualification, error) {
-	qual, err := s.repo.AddQualification(ctx, employeeID, params)
-	if err != nil {
-		s.logError(ctx, "AddQualification", err, zap.String("employee_id", employeeID.String()))
-		return nil, err
+	params []domain.CreateQualificationParams,
+) (int, error) {
+	if _, err := s.repo.GetEmployeeByID(ctx, employeeID); err != nil {
+		return 0, err
 	}
-	return qual, nil
+
+	count, err := s.repo.AddQualifications(ctx, employeeID, params)
+	if err != nil {
+		s.logError(ctx, "AddQualifications", err, zap.String("employee_id", employeeID.String()))
+		return 0, err
+	}
+	return count, nil
 }
 
 func (s *EmployeeService) UpdateQualification(
@@ -409,17 +413,21 @@ func (s *EmployeeService) ListEmployeeAuthorizations(
 	return items, nil
 }
 
-func (s *EmployeeService) AddEmployeeAuthorization(
+func (s *EmployeeService) AddEmployeeAuthorizations(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	params domain.CreateEmployeeAuthorizationParams,
-) (*domain.EmployeeAuthorization, error) {
-	authRecord, err := s.repo.AddEmployeeAuthorization(ctx, employeeID, params)
-	if err != nil {
-		s.logError(ctx, "AddEmployeeAuthorization", err, zap.String("employee_id", employeeID.String()))
-		return nil, err
+	params []domain.CreateEmployeeAuthorizationParams,
+) (int, error) {
+	if _, err := s.repo.GetEmployeeByID(ctx, employeeID); err != nil {
+		return 0, err
 	}
-	return authRecord, nil
+
+	count, err := s.repo.AddEmployeeAuthorizations(ctx, employeeID, params)
+	if err != nil {
+		s.logError(ctx, "AddEmployeeAuthorizations", err, zap.String("employee_id", employeeID.String()))
+		return 0, err
+	}
+	return count, nil
 }
 
 func (s *EmployeeService) UpdateEmployeeAuthorization(
@@ -512,6 +520,161 @@ func (s *EmployeeService) ResetPassword(
 	}
 
 	return &domain.ResetPasswordResult{TemporaryPassword: plainPassword}, nil
+}
+
+func (s *EmployeeService) CreateContractAmendment(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	contractID uuid.UUID,
+	params domain.CreateContractAmendmentParams,
+) (*domain.EmployeeDetail, error) {
+	baseContract, err := s.repo.GetEmployeeContractByID(ctx, contractID)
+	if err != nil {
+		s.logError(ctx, "CreateContractAmendment", err,
+			zap.String("contract_id", contractID.String()),
+			zap.String("employee_id", employeeID.String()),
+		)
+		return nil, fmt.Errorf("%w: base contract not found", domain.ErrContractChangeInvalid)
+	}
+
+	if baseContract.EmployeeID != employeeID {
+		return nil, fmt.Errorf("%w: contract does not belong to employee", domain.ErrContractChangeInvalid)
+	}
+
+	if !params.StartDate.After(baseContract.StartDate) {
+		return nil, fmt.Errorf(
+			"%w: amendment start_date must be after base contract start_date",
+			domain.ErrContractChangeInvalid,
+		)
+	}
+
+	if params.ContractEndDate != nil && !params.ContractEndDate.After(params.StartDate) {
+		return nil, fmt.Errorf(
+			"%w: amendment contract_end_date must be after start_date",
+			domain.ErrContractChangeInvalid,
+		)
+	}
+
+	if _, err := parseContractHoursType(
+		params.ContractHoursType,
+		params.HoursPerWeek,
+		params.MinHoursPerWeek,
+		params.MaxHoursPerWeek,
+	); err != nil {
+		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+	}
+
+	var emp *domain.EmployeeDetail
+	err = s.repo.WithTx(ctx, func(tx domain.EmployeeTxRepository) error {
+		oldEndDate := params.StartDate.AddDate(0, 0, -1)
+		if err := tx.EndEmployeeContractSegment(ctx, contractID, oldEndDate, nil); err != nil {
+			return err
+		}
+
+		if _, err := tx.AddEmployeeContractAmendment(ctx, employeeID, contractID, params); err != nil {
+			return err
+		}
+
+		emp, err = tx.GetEmployeeByID(ctx, employeeID)
+		return err
+	})
+	if err != nil {
+		s.logError(ctx, "CreateContractAmendment", err,
+			zap.String("contract_id", contractID.String()),
+			zap.String("employee_id", employeeID.String()),
+		)
+		return nil, err
+	}
+	return emp, nil
+}
+
+func (s *EmployeeService) CreateNewContract(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateNewContractParams,
+) (*domain.EmployeeDetail, error) {
+	if _, err := parseContractHoursType(
+		params.ContractHoursType,
+		params.HoursPerWeek,
+		params.MinHoursPerWeek,
+		params.MaxHoursPerWeek,
+	); err != nil {
+		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+	}
+
+	if params.ContractEndDate != nil && !params.ContractEndDate.After(params.StartDate) {
+		return nil, fmt.Errorf(
+			"%w: contract_end_date must be after start_date",
+			domain.ErrContractChangeInvalid,
+		)
+	}
+
+	var emp *domain.EmployeeDetail
+	err := s.repo.WithTx(ctx, func(tx domain.EmployeeTxRepository) error {
+		overlapping, err := tx.GetEmployeeContractAtDate(ctx, employeeID, params.StartDate)
+		if err != nil {
+			return err
+		}
+
+		var previousContractID *uuid.UUID
+		if overlapping != nil {
+			oldEndDate := params.StartDate.AddDate(0, 0, -1)
+			if err := tx.EndEmployeeContractSegment(ctx, overlapping.ID, oldEndDate, nil); err != nil {
+				return err
+			}
+			previousContractID = &overlapping.ID
+		}
+
+		if _, err := tx.AddNewContract(ctx, employeeID, previousContractID, params); err != nil {
+			return err
+		}
+
+		emp, err = tx.GetEmployeeByID(ctx, employeeID)
+		return err
+	})
+	if err != nil {
+		s.logError(ctx, "CreateNewContract", err,
+			zap.String("employee_id", employeeID.String()),
+		)
+		return nil, err
+	}
+	return emp, nil
+}
+
+func (s *EmployeeService) ListEmployeeContracts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.EmployeeContractDetail, error) {
+	return s.repo.ListEmployeeContracts(ctx, employeeID)
+}
+
+func (s *EmployeeService) UpdateEmployeeContract(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	contractID uuid.UUID,
+	params domain.UpdateEmployeeContractParams,
+) (*domain.EmployeeContractDetail, error) {
+	if params.ContractHoursType != nil {
+		if _, err := parseContractHoursType(
+			*params.ContractHoursType,
+			params.HoursPerWeek,
+			params.MinHoursPerWeek,
+			params.MaxHoursPerWeek,
+		); err != nil {
+			return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+		}
+	}
+
+	contract, err := s.repo.UpdateEmployeeContract(ctx, employeeID, contractID, params)
+	if err != nil {
+		s.logError(ctx, "UpdateEmployeeContract", err,
+			zap.String("contract_id", contractID.String()),
+			zap.String("employee_id", employeeID.String()),
+		)
+		return nil, err
+	}
+
+	return contract, nil
 }
 
 func (s *EmployeeService) logError(

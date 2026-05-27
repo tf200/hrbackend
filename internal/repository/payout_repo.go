@@ -917,6 +917,7 @@ func (r *payoutTxRepo) ApplyLeaveBalanceDeduction(
 		nil,
 		nil,
 		nil,
+		nil,
 		row.CreatedAt,
 		row.UpdatedAt,
 	)

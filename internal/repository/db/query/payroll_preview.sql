@@ -22,6 +22,7 @@ JOIN LATERAL (
     FROM employee_contracts c
     WHERE c.employee_id = te.employee_id
       AND c.start_date <= te.entry_date
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= te.entry_date)
       AND (c.contract_end_date IS NULL OR c.contract_end_date >= te.entry_date)
     ORDER BY c.start_date DESC, c.created_at DESC
     LIMIT 1

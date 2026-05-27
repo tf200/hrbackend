@@ -72,15 +72,6 @@ func (s *ScheduleService) CreateSchedule(
 					return nil, createErr
 				}
 				results = append(results, *res)
-				s.sendNotificationForNewSchedule(
-					ctx,
-					res.ID,
-					creatorID,
-					assigneeID,
-					res.StartDatetime,
-					res.EndDatetime,
-					res.LocationName,
-				)
 			}
 		}
 		return results, nil
@@ -120,15 +111,6 @@ func (s *ScheduleService) CreateSchedule(
 				return nil, createErr
 			}
 			results = append(results, *res)
-			s.sendNotificationForNewSchedule(
-				ctx,
-				res.ID,
-				creatorID,
-				assigneeID,
-				res.StartDatetime,
-				res.EndDatetime,
-				res.LocationName,
-			)
 		}
 	}
 	return results, nil
@@ -569,15 +551,6 @@ func (s *ScheduleService) UpdateSchedule(
 		}
 	}
 
-	s.sendNotificationForUpdatedSchedule(
-		ctx,
-		res.ID,
-		updaterEmployeeID,
-		res.EmployeeID,
-		res.StartDatetime,
-		res.EndDatetime,
-		res.LocationName,
-	)
 	return res, nil
 }
 
@@ -819,41 +792,6 @@ func (s *ScheduleService) createPresetScheduleForDate(
 	return schedule, nil
 }
 
-func (s *ScheduleService) sendNotificationForNewSchedule(
-	ctx context.Context,
-	scheduleID uuid.UUID,
-	creatorID, recipientID uuid.UUID,
-	startTime, endTime time.Time,
-	locationName string,
-) {
-	if s.asynqClient == nil {
-		return
-	}
-	notifData := &domain.NewScheduleNotificationTaskData{
-		ScheduleID: scheduleID,
-		CreatedBy:  creatorID,
-		StartTime:  startTime,
-		EndTime:    endTime,
-		Location:   locationName,
-	}
-	err := s.asynqClient.EnqueueNotificationTask(ctx, domain.NotificationTaskPayload{
-		RecipientUserIDs: []uuid.UUID{recipientID},
-		Type:             domain.TypeNewScheduleNotification,
-		Data:             domain.NotificationTaskData{NewScheduleNotification: notifData},
-		CreatedAt:        time.Now(),
-		Message:          "notifData.NewScheduleMessage()",
-	}, &domain.TaskEnqueueOptions{MaxRetry: 3})
-	if err != nil {
-		s.logError(
-			ctx,
-			"sendNotificationForNewSchedule",
-			"failed to enqueue new schedule notification",
-			err,
-			zap.String("schedule_id", scheduleID.String()),
-		)
-	}
-}
-
 func (s *ScheduleService) determineScheduleType(
 	req *domain.UpdateScheduleRequest,
 	existingSchedule *domain.GetScheduleByIdResponse,
@@ -1049,40 +987,6 @@ func (s *ScheduleService) validateCustomScheduleUpdate(req *domain.UpdateSchedul
 		)
 	}
 	return nil
-}
-
-func (s *ScheduleService) sendNotificationForUpdatedSchedule(
-	ctx context.Context,
-	scheduleID uuid.UUID,
-	updaterEmployeeID, recipientEmployeeID uuid.UUID,
-	startTime, endTime time.Time,
-	locationName string,
-) {
-	if s.asynqClient == nil {
-		return
-	}
-	notifData := &domain.NewScheduleNotificationTaskData{
-		ScheduleID: scheduleID,
-		CreatedBy:  updaterEmployeeID,
-		StartTime:  startTime,
-		EndTime:    endTime,
-		Location:   locationName,
-	}
-	err := s.asynqClient.EnqueueNotificationTask(ctx, domain.NotificationTaskPayload{
-		RecipientUserIDs: []uuid.UUID{recipientEmployeeID},
-		Type:             domain.TypeNewScheduleNotification,
-		Data:             domain.NotificationTaskData{NewScheduleNotification: notifData},
-		CreatedAt:        time.Now(),
-		Message:          "notifData.UpdatedScheduleMessage()",
-	}, &domain.TaskEnqueueOptions{MaxRetry: 3})
-	if err != nil {
-		s.logError(
-			ctx,
-			"sendNotificationForUpdatedSchedule",
-			"failed to enqueue notification task",
-			err,
-		)
-	}
 }
 
 func (s *ScheduleService) logError(

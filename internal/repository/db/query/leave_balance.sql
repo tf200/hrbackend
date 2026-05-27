@@ -70,6 +70,7 @@ SELECT
     ec.contract_type,
     ec.start_date AS contract_start_date,
     ec.contract_end_date,
+    ec.effective_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
@@ -112,6 +113,7 @@ SELECT
     ec.contract_type,
     ec.start_date AS contract_start_date,
     ec.contract_end_date,
+    ec.effective_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id

@@ -283,11 +283,12 @@ SELECT
     ec.contract_type,
     ec.start_date AS contract_start_date,
     ec.contract_end_date,
+    ec.effective_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
 LEFT JOIN LATERAL (
-    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
     WHERE c.employee_id = ep.id
     ORDER BY c.start_date DESC, c.created_at DESC
@@ -332,6 +333,7 @@ type ListLeaveBalancesPaginatedRow struct {
 	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
 	ContractStartDate pgtype.Date              `json:"contract_start_date"`
 	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
+	EffectiveEndDate  pgtype.Date              `json:"effective_end_date"`
 	TotalCount        int64                    `json:"total_count"`
 }
 
@@ -365,6 +367,7 @@ func (q *Queries) ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveB
 			&i.ContractType,
 			&i.ContractStartDate,
 			&i.ContractEndDate,
+			&i.EffectiveEndDate,
 			&i.TotalCount,
 		); err != nil {
 			return nil, err
@@ -394,11 +397,12 @@ SELECT
     ec.contract_type,
     ec.start_date AS contract_start_date,
     ec.contract_end_date,
+    ec.effective_end_date,
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
 LEFT JOIN LATERAL (
-    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, created_by_employee_id, created_at, updated_at
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
     WHERE c.employee_id = ep.id
     ORDER BY c.start_date DESC, c.created_at DESC
@@ -436,6 +440,7 @@ type ListMyLeaveBalancesPaginatedRow struct {
 	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
 	ContractStartDate pgtype.Date              `json:"contract_start_date"`
 	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
+	EffectiveEndDate  pgtype.Date              `json:"effective_end_date"`
 	TotalCount        int64                    `json:"total_count"`
 }
 
@@ -469,6 +474,7 @@ func (q *Queries) ListMyLeaveBalancesPaginated(ctx context.Context, arg ListMyLe
 			&i.ContractType,
 			&i.ContractStartDate,
 			&i.ContractEndDate,
+			&i.EffectiveEndDate,
 			&i.TotalCount,
 		); err != nil {
 			return nil, err

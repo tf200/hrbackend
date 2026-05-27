@@ -395,6 +395,17 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 		organizationalRoleID = &id
 	}
 
+	if _, err := env.DB.Exec(ctx, `
+		DELETE FROM employee_salary_assignments WHERE employee_id = $1
+	`, employeeID); err != nil {
+		return fmt.Errorf("delete salary assignments: %w", err)
+	}
+	if _, err := env.DB.Exec(ctx, `
+		DELETE FROM employee_contracts WHERE employee_id = $1
+	`, employeeID); err != nil {
+		return fmt.Errorf("delete contracts: %w", err)
+	}
+
 	var contractID uuid.UUID
 	err := env.DB.QueryRow(ctx, `
 		INSERT INTO employee_contracts (
@@ -411,31 +422,17 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 			min_hours_per_week,
 			max_hours_per_week,
 			roster_free_day,
-			wage_tax_table
+			wage_tax_table,
+			contract_event_type
 		)
-		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7::contract_hours_type_enum, $8, $9, $10, $11, $12, $13, $14::wage_tax_table_enum)
-		ON CONFLICT (employee_id, start_date) DO UPDATE
-		SET
-			job_title = EXCLUDED.job_title,
-			department_id = EXCLUDED.department_id,
-			location_id = EXCLUDED.location_id,
-			organizational_role_id = EXCLUDED.organizational_role_id,
-			contract_type = EXCLUDED.contract_type,
-			contract_hours_type = EXCLUDED.contract_hours_type,
-			contract_end_date = EXCLUDED.contract_end_date,
-			hours_per_week = EXCLUDED.hours_per_week,
-			min_hours_per_week = EXCLUDED.min_hours_per_week,
-			max_hours_per_week = EXCLUDED.max_hours_per_week,
-			roster_free_day = EXCLUDED.roster_free_day,
-			wage_tax_table = EXCLUDED.wage_tax_table,
-			updated_at = CURRENT_TIMESTAMP
+		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7::contract_hours_type_enum, $8, $9, $10, $11, $12, $13, $14::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
 		RETURNING id
 	`, employeeID, item.Contract.JobTitle, departmentID, locationID, organizationalRoleID,
 		item.Contract.ContractType, item.Contract.ContractHoursType, item.Contract.StartDate,
 		item.Contract.ContractEndDate, item.Contract.HoursPerWeek, item.Contract.MinHoursPerWeek,
 		item.Contract.MaxHoursPerWeek, item.Contract.RosterFreeDay, item.Contract.WageTaxTable).Scan(&contractID)
 	if err != nil {
-		return fmt.Errorf("upsert employee contract: %w", err)
+		return fmt.Errorf("insert employee contract: %w", err)
 	}
 
 	if item.SalaryAssignment == nil {
@@ -465,13 +462,6 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 		LIMIT 1
 	`, caoCode, item.SalaryAssignment.Scale, item.SalaryAssignment.Step, *effectiveFrom).Scan(&salaryScaleStepID); err != nil {
 		return fmt.Errorf("resolve salary scale step %s scale %d step %s: %w", caoCode, item.SalaryAssignment.Scale, item.SalaryAssignment.Step, err)
-	}
-
-	if _, err := env.DB.Exec(ctx, `
-		DELETE FROM employee_salary_assignments
-		WHERE employee_id = $1 AND effective_from = $2
-	`, employeeID, effectiveFrom); err != nil {
-		return fmt.Errorf("reset salary assignment: %w", err)
 	}
 
 	_, err = env.DB.Exec(ctx, `

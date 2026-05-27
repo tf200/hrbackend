@@ -435,16 +435,11 @@ CREATE INDEX idx_sessions_expires ON sessions("expires_at");
 CREATE INDEX idx_sessions_token_blocked ON sessions("refresh_token", "is_blocked");
 
 
--- Notification types ENUM
-CREATE TYPE notification_type_enum AS ENUM (
-    'general'
-);
-
 -- Notifications for users
 CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES custom_user(id) ON DELETE CASCADE,
-    type notification_type_enum NOT NULL,
+    type TEXT NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     data JSONB NULL,
@@ -492,6 +487,7 @@ CREATE TYPE gender_enum AS ENUM ('male', 'female', 'other', 'unknown');
 -- Employee Contract Type ENUM
 CREATE TYPE employee_contract_type_enum AS ENUM ('permanent', 'temporary', 'on_call');
 CREATE TYPE contract_hours_type_enum AS ENUM ('fixed', 'zero_hours', 'min_max');
+CREATE TYPE employee_contract_event_type_enum AS ENUM ('initial', 'amendment', 'renewal', 'new_contract');
 CREATE TYPE irregular_hours_profile_enum AS ENUM ('none', 'roster', 'non_roster');
 CREATE TYPE employee_job_title_enum AS ENUM ('youth_worker_d', 'care_coordinator', 'behavioral_scientist', 'quality_officer', 'pedagogical_worker', 'team_lead', 'manager', 'administrative_employee');
 CREATE TYPE name_in_use_enum AS ENUM ('first_name', 'last_name');
@@ -570,15 +566,21 @@ CREATE TABLE employee_contracts (
     contract_hours_type contract_hours_type_enum NOT NULL,
     start_date DATE NOT NULL,
     contract_end_date DATE NULL,
+    effective_end_date DATE NULL,
     hours_per_week NUMERIC(4,1) NULL,
     min_hours_per_week NUMERIC(4,1) NULL,
     max_hours_per_week NUMERIC(4,1) NULL,
     roster_free_day SMALLINT NULL,
     wage_tax_table wage_tax_table_enum NULL,
+    previous_contract_id UUID NULL REFERENCES employee_contracts(id) ON DELETE SET NULL,
+    contract_event_type employee_contract_event_type_enum NOT NULL DEFAULT 'initial',
+    change_reason TEXT NULL,
+    updated_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
     created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT employee_contracts_date_order CHECK (contract_end_date IS NULL OR contract_end_date >= start_date),
+    CONSTRAINT employee_contracts_effective_end_date_order CHECK (effective_end_date IS NULL OR effective_end_date >= start_date),
     CONSTRAINT employee_contracts_roster_free_day_valid CHECK (roster_free_day IS NULL OR roster_free_day BETWEEN 0 AND 6),
     CONSTRAINT employee_contracts_hours_per_week_valid CHECK (hours_per_week IS NULL OR (hours_per_week >= 0 AND hours_per_week <= 40)),
     CONSTRAINT employee_contracts_min_hours_valid CHECK (min_hours_per_week IS NULL OR (min_hours_per_week >= 0 AND min_hours_per_week <= 40)),
@@ -587,14 +589,18 @@ CREATE TABLE employee_contracts (
     CONSTRAINT employee_contracts_min_hours_half_step CHECK (min_hours_per_week IS NULL OR min_hours_per_week * 2 = floor(min_hours_per_week * 2)),
     CONSTRAINT employee_contracts_max_hours_half_step CHECK (max_hours_per_week IS NULL OR max_hours_per_week * 2 = floor(max_hours_per_week * 2)),
     CONSTRAINT employee_contracts_min_max_order CHECK (min_hours_per_week IS NULL OR max_hours_per_week IS NULL OR min_hours_per_week <= max_hours_per_week),
+    CONSTRAINT employee_contracts_previous_not_self CHECK (previous_contract_id IS NULL OR previous_contract_id <> id),
     CONSTRAINT employee_contracts_unique_employee_start_date UNIQUE (employee_id, start_date)
 );
 
 CREATE INDEX idx_employee_contracts_employee_start_date_desc
 ON employee_contracts(employee_id, start_date DESC);
+CREATE INDEX idx_employee_contracts_effective_window
+ON employee_contracts(employee_id, start_date DESC, effective_end_date);
 CREATE INDEX idx_employee_contracts_department_id ON employee_contracts(department_id);
 CREATE INDEX idx_employee_contracts_location_id ON employee_contracts(location_id);
 CREATE INDEX idx_employee_contracts_organizational_role_id ON employee_contracts(organizational_role_id);
+CREATE INDEX idx_employee_contracts_previous_contract_id ON employee_contracts(previous_contract_id);
 
 CREATE TABLE cao_salary_tables (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1259,17 +1265,18 @@ BEGIN
     FROM (
         SELECT
             ec.start_date,
-            COALESCE(
-                LEAST(
-                    COALESCE(ec.contract_end_date, make_date(p_year, 12, 31)),
+            LEAST(
+                COALESCE(ec.contract_end_date, make_date(p_year, 12, 31)),
+                COALESCE(ec.effective_end_date, make_date(p_year, 12, 31)),
+                COALESCE(
                     (
                         LEAD(ec.start_date) OVER (
                             PARTITION BY ec.employee_id
                             ORDER BY ec.start_date
                         ) - INTERVAL '1 day'
-                    )::DATE
-                ),
-                COALESCE(ec.contract_end_date, make_date(p_year, 12, 31))
+                    )::DATE,
+                    make_date(p_year, 12, 31)
+                )
             ) AS segment_end,
             CASE
                 WHEN ec.contract_hours_type = 'fixed' THEN COALESCE(ec.hours_per_week, 0)

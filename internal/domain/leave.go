@@ -85,6 +85,7 @@ type LeaveBalance struct {
 	ContractType      *string
 	ContractStartDate *time.Time
 	ContractEndDate   *time.Time
+	EffectiveEndDate  *time.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }

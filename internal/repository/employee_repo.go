@@ -143,8 +143,8 @@ func (tx *employeeTxRepo) GetEmployeeByID(ctx context.Context, id uuid.UUID) (*d
 	}
 
 	employee := toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row)
-	if contractRow, err := tx.queries.GetLatestEmployeeContractDetail(ctx, id); err == nil {
-		applyEmployeeContractDetail(employee, contractRow)
+	if contractRow, err := tx.queries.GetActiveEmployeeContractDetail(ctx, id); err == nil {
+		mapActiveContractScalars(employee, contractRow)
 	} else if !isDBNotFound(err) {
 		return nil, err
 	}
@@ -246,8 +246,8 @@ func (r *EmployeeRepository) GetEmployeeByID(
 	}
 
 	employee := toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(row)
-	if contractRow, err := r.store.GetLatestEmployeeContractDetail(ctx, id); err == nil {
-		applyEmployeeContractDetail(employee, contractRow)
+	if contractRow, err := r.store.GetActiveEmployeeContractDetail(ctx, id); err == nil {
+		mapActiveContractScalars(employee, contractRow)
 	} else if !isDBNotFound(err) {
 		return nil, err
 	}
@@ -605,24 +605,32 @@ func (r *EmployeeRepository) ListQualifications(
 	return result, nil
 }
 
-func (r *EmployeeRepository) AddQualification(
+func (r *EmployeeRepository) AddQualifications(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	params domain.CreateQualificationParams,
-) (*domain.Qualification, error) {
-	row, err := r.store.AddEmployeeQualification(ctx, db.AddEmployeeQualificationParams{
-		EmployeeID:        employeeID,
-		QualificationID:   params.QualificationID,
-		AchievedOn:        conv.PgDateFromTime(params.AchievedOn),
-		ExpirationDate:    pgDateFromPtr(params.ExpirationDate),
-		CertificateNumber: params.CertificateNumber,
-	})
-	if err != nil {
-		return nil, err
+	params []domain.CreateQualificationParams,
+) (int, error) {
+	if len(params) == 0 {
+		return 0, nil
 	}
 
-	result := toDomainQualification(row)
-	return &result, nil
+	arg := make([]db.AddEmployeeQualificationsBatchParams, len(params))
+	for i, p := range params {
+		arg[i] = db.AddEmployeeQualificationsBatchParams{
+			EmployeeID:        employeeID,
+			QualificationID:   p.QualificationID,
+			AchievedOn:        conv.PgDateFromTime(p.AchievedOn),
+			ExpirationDate:    pgDateFromPtr(p.ExpirationDate),
+			CertificateNumber: p.CertificateNumber,
+		}
+	}
+
+	n, err := r.store.AddEmployeeQualificationsBatch(ctx, arg)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(n), nil
 }
 
 func (r *EmployeeRepository) UpdateQualification(
@@ -698,27 +706,34 @@ func (r *EmployeeRepository) ListEmployeeAttachments(
 	return result, nil
 }
 
-func (r *EmployeeRepository) AddEmployeeAuthorization(
+func (r *EmployeeRepository) AddEmployeeAuthorizations(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	params domain.CreateEmployeeAuthorizationParams,
-) (*domain.EmployeeAuthorization, error) {
-	isActive := !params.ExpiryDate.Before(time.Now().UTC().Truncate(24 * time.Hour))
-
-	row, err := r.store.AddEmployeeAuthorization(ctx, db.AddEmployeeAuthorizationParams{
-		EmployeeID:      employeeID,
-		AuthorizationID: params.AuthorizationID,
-		GrantedDate:     conv.PgDateFromTime(params.GrantedDate),
-		ExpiryDate:      conv.PgDateFromTime(params.ExpiryDate),
-		IsActive:        isActive,
-		Notes:           params.Notes,
-	})
-	if err != nil {
-		return nil, err
+	params []domain.CreateEmployeeAuthorizationParams,
+) (int, error) {
+	if len(params) == 0 {
+		return 0, nil
 	}
 
-	result := toDomainEmployeeAuthorization(row)
-	return &result, nil
+	arg := make([]db.AddEmployeeAuthorizationsBatchParams, len(params))
+	for i, p := range params {
+		isActive := !p.ExpiryDate.Before(time.Now().UTC().Truncate(24 * time.Hour))
+		arg[i] = db.AddEmployeeAuthorizationsBatchParams{
+			EmployeeID:      employeeID,
+			AuthorizationID: p.AuthorizationID,
+			GrantedDate:     conv.PgDateFromTime(p.GrantedDate),
+			ExpiryDate:      conv.PgDateFromTime(p.ExpiryDate),
+			IsActive:        isActive,
+			Notes:           p.Notes,
+		}
+	}
+
+	n, err := r.store.AddEmployeeAuthorizationsBatch(ctx, arg)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(n), nil
 }
 
 func (r *EmployeeRepository) UpdateEmployeeAuthorization(
@@ -822,14 +837,17 @@ func toDomainEmployeeDetailFromGetEmployeeProfileByIDRow(
 	return employee
 }
 
-func applyEmployeeContractDetail(employee *domain.EmployeeDetail, row db.GetLatestEmployeeContractDetailRow) {
+func mapActiveContractScalars(employee *domain.EmployeeDetail, row db.GetActiveEmployeeContractDetailRow) {
 	employee.LocationID = &row.LocationID
 	employee.DepartmentID = &row.DepartmentID
 	employee.ContractType = string(row.ContractType)
 	employee.ContractStartDate = conv.TimePtrFromPgDate(row.StartDate)
 	employee.ContractEndDate = conv.TimePtrFromPgDate(row.ContractEndDate)
 	employee.ContractHours = row.HoursPerWeek
-	employee.Contract = &domain.EmployeeContractDetail{
+}
+
+func toDomainContractDetail(row db.ListEmployeeContractDetailsRow) domain.EmployeeContractDetail {
+	return domain.EmployeeContractDetail{
 		ID:                     row.ID,
 		JobTitle:               string(row.JobTitle),
 		DepartmentID:           row.DepartmentID,
@@ -842,14 +860,57 @@ func applyEmployeeContractDetail(employee *domain.EmployeeDetail, row db.GetLate
 		ContractHoursType:      string(row.ContractHoursType),
 		StartDate:              conv.TimeFromPgDate(row.StartDate),
 		ContractEndDate:        conv.TimePtrFromPgDate(row.ContractEndDate),
+		EffectiveEndDate:       conv.TimePtrFromPgDate(row.EffectiveEndDate),
+		PreviousContractID:     row.PreviousContractID,
+		ContractEventType:      string(row.ContractEventType),
+		IsActive:               isContractActiveNow(row.StartDate, row.EffectiveEndDate, row.ContractEndDate),
 		HoursPerWeek:           row.HoursPerWeek,
 		MinHoursPerWeek:        row.MinHoursPerWeek,
 		MaxHoursPerWeek:        row.MaxHoursPerWeek,
 		RosterFreeDay:          row.RosterFreeDay,
 		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
-		CreatedAt:              conv.TimeFromPgTimestamptz(row.CreatedAt),
-		UpdatedAt:              conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		CreatedAt:              row.CreatedAt.Time,
+		UpdatedAt:              row.UpdatedAt.Time,
 	}
+}
+
+func toDomainContractDetailFromRow(row db.EmployeeContract) domain.EmployeeContractDetail {
+	return domain.EmployeeContractDetail{
+		ID:                     row.ID,
+		JobTitle:               string(row.JobTitle),
+		DepartmentID:           row.DepartmentID,
+		LocationID:             row.LocationID,
+		OrganizationalRoleID:   row.OrganizationalRoleID,
+		ContractType:           string(row.ContractType),
+		ContractHoursType:      string(row.ContractHoursType),
+		StartDate:              conv.TimeFromPgDate(row.StartDate),
+		ContractEndDate:        conv.TimePtrFromPgDate(row.ContractEndDate),
+		EffectiveEndDate:       conv.TimePtrFromPgDate(row.EffectiveEndDate),
+		PreviousContractID:     row.PreviousContractID,
+		ContractEventType:      string(row.ContractEventType),
+		IsActive:               isContractActiveNow(row.StartDate, row.EffectiveEndDate, row.ContractEndDate),
+		HoursPerWeek:           row.HoursPerWeek,
+		MinHoursPerWeek:        row.MinHoursPerWeek,
+		MaxHoursPerWeek:        row.MaxHoursPerWeek,
+		RosterFreeDay:          row.RosterFreeDay,
+		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
+		CreatedAt:              row.CreatedAt.Time,
+		UpdatedAt:              row.UpdatedAt.Time,
+	}
+}
+
+func isContractActiveNow(startDate pgtype.Date, effectiveEndDate pgtype.Date, contractEndDate pgtype.Date) bool {
+	now := time.Now()
+	if !startDate.Valid || startDate.Time.After(now) {
+		return false
+	}
+	if effectiveEndDate.Valid && effectiveEndDate.Time.Before(now) {
+		return false
+	}
+	if contractEndDate.Valid && contractEndDate.Time.Before(now) {
+		return false
+	}
+	return true
 }
 
 func applyEmployeeSalaryAssignmentDetail(employee *domain.EmployeeDetail, row db.GetLatestEmployeeSalaryAssignmentDetailRow) {
@@ -1093,6 +1154,13 @@ func contractTypePtrFromStringPtr(value *string) *db.EmployeeContractTypeEnum {
 	return enumPtr(contractTypeFromString(*value))
 }
 
+func employeeJobTitleEnumFromStringPtr(value *string) *db.EmployeeJobTitleEnum {
+	if value == nil {
+		return nil
+	}
+	return enumPtr(employeeJobTitleEnumFromString(*value))
+}
+
 func employeeJobTitleEnumFromString(value string) db.EmployeeJobTitleEnum {
 	switch db.EmployeeJobTitleEnum(value) {
 	case db.EmployeeJobTitleEnumYouthWorkerD,
@@ -1107,6 +1175,13 @@ func employeeJobTitleEnumFromString(value string) db.EmployeeJobTitleEnum {
 	default:
 		return ""
 	}
+}
+
+func contractHoursTypePtrFromStringPtr(value *string) *db.ContractHoursTypeEnum {
+	if value == nil {
+		return nil
+	}
+	return enumPtr(contractHoursTypeFromString(*value))
 }
 
 func contractHoursTypeFromString(value string) db.ContractHoursTypeEnum {
@@ -1143,6 +1218,202 @@ func wageTaxTablePtrToStringPtr(value *db.WageTaxTableEnum) *string {
 
 func enumPtr[T any](value T) *T {
 	return &value
+}
+
+func (r *EmployeeRepository) GetEmployeeContractByID(
+	ctx context.Context,
+	contractID uuid.UUID,
+) (*domain.EmployeeContractInfo, error) {
+	row, err := r.store.GetEmployeeContractByID(ctx, contractID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+	return &domain.EmployeeContractInfo{
+		ID:                row.ID,
+		EmployeeID:        row.EmployeeID,
+		ContractType:      string(row.ContractType),
+		ContractHoursType: string(row.ContractHoursType),
+		StartDate:         conv.TimeFromPgDate(row.StartDate),
+		ContractEndDate:   conv.TimePtrFromPgDate(row.ContractEndDate),
+		EffectiveEndDate:  conv.TimePtrFromPgDate(row.EffectiveEndDate),
+		HoursPerWeek:      row.HoursPerWeek,
+	}, nil
+}
+
+func (r *EmployeeRepository) ListEmployeeContracts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) ([]domain.EmployeeContractDetail, error) {
+	rows, err := r.store.ListEmployeeContractDetails(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+	contracts := make([]domain.EmployeeContractDetail, len(rows))
+	for i, row := range rows {
+		contracts[i] = toDomainContractDetail(row)
+	}
+	return contracts, nil
+}
+
+func (tx *employeeTxRepo) EndEmployeeContractSegment(
+	ctx context.Context,
+	contractID uuid.UUID,
+	endDate time.Time,
+	updatedBy *uuid.UUID,
+) error {
+	_, err := tx.queries.EndEmployeeContractSegment(ctx, db.EndEmployeeContractSegmentParams{
+		ID:                  contractID,
+		EffectiveEndDate:    conv.PgDateFromTime(endDate),
+		UpdatedByEmployeeID: updatedBy,
+	})
+	return err
+}
+
+func (tx *employeeTxRepo) GetEmployeeContractAtDate(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	targetDate time.Time,
+) (*domain.EmployeeContractInfo, error) {
+	contract, err := tx.queries.GetEmployeeContractAtDate(ctx, db.GetEmployeeContractAtDateParams{
+		EmployeeID: employeeID,
+		TargetDate: conv.PgDateFromTime(targetDate),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &domain.EmployeeContractInfo{
+		ID:                contract.ID,
+		EmployeeID:        contract.EmployeeID,
+		ContractType:      string(contract.ContractType),
+		ContractHoursType: string(contract.ContractHoursType),
+		StartDate:         contract.StartDate.Time,
+		ContractEndDate:   conv.TimePtrFromPgDate(contract.ContractEndDate),
+		EffectiveEndDate:  conv.TimePtrFromPgDate(contract.EffectiveEndDate),
+		HoursPerWeek:      contract.HoursPerWeek,
+	}, nil
+}
+
+func (tx *employeeTxRepo) AddNewContract(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	previousContractID *uuid.UUID,
+	params domain.CreateNewContractParams,
+) (uuid.UUID, error) {
+	contract, err := tx.queries.AddEmployeeNewContract(ctx, db.AddEmployeeNewContractParams{
+		EmployeeID:           employeeID,
+		JobTitle:             employeeJobTitleEnumFromString(params.JobTitle),
+		DepartmentID:         params.DepartmentID,
+		LocationID:           params.LocationID,
+		OrganizationalRoleID: params.OrganizationalRoleID,
+		ContractType:         contractTypeFromString(params.ContractType),
+		ContractHoursType:    contractHoursTypeFromString(params.ContractHoursType),
+		StartDate:            conv.PgDateFromTime(params.StartDate),
+		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
+		HoursPerWeek:         params.HoursPerWeek,
+		MinHoursPerWeek:      params.MinHoursPerWeek,
+		MaxHoursPerWeek:      params.MaxHoursPerWeek,
+		RosterFreeDay:        params.RosterFreeDay,
+		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
+		PreviousContractID:   previousContractID,
+		CreatedByEmployeeID:  nil,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return contract.ID, nil
+}
+
+func (tx *employeeTxRepo) UpdateEmployeeContract(ctx context.Context, employeeID, contractID uuid.UUID, params domain.UpdateEmployeeContractParams) (*domain.EmployeeContractDetail, error) {
+	row, err := tx.queries.UpdateEmployeeContract(ctx, db.UpdateEmployeeContractParams{
+		JobTitle:             employeeJobTitleEnumFromStringPtr(params.JobTitle),
+		DepartmentID:         params.DepartmentID,
+		LocationID:           params.LocationID,
+		OrganizationalRoleID: params.OrganizationalRoleID,
+		ContractType:         contractTypePtrFromStringPtr(params.ContractType),
+		ContractHoursType:    contractHoursTypePtrFromStringPtr(params.ContractHoursType),
+		StartDate:            pgDateFromPtr(params.StartDate),
+		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
+		HoursPerWeek:         params.HoursPerWeek,
+		MinHoursPerWeek:      params.MinHoursPerWeek,
+		MaxHoursPerWeek:      params.MaxHoursPerWeek,
+		RosterFreeDay:        params.RosterFreeDay,
+		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
+		ID:                   contractID,
+		EmployeeID:           employeeID,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+	detail := toDomainContractDetailFromRow(row)
+	return &detail, nil
+}
+
+func (r *EmployeeRepository) UpdateEmployeeContract(ctx context.Context, employeeID, contractID uuid.UUID, params domain.UpdateEmployeeContractParams) (*domain.EmployeeContractDetail, error) {
+	row, err := r.store.UpdateEmployeeContract(ctx, db.UpdateEmployeeContractParams{
+		JobTitle:             employeeJobTitleEnumFromStringPtr(params.JobTitle),
+		DepartmentID:         params.DepartmentID,
+		LocationID:           params.LocationID,
+		OrganizationalRoleID: params.OrganizationalRoleID,
+		ContractType:         contractTypePtrFromStringPtr(params.ContractType),
+		ContractHoursType:    contractHoursTypePtrFromStringPtr(params.ContractHoursType),
+		StartDate:            pgDateFromPtr(params.StartDate),
+		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
+		HoursPerWeek:         params.HoursPerWeek,
+		MinHoursPerWeek:      params.MinHoursPerWeek,
+		MaxHoursPerWeek:      params.MaxHoursPerWeek,
+		RosterFreeDay:        params.RosterFreeDay,
+		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
+		ID:                   contractID,
+		EmployeeID:           employeeID,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+	detail := toDomainContractDetailFromRow(row)
+	return &detail, nil
+}
+
+func (tx *employeeTxRepo) AddEmployeeContractAmendment(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	previousContractID uuid.UUID,
+	params domain.CreateContractAmendmentParams,
+) (uuid.UUID, error) {
+	contract, err := tx.queries.AddEmployeeContractAmendment(ctx, db.AddEmployeeContractAmendmentParams{
+		EmployeeID:           employeeID,
+		JobTitle:             employeeJobTitleEnumFromString(params.JobTitle),
+		DepartmentID:         params.DepartmentID,
+		LocationID:           params.LocationID,
+		OrganizationalRoleID: params.OrganizationalRoleID,
+		ContractType:         contractTypeFromString(params.ContractType),
+		ContractHoursType:    contractHoursTypeFromString(params.ContractHoursType),
+		StartDate:            conv.PgDateFromTime(params.StartDate),
+		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
+		HoursPerWeek:         params.HoursPerWeek,
+		MinHoursPerWeek:      params.MinHoursPerWeek,
+		MaxHoursPerWeek:      params.MaxHoursPerWeek,
+		RosterFreeDay:        params.RosterFreeDay,
+		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
+		PreviousContractID:   &previousContractID,
+		ChangeReason:         params.ChangeReason,
+		CreatedByEmployeeID:  nil,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return contract.ID, nil
 }
 
 func (r *EmployeeRepository) UpdatePassword(

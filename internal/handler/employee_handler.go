@@ -159,6 +159,157 @@ func (h *EmployeeHandler) UpdateEmployee(ctx *gin.Context) {
 	)
 }
 
+func (h *EmployeeHandler) ListEmployeeContracts(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	contracts, err := h.service.ListEmployeeContracts(ctx.Request.Context(), employeeID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list contracts", ""))
+		return
+	}
+
+	items := make([]employeeContractDetailResponse, len(contracts))
+	for i, c := range contracts {
+		items[i] = *toEmployeeContractDetailResponse(&c)
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(items, ""))
+}
+
+func (h *EmployeeHandler) CreateContract(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	var req createContractRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employee, err := h.service.CreateNewContract(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateNewContractParams(req),
+	)
+	if err != nil {
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create contract", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toEmployeeDetailResponse(employee), "Contract created successfully"),
+	)
+}
+
+func (h *EmployeeHandler) UpdateContract(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	contractID, err := uuid.Parse(ctx.Param("contract_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid contract ID", ""))
+		return
+	}
+
+	var req updateContractRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	if req.StartDate != nil {
+		if _, err := parseDatePtr(req.StartDate); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+	}
+	if req.ContractEndDate != nil {
+		if _, err := parseDatePtr(req.ContractEndDate); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+	}
+
+	contract, err := h.service.UpdateEmployeeContract(
+		ctx.Request.Context(),
+		employeeID,
+		contractID,
+		toUpdateEmployeeContractParams(req),
+	)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update contract", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeContractDetailResponse(contract), "Contract updated successfully"),
+	)
+}
+
+func (h *EmployeeHandler) CreateContractAmendment(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	contractID, err := uuid.Parse(ctx.Param("contract_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid contract ID", ""))
+		return
+	}
+
+	var req createContractAmendmentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employee, err := h.service.CreateContractAmendment(
+		ctx.Request.Context(),
+		employeeID,
+		contractID,
+		toCreateContractAmendmentParams(req),
+	)
+	if err != nil {
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create contract amendment", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toEmployeeDetailResponse(employee), "Contract amendment created successfully"),
+	)
+}
+
 func (h *EmployeeHandler) GetEmployeeProfile(ctx *gin.Context) {
 	payload, ok := middleware.AuthPayloadFromContext(ctx.Request.Context())
 	if !ok || payload == nil {
@@ -481,40 +632,40 @@ func (h *EmployeeHandler) AddQualification(ctx *gin.Context) {
 		return
 	}
 
-	var req createQualificationRequest
+	var req []createQualificationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	if _, err := parseDate(req.AchievedOn); err != nil {
+	if len(req) == 0 {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("at least one qualification is required", ""))
+		return
+	}
+
+	params, err := toCreateQualificationsParams(req)
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	if req.ExpirationDate != nil {
-		if _, err := parseDate(*req.ExpirationDate); err != nil {
-			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-			return
-		}
-	}
 
-	qualification, err := h.service.AddQualification(
+	count, err := h.service.AddQualifications(
 		ctx.Request.Context(),
 		employeeID,
-		toCreateQualificationParams(req),
+		params,
 	)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmployeeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add qualification", ""))
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add qualifications", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusCreated,
-		httpapi.OK(toQualificationResponse(qualification), "Qualification added successfully"),
+		httpapi.OK(count, "Qualifications added successfully"),
 	)
 }
 
@@ -689,24 +840,39 @@ func (h *EmployeeHandler) AddEmployeeAuthorization(ctx *gin.Context) {
 		return
 	}
 
-	var req createEmployeeAuthorizationRequest
+	var req []createEmployeeAuthorizationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request payload", err.Error()))
 		return
 	}
 
-	authRecord, err := h.service.AddEmployeeAuthorization(
-		ctx.Request.Context(),
-		employeeID,
-		toCreateEmployeeAuthorizationParams(req),
-	)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add employee authorization", ""))
+	if len(req) == 0 {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("at least one authorization is required", ""))
 		return
 	}
 
-	ctx.JSON(http.StatusOK,
-		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization added successfully"),
+	params, err := toCreateEmployeeAuthorizationsParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	count, err := h.service.AddEmployeeAuthorizations(
+		ctx.Request.Context(),
+		employeeID,
+		params,
+	)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add employee authorizations", ""))
+		return
+	}
+
+	ctx.JSON(http.StatusCreated,
+		httpapi.OK(count, "Employee authorizations added successfully"),
 	)
 }
 

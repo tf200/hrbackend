@@ -130,20 +130,6 @@ type TaskQueue interface {
 		payload EmailDeliveryTaskPayload,
 		opts *TaskEnqueueOptions,
 	) error
-	EnqueueIncident(
-		ctx context.Context,
-		payload IncidentTaskPayload,
-		opts *TaskEnqueueOptions,
-	) error
-	EnqueueIncidentConfirmedEmail(
-		ctx context.Context,
-		payload IncidentConfirmedEmailTaskPayload,
-		opts *TaskEnqueueOptions,
-	) error
-	EnqueueNotificationTask(
-		ctx context.Context,
-		payload NotificationTaskPayload,
-		opts *TaskEnqueueOptions,
-	) error
+
 	Close() error
 }

@@ -110,7 +110,6 @@ type EmployeeDetail struct {
 	HoursPendingApproval       float64
 	TotalHoursWorkedThisYear   float64
 	LastPerformanceReviewScore *float64
-	Contract                   *EmployeeContractDetail
 	SalaryAssignment           *EmployeeSalaryAssignmentDetail
 	Attachments                []EmployeeAttachmentDetail
 	Qualifications             []Qualification
@@ -118,25 +117,29 @@ type EmployeeDetail struct {
 }
 
 type EmployeeContractDetail struct {
-	ID                     uuid.UUID
-	JobTitle               string
-	DepartmentID           uuid.UUID
-	DepartmentName         *string
-	LocationID             uuid.UUID
-	LocationAddress        *string
+	ID                uuid.UUID
+	JobTitle          string
+	DepartmentID      uuid.UUID
+	DepartmentName    *string
+	LocationID        uuid.UUID
+	LocationAddress   *string
 	OrganizationalRoleID   *uuid.UUID
 	OrganizationalRoleName *string
-	ContractType           string
-	ContractHoursType      string
+	ContractType      string
+	ContractHoursType string
 	StartDate              time.Time
 	ContractEndDate        *time.Time
-	HoursPerWeek           *float64
-	MinHoursPerWeek        *float64
-	MaxHoursPerWeek        *float64
-	RosterFreeDay          *int16
-	WageTaxTable           *string
-	CreatedAt              time.Time
-	UpdatedAt              time.Time
+	EffectiveEndDate       *time.Time
+	PreviousContractID *uuid.UUID
+	ContractEventType  string
+	IsActive           bool
+	HoursPerWeek      *float64
+	MinHoursPerWeek   *float64
+	MaxHoursPerWeek   *float64
+	RosterFreeDay     *int16
+	WageTaxTable      *string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type EmployeeSalaryAssignmentDetail struct {
@@ -289,6 +292,66 @@ type CreateEmployeeContractParams struct {
 	WageTaxTable         *string
 }
 
+type EmployeeContractInfo struct {
+	ID                uuid.UUID
+	EmployeeID        uuid.UUID
+	ContractType      string
+	ContractHoursType string
+	StartDate         time.Time
+	ContractEndDate   *time.Time
+	EffectiveEndDate  *time.Time
+	HoursPerWeek      *float64
+}
+
+type CreateNewContractParams struct {
+	JobTitle             string
+	DepartmentID         uuid.UUID
+	LocationID           uuid.UUID
+	OrganizationalRoleID *uuid.UUID
+	ContractType         string
+	ContractHoursType    string
+	StartDate            time.Time
+	ContractEndDate      *time.Time
+	HoursPerWeek         *float64
+	MinHoursPerWeek      *float64
+	MaxHoursPerWeek      *float64
+	RosterFreeDay        *int16
+	WageTaxTable         *string
+}
+
+type UpdateEmployeeContractParams struct {
+	JobTitle             *string    `json:"job_title"`
+	DepartmentID         *uuid.UUID `json:"department_id"`
+	LocationID           *uuid.UUID `json:"location_id"`
+	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
+	ContractType         *string    `json:"contract_type"`
+	ContractHoursType    *string    `json:"contract_hours_type"`
+	StartDate            *time.Time `json:"start_date"`
+	ContractEndDate      *time.Time `json:"contract_end_date"`
+	HoursPerWeek         *float64   `json:"hours_per_week"`
+	MinHoursPerWeek      *float64   `json:"min_hours_per_week"`
+	MaxHoursPerWeek      *float64   `json:"max_hours_per_week"`
+	RosterFreeDay        *int16     `json:"roster_free_day"`
+	WageTaxTable         *string    `json:"wage_tax_table"`
+}
+
+type CreateContractAmendmentParams struct {
+	JobTitle             string
+	DepartmentID         uuid.UUID
+	LocationID           uuid.UUID
+	OrganizationalRoleID *uuid.UUID
+	ContractType         string
+	ContractHoursType    string
+	StartDate            time.Time
+	ContractEndDate      *time.Time
+	HoursPerWeek         *float64
+	MinHoursPerWeek      *float64
+	MaxHoursPerWeek      *float64
+	RosterFreeDay        *int16
+	WageTaxTable         *string
+	ChangeReason         *string
+}
+
 type CreateEmployeeSalaryAssignmentParams struct {
 	SalaryScaleStepID uuid.UUID
 	EffectiveFrom     *time.Time
@@ -425,6 +488,11 @@ type EmployeeTxRepository interface {
 	UpdateAttachmentsUsed(ctx context.Context, ids []uuid.UUID, isUsed bool) error
 	AddEmployeeQualificationsBatch(ctx context.Context, employeeID uuid.UUID, params []CreateQualificationParams) error
 	AddEmployeeAuthorizationsBatch(ctx context.Context, employeeID uuid.UUID, params []CreateEmployeeAuthorizationParams) error
+	EndEmployeeContractSegment(ctx context.Context, contractID uuid.UUID, endDate time.Time, updatedBy *uuid.UUID) error
+	AddEmployeeContractAmendment(ctx context.Context, employeeID uuid.UUID, previousContractID uuid.UUID, params CreateContractAmendmentParams) (uuid.UUID, error)
+	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, targetDate time.Time) (*EmployeeContractInfo, error)
+	AddNewContract(ctx context.Context, employeeID uuid.UUID, previousContractID *uuid.UUID, params CreateNewContractParams) (uuid.UUID, error)
+	UpdateEmployeeContract(ctx context.Context, employeeID, contractID uuid.UUID, params UpdateEmployeeContractParams) (*EmployeeContractDetail, error)
 }
 
 type EmployeeRepository interface {
@@ -476,11 +544,11 @@ type EmployeeRepository interface {
 
 	// Qualification
 	ListQualifications(ctx context.Context, employeeID uuid.UUID) ([]Qualification, error)
-	AddQualification(
+	AddQualifications(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		params CreateQualificationParams,
-	) (*Qualification, error)
+		params []CreateQualificationParams,
+	) (int, error)
 	UpdateQualification(
 		ctx context.Context,
 		id uuid.UUID,
@@ -493,11 +561,11 @@ type EmployeeRepository interface {
 
 	// Employee Authorization
 	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
-	AddEmployeeAuthorization(
+	AddEmployeeAuthorizations(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		params CreateEmployeeAuthorizationParams,
-	) (*EmployeeAuthorization, error)
+		params []CreateEmployeeAuthorizationParams,
+	) (int, error)
 	UpdateEmployeeAuthorization(
 		ctx context.Context,
 		id uuid.UUID,
@@ -507,6 +575,11 @@ type EmployeeRepository interface {
 
 	// Password
 	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
+
+	// Contract
+	GetEmployeeContractByID(ctx context.Context, contractID uuid.UUID) (*EmployeeContractInfo, error)
+	ListEmployeeContracts(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractDetail, error)
+	UpdateEmployeeContract(ctx context.Context, employeeID, contractID uuid.UUID, params UpdateEmployeeContractParams) (*EmployeeContractDetail, error)
 }
 
 type EmployeeService interface {
@@ -556,11 +629,11 @@ type EmployeeService interface {
 	DeleteExperience(ctx context.Context, id uuid.UUID) (*Experience, error)
 
 	ListQualifications(ctx context.Context, employeeID uuid.UUID) ([]Qualification, error)
-	AddQualification(
+	AddQualifications(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		params CreateQualificationParams,
-	) (*Qualification, error)
+		params []CreateQualificationParams,
+	) (int, error)
 	UpdateQualification(
 		ctx context.Context,
 		id uuid.UUID,
@@ -569,11 +642,11 @@ type EmployeeService interface {
 	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
 
 	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
-	AddEmployeeAuthorization(
+	AddEmployeeAuthorizations(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		params CreateEmployeeAuthorizationParams,
-	) (*EmployeeAuthorization, error)
+		params []CreateEmployeeAuthorizationParams,
+	) (int, error)
 	UpdateEmployeeAuthorization(
 		ctx context.Context,
 		id uuid.UUID,
@@ -587,4 +660,24 @@ type EmployeeService interface {
 		employeeID uuid.UUID,
 		params ResetPasswordParams,
 	) (*ResetPasswordResult, error)
+
+	// Contract
+	ListEmployeeContracts(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractDetail, error)
+	CreateContractAmendment(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		contractID uuid.UUID,
+		params CreateContractAmendmentParams,
+	) (*EmployeeDetail, error)
+	CreateNewContract(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params CreateNewContractParams,
+	) (*EmployeeDetail, error)
+	UpdateEmployeeContract(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		contractID uuid.UUID,
+		params UpdateEmployeeContractParams,
+	) (*EmployeeContractDetail, error)
 }

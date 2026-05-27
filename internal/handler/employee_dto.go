@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"time"
 
 	"hrbackend/internal/domain"
@@ -23,6 +24,55 @@ type createEmployeeContractRequest struct {
 	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
 	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
 	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+}
+
+type updateContractRequest struct {
+	JobTitle             *string    `json:"job_title" binding:"omitempty,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         *uuid.UUID `json:"department_id"`
+	LocationID           *uuid.UUID `json:"location_id"`
+	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
+	ContractType         *string    `json:"contract_type" binding:"omitempty,oneof=permanent temporary on_call"`
+	ContractHoursType    *string    `json:"contract_hours_type" binding:"omitempty,oneof=fixed zero_hours min_max"`
+	StartDate            *string    `json:"start_date" binding:"omitempty,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
+	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
+	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+}
+
+type createContractRequest struct {
+	JobTitle             string     `json:"job_title" binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID  `json:"department_id" binding:"required"`
+	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
+	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
+	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
+	ContractHoursType    string     `json:"contract_hours_type" binding:"required,oneof=fixed zero_hours min_max"`
+	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
+	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
+	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+}
+
+type createContractAmendmentRequest struct {
+	JobTitle             string     `json:"job_title" binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID  `json:"department_id" binding:"required"`
+	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
+	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
+	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
+	ContractHoursType    string     `json:"contract_hours_type" binding:"required,oneof=fixed zero_hours min_max"`
+	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
+	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
+	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+	ChangeReason         *string    `json:"change_reason"`
 }
 
 type createEmployeeSalaryAssignmentRequest struct {
@@ -211,7 +261,6 @@ type employeeDetailResponse struct {
 	HoursPendingApproval       float64                                 `json:"hours_pending_approval"`
 	TotalHoursWorkedThisYear   float64                                 `json:"total_hours_worked_this_year"`
 	LastPerformanceReviewScore *float64                                `json:"last_performance_review_score"`
-	Contract                   *employeeContractDetailResponse         `json:"contract"`
 	SalaryAssignment           *employeeSalaryAssignmentDetailResponse `json:"salary_assignment"`
 	Attachments                []employeeAttachmentDetailResponse      `json:"attachments"`
 	Qualifications             []qualificationResponse                 `json:"qualifications"`
@@ -231,6 +280,10 @@ type employeeContractDetailResponse struct {
 	ContractHoursType      string     `json:"contract_hours_type"`
 	StartDate              time.Time  `json:"start_date"`
 	ContractEndDate        *time.Time `json:"contract_end_date"`
+	EffectiveEndDate       *time.Time `json:"effective_end_date"`
+	PreviousContractID     *uuid.UUID `json:"previous_contract_id"`
+	ContractEventType      string     `json:"contract_event_type"`
+	IsActive               bool       `json:"is_active"`
 	HoursPerWeek           *float64   `json:"hours_per_week"`
 	MinHoursPerWeek        *float64   `json:"min_hours_per_week"`
 	MaxHoursPerWeek        *float64   `json:"max_hours_per_week"`
@@ -451,6 +504,70 @@ func toCreateEmployeeParams(req createEmployeeRequest) domain.CreateEmployeePara
 	}
 }
 
+func toUpdateEmployeeContractParams(req updateContractRequest) domain.UpdateEmployeeContractParams {
+	startDate, _ := parseDatePtr(req.StartDate)
+	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
+
+	return domain.UpdateEmployeeContractParams{
+		JobTitle:             req.JobTitle,
+		DepartmentID:         req.DepartmentID,
+		LocationID:           req.LocationID,
+		OrganizationalRoleID: req.OrganizationalRoleID,
+		ContractType:         req.ContractType,
+		ContractHoursType:    req.ContractHoursType,
+		StartDate:            startDate,
+		ContractEndDate:      contractEndDate,
+		HoursPerWeek:         req.HoursPerWeek,
+		MinHoursPerWeek:      req.MinHoursPerWeek,
+		MaxHoursPerWeek:      req.MaxHoursPerWeek,
+		RosterFreeDay:        req.RosterFreeDay,
+		WageTaxTable:         req.WageTaxTable,
+	}
+}
+
+func toCreateNewContractParams(req createContractRequest) domain.CreateNewContractParams {
+	startDate, _ := parseDate(req.StartDate)
+	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
+
+	return domain.CreateNewContractParams{
+		JobTitle:             req.JobTitle,
+		DepartmentID:         req.DepartmentID,
+		LocationID:           req.LocationID,
+		OrganizationalRoleID: req.OrganizationalRoleID,
+		ContractType:         req.ContractType,
+		ContractHoursType:    req.ContractHoursType,
+		StartDate:            startDate,
+		ContractEndDate:      contractEndDate,
+		HoursPerWeek:         req.HoursPerWeek,
+		MinHoursPerWeek:      req.MinHoursPerWeek,
+		MaxHoursPerWeek:      req.MaxHoursPerWeek,
+		RosterFreeDay:        req.RosterFreeDay,
+		WageTaxTable:         req.WageTaxTable,
+	}
+}
+
+func toCreateContractAmendmentParams(req createContractAmendmentRequest) domain.CreateContractAmendmentParams {
+	startDate, _ := parseDate(req.StartDate)
+	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
+
+	return domain.CreateContractAmendmentParams{
+		JobTitle:             req.JobTitle,
+		DepartmentID:         req.DepartmentID,
+		LocationID:           req.LocationID,
+		OrganizationalRoleID: req.OrganizationalRoleID,
+		ContractType:         req.ContractType,
+		ContractHoursType:    req.ContractHoursType,
+		StartDate:            startDate,
+		ContractEndDate:      contractEndDate,
+		HoursPerWeek:         req.HoursPerWeek,
+		MinHoursPerWeek:      req.MinHoursPerWeek,
+		MaxHoursPerWeek:      req.MaxHoursPerWeek,
+		RosterFreeDay:        req.RosterFreeDay,
+		WageTaxTable:         req.WageTaxTable,
+		ChangeReason:         req.ChangeReason,
+	}
+}
+
 func toUpdateEmployeeParams(req updateEmployeeRequest) domain.UpdateEmployeeParams {
 	dateOfBirth, _ := parseDatePtr(req.DateOfBirth)
 
@@ -547,6 +664,31 @@ func toCreateQualificationParams(req createQualificationRequest) domain.CreateQu
 	}
 }
 
+func toCreateQualificationsParams(req []createQualificationRequest) ([]domain.CreateQualificationParams, error) {
+	out := make([]domain.CreateQualificationParams, len(req))
+	for i, r := range req {
+		qualificationID, err := uuid.Parse(r.QualificationID)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: invalid qualification_id", i)
+		}
+		achievedOn, err := parseDate(r.AchievedOn)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: invalid achieved_on", i)
+		}
+		expirationDate, err := parseDatePtr(r.ExpirationDate)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: invalid expiration_date", i)
+		}
+		out[i] = domain.CreateQualificationParams{
+			QualificationID:   qualificationID,
+			AchievedOn:        achievedOn,
+			ExpirationDate:    expirationDate,
+			CertificateNumber: r.CertificateNumber,
+		}
+	}
+	return out, nil
+}
+
 func toUpdateQualificationParams(req updateQualificationRequest) domain.UpdateQualificationParams {
 	achievedOn, _ := parseDatePtr(req.AchievedOn)
 	expirationDate, _ := parseDatePtr(req.ExpirationDate)
@@ -557,6 +699,31 @@ func toUpdateQualificationParams(req updateQualificationRequest) domain.UpdateQu
 		ExpirationDate:    expirationDate,
 		CertificateNumber: req.CertificateNumber,
 	}
+}
+
+func toCreateEmployeeAuthorizationsParams(req []createEmployeeAuthorizationRequest) ([]domain.CreateEmployeeAuthorizationParams, error) {
+	out := make([]domain.CreateEmployeeAuthorizationParams, len(req))
+	for i, r := range req {
+		authorizationID, err := uuid.Parse(r.AuthorizationID)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: invalid authorization_id", i)
+		}
+		grantedDate, err := parseDate(r.GrantedDate)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: invalid granted_date", i)
+		}
+		expiryDate, err := parseDate(r.ExpiryDate)
+		if err != nil {
+			return nil, fmt.Errorf("item %d: invalid expiry_date", i)
+		}
+		out[i] = domain.CreateEmployeeAuthorizationParams{
+			AuthorizationID: authorizationID,
+			GrantedDate:     grantedDate,
+			ExpiryDate:      expiryDate,
+			Notes:           r.Notes,
+		}
+	}
+	return out, nil
 }
 
 func toCreateEmployeeAuthorizationParams(req createEmployeeAuthorizationRequest) domain.CreateEmployeeAuthorizationParams {
@@ -661,7 +828,6 @@ func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse
 		HoursPendingApproval:       emp.HoursPendingApproval,
 		TotalHoursWorkedThisYear:   emp.TotalHoursWorkedThisYear,
 		LastPerformanceReviewScore: emp.LastPerformanceReviewScore,
-		Contract:                   toEmployeeContractDetailResponse(emp.Contract),
 		SalaryAssignment:           toEmployeeSalaryAssignmentDetailResponse(emp.SalaryAssignment),
 		Attachments:                attachments,
 		Qualifications:             qualifications,
@@ -686,6 +852,10 @@ func toEmployeeContractDetailResponse(contract *domain.EmployeeContractDetail) *
 		ContractHoursType:      contract.ContractHoursType,
 		StartDate:              contract.StartDate,
 		ContractEndDate:        contract.ContractEndDate,
+		EffectiveEndDate:       contract.EffectiveEndDate,
+		PreviousContractID:     contract.PreviousContractID,
+		ContractEventType:      contract.ContractEventType,
+		IsActive:               contract.IsActive,
 		HoursPerWeek:           contract.HoursPerWeek,
 		MinHoursPerWeek:        contract.MinHoursPerWeek,
 		MaxHoursPerWeek:        contract.MaxHoursPerWeek,

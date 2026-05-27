@@ -226,6 +226,50 @@ func (ns NullContractHoursTypeEnum) Value() (driver.Value, error) {
 	return string(ns.ContractHoursTypeEnum), nil
 }
 
+type EmployeeContractEventTypeEnum string
+
+const (
+	EmployeeContractEventTypeEnumInitial     EmployeeContractEventTypeEnum = "initial"
+	EmployeeContractEventTypeEnumAmendment   EmployeeContractEventTypeEnum = "amendment"
+	EmployeeContractEventTypeEnumRenewal     EmployeeContractEventTypeEnum = "renewal"
+	EmployeeContractEventTypeEnumNewContract EmployeeContractEventTypeEnum = "new_contract"
+)
+
+func (e *EmployeeContractEventTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EmployeeContractEventTypeEnum(s)
+	case string:
+		*e = EmployeeContractEventTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EmployeeContractEventTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullEmployeeContractEventTypeEnum struct {
+	EmployeeContractEventTypeEnum EmployeeContractEventTypeEnum `json:"employee_contract_event_type_enum"`
+	Valid                         bool                          `json:"valid"` // Valid is true if EmployeeContractEventTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEmployeeContractEventTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.EmployeeContractEventTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EmployeeContractEventTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEmployeeContractEventTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EmployeeContractEventTypeEnum), nil
+}
+
 type EmployeeContractTypeEnum string
 
 const (
@@ -936,47 +980,6 @@ func (ns NullNameInUseEnum) Value() (driver.Value, error) {
 	return string(ns.NameInUseEnum), nil
 }
 
-type NotificationTypeEnum string
-
-const (
-	NotificationTypeEnumGeneral NotificationTypeEnum = "general"
-)
-
-func (e *NotificationTypeEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = NotificationTypeEnum(s)
-	case string:
-		*e = NotificationTypeEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for NotificationTypeEnum: %T", src)
-	}
-	return nil
-}
-
-type NullNotificationTypeEnum struct {
-	NotificationTypeEnum NotificationTypeEnum `json:"notification_type_enum"`
-	Valid                bool                 `json:"valid"` // Valid is true if NotificationTypeEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullNotificationTypeEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.NotificationTypeEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.NotificationTypeEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullNotificationTypeEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.NotificationTypeEnum), nil
-}
-
 type PayPeriodStatusEnum string
 
 const (
@@ -1607,24 +1610,29 @@ type EmployeeAuthorization struct {
 }
 
 type EmployeeContract struct {
-	ID                   uuid.UUID                `json:"id"`
-	EmployeeID           uuid.UUID                `json:"employee_id"`
-	JobTitle             EmployeeJobTitleEnum     `json:"job_title"`
-	DepartmentID         uuid.UUID                `json:"department_id"`
-	LocationID           uuid.UUID                `json:"location_id"`
-	OrganizationalRoleID *uuid.UUID               `json:"organizational_role_id"`
-	ContractType         EmployeeContractTypeEnum `json:"contract_type"`
-	ContractHoursType    ContractHoursTypeEnum    `json:"contract_hours_type"`
-	StartDate            pgtype.Date              `json:"start_date"`
-	ContractEndDate      pgtype.Date              `json:"contract_end_date"`
-	HoursPerWeek         *float64                 `json:"hours_per_week"`
-	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
-	RosterFreeDay        *int16                   `json:"roster_free_day"`
-	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
-	CreatedByEmployeeID  *uuid.UUID               `json:"created_by_employee_id"`
-	CreatedAt            pgtype.Timestamptz       `json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz       `json:"updated_at"`
+	ID                   uuid.UUID                     `json:"id"`
+	EmployeeID           uuid.UUID                     `json:"employee_id"`
+	JobTitle             EmployeeJobTitleEnum          `json:"job_title"`
+	DepartmentID         uuid.UUID                     `json:"department_id"`
+	LocationID           uuid.UUID                     `json:"location_id"`
+	OrganizationalRoleID *uuid.UUID                    `json:"organizational_role_id"`
+	ContractType         EmployeeContractTypeEnum      `json:"contract_type"`
+	ContractHoursType    ContractHoursTypeEnum         `json:"contract_hours_type"`
+	StartDate            pgtype.Date                   `json:"start_date"`
+	ContractEndDate      pgtype.Date                   `json:"contract_end_date"`
+	EffectiveEndDate     pgtype.Date                   `json:"effective_end_date"`
+	HoursPerWeek         *float64                      `json:"hours_per_week"`
+	MinHoursPerWeek      *float64                      `json:"min_hours_per_week"`
+	MaxHoursPerWeek      *float64                      `json:"max_hours_per_week"`
+	RosterFreeDay        *int16                        `json:"roster_free_day"`
+	WageTaxTable         *WageTaxTableEnum             `json:"wage_tax_table"`
+	PreviousContractID   *uuid.UUID                    `json:"previous_contract_id"`
+	ContractEventType    EmployeeContractEventTypeEnum `json:"contract_event_type"`
+	ChangeReason         *string                       `json:"change_reason"`
+	UpdatedByEmployeeID  *uuid.UUID                    `json:"updated_by_employee_id"`
+	CreatedByEmployeeID  *uuid.UUID                    `json:"created_by_employee_id"`
+	CreatedAt            pgtype.Timestamptz            `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz            `json:"updated_at"`
 }
 
 type EmployeeEducation struct {
@@ -1933,14 +1941,14 @@ type NationalHoliday struct {
 }
 
 type Notification struct {
-	ID        uuid.UUID            `json:"id"`
-	UserID    uuid.UUID            `json:"user_id"`
-	Type      NotificationTypeEnum `json:"type"`
-	Message   string               `json:"message"`
-	IsRead    bool                 `json:"is_read"`
-	Data      []byte               `json:"data"`
-	ReadAt    pgtype.Timestamptz   `json:"read_at"`
-	CreatedAt pgtype.Timestamptz   `json:"created_at"`
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Type      string             `json:"type"`
+	Message   string             `json:"message"`
+	IsRead    bool               `json:"is_read"`
+	Data      []byte             `json:"data"`
+	ReadAt    pgtype.Timestamptz `json:"read_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type Organisation struct {

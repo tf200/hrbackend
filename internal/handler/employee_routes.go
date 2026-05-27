@@ -110,6 +110,30 @@ func RegisterEmployeeRoutes(
 		requirePermission("EMPLOYEE.DELETE"),
 		handler.DeleteEmployeeAuthorization,
 	)
+	rg.GET(
+		"/employees/:id/contracts",
+		auth,
+		requirePermission("EMPLOYEE.VIEW"),
+		handler.ListEmployeeContracts,
+	)
+	rg.POST(
+		"/employees/:id/contracts",
+		auth,
+		requirePermission("EMPLOYEE.UPDATE"),
+		handler.CreateContract,
+	)
+	rg.PUT(
+		"/employees/:id/contracts/:contract_id",
+		auth,
+		requirePermission("EMPLOYEE.UPDATE"),
+		handler.UpdateContract,
+	)
+	rg.POST(
+		"/employees/:id/contracts/:contract_id/amendments",
+		auth,
+		requirePermission("EMPLOYEE.UPDATE"),
+		handler.CreateContractAmendment,
+	)
 	rg.POST(
 		"/employees/:id/reset_password",
 		auth,

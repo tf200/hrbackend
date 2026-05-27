@@ -166,6 +166,7 @@ type leaveContractDetailsResponse struct {
 	ContractType      *string    `json:"contract_type,omitempty"`
 	ContractStartDate *time.Time `json:"contract_start_date,omitempty"`
 	ContractEndDate   *time.Time `json:"contract_end_date,omitempty"`
+	EffectiveEndDate  *time.Time `json:"effective_end_date,omitempty"`
 }
 
 type managerLeaveBalanceResponse struct {
@@ -445,6 +446,7 @@ func toManagerLeaveBalanceResponse(item domain.LeaveBalance) managerLeaveBalance
 			ContractType:      item.ContractType,
 			ContractStartDate: item.ContractStartDate,
 			ContractEndDate:   item.ContractEndDate,
+			EffectiveEndDate:  item.EffectiveEndDate,
 		},
 		CreatedAt: item.CreatedAt,
 		UpdatedAt: item.UpdatedAt,

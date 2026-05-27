@@ -259,8 +259,11 @@ func buildRouter(
 	roleRepo := repository.NewRoleRepository(store)
 	roleService := service.NewRoleService(roleRepo, logger)
 
+	notificationRepo := repository.NewNotificationRepository(store)
+	notificationService := service.NewNotificationService(notificationRepo, wsHub, logger)
+
 	scheduleRepo := repository.NewScheduleRepository(store)
-	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, logger)
+	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, notificationService, logger)
 
 	leaveRepo := repository.NewLeaveRepository(store)
 	leaveService := service.NewLeaveService(leaveRepo, logger)
