@@ -16,31 +16,43 @@ const leaveDateLayout = "2006-01-02"
 const leaveMonthLayout = "2006-01"
 
 type createLeaveRequestRequest struct {
-	LeaveType string  `json:"leave_type" binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
-	StartDate string  `json:"start_date" binding:"required,datetime=2006-01-02"`
-	EndDate   string  `json:"end_date"   binding:"required,datetime=2006-01-02"`
-	Reason    *string `json:"reason"`
+	LeaveType    string  `json:"leave_type"    binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
+	DurationType string  `json:"duration_type" binding:"required,oneof=full_day hours"`
+	StartDate    string  `json:"start_date"    binding:"required,datetime=2006-01-02"`
+	EndDate      string  `json:"end_date"      binding:"required,datetime=2006-01-02"`
+	StartTime    *string `json:"start_time"    binding:"omitempty,datetime=15:04"`
+	EndTime      *string `json:"end_time"      binding:"omitempty,datetime=15:04"`
+	Reason       *string `json:"reason"`
 }
 
 type createLeaveRequestByAdminRequest struct {
-	EmployeeID uuid.UUID `json:"employee_id" binding:"required"`
-	LeaveType  string    `json:"leave_type"  binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
-	StartDate  string    `json:"start_date"  binding:"required,datetime=2006-01-02"`
-	EndDate    string    `json:"end_date"    binding:"required,datetime=2006-01-02"`
-	Reason     *string   `json:"reason"`
+	EmployeeID   uuid.UUID `json:"employee_id"  binding:"required"`
+	LeaveType    string    `json:"leave_type"    binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
+	DurationType string    `json:"duration_type" binding:"required,oneof=full_day hours"`
+	StartDate    string    `json:"start_date"    binding:"required,datetime=2006-01-02"`
+	EndDate      string    `json:"end_date"      binding:"required,datetime=2006-01-02"`
+	StartTime    *string   `json:"start_time"    binding:"omitempty,datetime=15:04"`
+	EndTime      *string   `json:"end_time"      binding:"omitempty,datetime=15:04"`
+	Reason       *string   `json:"reason"`
 }
 
 type updateLeaveRequestRequest struct {
-	LeaveType *string `json:"leave_type" binding:"omitempty,oneof=vacation personal sick pregnancy unpaid other"`
-	StartDate *string `json:"start_date" binding:"omitempty,datetime=2006-01-02"`
-	EndDate   *string `json:"end_date"   binding:"omitempty,datetime=2006-01-02"`
-	Reason    *string `json:"reason"`
+	LeaveType    *string `json:"leave_type"    binding:"omitempty,oneof=vacation personal sick pregnancy unpaid other"`
+	DurationType *string `json:"duration_type" binding:"omitempty,oneof=full_day hours"`
+	StartDate    *string `json:"start_date"    binding:"omitempty,datetime=2006-01-02"`
+	EndDate      *string `json:"end_date"      binding:"omitempty,datetime=2006-01-02"`
+	StartTime    *string `json:"start_time"    binding:"omitempty,datetime=15:04"`
+	EndTime      *string `json:"end_time"      binding:"omitempty,datetime=15:04"`
+	Reason       *string `json:"reason"`
 }
 
 type updateLeaveRequestByAdminRequest struct {
 	LeaveType       *string `json:"leave_type"        binding:"omitempty,oneof=vacation personal sick pregnancy unpaid other"`
+	DurationType    *string `json:"duration_type"     binding:"omitempty,oneof=full_day hours"`
 	StartDate       *string `json:"start_date"        binding:"omitempty,datetime=2006-01-02"`
 	EndDate         *string `json:"end_date"          binding:"omitempty,datetime=2006-01-02"`
+	StartTime       *string `json:"start_time"        binding:"omitempty,datetime=15:04"`
+	EndTime         *string `json:"end_time"          binding:"omitempty,datetime=15:04"`
 	Reason          *string `json:"reason"`
 	AdminUpdateNote string  `json:"admin_update_note" binding:"required"`
 }
@@ -93,6 +105,10 @@ type leaveRequestResponse struct {
 	CreatedByEmployeeID *uuid.UUID `json:"created_by_employee_id,omitempty"`
 	LeaveType           string     `json:"leave_type"`
 	Status              string     `json:"status"`
+	DurationType        string     `json:"duration_type"`
+	RequestedMinutes    int32      `json:"requested_minutes"`
+	StartTime           *string    `json:"start_time,omitempty"`
+	EndTime             *string    `json:"end_time,omitempty"`
 	StartDate           time.Time  `json:"start_date"`
 	EndDate             time.Time  `json:"end_date"`
 	Reason              *string    `json:"reason,omitempty"`
@@ -111,12 +127,14 @@ type leaveRequestListItemResponse struct {
 }
 
 type leaveCalendarRecordResponse struct {
-	LeaveRequestID uuid.UUID `json:"leave_request_id"`
-	LeaveType      string    `json:"leave_type"`
-	Status         string    `json:"status"`
-	StartDate      time.Time `json:"start_date"`
-	EndDate        time.Time `json:"end_date"`
-	Reason         *string   `json:"reason,omitempty"`
+	LeaveRequestID  uuid.UUID `json:"leave_request_id"`
+	LeaveType       string    `json:"leave_type"`
+	Status          string    `json:"status"`
+	DurationType    string    `json:"duration_type"`
+	RequestedMinutes int32    `json:"requested_minutes"`
+	StartDate       time.Time `json:"start_date"`
+	EndDate         time.Time `json:"end_date"`
+	Reason          *string   `json:"reason,omitempty"`
 }
 
 type leaveCalendarEmployeeResponse struct {
@@ -195,11 +213,22 @@ func toCreateLeaveRequestParams(
 	if err != nil {
 		return domain.CreateLeaveRequestParams{}, err
 	}
+	startTime, err := parseLeaveTimePtr(req.StartTime)
+	if err != nil {
+		return domain.CreateLeaveRequestParams{}, err
+	}
+	endTime, err := parseLeaveTimePtr(req.EndTime)
+	if err != nil {
+		return domain.CreateLeaveRequestParams{}, err
+	}
 	return domain.CreateLeaveRequestParams{
-		LeaveType: strings.TrimSpace(req.LeaveType),
-		StartDate: startDate.UTC(),
-		EndDate:   endDate.UTC(),
-		Reason:    req.Reason,
+		LeaveType:    strings.TrimSpace(req.LeaveType),
+		DurationType: strings.TrimSpace(req.DurationType),
+		StartDate:    startDate.UTC(),
+		EndDate:      endDate.UTC(),
+		StartTime:    startTime,
+		EndTime:      endTime,
+		Reason:       req.Reason,
 	}, nil
 }
 
@@ -207,10 +236,13 @@ func toCreateLeaveRequestByAdminParams(
 	req createLeaveRequestByAdminRequest,
 ) (domain.CreateLeaveRequestParams, error) {
 	base, err := toCreateLeaveRequestParams(createLeaveRequestRequest{
-		LeaveType: req.LeaveType,
-		StartDate: req.StartDate,
-		EndDate:   req.EndDate,
-		Reason:    req.Reason,
+		LeaveType:    req.LeaveType,
+		DurationType: req.DurationType,
+		StartDate:    req.StartDate,
+		EndDate:      req.EndDate,
+		StartTime:    req.StartTime,
+		EndTime:      req.EndTime,
+		Reason:       req.Reason,
 	})
 	if err != nil {
 		return domain.CreateLeaveRequestParams{}, err
@@ -231,11 +263,23 @@ func toUpdateLeaveRequestParams(
 		return domain.UpdateLeaveRequestParams{}, err
 	}
 
+	startTime, err := parseLeaveTimePtr(req.StartTime)
+	if err != nil {
+		return domain.UpdateLeaveRequestParams{}, err
+	}
+	endTime, err := parseLeaveTimePtr(req.EndTime)
+	if err != nil {
+		return domain.UpdateLeaveRequestParams{}, err
+	}
+
 	return domain.UpdateLeaveRequestParams{
-		LeaveType: req.LeaveType,
-		StartDate: startDate,
-		EndDate:   endDate,
-		Reason:    req.Reason,
+		LeaveType:    req.LeaveType,
+		DurationType: req.DurationType,
+		StartDate:    startDate,
+		EndDate:      endDate,
+		StartTime:    startTime,
+		EndTime:      endTime,
+		Reason:       req.Reason,
 	}, nil
 }
 
@@ -243,10 +287,13 @@ func toUpdateLeaveRequestByAdminParams(
 	req updateLeaveRequestByAdminRequest,
 ) (domain.UpdateLeaveRequestParams, string, error) {
 	updateParams, err := toUpdateLeaveRequestParams(updateLeaveRequestRequest{
-		LeaveType: req.LeaveType,
-		StartDate: req.StartDate,
-		EndDate:   req.EndDate,
-		Reason:    req.Reason,
+		LeaveType:    req.LeaveType,
+		DurationType: req.DurationType,
+		StartDate:    req.StartDate,
+		EndDate:      req.EndDate,
+		StartTime:    req.StartTime,
+		EndTime:      req.EndTime,
+		Reason:       req.Reason,
 	})
 	if err != nil {
 		return domain.UpdateLeaveRequestParams{}, "", err
@@ -352,6 +399,10 @@ func toLeaveRequestResponse(item *domain.LeaveRequest) leaveRequestResponse {
 		CreatedByEmployeeID: item.CreatedByEmployeeID,
 		LeaveType:           item.LeaveType,
 		Status:              item.Status,
+		DurationType:        item.DurationType,
+		RequestedMinutes:    item.RequestedMinutes,
+		StartTime:           formatLeaveTimePtr(item.StartTime),
+		EndTime:             formatLeaveTimePtr(item.EndTime),
 		StartDate:           item.StartDate,
 		EndDate:             item.EndDate,
 		Reason:              item.Reason,
@@ -378,12 +429,14 @@ func toLeaveCalendarEmployeeResponse(
 	records := make([]leaveCalendarRecordResponse, len(item.LeaveRecords))
 	for i, record := range item.LeaveRecords {
 		records[i] = leaveCalendarRecordResponse{
-			LeaveRequestID: record.LeaveRequestID,
-			LeaveType:      record.LeaveType,
-			Status:         record.Status,
-			StartDate:      record.StartDate,
-			EndDate:        record.EndDate,
-			Reason:         record.Reason,
+			LeaveRequestID:   record.LeaveRequestID,
+			LeaveType:        record.LeaveType,
+			Status:           record.Status,
+			DurationType:     record.DurationType,
+			RequestedMinutes: record.RequestedMinutes,
+			StartDate:        record.StartDate,
+			EndDate:          record.EndDate,
+			Reason:           record.Reason,
 		}
 	}
 
@@ -463,6 +516,27 @@ func parseLeaveDatePtr(value *string) (*time.Time, error) {
 	}
 	utc := parsed.UTC()
 	return &utc, nil
+}
+
+const leaveTimeLayout = "15:04"
+
+func parseLeaveTimePtr(value *string) (*time.Time, error) {
+	if value == nil {
+		return nil, nil
+	}
+	parsed, err := time.Parse(leaveTimeLayout, *value)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
+}
+
+func formatLeaveTimePtr(t *time.Time) *string {
+	if t == nil {
+		return nil
+	}
+	formatted := t.Format(leaveTimeLayout)
+	return &formatted
 }
 
 func (r listLeaveCalendarRequest) validate() error {

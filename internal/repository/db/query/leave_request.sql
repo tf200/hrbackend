@@ -3,16 +3,24 @@ INSERT INTO leave_requests (
     employee_id,
     created_by_employee_id,
     leave_type,
+    duration_type,
+    requested_minutes,
     start_date,
     end_date,
+    start_time,
+    end_time,
     reason,
     requested_at
 ) VALUES (
     sqlc.arg(employee_id),
     sqlc.arg(created_by_employee_id),
     sqlc.arg(leave_type),
+    sqlc.arg(duration_type),
+    sqlc.arg(requested_minutes),
     sqlc.arg(start_date),
     sqlc.arg(end_date),
+    sqlc.narg(start_time),
+    sqlc.narg(end_time),
     sqlc.narg(reason),
     NOW()
 )
@@ -25,6 +33,10 @@ SELECT
     lr.created_by_employee_id,
     lr.leave_type,
     lr.status,
+    lr.duration_type,
+    lr.requested_minutes,
+    lr.start_time,
+    lr.end_time,
     lr.start_date,
     lr.end_date,
     lr.reason,
@@ -94,6 +106,10 @@ SELECT
     lr.created_by_employee_id,
     lr.leave_type,
     lr.status,
+    lr.duration_type,
+    lr.requested_minutes,
+    lr.start_time,
+    lr.end_time,
     lr.start_date,
     lr.end_date,
     lr.reason,
@@ -133,6 +149,8 @@ SELECT
     lr.id AS leave_request_id,
     lr.leave_type,
     lr.status,
+    lr.duration_type,
+    lr.requested_minutes,
     lr.start_date,
     lr.end_date,
     lr.reason
@@ -176,9 +194,13 @@ FOR UPDATE;
 -- name: UpdateLeaveRequestEditableFields :one
 UPDATE leave_requests
 SET
-    leave_type = COALESCE(sqlc.narg('leave_type')::leave_request_type_enum, leave_type),
-    start_date = COALESCE(sqlc.narg('start_date')::date, start_date),
-    end_date = COALESCE(sqlc.narg('end_date')::date, end_date),
+    leave_type = sqlc.arg('leave_type')::leave_request_type_enum,
+    duration_type = sqlc.arg('duration_type')::leave_duration_type_enum,
+    start_date = sqlc.arg('start_date')::date,
+    end_date = sqlc.arg('end_date')::date,
+    requested_minutes = sqlc.arg('requested_minutes')::int,
+    start_time = sqlc.narg('start_time')::time,
+    end_time = sqlc.narg('end_time')::time,
     reason = COALESCE(sqlc.narg('reason')::text, reason),
     updated_at = NOW()
 WHERE id = sqlc.arg('id')

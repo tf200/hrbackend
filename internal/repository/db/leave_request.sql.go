@@ -17,8 +17,12 @@ INSERT INTO leave_requests (
     employee_id,
     created_by_employee_id,
     leave_type,
+    duration_type,
+    requested_minutes,
     start_date,
     end_date,
+    start_time,
+    end_time,
     reason,
     requested_at
 ) VALUES (
@@ -28,18 +32,26 @@ INSERT INTO leave_requests (
     $4,
     $5,
     $6,
+    $7,
+    $8,
+    $9,
+    $10,
     NOW()
 )
-RETURNING id, employee_id, created_by_employee_id, leave_type, status, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
+RETURNING id, employee_id, created_by_employee_id, leave_type, status, duration_type, requested_minutes, start_time, end_time, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
 `
 
 type CreateLeaveRequestParams struct {
-	EmployeeID          uuid.UUID            `json:"employee_id"`
-	CreatedByEmployeeID *uuid.UUID           `json:"created_by_employee_id"`
-	LeaveType           LeaveRequestTypeEnum `json:"leave_type"`
-	StartDate           pgtype.Date          `json:"start_date"`
-	EndDate             pgtype.Date          `json:"end_date"`
-	Reason              *string              `json:"reason"`
+	EmployeeID          uuid.UUID             `json:"employee_id"`
+	CreatedByEmployeeID *uuid.UUID            `json:"created_by_employee_id"`
+	LeaveType           LeaveRequestTypeEnum  `json:"leave_type"`
+	DurationType        LeaveDurationTypeEnum `json:"duration_type"`
+	RequestedMinutes    int32                 `json:"requested_minutes"`
+	StartDate           pgtype.Date           `json:"start_date"`
+	EndDate             pgtype.Date           `json:"end_date"`
+	StartTime           pgtype.Time           `json:"start_time"`
+	EndTime             pgtype.Time           `json:"end_time"`
+	Reason              *string               `json:"reason"`
 }
 
 func (q *Queries) CreateLeaveRequest(ctx context.Context, arg CreateLeaveRequestParams) (LeaveRequest, error) {
@@ -47,8 +59,12 @@ func (q *Queries) CreateLeaveRequest(ctx context.Context, arg CreateLeaveRequest
 		arg.EmployeeID,
 		arg.CreatedByEmployeeID,
 		arg.LeaveType,
+		arg.DurationType,
+		arg.RequestedMinutes,
 		arg.StartDate,
 		arg.EndDate,
+		arg.StartTime,
+		arg.EndTime,
 		arg.Reason,
 	)
 	var i LeaveRequest
@@ -58,6 +74,10 @@ func (q *Queries) CreateLeaveRequest(ctx context.Context, arg CreateLeaveRequest
 		&i.CreatedByEmployeeID,
 		&i.LeaveType,
 		&i.Status,
+		&i.DurationType,
+		&i.RequestedMinutes,
+		&i.StartTime,
+		&i.EndTime,
 		&i.StartDate,
 		&i.EndDate,
 		&i.Reason,
@@ -160,6 +180,8 @@ SELECT
     lr.id AS leave_request_id,
     lr.leave_type,
     lr.status,
+    lr.duration_type,
+    lr.requested_minutes,
     lr.start_date,
     lr.end_date,
     lr.reason
@@ -211,6 +233,8 @@ type ListLeaveCalendarRowsRow struct {
 	LeaveRequestID    uuid.UUID              `json:"leave_request_id"`
 	LeaveType         LeaveRequestTypeEnum   `json:"leave_type"`
 	Status            LeaveRequestStatusEnum `json:"status"`
+	DurationType      LeaveDurationTypeEnum  `json:"duration_type"`
+	RequestedMinutes  int32                  `json:"requested_minutes"`
 	StartDate         pgtype.Date            `json:"start_date"`
 	EndDate           pgtype.Date            `json:"end_date"`
 	Reason            *string                `json:"reason"`
@@ -239,6 +263,8 @@ func (q *Queries) ListLeaveCalendarRows(ctx context.Context, arg ListLeaveCalend
 			&i.LeaveRequestID,
 			&i.LeaveType,
 			&i.Status,
+			&i.DurationType,
+			&i.RequestedMinutes,
 			&i.StartDate,
 			&i.EndDate,
 			&i.Reason,
@@ -260,6 +286,10 @@ SELECT
     lr.created_by_employee_id,
     lr.leave_type,
     lr.status,
+    lr.duration_type,
+    lr.requested_minutes,
+    lr.start_time,
+    lr.end_time,
     lr.start_date,
     lr.end_date,
     lr.reason,
@@ -304,6 +334,10 @@ type ListLeaveRequestsPaginatedRow struct {
 	CreatedByEmployeeID *uuid.UUID             `json:"created_by_employee_id"`
 	LeaveType           LeaveRequestTypeEnum   `json:"leave_type"`
 	Status              LeaveRequestStatusEnum `json:"status"`
+	DurationType        LeaveDurationTypeEnum  `json:"duration_type"`
+	RequestedMinutes    int32                  `json:"requested_minutes"`
+	StartTime           pgtype.Time            `json:"start_time"`
+	EndTime             pgtype.Time            `json:"end_time"`
 	StartDate           pgtype.Date            `json:"start_date"`
 	EndDate             pgtype.Date            `json:"end_date"`
 	Reason              *string                `json:"reason"`
@@ -339,6 +373,10 @@ func (q *Queries) ListLeaveRequestsPaginated(ctx context.Context, arg ListLeaveR
 			&i.CreatedByEmployeeID,
 			&i.LeaveType,
 			&i.Status,
+			&i.DurationType,
+			&i.RequestedMinutes,
+			&i.StartTime,
+			&i.EndTime,
 			&i.StartDate,
 			&i.EndDate,
 			&i.Reason,
@@ -370,6 +408,10 @@ SELECT
     lr.created_by_employee_id,
     lr.leave_type,
     lr.status,
+    lr.duration_type,
+    lr.requested_minutes,
+    lr.start_time,
+    lr.end_time,
     lr.start_date,
     lr.end_date,
     lr.reason,
@@ -407,6 +449,10 @@ type ListMyLeaveRequestsPaginatedRow struct {
 	CreatedByEmployeeID *uuid.UUID             `json:"created_by_employee_id"`
 	LeaveType           LeaveRequestTypeEnum   `json:"leave_type"`
 	Status              LeaveRequestStatusEnum `json:"status"`
+	DurationType        LeaveDurationTypeEnum  `json:"duration_type"`
+	RequestedMinutes    int32                  `json:"requested_minutes"`
+	StartTime           pgtype.Time            `json:"start_time"`
+	EndTime             pgtype.Time            `json:"end_time"`
 	StartDate           pgtype.Date            `json:"start_date"`
 	EndDate             pgtype.Date            `json:"end_date"`
 	Reason              *string                `json:"reason"`
@@ -442,6 +488,10 @@ func (q *Queries) ListMyLeaveRequestsPaginated(ctx context.Context, arg ListMyLe
 			&i.CreatedByEmployeeID,
 			&i.LeaveType,
 			&i.Status,
+			&i.DurationType,
+			&i.RequestedMinutes,
+			&i.StartTime,
+			&i.EndTime,
 			&i.StartDate,
 			&i.EndDate,
 			&i.Reason,
@@ -467,7 +517,7 @@ func (q *Queries) ListMyLeaveRequestsPaginated(ctx context.Context, arg ListMyLe
 }
 
 const lockLeaveRequestByID = `-- name: LockLeaveRequestByID :one
-SELECT id, employee_id, created_by_employee_id, leave_type, status, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
+SELECT id, employee_id, created_by_employee_id, leave_type, status, duration_type, requested_minutes, start_time, end_time, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
 FROM leave_requests
 WHERE id = $1
 FOR UPDATE
@@ -482,6 +532,10 @@ func (q *Queries) LockLeaveRequestByID(ctx context.Context, id uuid.UUID) (Leave
 		&i.CreatedByEmployeeID,
 		&i.LeaveType,
 		&i.Status,
+		&i.DurationType,
+		&i.RequestedMinutes,
+		&i.StartTime,
+		&i.EndTime,
 		&i.StartDate,
 		&i.EndDate,
 		&i.Reason,
@@ -505,7 +559,7 @@ SET
     decided_at = NOW(),
     updated_at = NOW()
 WHERE id = $4
-RETURNING id, employee_id, created_by_employee_id, leave_type, status, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
+RETURNING id, employee_id, created_by_employee_id, leave_type, status, duration_type, requested_minutes, start_time, end_time, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
 `
 
 type UpdateLeaveRequestDecisionParams struct {
@@ -529,6 +583,10 @@ func (q *Queries) UpdateLeaveRequestDecision(ctx context.Context, arg UpdateLeav
 		&i.CreatedByEmployeeID,
 		&i.LeaveType,
 		&i.Status,
+		&i.DurationType,
+		&i.RequestedMinutes,
+		&i.StartTime,
+		&i.EndTime,
 		&i.StartDate,
 		&i.EndDate,
 		&i.Reason,
@@ -546,28 +604,40 @@ func (q *Queries) UpdateLeaveRequestDecision(ctx context.Context, arg UpdateLeav
 const updateLeaveRequestEditableFields = `-- name: UpdateLeaveRequestEditableFields :one
 UPDATE leave_requests
 SET
-    leave_type = COALESCE($1::leave_request_type_enum, leave_type),
-    start_date = COALESCE($2::date, start_date),
-    end_date = COALESCE($3::date, end_date),
-    reason = COALESCE($4::text, reason),
+    leave_type = $1::leave_request_type_enum,
+    duration_type = $2::leave_duration_type_enum,
+    start_date = $3::date,
+    end_date = $4::date,
+    requested_minutes = $5::int,
+    start_time = $6::time,
+    end_time = $7::time,
+    reason = COALESCE($8::text, reason),
     updated_at = NOW()
-WHERE id = $5
-RETURNING id, employee_id, created_by_employee_id, leave_type, status, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
+WHERE id = $9
+RETURNING id, employee_id, created_by_employee_id, leave_type, status, duration_type, requested_minutes, start_time, end_time, start_date, end_date, reason, decision_note, decided_by_employee_id, requested_at, decided_at, cancelled_at, created_at, updated_at
 `
 
 type UpdateLeaveRequestEditableFieldsParams struct {
-	LeaveType *LeaveRequestTypeEnum `json:"leave_type"`
-	StartDate pgtype.Date           `json:"start_date"`
-	EndDate   pgtype.Date           `json:"end_date"`
-	Reason    *string               `json:"reason"`
-	ID        uuid.UUID             `json:"id"`
+	LeaveType        LeaveRequestTypeEnum  `json:"leave_type"`
+	DurationType     LeaveDurationTypeEnum `json:"duration_type"`
+	StartDate        pgtype.Date           `json:"start_date"`
+	EndDate          pgtype.Date           `json:"end_date"`
+	RequestedMinutes int32                 `json:"requested_minutes"`
+	StartTime        pgtype.Time           `json:"start_time"`
+	EndTime          pgtype.Time           `json:"end_time"`
+	Reason           *string               `json:"reason"`
+	ID               uuid.UUID             `json:"id"`
 }
 
 func (q *Queries) UpdateLeaveRequestEditableFields(ctx context.Context, arg UpdateLeaveRequestEditableFieldsParams) (LeaveRequest, error) {
 	row := q.db.QueryRow(ctx, updateLeaveRequestEditableFields,
 		arg.LeaveType,
+		arg.DurationType,
 		arg.StartDate,
 		arg.EndDate,
+		arg.RequestedMinutes,
+		arg.StartTime,
+		arg.EndTime,
 		arg.Reason,
 		arg.ID,
 	)
@@ -578,6 +648,10 @@ func (q *Queries) UpdateLeaveRequestEditableFields(ctx context.Context, arg Upda
 		&i.CreatedByEmployeeID,
 		&i.LeaveType,
 		&i.Status,
+		&i.DurationType,
+		&i.RequestedMinutes,
+		&i.StartTime,
+		&i.EndTime,
 		&i.StartDate,
 		&i.EndDate,
 		&i.Reason,

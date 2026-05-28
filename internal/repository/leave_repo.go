@@ -45,12 +45,21 @@ func (r *LeaveRepository) CreateLeaveRequest(
 		return nil, domain.ErrLeaveRequestInvalidRequest
 	}
 
+	durationType, ok := toDBLeaveDurationType(params.DurationType)
+	if !ok {
+		return nil, domain.ErrLeaveRequestInvalidRequest
+	}
+
 	row, err := r.store.CreateLeaveRequest(ctx, db.CreateLeaveRequestParams{
 		EmployeeID:          params.EmployeeID,
 		CreatedByEmployeeID: &params.CreatedByEmployeeID,
 		LeaveType:           leaveType,
+		DurationType:        durationType,
+		RequestedMinutes:    params.RequestedMinutes,
 		StartDate:           conv.PgDateFromTime(params.StartDate),
 		EndDate:             conv.PgDateFromTime(params.EndDate),
+		StartTime:           pgTimeFromTimePtr(params.StartTime),
+		EndTime:             pgTimeFromTimePtr(params.EndTime),
 		Reason:              params.Reason,
 	})
 	if err != nil {
@@ -84,6 +93,27 @@ func (r *LeaveRepository) GetActiveLeavePolicyByType(
 	}, nil
 }
 
+func (r *LeaveRepository) GetEmployeeContractAtDate(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	date time.Time,
+) (*domain.LeaveContractAtDate, error) {
+	row, err := r.store.GetEmployeeContractAtDate(ctx, db.GetEmployeeContractAtDateParams{
+		EmployeeID: employeeID,
+		TargetDate: conv.PgDateFromTime(date),
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrLeaveRequestNotFound
+		}
+		return nil, err
+	}
+	return &domain.LeaveContractAtDate{
+		EmployeeID:    row.EmployeeID,
+		RosterFreeDay: string(row.RosterFreeDay),
+	}, nil
+}
+
 func (r *LeaveRepository) ListMyLeaveRequests(
 	ctx context.Context,
 	params domain.ListMyLeaveRequestsParams,
@@ -113,6 +143,10 @@ func (r *LeaveRepository) ListMyLeaveRequests(
 			row.CreatedByEmployeeID,
 			row.LeaveType,
 			row.Status,
+			row.DurationType,
+			row.RequestedMinutes,
+			row.StartTime,
+			row.EndTime,
 			row.StartDate,
 			row.EndDate,
 			row.Reason,
@@ -158,6 +192,10 @@ func (r *LeaveRepository) ListLeaveRequests(
 			row.CreatedByEmployeeID,
 			row.LeaveType,
 			row.Status,
+			row.DurationType,
+			row.RequestedMinutes,
+			row.StartTime,
+			row.EndTime,
 			row.StartDate,
 			row.EndDate,
 			row.Reason,
@@ -339,15 +377,25 @@ func (r *leaveTxRepo) UpdateLeaveRequestEditableFields(
 		ctx,
 		db.UpdateLeaveRequestEditableFieldsParams{
 			ID: leaveRequestID,
-			LeaveType: func() *db.LeaveRequestTypeEnum {
+			LeaveType: func() db.LeaveRequestTypeEnum {
 				if params.LeaveType == nil {
-					return nil
+					return ""
 				}
 				leaveType, ok := toDBLeaveType(*params.LeaveType)
 				if !ok {
-					return nil
+					return ""
 				}
-				return enumPtr(leaveType)
+				return leaveType
+			}(),
+			DurationType: func() db.LeaveDurationTypeEnum {
+				if params.DurationType == nil {
+					return ""
+				}
+				durationType, ok := toDBLeaveDurationType(*params.DurationType)
+				if !ok {
+					return ""
+				}
+				return durationType
 			}(),
 			StartDate: func() pgtype.Date {
 				if params.StartDate == nil {
@@ -361,7 +409,15 @@ func (r *leaveTxRepo) UpdateLeaveRequestEditableFields(
 				}
 				return conv.PgDateFromTime(*params.EndDate)
 			}(),
-			Reason: params.Reason,
+			RequestedMinutes: func() int32 {
+				if params.RequestedMinutes == nil {
+					return 0
+				}
+				return *params.RequestedMinutes
+			}(),
+			StartTime: pgTimeFromTimePtr(params.StartTime),
+			EndTime:   pgTimeFromTimePtr(params.EndTime),
+			Reason:    params.Reason,
 		},
 	)
 	if err != nil {
@@ -505,6 +561,27 @@ func (r *leaveTxRepo) GetLeaveHoursPerDay(
 	return 8, nil
 }
 
+func (r *leaveTxRepo) GetEmployeeContractAtDate(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	date time.Time,
+) (*domain.LeaveContractAtDate, error) {
+	row, err := r.queries.GetEmployeeContractAtDate(ctx, db.GetEmployeeContractAtDateParams{
+		EmployeeID: employeeID,
+		TargetDate: conv.PgDateFromTime(date),
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrLeaveRequestNotFound
+		}
+		return nil, err
+	}
+	return &domain.LeaveContractAtDate{
+		EmployeeID:    row.EmployeeID,
+		RosterFreeDay: string(row.RosterFreeDay),
+	}, nil
+}
+
 func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(
 	ctx context.Context,
 	balanceID uuid.UUID,
@@ -604,6 +681,10 @@ func toDomainLeaveRequest(row db.LeaveRequest) domain.LeaveRequest {
 		CreatedByEmployeeID: row.CreatedByEmployeeID,
 		LeaveType:           string(row.LeaveType),
 		Status:              string(row.Status),
+		DurationType:        string(row.DurationType),
+		RequestedMinutes:    row.RequestedMinutes,
+		StartTime:           timePtrFromPgTime(row.StartTime),
+		EndTime:             timePtrFromPgTime(row.EndTime),
 		StartDate:           conv.TimeFromPgDate(row.StartDate),
 		EndDate:             conv.TimeFromPgDate(row.EndDate),
 		Reason:              row.Reason,
@@ -624,6 +705,10 @@ func toDomainLeaveRequestListItem(
 	createdByEmployeeID *uuid.UUID,
 	leaveType db.LeaveRequestTypeEnum,
 	status db.LeaveRequestStatusEnum,
+	durationType db.LeaveDurationTypeEnum,
+	requestedMinutes int32,
+	startTime pgtype.Time,
+	endTime pgtype.Time,
 	startDate pgtype.Date,
 	endDate pgtype.Date,
 	reason *string,
@@ -642,6 +727,10 @@ func toDomainLeaveRequestListItem(
 			CreatedByEmployeeID: createdByEmployeeID,
 			LeaveType:           string(leaveType),
 			Status:              string(status),
+			DurationType:        string(durationType),
+			RequestedMinutes:    requestedMinutes,
+			StartTime:           timePtrFromPgTime(startTime),
+			EndTime:             timePtrFromPgTime(endTime),
 			StartDate:           conv.TimeFromPgDate(startDate),
 			EndDate:             conv.TimeFromPgDate(endDate),
 			Reason:              reason,
@@ -716,12 +805,14 @@ func toDomainLeaveCalendar(rows []db.ListLeaveCalendarRowsRow) []domain.LeaveCal
 		}
 
 		items[idx].LeaveRecords = append(items[idx].LeaveRecords, domain.LeaveCalendarRecord{
-			LeaveRequestID: row.LeaveRequestID,
-			LeaveType:      string(row.LeaveType),
-			Status:         string(row.Status),
-			StartDate:      conv.TimeFromPgDate(row.StartDate),
-			EndDate:        conv.TimeFromPgDate(row.EndDate),
-			Reason:         row.Reason,
+			LeaveRequestID:    row.LeaveRequestID,
+			LeaveType:         string(row.LeaveType),
+			Status:            string(row.Status),
+			DurationType:      string(row.DurationType),
+			RequestedMinutes:  row.RequestedMinutes,
+			StartDate:         conv.TimeFromPgDate(row.StartDate),
+			EndDate:           conv.TimeFromPgDate(row.EndDate),
+			Reason:            row.Reason,
 		})
 	}
 
@@ -797,6 +888,39 @@ func timePtrFromPgTimestamptz(value pgtype.Timestamptz) *time.Time {
 	}
 	t := value.Time
 	return &t
+}
+
+func timePtrFromPgTime(value pgtype.Time) *time.Time {
+	if !value.Valid {
+		return nil
+	}
+	totalSeconds := value.Microseconds / 1000000
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	result := time.Date(0, 1, 1, int(hours), int(minutes), 0, 0, time.UTC)
+	return &result
+}
+
+func pgTimeFromTimePtr(value *time.Time) pgtype.Time {
+	if value == nil {
+		return pgtype.Time{}
+	}
+	return pgtype.Time{
+		Microseconds: int64(value.Hour())*3600000000 +
+			int64(value.Minute())*60000000 +
+			int64(value.Second())*1000000,
+		Valid: true,
+	}
+}
+
+func toDBLeaveDurationType(value string) (db.LeaveDurationTypeEnum, bool) {
+	switch db.LeaveDurationTypeEnum(strings.TrimSpace(value)) {
+	case db.LeaveDurationTypeEnumFullDay,
+		db.LeaveDurationTypeEnumHours:
+		return db.LeaveDurationTypeEnum(strings.TrimSpace(value)), true
+	default:
+		return "", false
+	}
 }
 
 var _ domain.LeaveRepository = (*LeaveRepository)(nil)

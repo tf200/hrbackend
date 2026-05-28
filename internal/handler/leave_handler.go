@@ -489,6 +489,8 @@ func mapLeaveErrorStatus(err error) int {
 		return http.StatusBadRequest
 	case errors.Is(err, domain.ErrLeaveBalanceInvalidAdjust):
 		return http.StatusBadRequest
+	case errors.Is(err, domain.ErrLeaveDurationInvalid):
+		return http.StatusBadRequest
 	case errors.Is(err, domain.ErrLeaveRequestForbidden):
 		return http.StatusForbidden
 	case errors.Is(err, domain.ErrLeaveRequestNotFound):

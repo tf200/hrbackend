@@ -759,6 +759,48 @@ func (ns NullIrregularHoursProfileEnum) Value() (driver.Value, error) {
 	return string(ns.IrregularHoursProfileEnum), nil
 }
 
+type LeaveDurationTypeEnum string
+
+const (
+	LeaveDurationTypeEnumFullDay LeaveDurationTypeEnum = "full_day"
+	LeaveDurationTypeEnumHours   LeaveDurationTypeEnum = "hours"
+)
+
+func (e *LeaveDurationTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LeaveDurationTypeEnum(s)
+	case string:
+		*e = LeaveDurationTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LeaveDurationTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullLeaveDurationTypeEnum struct {
+	LeaveDurationTypeEnum LeaveDurationTypeEnum `json:"leave_duration_type_enum"`
+	Valid                 bool                  `json:"valid"` // Valid is true if LeaveDurationTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLeaveDurationTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.LeaveDurationTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LeaveDurationTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLeaveDurationTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LeaveDurationTypeEnum), nil
+}
+
 type LeaveRequestStatusEnum string
 
 const (
@@ -1942,6 +1984,10 @@ type LeaveRequest struct {
 	CreatedByEmployeeID *uuid.UUID             `json:"created_by_employee_id"`
 	LeaveType           LeaveRequestTypeEnum   `json:"leave_type"`
 	Status              LeaveRequestStatusEnum `json:"status"`
+	DurationType        LeaveDurationTypeEnum  `json:"duration_type"`
+	RequestedMinutes    int32                  `json:"requested_minutes"`
+	StartTime           pgtype.Time            `json:"start_time"`
+	EndTime             pgtype.Time            `json:"end_time"`
 	StartDate           pgtype.Date            `json:"start_date"`
 	EndDate             pgtype.Date            `json:"end_date"`
 	Reason              *string                `json:"reason"`

@@ -1099,6 +1099,11 @@ CREATE TYPE leave_request_status_enum AS ENUM (
     'expired'
 );
 
+CREATE TYPE leave_duration_type_enum AS ENUM (
+    'full_day',
+    'hours'
+);
+
 CREATE TYPE payout_request_status_enum AS ENUM (
     'pending',
     'approved',
@@ -1285,6 +1290,10 @@ CREATE TABLE leave_requests (
     created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
     leave_type leave_request_type_enum NOT NULL,
     status leave_request_status_enum NOT NULL DEFAULT 'pending',
+    duration_type leave_duration_type_enum NOT NULL,
+    requested_minutes INT NOT NULL,
+    start_time TIME NULL,
+    end_time TIME NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     reason TEXT NULL,
@@ -1295,7 +1304,13 @@ CREATE TABLE leave_requests (
     cancelled_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT leave_requests_date_order CHECK (end_date >= start_date)
+    CONSTRAINT leave_requests_date_order CHECK (end_date >= start_date),
+    CONSTRAINT leave_requests_duration_fields_valid CHECK (
+        (duration_type = 'full_day' AND start_time IS NULL AND end_time IS NULL)
+        OR
+        (duration_type = 'hours' AND start_date = end_date AND start_time IS NOT NULL AND end_time IS NOT NULL AND end_time > start_time)
+    ),
+    CONSTRAINT leave_requests_requested_minutes_positive CHECK (requested_minutes > 0)
 );
 
 CREATE INDEX idx_leave_requests_employee_id ON leave_requests(employee_id);

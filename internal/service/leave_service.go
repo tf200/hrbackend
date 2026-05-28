@@ -12,6 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	fullDayLeaveMinutes int32 = 480
+)
+
 type LeaveService struct {
 	repository domain.LeaveRepository
 	logger     domain.Logger
@@ -63,6 +67,12 @@ func (s *LeaveService) createLeaveRequest(
 	}
 	params.LeaveType = leaveType
 
+	durationType := strings.TrimSpace(params.DurationType)
+	if !isValidLeaveDurationType(durationType) {
+		return nil, domain.ErrLeaveRequestInvalidRequest
+	}
+	params.DurationType = durationType
+
 	if params.StartDate.IsZero() || params.EndDate.IsZero() {
 		return nil, domain.ErrLeaveRequestInvalidRequest
 	}
@@ -83,6 +93,12 @@ func (s *LeaveService) createLeaveRequest(
 			domain.ErrLeaveRequestInvalidRequest,
 		)
 	}
+
+	requestedMinutes, err := s.calculateRequestedMinutes(ctx, params.EmployeeID, durationType, params.StartDate, params.EndDate, params.StartTime, params.EndTime)
+	if err != nil {
+		return nil, err
+	}
+	params.RequestedMinutes = requestedMinutes
 
 	item, err := s.repository.CreateLeaveRequest(ctx, params)
 	if err != nil {
@@ -130,6 +146,12 @@ func (s *LeaveService) UpdateLeaveRequest(
 				domain.ErrLeaveRequestInvalidRequest,
 			)
 		}
+
+		requestedMinutes, err := s.calculateRequestedMinutesForUpdate(ctx, tx, current.EmployeeID, next)
+		if err != nil {
+			return err
+		}
+		next.updateParams.RequestedMinutes = &requestedMinutes
 
 		updated, err = tx.UpdateLeaveRequestEditableFields(ctx, leaveRequestID, next.updateParams)
 		return err
@@ -180,6 +202,12 @@ func (s *LeaveService) UpdateLeaveRequestByAdmin(
 				domain.ErrLeaveRequestInvalidRequest,
 			)
 		}
+
+		requestedMinutes, err := s.calculateRequestedMinutesForUpdate(ctx, tx, current.EmployeeID, next)
+		if err != nil {
+			return err
+		}
+		next.updateParams.RequestedMinutes = &requestedMinutes
 
 		updated, err = tx.UpdateLeaveRequestEditableFields(ctx, leaveRequestID, next.updateParams)
 		return err
@@ -466,10 +494,14 @@ func (s *LeaveService) AdjustLeaveBalance(
 }
 
 type normalizedUpdateParams struct {
-	updateParams       domain.UpdateLeaveRequestParams
-	effectiveLeaveType string
-	finalStartDate     time.Time
-	finalEndDate       time.Time
+	updateParams          domain.UpdateLeaveRequestParams
+	effectiveLeaveType    string
+	effectiveDurationType string
+	effectiveStartTime    *time.Time
+	effectiveEndTime      *time.Time
+	finalStartDate        time.Time
+	finalEndDate          time.Time
+	effectiveReason       *string
 }
 
 func normalizeUpdateParams(
@@ -479,10 +511,13 @@ func normalizeUpdateParams(
 ) (*normalizedUpdateParams, error) {
 	var hasUpdates bool
 	out := &normalizedUpdateParams{
-		updateParams:       domain.UpdateLeaveRequestParams{},
-		effectiveLeaveType: current.LeaveType,
-		finalStartDate:     dateOnlyUTC(current.StartDate),
-		finalEndDate:       dateOnlyUTC(current.EndDate),
+		effectiveLeaveType:    current.LeaveType,
+		effectiveDurationType: current.DurationType,
+		effectiveStartTime:    current.StartTime,
+		effectiveEndTime:      current.EndTime,
+		finalStartDate:        dateOnlyUTC(current.StartDate),
+		finalEndDate:          dateOnlyUTC(current.EndDate),
+		effectiveReason:       current.Reason,
 	}
 
 	if update.LeaveType != nil {
@@ -490,25 +525,43 @@ func normalizeUpdateParams(
 		if !isValidLeaveType(trimmed) {
 			return nil, domain.ErrLeaveRequestInvalidRequest
 		}
-		out.updateParams.LeaveType = &trimmed
 		out.effectiveLeaveType = trimmed
+		hasUpdates = true
+	}
+	if update.DurationType != nil {
+		trimmed := strings.TrimSpace(*update.DurationType)
+		if !isValidLeaveDurationType(trimmed) {
+			return nil, domain.ErrLeaveRequestInvalidRequest
+		}
+		out.effectiveDurationType = trimmed
 		hasUpdates = true
 	}
 	if update.StartDate != nil {
 		d := dateOnlyUTC(*update.StartDate)
-		out.updateParams.StartDate = &d
 		out.finalStartDate = d
 		hasUpdates = true
 	}
 	if update.EndDate != nil {
 		d := dateOnlyUTC(*update.EndDate)
-		out.updateParams.EndDate = &d
 		out.finalEndDate = d
 		hasUpdates = true
 	}
+	if update.DurationType != nil {
+		out.effectiveStartTime = update.StartTime
+		out.effectiveEndTime = update.EndTime
+	} else {
+		if update.StartTime != nil {
+			out.effectiveStartTime = update.StartTime
+			hasUpdates = true
+		}
+		if update.EndTime != nil {
+			out.effectiveEndTime = update.EndTime
+			hasUpdates = true
+		}
+	}
 	if update.Reason != nil {
 		trimmed := strings.TrimSpace(*update.Reason)
-		out.updateParams.Reason = &trimmed
+		out.effectiveReason = &trimmed
 		hasUpdates = true
 	}
 	if !hasUpdates {
@@ -523,12 +576,30 @@ func normalizeUpdateParams(
 	if enforceFutureStart && !out.finalStartDate.After(currentUTCDate()) {
 		return nil, domain.ErrLeaveRequestStateInvalid
 	}
+
+	out.updateParams.LeaveType = &out.effectiveLeaveType
+	out.updateParams.DurationType = &out.effectiveDurationType
+	out.updateParams.StartDate = &out.finalStartDate
+	out.updateParams.EndDate = &out.finalEndDate
+	out.updateParams.StartTime = out.effectiveStartTime
+	out.updateParams.EndTime = out.effectiveEndTime
+	out.updateParams.Reason = out.effectiveReason
+
 	return out, nil
 }
 
 func isValidLeaveType(value string) bool {
 	switch strings.TrimSpace(value) {
 	case "vacation", "personal", "sick", "pregnancy", "unpaid", "other":
+		return true
+	default:
+		return false
+	}
+}
+
+func isValidLeaveDurationType(value string) bool {
+	switch strings.TrimSpace(value) {
+	case "full_day", "hours":
 		return true
 	default:
 		return false
@@ -560,6 +631,153 @@ func minInt32(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+type leaveContractLookup func(context.Context, uuid.UUID, time.Time) (*domain.LeaveContractAtDate, error)
+
+func (s *LeaveService) calculateRequestedMinutes(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	durationType string,
+	startDate, endDate time.Time,
+	startTime, endTime *time.Time,
+) (int32, error) {
+	if durationType == "full_day" && (startTime != nil || endTime != nil) {
+		return 0, fmt.Errorf(
+			"%w: start_time and end_time must not be set for full-day leave",
+			domain.ErrLeaveDurationInvalid,
+		)
+	}
+	if durationType == "hours" && (startTime == nil || endTime == nil) {
+		return 0, fmt.Errorf(
+			"%w: start_time and end_time are required for hourly leave",
+			domain.ErrLeaveDurationInvalid,
+		)
+	}
+	lookup := s.repository.GetEmployeeContractAtDate
+	switch durationType {
+	case "full_day":
+		return calculateFullDayMinutes(lookup, ctx, employeeID, startDate, endDate)
+	case "hours":
+		return calculateHoursMinutes(lookup, ctx, employeeID, startDate, endDate, startTime, endTime)
+	default:
+		return 0, domain.ErrLeaveDurationInvalid
+	}
+}
+
+func (s *LeaveService) calculateRequestedMinutesForUpdate(
+	ctx context.Context,
+	tx domain.LeaveTxRepository,
+	employeeID uuid.UUID,
+	next *normalizedUpdateParams,
+) (int32, error) {
+	lookup := tx.GetEmployeeContractAtDate
+	switch next.effectiveDurationType {
+	case "full_day":
+		if next.effectiveStartTime != nil || next.effectiveEndTime != nil {
+			return 0, fmt.Errorf(
+				"%w: start_time and end_time must not be set for full-day leave",
+				domain.ErrLeaveDurationInvalid,
+			)
+		}
+		return calculateFullDayMinutes(lookup, ctx, employeeID, next.finalStartDate, next.finalEndDate)
+	case "hours":
+		if next.effectiveStartTime == nil || next.effectiveEndTime == nil {
+			return 0, fmt.Errorf(
+				"%w: start_time and end_time are required for hourly leave",
+				domain.ErrLeaveDurationInvalid,
+			)
+		}
+		return calculateHoursMinutes(lookup, ctx, employeeID, next.finalStartDate, next.finalEndDate, next.effectiveStartTime, next.effectiveEndTime)
+	default:
+		return 0, domain.ErrLeaveDurationInvalid
+	}
+}
+
+func calculateFullDayMinutes(
+	lookup leaveContractLookup,
+	ctx context.Context,
+	employeeID uuid.UUID,
+	startDate, endDate time.Time,
+) (int32, error) {
+	current := dateOnlyUTC(startDate)
+	end := dateOnlyUTC(endDate)
+
+	if end.Before(current) {
+		return 0, fmt.Errorf("%w: end date must be on or after start date", domain.ErrLeaveDurationInvalid)
+	}
+
+	var totalMinutes int32
+	for !current.After(end) {
+		if current.Weekday() == time.Saturday || current.Weekday() == time.Sunday {
+			current = current.AddDate(0, 0, 1)
+			continue
+		}
+
+		contract, err := lookup(ctx, employeeID, current)
+		if err != nil {
+			return 0, fmt.Errorf("%w: no active contract for date %s: %w", domain.ErrLeaveDurationInvalid, current.Format("2006-01-02"), err)
+		}
+
+		if contract.RosterFreeDay != "" && strings.EqualFold(current.Weekday().String(), contract.RosterFreeDay) {
+			current = current.AddDate(0, 0, 1)
+			continue
+		}
+
+		totalMinutes += fullDayLeaveMinutes
+		current = current.AddDate(0, 0, 1)
+	}
+
+	if totalMinutes <= 0 {
+		return 0, fmt.Errorf("%w: no chargeable days in the requested range", domain.ErrLeaveDurationInvalid)
+	}
+
+	return totalMinutes, nil
+}
+
+func calculateHoursMinutes(
+	lookup leaveContractLookup,
+	ctx context.Context,
+	employeeID uuid.UUID,
+	startDate, endDate time.Time,
+	startTime, endTime *time.Time,
+) (int32, error) {
+	start := dateOnlyUTC(startDate)
+	end := dateOnlyUTC(endDate)
+
+	if !start.Equal(end) {
+		return 0, fmt.Errorf("%w: hourly leave must be on a single date", domain.ErrLeaveDurationInvalid)
+	}
+
+	if start.Weekday() == time.Saturday || start.Weekday() == time.Sunday {
+		return 0, fmt.Errorf("%w: hourly leave is not allowed on weekends", domain.ErrLeaveDurationInvalid)
+	}
+
+	contract, err := lookup(ctx, employeeID, start)
+	if err != nil {
+		return 0, fmt.Errorf("%w: no active contract for date %s: %w", domain.ErrLeaveDurationInvalid, start.Format("2006-01-02"), err)
+	}
+
+	if contract.RosterFreeDay != "" && strings.EqualFold(start.Weekday().String(), contract.RosterFreeDay) {
+		return 0, fmt.Errorf("%w: hourly leave is not allowed on roster-free day", domain.ErrLeaveDurationInvalid)
+	}
+
+	if startTime == nil || endTime == nil {
+		return 0, fmt.Errorf("%w: start_time and end_time are required for hourly leave", domain.ErrLeaveDurationInvalid)
+	}
+
+	duration := endTime.Sub(*startTime)
+	if duration <= 0 {
+		return 0, fmt.Errorf("%w: end_time must be after start_time", domain.ErrLeaveDurationInvalid)
+	}
+
+	requestedMinutes := int32(duration.Minutes())
+
+	if requestedMinutes > fullDayLeaveMinutes {
+		return 0, fmt.Errorf("%w: hourly leave cannot exceed %d minutes", domain.ErrLeaveDurationInvalid, fullDayLeaveMinutes)
+	}
+
+	return requestedMinutes, nil
 }
 
 var _ domain.LeaveService = (*LeaveService)(nil)

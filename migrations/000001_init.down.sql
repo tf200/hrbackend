@@ -53,6 +53,8 @@ DROP TABLE IF EXISTS leave_balance_adjustments;
 DROP TABLE IF EXISTS leave_balances;
 DROP TABLE IF EXISTS leave_policies;
 
+DROP TYPE IF EXISTS leave_duration_type_enum;
+
 -- Shift swap tables
 DROP TABLE IF EXISTS shift_swap_requests;
 

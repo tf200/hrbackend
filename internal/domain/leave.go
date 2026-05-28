@@ -15,6 +15,7 @@ var (
 	ErrLeaveRequestForbidden      = errors.New("leave request is not accessible by the actor")
 	ErrLeaveBalanceInsufficient   = errors.New("insufficient leave balance")
 	ErrLeaveBalanceInvalidAdjust  = errors.New("invalid leave balance adjustment")
+	ErrLeaveDurationInvalid       = errors.New("invalid leave duration")
 )
 
 type LeaveRequest struct {
@@ -23,6 +24,10 @@ type LeaveRequest struct {
 	CreatedByEmployeeID *uuid.UUID
 	LeaveType           string
 	Status              string
+	DurationType        string
+	RequestedMinutes    int32
+	StartTime           *time.Time
+	EndTime             *time.Time
 	StartDate           time.Time
 	EndDate             time.Time
 	Reason              *string
@@ -41,12 +46,14 @@ type LeaveRequestListItem struct {
 }
 
 type LeaveCalendarRecord struct {
-	LeaveRequestID uuid.UUID
-	LeaveType      string
-	Status         string
-	StartDate      time.Time
-	EndDate        time.Time
-	Reason         *string
+	LeaveRequestID    uuid.UUID
+	LeaveType         string
+	Status            string
+	DurationType      string
+	RequestedMinutes  int32
+	StartDate         time.Time
+	EndDate           time.Time
+	Reason            *string
 }
 
 type LeaveCalendarEmployee struct {
@@ -104,16 +111,24 @@ type CreateLeaveRequestParams struct {
 	EmployeeID          uuid.UUID
 	CreatedByEmployeeID uuid.UUID
 	LeaveType           string
+	DurationType        string
+	RequestedMinutes    int32
 	StartDate           time.Time
 	EndDate             time.Time
+	StartTime           *time.Time
+	EndTime             *time.Time
 	Reason              *string
 }
 
 type UpdateLeaveRequestParams struct {
-	LeaveType *string
-	StartDate *time.Time
-	EndDate   *time.Time
-	Reason    *string
+	LeaveType        *string
+	DurationType     *string
+	StartDate        *time.Time
+	EndDate          *time.Time
+	StartTime        *time.Time
+	EndTime          *time.Time
+	Reason           *string
+	RequestedMinutes *int32
 }
 
 type DecideLeaveRequestParams struct {
@@ -165,6 +180,11 @@ type AdjustLeaveBalanceParams struct {
 	Reason          string
 }
 
+type LeaveContractAtDate struct {
+	EmployeeID    uuid.UUID
+	RosterFreeDay string
+}
+
 type LeaveTxRepository interface {
 	GetLeaveRequestForUpdate(ctx context.Context, leaveRequestID uuid.UUID) (*LeaveRequest, error)
 	UpdateLeaveRequestEditableFields(
@@ -182,6 +202,7 @@ type LeaveTxRepository interface {
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
 	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
 	GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error)
+	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, date time.Time) (*LeaveContractAtDate, error)
 	GetLeaveBalanceForUpdate(
 		ctx context.Context,
 		employeeID uuid.UUID,
@@ -221,6 +242,7 @@ type LeaveRepository interface {
 	WithTx(ctx context.Context, fn func(tx LeaveTxRepository) error) error
 	CreateLeaveRequest(ctx context.Context, params CreateLeaveRequestParams) (*LeaveRequest, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
+	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, date time.Time) (*LeaveContractAtDate, error)
 	ListMyLeaveRequests(
 		ctx context.Context,
 		params ListMyLeaveRequestsParams,

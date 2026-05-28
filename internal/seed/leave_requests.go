@@ -22,6 +22,7 @@ type LeaveRequestSeed struct {
 	DecisionByEmployeeAlias *string
 	LeaveType               string
 	Status                  string
+	DurationType            string
 	StartDate               time.Time
 	EndDate                 time.Time
 	Reason                  *string
@@ -144,12 +145,17 @@ func createSeededLeaveRequest(
 	employeeID uuid.UUID,
 	item LeaveRequestSeed,
 ) (*domain.LeaveRequest, error) {
+	durationType := strings.TrimSpace(item.DurationType)
+	if durationType == "" {
+		durationType = "full_day"
+	}
 	params := domain.CreateLeaveRequestParams{
-		EmployeeID: employeeID,
-		LeaveType:  strings.TrimSpace(item.LeaveType),
-		StartDate:  leaveDateOnlyUTC(item.StartDate),
-		EndDate:    leaveDateOnlyUTC(item.EndDate),
-		Reason:     normalizeOptionalText(item.Reason),
+		EmployeeID:   employeeID,
+		LeaveType:    strings.TrimSpace(item.LeaveType),
+		DurationType: durationType,
+		StartDate:    leaveDateOnlyUTC(item.StartDate),
+		EndDate:      leaveDateOnlyUTC(item.EndDate),
+		Reason:       normalizeOptionalText(item.Reason),
 	}
 
 	createdByAlias := normalizeOptionalAlias(item.CreatedByEmployeeAlias)
