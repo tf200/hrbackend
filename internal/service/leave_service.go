@@ -724,11 +724,6 @@ func calculateFullDayMinutes(
 
 	var totalMinutes int32
 	for !current.After(end) {
-		if current.Weekday() == time.Saturday || current.Weekday() == time.Sunday {
-			current = current.AddDate(0, 0, 1)
-			continue
-		}
-
 		contract, err := lookup(ctx, employeeID, current)
 		if err != nil {
 			return 0, fmt.Errorf("%w: no active contract for date %s: %w", domain.ErrLeaveDurationInvalid, current.Format("2006-01-02"), err)
@@ -762,10 +757,6 @@ func calculateHoursMinutes(
 
 	if !start.Equal(end) {
 		return 0, fmt.Errorf("%w: hourly leave must be on a single date", domain.ErrLeaveDurationInvalid)
-	}
-
-	if start.Weekday() == time.Saturday || start.Weekday() == time.Sunday {
-		return 0, fmt.Errorf("%w: hourly leave is not allowed on weekends", domain.ErrLeaveDurationInvalid)
 	}
 
 	contract, err := lookup(ctx, employeeID, start)

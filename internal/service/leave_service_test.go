@@ -53,7 +53,7 @@ func TestLeaveServiceListLeaveCalendarNormalizesMonthAndLeaveTypes(t *testing.T)
 	}
 }
 
-func TestCalculateFullDayMinutesExcludesWeekends(t *testing.T) {
+func TestCalculateFullDayMinutesCountsWeekdays(t *testing.T) {
 	svc := &LeaveService{repository: newFakeLeaveRepoWithUnlimitedContract()}
 
 	mon := time.Date(2026, time.July, 6, 0, 0, 0, 0, time.UTC)
@@ -75,7 +75,7 @@ func TestCalculateFullDayMinutesExcludesWeekends(t *testing.T) {
 	}
 }
 
-func TestCalculateFullDayMinutesExcludesWeekendsInRange(t *testing.T) {
+func TestCalculateFullDayMinutesIncludesWeekendsInRange(t *testing.T) {
 	svc := &LeaveService{repository: newFakeLeaveRepoWithUnlimitedContract()}
 
 	wed := time.Date(2026, time.July, 8, 0, 0, 0, 0, time.UTC)
@@ -92,7 +92,7 @@ func TestCalculateFullDayMinutesExcludesWeekendsInRange(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expected := int32(6 * 480)
+	expected := int32(8 * 480)
 	if minutes != expected {
 		t.Fatalf("expected %d minutes, got %d", expected, minutes)
 	}
@@ -121,21 +121,25 @@ func TestCalculateFullDayMinutesExcludesRosterFreeDay(t *testing.T) {
 	}
 }
 
-func TestCalculateFullDayMinutesRejectsAllExcluded(t *testing.T) {
+func TestCalculateFullDayMinutesIncludesWeekendOnlyRangeWithRosterFreeConfig(t *testing.T) {
 	svc := &LeaveService{repository: newFakeLeaveRepoWithRosterFreeDay()}
 
 	sat := time.Date(2026, time.July, 11, 0, 0, 0, 0, time.UTC)
 	sun := time.Date(2026, time.July, 12, 0, 0, 0, 0, time.UTC)
 
-	_, err := svc.calculateRequestedMinutes(
+	minutes, err := svc.calculateRequestedMinutes(
 		context.Background(),
 		uuid.Nil,
 		"full_day",
 		sat, sun,
 		nil, nil,
 	)
-	if err == nil {
-		t.Fatal("expected error for all-excluded range")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := int32(2 * 480)
+	if minutes != expected {
+		t.Fatalf("expected %d minutes, got %d", expected, minutes)
 	}
 }
 
@@ -162,21 +166,25 @@ func TestCalculateFullDayMinutesExcludesRosterFreeFridayOnly(t *testing.T) {
 	}
 }
 
-func TestCalculateFullDayMinutesExcludesWeekendOnlyRange(t *testing.T) {
+func TestCalculateFullDayMinutesIncludesWeekendOnlyRange(t *testing.T) {
 	svc := &LeaveService{repository: newFakeLeaveRepoWithUnlimitedContract()}
 
 	sat := time.Date(2026, time.July, 11, 0, 0, 0, 0, time.UTC)
 	sun := time.Date(2026, time.July, 12, 0, 0, 0, 0, time.UTC)
 
-	_, err := svc.calculateRequestedMinutes(
+	minutes, err := svc.calculateRequestedMinutes(
 		context.Background(),
 		uuid.Nil,
 		"full_day",
 		sat, sun,
 		nil, nil,
 	)
-	if err == nil {
-		t.Fatal("expected error for weekend-only range")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := int32(2 * 480)
+	if minutes != expected {
+		t.Fatalf("expected %d minutes, got %d", expected, minutes)
 	}
 }
 
@@ -240,22 +248,25 @@ func TestCalculateHoursMinutesStandard(t *testing.T) {
 	}
 }
 
-func TestCalculateHoursMinutesRejectsWeekend(t *testing.T) {
+func TestCalculateHoursMinutesAllowsWeekend(t *testing.T) {
 	svc := &LeaveService{repository: newFakeLeaveRepoWithUnlimitedContract()}
 
 	sat := time.Date(2026, time.July, 11, 0, 0, 0, 0, time.UTC)
 	startTime := time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC)
 	endTime := time.Date(0, 1, 1, 13, 0, 0, 0, time.UTC)
 
-	_, err := svc.calculateRequestedMinutes(
+	minutes, err := svc.calculateRequestedMinutes(
 		context.Background(),
 		uuid.Nil,
 		"hours",
 		sat, sat,
 		&startTime, &endTime,
 	)
-	if err == nil {
-		t.Fatal("expected error for hourly leave on weekend")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if minutes != 240 {
+		t.Fatalf("expected 240 minutes, got %d", minutes)
 	}
 }
 
