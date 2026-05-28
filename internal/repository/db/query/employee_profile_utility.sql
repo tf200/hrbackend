@@ -98,10 +98,16 @@ WITH ranges AS (
 ), leave_balance AS (
     SELECT
         COALESCE(
-            (lb.legal_total_hours - lb.legal_used_hours)
-            + (lb.extra_total_hours - lb.extra_used_hours),
+            (
+                calculate_legal_leave_minutes(
+                    sqlc.arg('employee_id'),
+                    r.balance_year,
+                    CURRENT_TIMESTAMP
+                ) + COALESCE(lb.legal_adjustment_minutes, 0) - COALESCE(lb.legal_used_minutes, 0)
+            )
+            + (COALESCE(lb.extra_total_minutes, 0) - COALESCE(lb.extra_used_minutes, 0)),
             0
-        )::int AS remaining_leave_balance_hours
+        )::int AS remaining_leave_balance_minutes
     FROM ranges r
     LEFT JOIN leave_balances lb ON lb.employee_id = sqlc.arg('employee_id')
       AND lb.year = r.balance_year
@@ -114,7 +120,7 @@ WITH ranges AS (
     LIMIT 1
 )
 SELECT
-    lb.remaining_leave_balance_hours,
+    lb.remaining_leave_balance_minutes,
     ((os.approved_month_minutes + ss.scheduled_month_minutes) / 60.0)::double precision AS hours_worked_this_month,
     (os.pending_month_minutes / 60.0)::double precision AS hours_pending_approval,
     ((os.approved_year_minutes + ss.scheduled_year_minutes) / 60.0)::double precision AS total_hours_worked_this_year,

@@ -144,7 +144,7 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 			if _, err := tx.ApplyLeaveBalanceDeduction(
 				ctx,
 				balance.LeaveBalanceID,
-				current.RequestedHours,
+				current.RequestedHours*60,
 				0,
 			); err != nil {
 				return err

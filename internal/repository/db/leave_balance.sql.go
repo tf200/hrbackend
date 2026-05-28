@@ -15,30 +15,30 @@ import (
 const applyLeaveBalanceDeduction = `-- name: ApplyLeaveBalanceDeduction :one
 UPDATE leave_balances
 SET
-    extra_used_hours = extra_used_hours + $1,
-    legal_used_hours = legal_used_hours + $2,
+    extra_used_minutes = extra_used_minutes + $1,
+    legal_used_minutes = legal_used_minutes + $2,
     updated_at = NOW()
 WHERE id = $3
-RETURNING id, employee_id, year, legal_total_hours, extra_total_hours, legal_used_hours, extra_used_hours, created_at, updated_at
+RETURNING id, employee_id, year, legal_adjustment_minutes, extra_total_minutes, legal_used_minutes, extra_used_minutes, created_at, updated_at
 `
 
 type ApplyLeaveBalanceDeductionParams struct {
-	ExtraHours int32     `json:"extra_hours"`
-	LegalHours int32     `json:"legal_hours"`
-	ID         uuid.UUID `json:"id"`
+	ExtraMinutes int32     `json:"extra_minutes"`
+	LegalMinutes int32     `json:"legal_minutes"`
+	ID           uuid.UUID `json:"id"`
 }
 
 func (q *Queries) ApplyLeaveBalanceDeduction(ctx context.Context, arg ApplyLeaveBalanceDeductionParams) (LeaveBalance, error) {
-	row := q.db.QueryRow(ctx, applyLeaveBalanceDeduction, arg.ExtraHours, arg.LegalHours, arg.ID)
+	row := q.db.QueryRow(ctx, applyLeaveBalanceDeduction, arg.ExtraMinutes, arg.LegalMinutes, arg.ID)
 	var i LeaveBalance
 	err := row.Scan(
 		&i.ID,
 		&i.EmployeeID,
 		&i.Year,
-		&i.LegalTotalHours,
-		&i.ExtraTotalHours,
-		&i.LegalUsedHours,
-		&i.ExtraUsedHours,
+		&i.LegalAdjustmentMinutes,
+		&i.ExtraTotalMinutes,
+		&i.LegalUsedMinutes,
+		&i.ExtraUsedMinutes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -48,30 +48,30 @@ func (q *Queries) ApplyLeaveBalanceDeduction(ctx context.Context, arg ApplyLeave
 const applyLeaveBalanceTotalAdjustment = `-- name: ApplyLeaveBalanceTotalAdjustment :one
 UPDATE leave_balances
 SET
-    legal_total_hours = legal_total_hours + $1,
-    extra_total_hours = extra_total_hours + $2,
+    legal_adjustment_minutes = legal_adjustment_minutes + $1,
+    extra_total_minutes = extra_total_minutes + $2,
     updated_at = NOW()
 WHERE id = $3
-RETURNING id, employee_id, year, legal_total_hours, extra_total_hours, legal_used_hours, extra_used_hours, created_at, updated_at
+RETURNING id, employee_id, year, legal_adjustment_minutes, extra_total_minutes, legal_used_minutes, extra_used_minutes, created_at, updated_at
 `
 
 type ApplyLeaveBalanceTotalAdjustmentParams struct {
-	LegalHoursDelta int32     `json:"legal_hours_delta"`
-	ExtraHoursDelta int32     `json:"extra_hours_delta"`
-	ID              uuid.UUID `json:"id"`
+	LegalAdjustmentMinutesDelta int32     `json:"legal_adjustment_minutes_delta"`
+	ExtraTotalMinutesDelta      int32     `json:"extra_total_minutes_delta"`
+	ID                          uuid.UUID `json:"id"`
 }
 
 func (q *Queries) ApplyLeaveBalanceTotalAdjustment(ctx context.Context, arg ApplyLeaveBalanceTotalAdjustmentParams) (LeaveBalance, error) {
-	row := q.db.QueryRow(ctx, applyLeaveBalanceTotalAdjustment, arg.LegalHoursDelta, arg.ExtraHoursDelta, arg.ID)
+	row := q.db.QueryRow(ctx, applyLeaveBalanceTotalAdjustment, arg.LegalAdjustmentMinutesDelta, arg.ExtraTotalMinutesDelta, arg.ID)
 	var i LeaveBalance
 	err := row.Scan(
 		&i.ID,
 		&i.EmployeeID,
 		&i.Year,
-		&i.LegalTotalHours,
-		&i.ExtraTotalHours,
-		&i.LegalUsedHours,
-		&i.ExtraUsedHours,
+		&i.LegalAdjustmentMinutes,
+		&i.ExtraTotalMinutes,
+		&i.LegalUsedMinutes,
+		&i.ExtraUsedMinutes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -79,19 +79,24 @@ func (q *Queries) ApplyLeaveBalanceTotalAdjustment(ctx context.Context, arg Appl
 }
 
 const computeLegalLeaveTotalForYear = `-- name: ComputeLegalLeaveTotalForYear :one
-SELECT calculate_legal_leave_hours($1, $2)::int AS legal_total_hours
+SELECT calculate_legal_leave_minutes(
+    $1,
+    $2::int,
+    $3::timestamptz
+)::int AS legal_total_minutes
 `
 
 type ComputeLegalLeaveTotalForYearParams struct {
-	EmployeeID uuid.UUID `json:"employee_id"`
-	Year       int32     `json:"year"`
+	EmployeeID uuid.UUID          `json:"employee_id"`
+	Year       int32              `json:"year"`
+	AsOf       pgtype.Timestamptz `json:"as_of"`
 }
 
 func (q *Queries) ComputeLegalLeaveTotalForYear(ctx context.Context, arg ComputeLegalLeaveTotalForYearParams) (int32, error) {
-	row := q.db.QueryRow(ctx, computeLegalLeaveTotalForYear, arg.EmployeeID, arg.Year)
-	var legal_total_hours int32
-	err := row.Scan(&legal_total_hours)
-	return legal_total_hours, err
+	row := q.db.QueryRow(ctx, computeLegalLeaveTotalForYear, arg.EmployeeID, arg.Year, arg.AsOf)
+	var legal_total_minutes int32
+	err := row.Scan(&legal_total_minutes)
+	return legal_total_minutes, err
 }
 
 const createLeaveBalanceAdjustmentAudit = `-- name: CreateLeaveBalanceAdjustmentAudit :one
@@ -99,14 +104,14 @@ INSERT INTO leave_balance_adjustments (
     leave_balance_id,
     employee_id,
     year,
-    legal_hours_delta,
-    extra_hours_delta,
+    legal_adjustment_minutes_delta,
+    extra_total_minutes_delta,
     reason,
     adjusted_by_employee_id,
-    legal_total_hours_before,
-    extra_total_hours_before,
-    legal_total_hours_after,
-    extra_total_hours_after
+    legal_adjustment_minutes_before,
+    extra_total_minutes_before,
+    legal_adjustment_minutes_after,
+    extra_total_minutes_after
 ) VALUES (
     $1,
     $2,
@@ -120,21 +125,21 @@ INSERT INTO leave_balance_adjustments (
     $10,
     $11
 )
-RETURNING id, leave_balance_id, employee_id, year, legal_hours_delta, extra_hours_delta, reason, adjusted_by_employee_id, legal_total_hours_before, extra_total_hours_before, legal_total_hours_after, extra_total_hours_after, created_at
+RETURNING id, leave_balance_id, employee_id, year, legal_adjustment_minutes_delta, extra_total_minutes_delta, reason, adjusted_by_employee_id, legal_adjustment_minutes_before, extra_total_minutes_before, legal_adjustment_minutes_after, extra_total_minutes_after, created_at
 `
 
 type CreateLeaveBalanceAdjustmentAuditParams struct {
-	LeaveBalanceID        uuid.UUID `json:"leave_balance_id"`
-	EmployeeID            uuid.UUID `json:"employee_id"`
-	Year                  int32     `json:"year"`
-	LegalHoursDelta       int32     `json:"legal_hours_delta"`
-	ExtraHoursDelta       int32     `json:"extra_hours_delta"`
-	Reason                string    `json:"reason"`
-	AdjustedByEmployeeID  uuid.UUID `json:"adjusted_by_employee_id"`
-	LegalTotalHoursBefore int32     `json:"legal_total_hours_before"`
-	ExtraTotalHoursBefore int32     `json:"extra_total_hours_before"`
-	LegalTotalHoursAfter  int32     `json:"legal_total_hours_after"`
-	ExtraTotalHoursAfter  int32     `json:"extra_total_hours_after"`
+	LeaveBalanceID               uuid.UUID `json:"leave_balance_id"`
+	EmployeeID                   uuid.UUID `json:"employee_id"`
+	Year                         int32     `json:"year"`
+	LegalAdjustmentMinutesDelta  int32     `json:"legal_adjustment_minutes_delta"`
+	ExtraTotalMinutesDelta       int32     `json:"extra_total_minutes_delta"`
+	Reason                       string    `json:"reason"`
+	AdjustedByEmployeeID         uuid.UUID `json:"adjusted_by_employee_id"`
+	LegalAdjustmentMinutesBefore int32     `json:"legal_adjustment_minutes_before"`
+	ExtraTotalMinutesBefore      int32     `json:"extra_total_minutes_before"`
+	LegalAdjustmentMinutesAfter  int32     `json:"legal_adjustment_minutes_after"`
+	ExtraTotalMinutesAfter       int32     `json:"extra_total_minutes_after"`
 }
 
 func (q *Queries) CreateLeaveBalanceAdjustmentAudit(ctx context.Context, arg CreateLeaveBalanceAdjustmentAuditParams) (LeaveBalanceAdjustment, error) {
@@ -142,14 +147,14 @@ func (q *Queries) CreateLeaveBalanceAdjustmentAudit(ctx context.Context, arg Cre
 		arg.LeaveBalanceID,
 		arg.EmployeeID,
 		arg.Year,
-		arg.LegalHoursDelta,
-		arg.ExtraHoursDelta,
+		arg.LegalAdjustmentMinutesDelta,
+		arg.ExtraTotalMinutesDelta,
 		arg.Reason,
 		arg.AdjustedByEmployeeID,
-		arg.LegalTotalHoursBefore,
-		arg.ExtraTotalHoursBefore,
-		arg.LegalTotalHoursAfter,
-		arg.ExtraTotalHoursAfter,
+		arg.LegalAdjustmentMinutesBefore,
+		arg.ExtraTotalMinutesBefore,
+		arg.LegalAdjustmentMinutesAfter,
+		arg.ExtraTotalMinutesAfter,
 	)
 	var i LeaveBalanceAdjustment
 	err := row.Scan(
@@ -157,14 +162,14 @@ func (q *Queries) CreateLeaveBalanceAdjustmentAudit(ctx context.Context, arg Cre
 		&i.LeaveBalanceID,
 		&i.EmployeeID,
 		&i.Year,
-		&i.LegalHoursDelta,
-		&i.ExtraHoursDelta,
+		&i.LegalAdjustmentMinutesDelta,
+		&i.ExtraTotalMinutesDelta,
 		&i.Reason,
 		&i.AdjustedByEmployeeID,
-		&i.LegalTotalHoursBefore,
-		&i.ExtraTotalHoursBefore,
-		&i.LegalTotalHoursAfter,
-		&i.ExtraTotalHoursAfter,
+		&i.LegalAdjustmentMinutesBefore,
+		&i.ExtraTotalMinutesBefore,
+		&i.LegalAdjustmentMinutesAfter,
+		&i.ExtraTotalMinutesAfter,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -174,14 +179,14 @@ const ensureLeaveBalanceForYear = `-- name: EnsureLeaveBalanceForYear :exec
 INSERT INTO leave_balances (
     employee_id,
     year,
-    legal_total_hours,
-    extra_total_hours,
-    legal_used_hours,
-    extra_used_hours
+    legal_adjustment_minutes,
+    extra_total_minutes,
+    legal_used_minutes,
+    extra_used_minutes
 ) SELECT
     ep.id,
     $1,
-    calculate_legal_leave_hours(ep.id, $1::int),
+    0,
     0,
     0,
     0
@@ -223,7 +228,7 @@ func (q *Queries) GetEmployeeContractForLeave(ctx context.Context, employeeID uu
 }
 
 const listLeaveBalancesForEmployeeFromYearForUpdate = `-- name: ListLeaveBalancesForEmployeeFromYearForUpdate :many
-SELECT id, employee_id, year, legal_total_hours, extra_total_hours, legal_used_hours, extra_used_hours, created_at, updated_at
+SELECT id, employee_id, year, legal_adjustment_minutes, extra_total_minutes, legal_used_minutes, extra_used_minutes, created_at, updated_at
 FROM leave_balances
 WHERE employee_id = $1
   AND year >= $2
@@ -249,10 +254,10 @@ func (q *Queries) ListLeaveBalancesForEmployeeFromYearForUpdate(ctx context.Cont
 			&i.ID,
 			&i.EmployeeID,
 			&i.Year,
-			&i.LegalTotalHours,
-			&i.ExtraTotalHours,
-			&i.LegalUsedHours,
-			&i.ExtraUsedHours,
+			&i.LegalAdjustmentMinutes,
+			&i.ExtraTotalMinutes,
+			&i.LegalUsedMinutes,
+			&i.ExtraUsedMinutes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -271,10 +276,11 @@ SELECT
     lb.id,
     lb.employee_id,
     lb.year,
-    lb.legal_total_hours,
-    lb.extra_total_hours,
-    lb.legal_used_hours,
-    lb.extra_used_hours,
+    (ent.legal_calculated_minutes + lb.legal_adjustment_minutes)::int AS legal_total_minutes,
+    lb.legal_adjustment_minutes,
+    lb.extra_total_minutes,
+    lb.legal_used_minutes,
+    lb.extra_used_minutes,
     lb.created_at,
     lb.updated_at,
     ep.first_name AS employee_first_name,
@@ -287,6 +293,20 @@ SELECT
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
+JOIN LATERAL (
+    SELECT calculate_legal_leave_minutes(
+        lb.employee_id,
+        lb.year,
+        CASE
+            WHEN lb.year < EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                (make_date(lb.year, 12, 31)::timestamp + INTERVAL '23 hours 59 minutes 59 seconds')::timestamptz
+            WHEN lb.year = EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                CURRENT_TIMESTAMP
+            ELSE
+                make_date(lb.year, 1, 1)::timestamptz
+        END
+    )::int AS legal_calculated_minutes
+) ent ON true
 LEFT JOIN LATERAL (
     SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
@@ -318,23 +338,24 @@ type ListLeaveBalancesPaginatedParams struct {
 }
 
 type ListLeaveBalancesPaginatedRow struct {
-	ID                uuid.UUID                `json:"id"`
-	EmployeeID        uuid.UUID                `json:"employee_id"`
-	Year              int32                    `json:"year"`
-	LegalTotalHours   int32                    `json:"legal_total_hours"`
-	ExtraTotalHours   int32                    `json:"extra_total_hours"`
-	LegalUsedHours    int32                    `json:"legal_used_hours"`
-	ExtraUsedHours    int32                    `json:"extra_used_hours"`
-	CreatedAt         pgtype.Timestamptz       `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz       `json:"updated_at"`
-	EmployeeFirstName string                   `json:"employee_first_name"`
-	EmployeeLastName  string                   `json:"employee_last_name"`
-	ContractHours     *float64                 `json:"contract_hours"`
-	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
-	ContractStartDate pgtype.Date              `json:"contract_start_date"`
-	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
-	EffectiveEndDate  pgtype.Date              `json:"effective_end_date"`
-	TotalCount        int64                    `json:"total_count"`
+	ID                     uuid.UUID                `json:"id"`
+	EmployeeID             uuid.UUID                `json:"employee_id"`
+	Year                   int32                    `json:"year"`
+	LegalTotalMinutes      int32                    `json:"legal_total_minutes"`
+	LegalAdjustmentMinutes int32                    `json:"legal_adjustment_minutes"`
+	ExtraTotalMinutes      int32                    `json:"extra_total_minutes"`
+	LegalUsedMinutes       int32                    `json:"legal_used_minutes"`
+	ExtraUsedMinutes       int32                    `json:"extra_used_minutes"`
+	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz       `json:"updated_at"`
+	EmployeeFirstName      string                   `json:"employee_first_name"`
+	EmployeeLastName       string                   `json:"employee_last_name"`
+	ContractHours          *float64                 `json:"contract_hours"`
+	ContractType           EmployeeContractTypeEnum `json:"contract_type"`
+	ContractStartDate      pgtype.Date              `json:"contract_start_date"`
+	ContractEndDate        pgtype.Date              `json:"contract_end_date"`
+	EffectiveEndDate       pgtype.Date              `json:"effective_end_date"`
+	TotalCount             int64                    `json:"total_count"`
 }
 
 func (q *Queries) ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveBalancesPaginatedParams) ([]ListLeaveBalancesPaginatedRow, error) {
@@ -355,10 +376,11 @@ func (q *Queries) ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveB
 			&i.ID,
 			&i.EmployeeID,
 			&i.Year,
-			&i.LegalTotalHours,
-			&i.ExtraTotalHours,
-			&i.LegalUsedHours,
-			&i.ExtraUsedHours,
+			&i.LegalTotalMinutes,
+			&i.LegalAdjustmentMinutes,
+			&i.ExtraTotalMinutes,
+			&i.LegalUsedMinutes,
+			&i.ExtraUsedMinutes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.EmployeeFirstName,
@@ -385,10 +407,11 @@ SELECT
     lb.id,
     lb.employee_id,
     lb.year,
-    lb.legal_total_hours,
-    lb.extra_total_hours,
-    lb.legal_used_hours,
-    lb.extra_used_hours,
+    (ent.legal_calculated_minutes + lb.legal_adjustment_minutes)::int AS legal_total_minutes,
+    lb.legal_adjustment_minutes,
+    lb.extra_total_minutes,
+    lb.legal_used_minutes,
+    lb.extra_used_minutes,
     lb.created_at,
     lb.updated_at,
     ep.first_name AS employee_first_name,
@@ -401,6 +424,20 @@ SELECT
     COUNT(*) OVER() AS total_count
 FROM leave_balances lb
 JOIN employee_profile ep ON ep.id = lb.employee_id
+JOIN LATERAL (
+    SELECT calculate_legal_leave_minutes(
+        lb.employee_id,
+        lb.year,
+        CASE
+            WHEN lb.year < EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                (make_date(lb.year, 12, 31)::timestamp + INTERVAL '23 hours 59 minutes 59 seconds')::timestamptz
+            WHEN lb.year = EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                CURRENT_TIMESTAMP
+            ELSE
+                make_date(lb.year, 1, 1)::timestamptz
+        END
+    )::int AS legal_calculated_minutes
+) ent ON true
 LEFT JOIN LATERAL (
     SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
@@ -425,23 +462,24 @@ type ListMyLeaveBalancesPaginatedParams struct {
 }
 
 type ListMyLeaveBalancesPaginatedRow struct {
-	ID                uuid.UUID                `json:"id"`
-	EmployeeID        uuid.UUID                `json:"employee_id"`
-	Year              int32                    `json:"year"`
-	LegalTotalHours   int32                    `json:"legal_total_hours"`
-	ExtraTotalHours   int32                    `json:"extra_total_hours"`
-	LegalUsedHours    int32                    `json:"legal_used_hours"`
-	ExtraUsedHours    int32                    `json:"extra_used_hours"`
-	CreatedAt         pgtype.Timestamptz       `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz       `json:"updated_at"`
-	EmployeeFirstName string                   `json:"employee_first_name"`
-	EmployeeLastName  string                   `json:"employee_last_name"`
-	ContractHours     *float64                 `json:"contract_hours"`
-	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
-	ContractStartDate pgtype.Date              `json:"contract_start_date"`
-	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
-	EffectiveEndDate  pgtype.Date              `json:"effective_end_date"`
-	TotalCount        int64                    `json:"total_count"`
+	ID                     uuid.UUID                `json:"id"`
+	EmployeeID             uuid.UUID                `json:"employee_id"`
+	Year                   int32                    `json:"year"`
+	LegalTotalMinutes      int32                    `json:"legal_total_minutes"`
+	LegalAdjustmentMinutes int32                    `json:"legal_adjustment_minutes"`
+	ExtraTotalMinutes      int32                    `json:"extra_total_minutes"`
+	LegalUsedMinutes       int32                    `json:"legal_used_minutes"`
+	ExtraUsedMinutes       int32                    `json:"extra_used_minutes"`
+	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz       `json:"updated_at"`
+	EmployeeFirstName      string                   `json:"employee_first_name"`
+	EmployeeLastName       string                   `json:"employee_last_name"`
+	ContractHours          *float64                 `json:"contract_hours"`
+	ContractType           EmployeeContractTypeEnum `json:"contract_type"`
+	ContractStartDate      pgtype.Date              `json:"contract_start_date"`
+	ContractEndDate        pgtype.Date              `json:"contract_end_date"`
+	EffectiveEndDate       pgtype.Date              `json:"effective_end_date"`
+	TotalCount             int64                    `json:"total_count"`
 }
 
 func (q *Queries) ListMyLeaveBalancesPaginated(ctx context.Context, arg ListMyLeaveBalancesPaginatedParams) ([]ListMyLeaveBalancesPaginatedRow, error) {
@@ -462,10 +500,11 @@ func (q *Queries) ListMyLeaveBalancesPaginated(ctx context.Context, arg ListMyLe
 			&i.ID,
 			&i.EmployeeID,
 			&i.Year,
-			&i.LegalTotalHours,
-			&i.ExtraTotalHours,
-			&i.LegalUsedHours,
-			&i.ExtraUsedHours,
+			&i.LegalTotalMinutes,
+			&i.LegalAdjustmentMinutes,
+			&i.ExtraTotalMinutes,
+			&i.LegalUsedMinutes,
+			&i.ExtraUsedMinutes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.EmployeeFirstName,
@@ -488,7 +527,7 @@ func (q *Queries) ListMyLeaveBalancesPaginated(ctx context.Context, arg ListMyLe
 }
 
 const lockLeaveBalanceByEmployeeYear = `-- name: LockLeaveBalanceByEmployeeYear :one
-SELECT id, employee_id, year, legal_total_hours, extra_total_hours, legal_used_hours, extra_used_hours, created_at, updated_at
+SELECT id, employee_id, year, legal_adjustment_minutes, extra_total_minutes, legal_used_minutes, extra_used_minutes, created_at, updated_at
 FROM leave_balances
 WHERE employee_id = $1
   AND year = $2
@@ -507,10 +546,10 @@ func (q *Queries) LockLeaveBalanceByEmployeeYear(ctx context.Context, arg LockLe
 		&i.ID,
 		&i.EmployeeID,
 		&i.Year,
-		&i.LegalTotalHours,
-		&i.ExtraTotalHours,
-		&i.LegalUsedHours,
-		&i.ExtraUsedHours,
+		&i.LegalAdjustmentMinutes,
+		&i.ExtraTotalMinutes,
+		&i.LegalUsedMinutes,
+		&i.ExtraUsedMinutes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

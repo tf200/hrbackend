@@ -92,11 +92,11 @@ type listMyLeaveBalancesRequest struct {
 }
 
 type adjustLeaveBalanceRequest struct {
-	EmployeeID      uuid.UUID `json:"employee_id"       binding:"required"`
-	Year            int32     `json:"year"              binding:"required,min=2000,max=2100"`
-	LegalHoursDelta int32     `json:"legal_hours_delta"`
-	ExtraHoursDelta int32     `json:"extra_hours_delta"`
-	Reason          string    `json:"reason"            binding:"required"`
+	EmployeeID                  uuid.UUID `json:"employee_id"                     binding:"required"`
+	Year                        int32     `json:"year"                            binding:"required,min=2000,max=2100"`
+	LegalAdjustmentMinutesDelta int32     `json:"legal_adjustment_minutes_delta"`
+	ExtraTotalMinutesDelta      int32     `json:"extra_total_minutes_delta"`
+	Reason                      string    `json:"reason"                          binding:"required"`
 }
 
 type leaveRequestResponse struct {
@@ -127,14 +127,14 @@ type leaveRequestListItemResponse struct {
 }
 
 type leaveCalendarRecordResponse struct {
-	LeaveRequestID  uuid.UUID `json:"leave_request_id"`
-	LeaveType       string    `json:"leave_type"`
-	Status          string    `json:"status"`
-	DurationType    string    `json:"duration_type"`
-	RequestedMinutes int32    `json:"requested_minutes"`
-	StartDate       time.Time `json:"start_date"`
-	EndDate         time.Time `json:"end_date"`
-	Reason          *string   `json:"reason,omitempty"`
+	LeaveRequestID   uuid.UUID `json:"leave_request_id"`
+	LeaveType        string    `json:"leave_type"`
+	Status           string    `json:"status"`
+	DurationType     string    `json:"duration_type"`
+	RequestedMinutes int32     `json:"requested_minutes"`
+	StartDate        time.Time `json:"start_date"`
+	EndDate          time.Time `json:"end_date"`
+	Reason           *string   `json:"reason,omitempty"`
 }
 
 type leaveCalendarEmployeeResponse struct {
@@ -152,26 +152,26 @@ type leaveRequestStatsResponse struct {
 }
 
 type leaveBalanceResponse struct {
-	ID              uuid.UUID `json:"id"`
-	EmployeeID      uuid.UUID `json:"employee_id"`
-	EmployeeName    string    `json:"employee_name"`
-	Year            int32     `json:"year"`
-	LegalTotalHours int32     `json:"legal_total_hours"`
-	ExtraTotalHours int32     `json:"extra_total_hours"`
-	LegalUsedHours  int32     `json:"legal_used_hours"`
-	ExtraUsedHours  int32     `json:"extra_used_hours"`
-	LegalRemaining  int32     `json:"legal_remaining_hours"`
-	ExtraRemaining  int32     `json:"extra_remaining_hours"`
-	TotalRemaining  int32     `json:"total_remaining_hours"`
-	DerivedDayHours int32     `json:"derived_day_hours"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID                     uuid.UUID `json:"id"`
+	EmployeeID             uuid.UUID `json:"employee_id"`
+	EmployeeName           string    `json:"employee_name"`
+	Year                   int32     `json:"year"`
+	LegalTotalMinutes      int32     `json:"legal_total_minutes"`
+	LegalAdjustmentMinutes int32     `json:"legal_adjustment_minutes"`
+	ExtraTotalMinutes      int32     `json:"extra_total_minutes"`
+	LegalUsedMinutes       int32     `json:"legal_used_minutes"`
+	ExtraUsedMinutes       int32     `json:"extra_used_minutes"`
+	LegalRemainingMinutes  int32     `json:"legal_remaining_minutes"`
+	ExtraRemainingMinutes  int32     `json:"extra_remaining_minutes"`
+	TotalRemainingMinutes  int32     `json:"total_remaining_minutes"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
 
 type leaveBudgetTypeResponse struct {
-	TotalHours     int32 `json:"total_hours"`
-	UsedHours      int32 `json:"used_hours"`
-	RemainingHours int32 `json:"remaining_hours"`
+	TotalMinutes     int32 `json:"total_minutes"`
+	UsedMinutes      int32 `json:"used_minutes"`
+	RemainingMinutes int32 `json:"remaining_minutes"`
 }
 
 type leaveBudgetByTypeResponse struct {
@@ -383,12 +383,12 @@ func toAdjustLeaveBalanceParams(
 	req adjustLeaveBalanceRequest,
 ) domain.AdjustLeaveBalanceParams {
 	return domain.AdjustLeaveBalanceParams{
-		AdminEmployeeID: adminEmployeeID,
-		EmployeeID:      req.EmployeeID,
-		Year:            req.Year,
-		LegalHoursDelta: req.LegalHoursDelta,
-		ExtraHoursDelta: req.ExtraHoursDelta,
-		Reason:          req.Reason,
+		AdminEmployeeID:             adminEmployeeID,
+		EmployeeID:                  req.EmployeeID,
+		Year:                        req.Year,
+		LegalAdjustmentMinutesDelta: req.LegalAdjustmentMinutesDelta,
+		ExtraTotalMinutesDelta:      req.ExtraTotalMinutesDelta,
+		Reason:                      req.Reason,
 	}
 }
 
@@ -459,20 +459,20 @@ func toLeaveRequestStatsResponse(stats *domain.LeaveRequestStats) leaveRequestSt
 
 func toLeaveBalanceResponse(item domain.LeaveBalance) leaveBalanceResponse {
 	return leaveBalanceResponse{
-		ID:              item.ID,
-		EmployeeID:      item.EmployeeID,
-		EmployeeName:    item.EmployeeName,
-		Year:            item.Year,
-		LegalTotalHours: item.LegalTotalHours,
-		ExtraTotalHours: item.ExtraTotalHours,
-		LegalUsedHours:  item.LegalUsedHours,
-		ExtraUsedHours:  item.ExtraUsedHours,
-		LegalRemaining:  item.LegalRemaining,
-		ExtraRemaining:  item.ExtraRemaining,
-		TotalRemaining:  item.TotalRemaining,
-		DerivedDayHours: item.DerivedDayHours,
-		CreatedAt:       item.CreatedAt,
-		UpdatedAt:       item.UpdatedAt,
+		ID:                     item.ID,
+		EmployeeID:             item.EmployeeID,
+		EmployeeName:           item.EmployeeName,
+		Year:                   item.Year,
+		LegalTotalMinutes:      item.LegalTotalMinutes,
+		LegalAdjustmentMinutes: item.LegalAdjustmentMinutes,
+		ExtraTotalMinutes:      item.ExtraTotalMinutes,
+		LegalUsedMinutes:       item.LegalUsedMinutes,
+		ExtraUsedMinutes:       item.ExtraUsedMinutes,
+		LegalRemainingMinutes:  item.LegalRemainingMinutes,
+		ExtraRemainingMinutes:  item.ExtraRemainingMinutes,
+		TotalRemainingMinutes:  item.TotalRemainingMinutes,
+		CreatedAt:              item.CreatedAt,
+		UpdatedAt:              item.UpdatedAt,
 	}
 }
 
@@ -484,14 +484,14 @@ func toManagerLeaveBalanceResponse(item domain.LeaveBalance) managerLeaveBalance
 		Year:         item.Year,
 		LeaveBudget: leaveBudgetByTypeResponse{
 			Legal: leaveBudgetTypeResponse{
-				TotalHours:     item.LegalTotalHours,
-				UsedHours:      item.LegalUsedHours,
-				RemainingHours: item.LegalRemaining,
+				TotalMinutes:     item.LegalTotalMinutes,
+				UsedMinutes:      item.LegalUsedMinutes,
+				RemainingMinutes: item.LegalRemainingMinutes,
 			},
 			Budget: leaveBudgetTypeResponse{
-				TotalHours:     item.ExtraTotalHours,
-				UsedHours:      item.ExtraUsedHours,
-				RemainingHours: item.ExtraRemaining,
+				TotalMinutes:     item.ExtraTotalMinutes,
+				UsedMinutes:      item.ExtraUsedMinutes,
+				RemainingMinutes: item.ExtraRemainingMinutes,
 			},
 		},
 		Contract: leaveContractDetailsResponse{

@@ -269,24 +269,13 @@ func (s *LeaveService) DecideLeaveRequestByAdmin(
 					)
 				}
 
-				requestedDays := int32(end.Sub(start).Hours()/24) + 1
-				if requestedDays <= 0 {
+				requestedMinutes := current.RequestedMinutes
+				if requestedMinutes <= 0 {
 					return fmt.Errorf(
 						"%w: invalid leave duration",
 						domain.ErrLeaveRequestInvalidRequest,
 					)
 				}
-				hoursPerDay, err := tx.GetLeaveHoursPerDay(ctx, current.EmployeeID)
-				if err != nil {
-					return err
-				}
-				if hoursPerDay <= 0 {
-					return fmt.Errorf(
-						"%w: invalid employee day-hour configuration",
-						domain.ErrLeaveRequestInvalidRequest,
-					)
-				}
-				requestedHours := requestedDays * hoursPerDay
 
 				year := int32(start.Year())
 				if err := tx.EnsureLeaveBalanceForYear(ctx, current.EmployeeID, year); err != nil {
@@ -297,13 +286,21 @@ func (s *LeaveService) DecideLeaveRequestByAdmin(
 				if err != nil {
 					return err
 				}
+				legalCalculatedMinutes, err := tx.ComputeLegalLeaveTotalForYear(ctx, current.EmployeeID, year, time.Now().UTC())
+				if err != nil {
+					return err
+				}
 
-				if balance.TotalRemaining < requestedHours {
+				legalRemaining := legalCalculatedMinutes + balance.LegalAdjustmentMinutes - balance.LegalUsedMinutes
+				extraRemaining := balance.ExtraTotalMinutes - balance.ExtraUsedMinutes
+				totalRemaining := legalRemaining + extraRemaining
+
+				if totalRemaining < requestedMinutes {
 					return domain.ErrLeaveBalanceInsufficient
 				}
 
-				extraToUse := minInt32(balance.ExtraRemaining, requestedHours)
-				legalToUse := requestedHours - extraToUse
+				extraToUse := minInt32(extraRemaining, requestedMinutes)
+				legalToUse := requestedMinutes - extraToUse
 				if _, err := tx.ApplyLeaveBalanceDeduction(
 					ctx,
 					balance.ID,
@@ -427,7 +424,7 @@ func (s *LeaveService) AdjustLeaveBalance(
 	if params.AdminEmployeeID == uuid.Nil || params.EmployeeID == uuid.Nil {
 		return nil, domain.ErrLeaveRequestInvalidRequest
 	}
-	if params.LegalHoursDelta == 0 && params.ExtraHoursDelta == 0 {
+	if params.LegalAdjustmentMinutesDelta == 0 && params.ExtraTotalMinutesDelta == 0 {
 		return nil, fmt.Errorf(
 			"%w: at least one delta is required",
 			domain.ErrLeaveBalanceInvalidAdjust,
@@ -448,14 +445,20 @@ func (s *LeaveService) AdjustLeaveBalance(
 			return err
 		}
 
-		nextLegalTotal := current.LegalTotalHours + params.LegalHoursDelta
-		nextExtraTotal := current.ExtraTotalHours + params.ExtraHoursDelta
-		if nextLegalTotal < 0 || nextExtraTotal < 0 {
-			return fmt.Errorf("%w: totals cannot be negative", domain.ErrLeaveBalanceInvalidAdjust)
+		legalCalculatedMinutes, err := tx.ComputeLegalLeaveTotalForYear(ctx, params.EmployeeID, params.Year, time.Now().UTC())
+		if err != nil {
+			return err
 		}
-		if nextLegalTotal < current.LegalUsedHours || nextExtraTotal < current.ExtraUsedHours {
+
+		nextLegalAdjustment := current.LegalAdjustmentMinutes + params.LegalAdjustmentMinutesDelta
+		nextLegalTotal := legalCalculatedMinutes + nextLegalAdjustment
+		nextExtraTotal := current.ExtraTotalMinutes + params.ExtraTotalMinutesDelta
+		if nextExtraTotal < 0 {
+			return fmt.Errorf("%w: extra total cannot be negative", domain.ErrLeaveBalanceInvalidAdjust)
+		}
+		if nextLegalTotal < current.LegalUsedMinutes || nextExtraTotal < current.ExtraUsedMinutes {
 			return fmt.Errorf(
-				"%w: totals cannot be lower than already used hours",
+				"%w: totals cannot be lower than already used minutes",
 				domain.ErrLeaveBalanceInvalidAdjust,
 			)
 		}
@@ -463,27 +466,28 @@ func (s *LeaveService) AdjustLeaveBalance(
 		adjusted, err = tx.ApplyLeaveBalanceTotalAdjustment(
 			ctx,
 			current.ID,
-			params.LegalHoursDelta,
-			params.ExtraHoursDelta,
+			params.LegalAdjustmentMinutesDelta,
+			params.ExtraTotalMinutesDelta,
 		)
 		if err != nil {
 			return err
 		}
+		adjusted = withLiveLegalBalance(adjusted, legalCalculatedMinutes)
 
 		return tx.CreateLeaveBalanceAdjustmentAudit(
 			ctx,
 			domain.CreateLeaveBalanceAdjustmentAuditParams{
-				LeaveBalanceID:        current.ID,
-				EmployeeID:            params.EmployeeID,
-				Year:                  params.Year,
-				LegalHoursDelta:       params.LegalHoursDelta,
-				ExtraHoursDelta:       params.ExtraHoursDelta,
-				Reason:                params.Reason,
-				AdjustedByEmployeeID:  params.AdminEmployeeID,
-				LegalTotalHoursBefore: current.LegalTotalHours,
-				ExtraTotalHoursBefore: current.ExtraTotalHours,
-				LegalTotalHoursAfter:  adjusted.LegalTotalHours,
-				ExtraTotalHoursAfter:  adjusted.ExtraTotalHours,
+				LeaveBalanceID:               current.ID,
+				EmployeeID:                   params.EmployeeID,
+				Year:                         params.Year,
+				LegalAdjustmentMinutesDelta:  params.LegalAdjustmentMinutesDelta,
+				ExtraTotalMinutesDelta:       params.ExtraTotalMinutesDelta,
+				Reason:                       params.Reason,
+				AdjustedByEmployeeID:         params.AdminEmployeeID,
+				LegalAdjustmentMinutesBefore: current.LegalAdjustmentMinutes,
+				ExtraTotalMinutesBefore:      current.ExtraTotalMinutes,
+				LegalAdjustmentMinutesAfter:  adjusted.LegalAdjustmentMinutes,
+				ExtraTotalMinutesAfter:       adjusted.ExtraTotalMinutes,
 			},
 		)
 	})
@@ -631,6 +635,17 @@ func minInt32(a, b int32) int32 {
 		return a
 	}
 	return b
+}
+
+func withLiveLegalBalance(balance *domain.LeaveBalance, legalCalculatedMinutes int32) *domain.LeaveBalance {
+	if balance == nil {
+		return nil
+	}
+	balance.LegalTotalMinutes = legalCalculatedMinutes + balance.LegalAdjustmentMinutes
+	balance.LegalRemainingMinutes = balance.LegalTotalMinutes - balance.LegalUsedMinutes
+	balance.ExtraRemainingMinutes = balance.ExtraTotalMinutes - balance.ExtraUsedMinutes
+	balance.TotalRemainingMinutes = balance.LegalRemainingMinutes + balance.ExtraRemainingMinutes
+	return balance
 }
 
 type leaveContractLookup func(context.Context, uuid.UUID, time.Time) (*domain.LeaveContractAtDate, error)

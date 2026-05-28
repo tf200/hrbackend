@@ -17,7 +17,7 @@ DROP FUNCTION IF EXISTS calendar_event_reset_work_approval_on_time_change();
 -- Drop trigger and function for leave balance initialization
 DROP TRIGGER IF EXISTS trigger_initialize_leave_balance_on_contract_insert ON employee_contracts;
 DROP FUNCTION IF EXISTS initialize_leave_balance_on_contract_insert();
-DROP FUNCTION IF EXISTS calculate_legal_leave_hours(UUID, INT);
+DROP FUNCTION IF EXISTS calculate_legal_leave_minutes(UUID, INT, TIMESTAMPTZ);
 
 -- Drop trigger and function for default shifts on location
 DROP TRIGGER IF EXISTS trigger_insert_default_shifts ON location;

@@ -374,14 +374,14 @@ func TestCalculateFullDayMinutesWithTimesRejected(t *testing.T) {
 
 func TestNormalizeUpdateParamsPopulatesAllFields(t *testing.T) {
 	current := domain.LeaveRequest{
-		LeaveType:        "vacation",
-		DurationType:     "full_day",
-		StartDate:        time.Date(2026, time.July, 6, 0, 0, 0, 0, time.UTC),
-		EndDate:          time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC),
-		StartTime:        nil,
-		EndTime:          nil,
-		Reason:           strPtr("family event"),
-		Status:           "pending",
+		LeaveType:    "vacation",
+		DurationType: "full_day",
+		StartDate:    time.Date(2026, time.July, 6, 0, 0, 0, 0, time.UTC),
+		EndDate:      time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC),
+		StartTime:    nil,
+		EndTime:      nil,
+		Reason:       strPtr("family event"),
+		Status:       "pending",
 	}
 
 	update := domain.UpdateLeaveRequestParams{
@@ -490,6 +490,79 @@ func TestNormalizeUpdateParamsPartialUpdateKeepsExistingFields(t *testing.T) {
 	}
 }
 
+func TestDecideLeaveRequestUsesRequestedMinutesAndExtraFirst(t *testing.T) {
+	employeeID := uuid.New()
+	adminID := uuid.New()
+	leaveRequestID := uuid.New()
+	start := currentUTCDate().AddDate(0, 0, 1)
+	balanceID := uuid.New()
+	tx := &fakeLeaveTxRepository{
+		request: &domain.LeaveRequest{
+			ID:               leaveRequestID,
+			EmployeeID:       employeeID,
+			LeaveType:        "vacation",
+			Status:           "pending",
+			RequestedMinutes: 90,
+			StartDate:        start,
+			EndDate:          start,
+		},
+		policy:                 &domain.LeavePolicy{LeaveType: "vacation", DeductsBalance: true},
+		legalCalculatedMinutes: 1000,
+		balance: &domain.LeaveBalance{
+			ID:                     balanceID,
+			EmployeeID:             employeeID,
+			Year:                   int32(start.Year()),
+			LegalAdjustmentMinutes: 0,
+			ExtraTotalMinutes:      60,
+			LegalUsedMinutes:       0,
+			ExtraUsedMinutes:       0,
+		},
+	}
+	svc := &LeaveService{repository: &fakeLeaveRepository{tx: tx}}
+
+	_, err := svc.DecideLeaveRequestByAdmin(context.Background(), adminID, leaveRequestID, domain.DecideLeaveRequestParams{Decision: "approve"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tx.appliedExtraMinutes != 60 || tx.appliedLegalMinutes != 30 {
+		t.Fatalf("expected extra=60 legal=30, got extra=%d legal=%d", tx.appliedExtraMinutes, tx.appliedLegalMinutes)
+	}
+}
+
+func TestDecideLeaveRequestRejectsInsufficientLiveBalance(t *testing.T) {
+	employeeID := uuid.New()
+	adminID := uuid.New()
+	leaveRequestID := uuid.New()
+	start := currentUTCDate().AddDate(0, 0, 1)
+	tx := &fakeLeaveTxRepository{
+		request: &domain.LeaveRequest{
+			ID:               leaveRequestID,
+			EmployeeID:       employeeID,
+			LeaveType:        "vacation",
+			Status:           "pending",
+			RequestedMinutes: 100,
+			StartDate:        start,
+			EndDate:          start,
+		},
+		policy:                 &domain.LeavePolicy{LeaveType: "vacation", DeductsBalance: true},
+		legalCalculatedMinutes: 30,
+		balance: &domain.LeaveBalance{
+			ID:         uuid.New(),
+			EmployeeID: employeeID,
+			Year:       int32(start.Year()),
+		},
+	}
+	svc := &LeaveService{repository: &fakeLeaveRepository{tx: tx}}
+
+	_, err := svc.DecideLeaveRequestByAdmin(context.Background(), adminID, leaveRequestID, domain.DecideLeaveRequestParams{Decision: "approve"})
+	if err != domain.ErrLeaveBalanceInsufficient {
+		t.Fatalf("expected insufficient balance, got %v", err)
+	}
+	if tx.appliedExtraMinutes != 0 || tx.appliedLegalMinutes != 0 {
+		t.Fatalf("did not expect deduction, got extra=%d legal=%d", tx.appliedExtraMinutes, tx.appliedLegalMinutes)
+	}
+}
+
 func strPtr(s string) *string {
 	return &s
 }
@@ -501,6 +574,7 @@ func timePtr(t time.Time) *time.Time {
 type fakeLeaveRepository struct {
 	lastListLeaveCalendarParams domain.ListLeaveCalendarParams
 	contractFunc                func(employeeID uuid.UUID, date time.Time) (*domain.LeaveContractAtDate, error)
+	tx                          domain.LeaveTxRepository
 }
 
 func newFakeLeaveRepoWithUnlimitedContract() *fakeLeaveRepository {
@@ -523,9 +597,12 @@ func newFakeLeaveRepoWithRosterFreeDay() *fakeLeaveRepository {
 }
 
 func (f *fakeLeaveRepository) WithTx(
-	_ context.Context,
-	_ func(tx domain.LeaveTxRepository) error,
+	ctx context.Context,
+	fn func(tx domain.LeaveTxRepository) error,
 ) error {
+	if f.tx != nil {
+		return fn(f.tx)
+	}
 	return nil
 }
 
@@ -611,3 +688,68 @@ func (f *fakeLeaveRepository) AdjustLeaveBalance(
 }
 
 var _ domain.LeaveRepository = (*fakeLeaveRepository)(nil)
+
+type fakeLeaveTxRepository struct {
+	request                *domain.LeaveRequest
+	policy                 *domain.LeavePolicy
+	balance                *domain.LeaveBalance
+	legalCalculatedMinutes int32
+	appliedExtraMinutes    int32
+	appliedLegalMinutes    int32
+}
+
+func (f *fakeLeaveTxRepository) GetLeaveRequestForUpdate(_ context.Context, _ uuid.UUID) (*domain.LeaveRequest, error) {
+	return f.request, nil
+}
+
+func (f *fakeLeaveTxRepository) UpdateLeaveRequestEditableFields(_ context.Context, _ uuid.UUID, _ domain.UpdateLeaveRequestParams) (*domain.LeaveRequest, error) {
+	return f.request, nil
+}
+
+func (f *fakeLeaveTxRepository) UpdateLeaveRequestDecision(_ context.Context, _ uuid.UUID, status string, decisionNote *string, decidedByEmployeeID uuid.UUID) (*domain.LeaveRequest, error) {
+	updated := *f.request
+	updated.Status = status
+	updated.DecisionNote = decisionNote
+	updated.DecidedByEmployeeID = &decidedByEmployeeID
+	return &updated, nil
+}
+
+func (f *fakeLeaveTxRepository) GetActiveLeavePolicyByType(_ context.Context, _ string) (*domain.LeavePolicy, error) {
+	return f.policy, nil
+}
+
+func (f *fakeLeaveTxRepository) EnsureLeaveBalanceForYear(_ context.Context, _ uuid.UUID, _ int32) error {
+	return nil
+}
+
+func (f *fakeLeaveTxRepository) GetLeaveHoursPerDay(_ context.Context, _ uuid.UUID) (int32, error) {
+	return 8, nil
+}
+
+func (f *fakeLeaveTxRepository) GetEmployeeContractAtDate(_ context.Context, _ uuid.UUID, _ time.Time) (*domain.LeaveContractAtDate, error) {
+	return &domain.LeaveContractAtDate{}, nil
+}
+
+func (f *fakeLeaveTxRepository) ComputeLegalLeaveTotalForYear(_ context.Context, _ uuid.UUID, _ int32, _ time.Time) (int32, error) {
+	return f.legalCalculatedMinutes, nil
+}
+
+func (f *fakeLeaveTxRepository) GetLeaveBalanceForUpdate(_ context.Context, _ uuid.UUID, _ int32) (*domain.LeaveBalance, error) {
+	return f.balance, nil
+}
+
+func (f *fakeLeaveTxRepository) ApplyLeaveBalanceDeduction(_ context.Context, _ uuid.UUID, extraMinutes, legalMinutes int32) (*domain.LeaveBalance, error) {
+	f.appliedExtraMinutes = extraMinutes
+	f.appliedLegalMinutes = legalMinutes
+	return f.balance, nil
+}
+
+func (f *fakeLeaveTxRepository) ApplyLeaveBalanceTotalAdjustment(_ context.Context, _ uuid.UUID, _, _ int32) (*domain.LeaveBalance, error) {
+	return f.balance, nil
+}
+
+func (f *fakeLeaveTxRepository) CreateLeaveBalanceAdjustmentAudit(_ context.Context, _ domain.CreateLeaveBalanceAdjustmentAuditParams) error {
+	return nil
+}
+
+var _ domain.LeaveTxRepository = (*fakeLeaveTxRepository)(nil)

@@ -288,10 +288,11 @@ func (r *LeaveRepository) ListLeaveBalances(
 			row.EmployeeID,
 			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 			row.Year,
-			row.LegalTotalHours,
-			row.ExtraTotalHours,
-			row.LegalUsedHours,
-			row.ExtraUsedHours,
+			row.LegalTotalMinutes,
+			row.LegalAdjustmentMinutes,
+			row.ExtraTotalMinutes,
+			row.LegalUsedMinutes,
+			row.ExtraUsedMinutes,
 			row.ContractHours,
 			stringPtr(string(row.ContractType)),
 			conv.TimePtrFromPgDate(row.ContractStartDate),
@@ -332,10 +333,11 @@ func (r *LeaveRepository) ListMyLeaveBalances(
 			row.EmployeeID,
 			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 			row.Year,
-			row.LegalTotalHours,
-			row.ExtraTotalHours,
-			row.LegalUsedHours,
-			row.ExtraUsedHours,
+			row.LegalTotalMinutes,
+			row.LegalAdjustmentMinutes,
+			row.ExtraTotalMinutes,
+			row.LegalUsedMinutes,
+			row.ExtraUsedMinutes,
 			row.ContractHours,
 			stringPtr(string(row.ContractType)),
 			conv.TimePtrFromPgDate(row.ContractStartDate),
@@ -521,10 +523,11 @@ func (r *leaveTxRepo) GetLeaveBalanceForUpdate(
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalHours,
-		row.ExtraTotalHours,
-		row.LegalUsedHours,
-		row.ExtraUsedHours,
+		row.LegalAdjustmentMinutes,
+		row.LegalAdjustmentMinutes,
+		row.ExtraTotalMinutes,
+		row.LegalUsedMinutes,
+		row.ExtraUsedMinutes,
 		nil,
 		nil,
 		nil,
@@ -582,15 +585,28 @@ func (r *leaveTxRepo) GetEmployeeContractAtDate(
 	}, nil
 }
 
+func (r *leaveTxRepo) ComputeLegalLeaveTotalForYear(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	year int32,
+	asOf time.Time,
+) (int32, error) {
+	return r.queries.ComputeLegalLeaveTotalForYear(ctx, db.ComputeLegalLeaveTotalForYearParams{
+		EmployeeID: employeeID,
+		Year:       year,
+		AsOf:       conv.PgTimestamptzFromTime(asOf),
+	})
+}
+
 func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(
 	ctx context.Context,
 	balanceID uuid.UUID,
-	extraHours, legalHours int32,
+	extraMinutes, legalMinutes int32,
 ) (*domain.LeaveBalance, error) {
 	row, err := r.queries.ApplyLeaveBalanceDeduction(ctx, db.ApplyLeaveBalanceDeductionParams{
-		ID:         balanceID,
-		ExtraHours: extraHours,
-		LegalHours: legalHours,
+		ID:           balanceID,
+		ExtraMinutes: extraMinutes,
+		LegalMinutes: legalMinutes,
 	})
 	if err != nil {
 		return nil, err
@@ -600,10 +616,11 @@ func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalHours,
-		row.ExtraTotalHours,
-		row.LegalUsedHours,
-		row.ExtraUsedHours,
+		row.LegalAdjustmentMinutes,
+		row.LegalAdjustmentMinutes,
+		row.ExtraTotalMinutes,
+		row.LegalUsedMinutes,
+		row.ExtraUsedMinutes,
 		nil,
 		nil,
 		nil,
@@ -618,14 +635,14 @@ func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(
 func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(
 	ctx context.Context,
 	balanceID uuid.UUID,
-	legalHoursDelta, extraHoursDelta int32,
+	legalAdjustmentMinutesDelta, extraTotalMinutesDelta int32,
 ) (*domain.LeaveBalance, error) {
 	row, err := r.queries.ApplyLeaveBalanceTotalAdjustment(
 		ctx,
 		db.ApplyLeaveBalanceTotalAdjustmentParams{
-			ID:              balanceID,
-			LegalHoursDelta: legalHoursDelta,
-			ExtraHoursDelta: extraHoursDelta,
+			ID:                          balanceID,
+			LegalAdjustmentMinutesDelta: legalAdjustmentMinutesDelta,
+			ExtraTotalMinutesDelta:      extraTotalMinutesDelta,
 		},
 	)
 	if err != nil {
@@ -636,10 +653,11 @@ func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalHours,
-		row.ExtraTotalHours,
-		row.LegalUsedHours,
-		row.ExtraUsedHours,
+		row.LegalAdjustmentMinutes,
+		row.LegalAdjustmentMinutes,
+		row.ExtraTotalMinutes,
+		row.LegalUsedMinutes,
+		row.ExtraUsedMinutes,
 		nil,
 		nil,
 		nil,
@@ -658,17 +676,17 @@ func (r *leaveTxRepo) CreateLeaveBalanceAdjustmentAudit(
 	_, err := r.queries.CreateLeaveBalanceAdjustmentAudit(
 		ctx,
 		db.CreateLeaveBalanceAdjustmentAuditParams{
-			LeaveBalanceID:        params.LeaveBalanceID,
-			EmployeeID:            params.EmployeeID,
-			Year:                  params.Year,
-			LegalHoursDelta:       params.LegalHoursDelta,
-			ExtraHoursDelta:       params.ExtraHoursDelta,
-			Reason:                params.Reason,
-			AdjustedByEmployeeID:  params.AdjustedByEmployeeID,
-			LegalTotalHoursBefore: params.LegalTotalHoursBefore,
-			ExtraTotalHoursBefore: params.ExtraTotalHoursBefore,
-			LegalTotalHoursAfter:  params.LegalTotalHoursAfter,
-			ExtraTotalHoursAfter:  params.ExtraTotalHoursAfter,
+			LeaveBalanceID:               params.LeaveBalanceID,
+			EmployeeID:                   params.EmployeeID,
+			Year:                         params.Year,
+			LegalAdjustmentMinutesDelta:  params.LegalAdjustmentMinutesDelta,
+			ExtraTotalMinutesDelta:       params.ExtraTotalMinutesDelta,
+			Reason:                       params.Reason,
+			AdjustedByEmployeeID:         params.AdjustedByEmployeeID,
+			LegalAdjustmentMinutesBefore: params.LegalAdjustmentMinutesBefore,
+			ExtraTotalMinutesBefore:      params.ExtraTotalMinutesBefore,
+			LegalAdjustmentMinutesAfter:  params.LegalAdjustmentMinutesAfter,
+			ExtraTotalMinutesAfter:       params.ExtraTotalMinutesAfter,
 		},
 	)
 	return err
@@ -751,10 +769,11 @@ func toDomainLeaveBalance(
 	employeeID uuid.UUID,
 	employeeName string,
 	year int32,
-	legalTotalHours int32,
-	extraTotalHours int32,
-	legalUsedHours int32,
-	extraUsedHours int32,
+	legalTotalMinutes int32,
+	legalAdjustmentMinutes int32,
+	extraTotalMinutes int32,
+	legalUsedMinutes int32,
+	extraUsedMinutes int32,
 	contractHours *float64,
 	contractType *string,
 	contractStartDate *time.Time,
@@ -763,27 +782,28 @@ func toDomainLeaveBalance(
 	createdAt pgtype.Timestamptz,
 	updatedAt pgtype.Timestamptz,
 ) domain.LeaveBalance {
-	legalRemaining := legalTotalHours - legalUsedHours
-	extraRemaining := extraTotalHours - extraUsedHours
+	legalRemaining := legalTotalMinutes - legalUsedMinutes
+	extraRemaining := extraTotalMinutes - extraUsedMinutes
 	return domain.LeaveBalance{
-		ID:                id,
-		EmployeeID:        employeeID,
-		EmployeeName:      employeeName,
-		Year:              year,
-		LegalTotalHours:   legalTotalHours,
-		ExtraTotalHours:   extraTotalHours,
-		LegalUsedHours:    legalUsedHours,
-		ExtraUsedHours:    extraUsedHours,
-		LegalRemaining:    legalRemaining,
-		ExtraRemaining:    extraRemaining,
-		TotalRemaining:    legalRemaining + extraRemaining,
-		ContractHours:     contractHours,
-		ContractType:      contractType,
-		ContractStartDate: contractStartDate,
-		ContractEndDate:   contractEndDate,
-		EffectiveEndDate:  effectiveEndDate,
-		CreatedAt:         conv.TimeFromPgTimestamptz(createdAt),
-		UpdatedAt:         conv.TimeFromPgTimestamptz(updatedAt),
+		ID:                     id,
+		EmployeeID:             employeeID,
+		EmployeeName:           employeeName,
+		Year:                   year,
+		LegalTotalMinutes:      legalTotalMinutes,
+		LegalAdjustmentMinutes: legalAdjustmentMinutes,
+		ExtraTotalMinutes:      extraTotalMinutes,
+		LegalUsedMinutes:       legalUsedMinutes,
+		ExtraUsedMinutes:       extraUsedMinutes,
+		LegalRemainingMinutes:  legalRemaining,
+		ExtraRemainingMinutes:  extraRemaining,
+		TotalRemainingMinutes:  legalRemaining + extraRemaining,
+		ContractHours:          contractHours,
+		ContractType:           contractType,
+		ContractStartDate:      contractStartDate,
+		ContractEndDate:        contractEndDate,
+		EffectiveEndDate:       effectiveEndDate,
+		CreatedAt:              conv.TimeFromPgTimestamptz(createdAt),
+		UpdatedAt:              conv.TimeFromPgTimestamptz(updatedAt),
 	}
 }
 
@@ -805,14 +825,14 @@ func toDomainLeaveCalendar(rows []db.ListLeaveCalendarRowsRow) []domain.LeaveCal
 		}
 
 		items[idx].LeaveRecords = append(items[idx].LeaveRecords, domain.LeaveCalendarRecord{
-			LeaveRequestID:    row.LeaveRequestID,
-			LeaveType:         string(row.LeaveType),
-			Status:            string(row.Status),
-			DurationType:      string(row.DurationType),
-			RequestedMinutes:  row.RequestedMinutes,
-			StartDate:         conv.TimeFromPgDate(row.StartDate),
-			EndDate:           conv.TimeFromPgDate(row.EndDate),
-			Reason:            row.Reason,
+			LeaveRequestID:   row.LeaveRequestID,
+			LeaveType:        string(row.LeaveType),
+			Status:           string(row.Status),
+			DurationType:     string(row.DurationType),
+			RequestedMinutes: row.RequestedMinutes,
+			StartDate:        conv.TimeFromPgDate(row.StartDate),
+			EndDate:          conv.TimeFromPgDate(row.EndDate),
+			Reason:           row.Reason,
 		})
 	}
 

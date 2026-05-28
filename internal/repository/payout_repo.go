@@ -617,7 +617,7 @@ func (r *PayoutRepository) GetLeaveBalanceExtraRemaining(
 ) (int32, error) {
 	sql := `
 		SELECT COALESCE(
-			(SELECT extra_total_hours - extra_used_hours
+			(SELECT (extra_total_minutes - extra_used_minutes) / 60
 			 FROM leave_balances
 			 WHERE employee_id = $1 AND year = $2),
 			0
@@ -685,7 +685,7 @@ func (r *payoutTxRepo) GetPayoutBalanceForUpdate(
 	}
 	return &domain.PayoutBalanceSnapshot{
 		LeaveBalanceID: row.ID,
-		ExtraRemaining: row.ExtraTotalHours - row.ExtraUsedHours,
+		ExtraRemaining: (row.ExtraTotalMinutes - row.ExtraUsedMinutes) / 60,
 	}, nil
 }
 
@@ -787,12 +787,12 @@ func (r *payoutTxRepo) MarkPayoutRequestPaid(
 func (r *payoutTxRepo) ApplyLeaveBalanceDeduction(
 	ctx context.Context,
 	balanceID uuid.UUID,
-	extraHours, legalHours int32,
+	extraMinutes, legalMinutes int32,
 ) (*domain.LeaveBalance, error) {
 	row, err := r.queries.ApplyLeaveBalanceDeduction(ctx, db.ApplyLeaveBalanceDeductionParams{
-		ID:         balanceID,
-		ExtraHours: extraHours,
-		LegalHours: legalHours,
+		ID:           balanceID,
+		ExtraMinutes: extraMinutes,
+		LegalMinutes: legalMinutes,
 	})
 	if err != nil {
 		return nil, err
@@ -802,10 +802,11 @@ func (r *payoutTxRepo) ApplyLeaveBalanceDeduction(
 		row.EmployeeID,
 		"",
 		row.Year,
-		row.LegalTotalHours,
-		row.ExtraTotalHours,
-		row.LegalUsedHours,
-		row.ExtraUsedHours,
+		row.LegalAdjustmentMinutes,
+		row.LegalAdjustmentMinutes,
+		row.ExtraTotalMinutes,
+		row.LegalUsedMinutes,
+		row.ExtraUsedMinutes,
 		nil,
 		nil,
 		nil,
@@ -1166,11 +1167,11 @@ func toDomainPayrollWorkItem(row db.ListPayrollPreviewWorkItemsRow) domain.Payro
 		MinutesWorked: func() float64 {
 			return float64(row.MinutesWorked)
 		}(),
-		SourceType:      row.SourceType,
-		ScheduleID:      scheduleIDPtr(row.SourceType, row.ScheduleID),
-		OvertimeEntryID: row.OvertimeEntryID,
-		ContractType:    string(row.ContractType),
-		ContractRate:    &row.ContractRate,
+		SourceType:            row.SourceType,
+		ScheduleID:            scheduleIDPtr(row.SourceType, row.ScheduleID),
+		OvertimeEntryID:       row.OvertimeEntryID,
+		ContractType:          string(row.ContractType),
+		ContractRate:          &row.ContractRate,
 		IrregularHoursProfile: "",
 	}
 }
@@ -1188,11 +1189,11 @@ func toDomainPayrollWorkItemFromApproved(row db.ListPayrollMonthApprovedWorkItem
 		MinutesWorked: func() float64 {
 			return float64(row.MinutesWorked)
 		}(),
-		SourceType:      row.SourceType,
-		ScheduleID:      scheduleIDPtr(row.SourceType, row.ScheduleID),
-		OvertimeEntryID: row.OvertimeEntryID,
-		ContractType:    string(row.ContractType),
-		ContractRate:    &row.ContractRate,
+		SourceType:            row.SourceType,
+		ScheduleID:            scheduleIDPtr(row.SourceType, row.ScheduleID),
+		OvertimeEntryID:       row.OvertimeEntryID,
+		ContractType:          string(row.ContractType),
+		ContractRate:          &row.ContractRate,
 		IrregularHoursProfile: "",
 	}
 }
@@ -1210,11 +1211,11 @@ func toDomainPayrollWorkItemFromLock(row db.LockPayrollPreviewWorkItemsRow) doma
 		MinutesWorked: func() float64 {
 			return float64(row.MinutesWorked)
 		}(),
-		SourceType:      row.SourceType,
-		ScheduleID:      scheduleIDPtr(row.SourceType, row.ScheduleID),
-		OvertimeEntryID: row.OvertimeEntryID,
-		ContractType:    string(row.ContractType),
-		ContractRate:    &row.ContractRate,
+		SourceType:            row.SourceType,
+		ScheduleID:            scheduleIDPtr(row.SourceType, row.ScheduleID),
+		OvertimeEntryID:       row.OvertimeEntryID,
+		ContractType:          string(row.ContractType),
+		ContractRate:          &row.ContractRate,
 		IrregularHoursProfile: "",
 	}
 }

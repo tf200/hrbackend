@@ -928,7 +928,7 @@ func applyEmployeeDetailStats(
 	employee *domain.EmployeeDetail,
 	stats db.GetEmployeeDetailStatsRow,
 ) {
-	employee.RemainingLeaveBalanceHours = stats.RemainingLeaveBalanceHours
+	employee.RemainingLeaveBalanceMinutes = stats.RemainingLeaveBalanceMinutes
 	employee.HoursWorkedThisMonth = stats.HoursWorkedThisMonth
 	employee.HoursPendingApproval = stats.HoursPendingApproval
 	employee.TotalHoursWorkedThisYear = stats.TotalHoursWorkedThisYear

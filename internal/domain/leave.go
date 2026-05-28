@@ -46,14 +46,14 @@ type LeaveRequestListItem struct {
 }
 
 type LeaveCalendarRecord struct {
-	LeaveRequestID    uuid.UUID
-	LeaveType         string
-	Status            string
-	DurationType      string
-	RequestedMinutes  int32
-	StartDate         time.Time
-	EndDate           time.Time
-	Reason            *string
+	LeaveRequestID   uuid.UUID
+	LeaveType        string
+	Status           string
+	DurationType     string
+	RequestedMinutes int32
+	StartDate        time.Time
+	EndDate          time.Time
+	Reason           *string
 }
 
 type LeaveCalendarEmployee struct {
@@ -76,25 +76,25 @@ type LeaveRequestStats struct {
 }
 
 type LeaveBalance struct {
-	ID                uuid.UUID
-	EmployeeID        uuid.UUID
-	EmployeeName      string
-	Year              int32
-	LegalTotalHours   int32
-	ExtraTotalHours   int32
-	LegalUsedHours    int32
-	ExtraUsedHours    int32
-	LegalRemaining    int32
-	ExtraRemaining    int32
-	TotalRemaining    int32
-	DerivedDayHours   int32
-	ContractHours     *float64
-	ContractType      *string
-	ContractStartDate *time.Time
-	ContractEndDate   *time.Time
-	EffectiveEndDate  *time.Time
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                     uuid.UUID
+	EmployeeID             uuid.UUID
+	EmployeeName           string
+	Year                   int32
+	LegalTotalMinutes      int32
+	LegalAdjustmentMinutes int32
+	ExtraTotalMinutes      int32
+	LegalUsedMinutes       int32
+	ExtraUsedMinutes       int32
+	LegalRemainingMinutes  int32
+	ExtraRemainingMinutes  int32
+	TotalRemainingMinutes  int32
+	ContractHours          *float64
+	ContractType           *string
+	ContractStartDate      *time.Time
+	ContractEndDate        *time.Time
+	EffectiveEndDate       *time.Time
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
 }
 
 type LeaveBalancePage struct {
@@ -172,12 +172,12 @@ type ListMyLeaveBalancesParams struct {
 }
 
 type AdjustLeaveBalanceParams struct {
-	AdminEmployeeID uuid.UUID
-	EmployeeID      uuid.UUID
-	Year            int32
-	LegalHoursDelta int32
-	ExtraHoursDelta int32
-	Reason          string
+	AdminEmployeeID             uuid.UUID
+	EmployeeID                  uuid.UUID
+	Year                        int32
+	LegalAdjustmentMinutesDelta int32
+	ExtraTotalMinutesDelta      int32
+	Reason                      string
 }
 
 type LeaveContractAtDate struct {
@@ -203,6 +203,7 @@ type LeaveTxRepository interface {
 	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
 	GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error)
 	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, date time.Time) (*LeaveContractAtDate, error)
+	ComputeLegalLeaveTotalForYear(ctx context.Context, employeeID uuid.UUID, year int32, asOf time.Time) (int32, error)
 	GetLeaveBalanceForUpdate(
 		ctx context.Context,
 		employeeID uuid.UUID,
@@ -211,12 +212,12 @@ type LeaveTxRepository interface {
 	ApplyLeaveBalanceDeduction(
 		ctx context.Context,
 		balanceID uuid.UUID,
-		extraHours, legalHours int32,
+		extraMinutes, legalMinutes int32,
 	) (*LeaveBalance, error)
 	ApplyLeaveBalanceTotalAdjustment(
 		ctx context.Context,
 		balanceID uuid.UUID,
-		legalHoursDelta, extraHoursDelta int32,
+		legalAdjustmentMinutesDelta, extraTotalMinutesDelta int32,
 	) (*LeaveBalance, error)
 	CreateLeaveBalanceAdjustmentAudit(
 		ctx context.Context,
@@ -225,17 +226,17 @@ type LeaveTxRepository interface {
 }
 
 type CreateLeaveBalanceAdjustmentAuditParams struct {
-	LeaveBalanceID        uuid.UUID
-	EmployeeID            uuid.UUID
-	Year                  int32
-	LegalHoursDelta       int32
-	ExtraHoursDelta       int32
-	Reason                string
-	AdjustedByEmployeeID  uuid.UUID
-	LegalTotalHoursBefore int32
-	ExtraTotalHoursBefore int32
-	LegalTotalHoursAfter  int32
-	ExtraTotalHoursAfter  int32
+	LeaveBalanceID               uuid.UUID
+	EmployeeID                   uuid.UUID
+	Year                         int32
+	LegalAdjustmentMinutesDelta  int32
+	ExtraTotalMinutesDelta       int32
+	Reason                       string
+	AdjustedByEmployeeID         uuid.UUID
+	LegalAdjustmentMinutesBefore int32
+	ExtraTotalMinutesBefore      int32
+	LegalAdjustmentMinutesAfter  int32
+	ExtraTotalMinutesAfter       int32
 }
 
 type LeaveRepository interface {

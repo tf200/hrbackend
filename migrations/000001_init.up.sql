@@ -977,6 +977,12 @@ CREATE TABLE schedules (
     )
 );
 
+CREATE INDEX idx_schedules_employee_start_datetime
+ON schedules(employee_id, start_datetime);
+
+CREATE INDEX idx_schedules_employee_end_datetime
+ON schedules(employee_id, end_datetime);
+
 -- ==========================================
 -- TIME ENTRIES
 -- ==========================================
@@ -1145,22 +1151,20 @@ CREATE TABLE leave_balances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
     year INT NOT NULL,
-    legal_total_hours INT NOT NULL DEFAULT 0,
-    extra_total_hours INT NOT NULL DEFAULT 0,
-    legal_used_hours INT NOT NULL DEFAULT 0,
-    extra_used_hours INT NOT NULL DEFAULT 0,
+    legal_adjustment_minutes INT NOT NULL DEFAULT 0,
+    extra_total_minutes INT NOT NULL DEFAULT 0,
+    legal_used_minutes INT NOT NULL DEFAULT 0,
+    extra_used_minutes INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT leave_balances_unique_employee_year UNIQUE (employee_id, year),
-    CONSTRAINT leave_balances_non_negative CHECK (
-        legal_total_hours >= 0
-        AND extra_total_hours >= 0
-        AND legal_used_hours >= 0
-        AND extra_used_hours >= 0
+    CONSTRAINT leave_balances_minutes_valid CHECK (
+        extra_total_minutes >= 0
+        AND legal_used_minutes >= 0
+        AND extra_used_minutes >= 0
     ),
-    CONSTRAINT leave_balances_usage_not_exceed_total CHECK (
-        legal_used_hours <= legal_total_hours
-        AND extra_used_hours <= extra_total_hours
+    CONSTRAINT leave_balances_extra_usage_not_exceed_total CHECK (
+        extra_used_minutes <= extra_total_minutes
     )
 );
 
@@ -1171,50 +1175,58 @@ CREATE TABLE leave_balance_adjustments (
     leave_balance_id UUID NOT NULL REFERENCES leave_balances(id) ON DELETE CASCADE,
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
     year INT NOT NULL,
-    legal_hours_delta INT NOT NULL DEFAULT 0,
-    extra_hours_delta INT NOT NULL DEFAULT 0,
+    legal_adjustment_minutes_delta INT NOT NULL DEFAULT 0,
+    extra_total_minutes_delta INT NOT NULL DEFAULT 0,
     reason TEXT NOT NULL,
     adjusted_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
-    legal_total_hours_before INT NOT NULL,
-    extra_total_hours_before INT NOT NULL,
-    legal_total_hours_after INT NOT NULL,
-    extra_total_hours_after INT NOT NULL,
+    legal_adjustment_minutes_before INT NOT NULL,
+    extra_total_minutes_before INT NOT NULL,
+    legal_adjustment_minutes_after INT NOT NULL,
+    extra_total_minutes_after INT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT leave_balance_adjustments_non_zero_delta CHECK (
-        legal_hours_delta <> 0 OR extra_hours_delta <> 0
+        legal_adjustment_minutes_delta <> 0 OR extra_total_minutes_delta <> 0
     )
 );
 
 CREATE INDEX idx_leave_balance_adjustments_employee_year_created_at
 ON leave_balance_adjustments(employee_id, year, created_at DESC);
 
-CREATE OR REPLACE FUNCTION calculate_legal_leave_hours(p_employee_id UUID, p_year INT)
+CREATE OR REPLACE FUNCTION calculate_legal_leave_minutes(p_employee_id UUID, p_year INT, p_as_of TIMESTAMPTZ)
 RETURNS INT AS $$
 DECLARE
-    computed_legal_hours INT := 0;
+    computed_legal_minutes INT := 0;
 BEGIN
+    IF p_as_of::date < make_date(p_year, 1, 1) THEN
+        RETURN 0;
+    END IF;
+
     SELECT
         GREATEST(
             0,
             ROUND(COALESCE(SUM(
                 CASE
-                    WHEN segments.weekly_hours <= 0 THEN 0
-                    ELSE (
-                        (segments.weekly_hours * 4.0) * (
-                            (
-                                LEAST(segments.segment_end, make_date(p_year, 12, 31)) -
-                                GREATEST(segments.start_date, make_date(p_year, 1, 1)) + 1
-                            )::numeric /
+                    WHEN segments.contract_type = 'on_call' THEN
+                        (
+                            COALESCE(worked.schedule_minutes, 0) +
+                            COALESCE(worked.overtime_minutes, 0)
+                        ) / 13.0
+                    WHEN segments.weekly_hours <= 0 THEN
+                        0
+                    ELSE
+                        (segments.weekly_hours * 60.0 * 4.0) * (
+                            (segments.segment_end - segments.segment_start + 1)::numeric /
                             (make_date(p_year + 1, 1, 1) - make_date(p_year, 1, 1))::numeric
                         )
-                    )
                 END
             ), 0)::numeric)::INT
         )
-    INTO computed_legal_hours
+    INTO computed_legal_minutes
     FROM (
         SELECT
-            ec.start_date,
+            ec.employee_id,
+            ec.contract_type,
+            GREATEST(ec.start_date, make_date(p_year, 1, 1)) AS segment_start,
             LEAST(
                 COALESCE(ec.contract_end_date, make_date(p_year, 12, 31)),
                 COALESCE(ec.effective_end_date, make_date(p_year, 12, 31)),
@@ -1226,40 +1238,57 @@ BEGIN
                         ) - INTERVAL '1 day'
                     )::DATE,
                     make_date(p_year, 12, 31)
-                )
+                ),
+                make_date(p_year, 12, 31),
+                p_as_of::date
             ) AS segment_end,
             COALESCE(ec.hours_per_week, 0) AS weekly_hours
         FROM employee_contracts ec
         WHERE ec.employee_id = p_employee_id
     ) AS segments
-    WHERE segments.segment_end >= make_date(p_year, 1, 1)
-      AND segments.start_date <= make_date(p_year, 12, 31);
+    LEFT JOIN LATERAL (
+        SELECT
+            COALESCE(SUM(
+                EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60
+            ), 0)::numeric AS schedule_minutes,
+            COALESCE((
+                SELECT SUM(oe.minutes)::numeric
+                FROM overtime_entries oe
+                WHERE oe.employee_id = segments.employee_id
+                  AND oe.status = 'approved'
+                  AND oe.entry_date >= segments.segment_start
+                  AND oe.entry_date <= segments.segment_end
+            ), 0)::numeric AS overtime_minutes
+        FROM schedules s
+        WHERE s.employee_id = segments.employee_id
+          AND DATE(s.start_datetime) >= segments.segment_start
+          AND DATE(s.start_datetime) <= segments.segment_end
+          AND s.end_datetime <= p_as_of
+    ) worked ON segments.contract_type = 'on_call'
+    WHERE segments.segment_end >= segments.segment_start;
 
-    RETURN COALESCE(computed_legal_hours, 0);
+    RETURN COALESCE(computed_legal_minutes, 0);
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION initialize_leave_balance_on_contract_insert()
 RETURNS TRIGGER AS $$
 DECLARE
-    computed_legal_hours INT;
     current_year INT;
 BEGIN
     current_year := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
 
-    computed_legal_hours := calculate_legal_leave_hours(NEW.employee_id, current_year);
-
     INSERT INTO leave_balances (
         employee_id,
         year,
-        legal_total_hours,
-        extra_total_hours,
-        legal_used_hours,
-        extra_used_hours
+        legal_adjustment_minutes,
+        extra_total_minutes,
+        legal_used_minutes,
+        extra_used_minutes
     ) VALUES (
         NEW.employee_id,
         current_year,
-        computed_legal_hours,
+        0,
         0,
         0,
         0
@@ -1474,6 +1503,9 @@ CREATE TABLE overtime_entries (
 
 CREATE INDEX idx_overtime_entries_employee_date
 ON overtime_entries(employee_id, entry_date DESC);
+
+CREATE INDEX idx_overtime_entries_employee_status_date
+ON overtime_entries(employee_id, status, entry_date);
 
 CREATE INDEX idx_overtime_entries_status
 ON overtime_entries(status);

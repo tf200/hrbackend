@@ -154,7 +154,7 @@ func ensureExtraLeaveHoursForPayout(
 
 	var extraRemaining int32
 	if len(page.Items) > 0 {
-		extraRemaining = page.Items[0].ExtraRemaining
+		extraRemaining = page.Items[0].ExtraRemainingMinutes / 60
 	}
 	if extraRemaining >= item.RequestedHours {
 		return nil
@@ -166,11 +166,11 @@ func ensureExtraLeaveHoursForPayout(
 	}
 
 	_, err = leaveService.AdjustLeaveBalance(ctx, domain.AdjustLeaveBalanceParams{
-		AdminEmployeeID: actorID,
-		EmployeeID:      employeeID,
-		Year:            item.BalanceYear,
-		ExtraHoursDelta: item.RequestedHours - extraRemaining,
-		Reason:          fmt.Sprintf("seed payout request %s extra-hour top-up", strings.TrimSpace(item.Alias)),
+		AdminEmployeeID:        actorID,
+		EmployeeID:             employeeID,
+		Year:                   item.BalanceYear,
+		ExtraTotalMinutesDelta: (item.RequestedHours - extraRemaining) * 60,
+		Reason:                 fmt.Sprintf("seed payout request %s extra-hour top-up", strings.TrimSpace(item.Alias)),
 	})
 	return err
 }

@@ -213,46 +213,46 @@ type employeeAttachmentDetailResponse struct {
 }
 
 type employeeDetailResponse struct {
-	ID                         uuid.UUID                               `json:"id"`
-	UserID                     uuid.UUID                               `json:"user_id"`
-	FirstName                  string                                  `json:"first_name"`
-	LastName                   string                                  `json:"last_name"`
-	NameInUse                  string                                  `json:"name_in_use"`
-	MaritalStatus              *string                                 `json:"marital_status"`
-	Bsn                        string                                  `json:"bsn"`
-	Street                     string                                  `json:"street"`
-	HouseNumber                string                                  `json:"house_number"`
-	HouseNumberAddition        *string                                 `json:"house_number_addition"`
-	PostalCode                 string                                  `json:"postal_code"`
-	City                       string                                  `json:"city"`
-	EmployeeNumber             *string                                 `json:"employee_number"`
-	EmploymentNumber           *string                                 `json:"employment_number"`
-	PrivateEmailAddress        *string                                 `json:"private_email_address"`
-	WorkEmailAddress           *string                                 `json:"work_email_address"`
-	PrivatePhoneNumber         *string                                 `json:"private_phone_number"`
-	WorkPhoneNumber            *string                                 `json:"work_phone_number"`
-	DateOfBirth                *time.Time                              `json:"date_of_birth"`
-	HomeTelephoneNumber        *string                                 `json:"home_telephone_number"`
-	CreatedAt                  time.Time                               `json:"created_at"`
-	Gender                     string                                  `json:"gender"`
-	LocationID                 *uuid.UUID                              `json:"location_id"`
-	ManagerEmployeeID          *uuid.UUID                              `json:"manager_employee_id"`
-	OutOfService               *bool                                   `json:"out_of_service"`
-	IsArchived                 bool                                    `json:"is_archived"`
-	ContractHours              *float64                                `json:"contract_hours"`
-	ContractRate               *float64                                `json:"contract_rate"`
-	ProfilePicture             *string                                 `json:"profile_picture"`
-	ManagerFirstName           *string                                 `json:"manager_first_name"`
-	ManagerLastName            *string                                 `json:"manager_last_name"`
-	RemainingLeaveBalanceHours int32                                   `json:"remaining_leave_balance_hours"`
-	HoursWorkedThisMonth       float64                                 `json:"hours_worked_this_month"`
-	HoursPendingApproval       float64                                 `json:"hours_pending_approval"`
-	TotalHoursWorkedThisYear   float64                                 `json:"total_hours_worked_this_year"`
-	LastPerformanceReviewScore *float64                                `json:"last_performance_review_score"`
-	SalaryAssignment           *employeeSalaryAssignmentDetailResponse `json:"salary_assignment"`
-	Attachments                []employeeAttachmentDetailResponse      `json:"attachments"`
-	Qualifications             []qualificationResponse                 `json:"qualifications"`
-	Authorizations             []employeeAuthorizationResponse         `json:"authorizations"`
+	ID                           uuid.UUID                               `json:"id"`
+	UserID                       uuid.UUID                               `json:"user_id"`
+	FirstName                    string                                  `json:"first_name"`
+	LastName                     string                                  `json:"last_name"`
+	NameInUse                    string                                  `json:"name_in_use"`
+	MaritalStatus                *string                                 `json:"marital_status"`
+	Bsn                          string                                  `json:"bsn"`
+	Street                       string                                  `json:"street"`
+	HouseNumber                  string                                  `json:"house_number"`
+	HouseNumberAddition          *string                                 `json:"house_number_addition"`
+	PostalCode                   string                                  `json:"postal_code"`
+	City                         string                                  `json:"city"`
+	EmployeeNumber               *string                                 `json:"employee_number"`
+	EmploymentNumber             *string                                 `json:"employment_number"`
+	PrivateEmailAddress          *string                                 `json:"private_email_address"`
+	WorkEmailAddress             *string                                 `json:"work_email_address"`
+	PrivatePhoneNumber           *string                                 `json:"private_phone_number"`
+	WorkPhoneNumber              *string                                 `json:"work_phone_number"`
+	DateOfBirth                  *time.Time                              `json:"date_of_birth"`
+	HomeTelephoneNumber          *string                                 `json:"home_telephone_number"`
+	CreatedAt                    time.Time                               `json:"created_at"`
+	Gender                       string                                  `json:"gender"`
+	LocationID                   *uuid.UUID                              `json:"location_id"`
+	ManagerEmployeeID            *uuid.UUID                              `json:"manager_employee_id"`
+	OutOfService                 *bool                                   `json:"out_of_service"`
+	IsArchived                   bool                                    `json:"is_archived"`
+	ContractHours                *float64                                `json:"contract_hours"`
+	ContractRate                 *float64                                `json:"contract_rate"`
+	ProfilePicture               *string                                 `json:"profile_picture"`
+	ManagerFirstName             *string                                 `json:"manager_first_name"`
+	ManagerLastName              *string                                 `json:"manager_last_name"`
+	RemainingLeaveBalanceMinutes int32                                   `json:"remaining_leave_balance_minutes"`
+	HoursWorkedThisMonth         float64                                 `json:"hours_worked_this_month"`
+	HoursPendingApproval         float64                                 `json:"hours_pending_approval"`
+	TotalHoursWorkedThisYear     float64                                 `json:"total_hours_worked_this_year"`
+	LastPerformanceReviewScore   *float64                                `json:"last_performance_review_score"`
+	SalaryAssignment             *employeeSalaryAssignmentDetailResponse `json:"salary_assignment"`
+	Attachments                  []employeeAttachmentDetailResponse      `json:"attachments"`
+	Qualifications               []qualificationResponse                 `json:"qualifications"`
+	Authorizations               []employeeAuthorizationResponse         `json:"authorizations"`
 }
 
 type employeeContractDetailResponse struct {
@@ -765,46 +765,46 @@ func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse
 	}
 
 	return employeeDetailResponse{
-		ID:                         emp.ID,
-		UserID:                     emp.UserID,
-		FirstName:                  emp.FirstName,
-		LastName:                   emp.LastName,
-		NameInUse:                  emp.NameInUse,
-		MaritalStatus:              emp.MaritalStatus,
-		Bsn:                        emp.Bsn,
-		Street:                     emp.Street,
-		HouseNumber:                emp.HouseNumber,
-		HouseNumberAddition:        emp.HouseNumberAddition,
-		PostalCode:                 emp.PostalCode,
-		City:                       emp.City,
-		EmployeeNumber:             emp.EmployeeNumber,
-		EmploymentNumber:           emp.EmploymentNumber,
-		PrivateEmailAddress:        emp.PrivateEmailAddress,
-		WorkEmailAddress:           emp.WorkEmailAddress,
-		PrivatePhoneNumber:         emp.PrivatePhoneNumber,
-		WorkPhoneNumber:            emp.WorkPhoneNumber,
-		DateOfBirth:                emp.DateOfBirth,
-		HomeTelephoneNumber:        emp.HomeTelephoneNumber,
-		CreatedAt:                  emp.CreatedAt,
-		Gender:                     emp.Gender,
-		LocationID:                 emp.LocationID,
-		ManagerEmployeeID:          emp.ManagerEmployeeID,
-		OutOfService:               emp.OutOfService,
-		IsArchived:                 emp.IsArchived,
-		ContractHours:              emp.ContractHours,
-		ContractRate:               emp.ContractRate,
-		ProfilePicture:             emp.ProfilePicture,
-		ManagerFirstName:           emp.ManagerFirstName,
-		ManagerLastName:            emp.ManagerLastName,
-		RemainingLeaveBalanceHours: emp.RemainingLeaveBalanceHours,
-		HoursWorkedThisMonth:       emp.HoursWorkedThisMonth,
-		HoursPendingApproval:       emp.HoursPendingApproval,
-		TotalHoursWorkedThisYear:   emp.TotalHoursWorkedThisYear,
-		LastPerformanceReviewScore: emp.LastPerformanceReviewScore,
-		SalaryAssignment:           toEmployeeSalaryAssignmentDetailResponse(emp.SalaryAssignment),
-		Attachments:                attachments,
-		Qualifications:             qualifications,
-		Authorizations:             authorizations,
+		ID:                           emp.ID,
+		UserID:                       emp.UserID,
+		FirstName:                    emp.FirstName,
+		LastName:                     emp.LastName,
+		NameInUse:                    emp.NameInUse,
+		MaritalStatus:                emp.MaritalStatus,
+		Bsn:                          emp.Bsn,
+		Street:                       emp.Street,
+		HouseNumber:                  emp.HouseNumber,
+		HouseNumberAddition:          emp.HouseNumberAddition,
+		PostalCode:                   emp.PostalCode,
+		City:                         emp.City,
+		EmployeeNumber:               emp.EmployeeNumber,
+		EmploymentNumber:             emp.EmploymentNumber,
+		PrivateEmailAddress:          emp.PrivateEmailAddress,
+		WorkEmailAddress:             emp.WorkEmailAddress,
+		PrivatePhoneNumber:           emp.PrivatePhoneNumber,
+		WorkPhoneNumber:              emp.WorkPhoneNumber,
+		DateOfBirth:                  emp.DateOfBirth,
+		HomeTelephoneNumber:          emp.HomeTelephoneNumber,
+		CreatedAt:                    emp.CreatedAt,
+		Gender:                       emp.Gender,
+		LocationID:                   emp.LocationID,
+		ManagerEmployeeID:            emp.ManagerEmployeeID,
+		OutOfService:                 emp.OutOfService,
+		IsArchived:                   emp.IsArchived,
+		ContractHours:                emp.ContractHours,
+		ContractRate:                 emp.ContractRate,
+		ProfilePicture:               emp.ProfilePicture,
+		ManagerFirstName:             emp.ManagerFirstName,
+		ManagerLastName:              emp.ManagerLastName,
+		RemainingLeaveBalanceMinutes: emp.RemainingLeaveBalanceMinutes,
+		HoursWorkedThisMonth:         emp.HoursWorkedThisMonth,
+		HoursPendingApproval:         emp.HoursPendingApproval,
+		TotalHoursWorkedThisYear:     emp.TotalHoursWorkedThisYear,
+		LastPerformanceReviewScore:   emp.LastPerformanceReviewScore,
+		SalaryAssignment:             toEmployeeSalaryAssignmentDetailResponse(emp.SalaryAssignment),
+		Attachments:                  attachments,
+		Qualifications:               qualifications,
+		Authorizations:               authorizations,
 	}
 }
 
