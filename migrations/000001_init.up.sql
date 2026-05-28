@@ -327,7 +327,21 @@ WHERE p.name IN (
     'SHIFT.CREATE',
     'SHIFT.DELETE',
     'SHIFT.UPDATE',
-    'SHIFT.VIEW'
+    'SHIFT.VIEW',
+    'LATE_ARRIVAL.CREATE',
+    'LATE_ARRIVAL.CREATE_ALL',
+    'LATE_ARRIVAL.VIEW',
+    'LATE_ARRIVAL.VIEW_ALL',
+    'OVERTIME.CREATE',
+    'OVERTIME.CREATE_ALL',
+    'OVERTIME.DECIDE',
+    'OVERTIME.UPDATE',
+    'OVERTIME.UPDATE_ALL',
+    'OVERTIME.VIEW',
+    'OVERTIME.VIEW_ALL',
+    'SETTINGS.VIEW',
+    'SETTINGS.UPDATE',
+    'PORTAL.EMPLOYEE.ACCESS'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -1415,42 +1429,6 @@ ON pay_periods(employee_id, period_start DESC, period_end DESC);
 CREATE INDEX idx_pay_periods_status_period
 ON pay_periods(status, period_start DESC, period_end DESC);
 
-CREATE TABLE pay_period_line_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    pay_period_id UUID NOT NULL REFERENCES pay_periods(id) ON DELETE CASCADE,
-    schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
-    overtime_entry_id UUID NULL REFERENCES overtime_entries(id) ON DELETE SET NULL,
-    contract_type employee_contract_type_enum NOT NULL DEFAULT 'permanent',
-    work_date DATE NOT NULL,
-    line_type TEXT NOT NULL,
-    irregular_hours_profile irregular_hours_profile_enum NOT NULL DEFAULT 'none',
-    applied_rate_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
-    minutes_worked DECIMAL(10,2) NOT NULL DEFAULT 0,
-    base_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    premium_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pay_period_line_items_line_type_not_blank CHECK (btrim(line_type) <> ''),
-    CONSTRAINT pay_period_line_items_applied_rate_non_negative CHECK (applied_rate_percent >= 0),
-    CONSTRAINT pay_period_line_items_minutes_non_negative CHECK (minutes_worked >= 0),
-    CONSTRAINT pay_period_line_items_base_non_negative CHECK (base_amount >= 0),
-    CONSTRAINT pay_period_line_items_premium_non_negative CHECK (premium_amount >= 0),
-    CONSTRAINT pay_period_line_items_one_source CHECK (
-        (schedule_id IS NOT NULL AND overtime_entry_id IS NULL)
-        OR (schedule_id IS NULL AND overtime_entry_id IS NOT NULL)
-    )
-);
-
-CREATE INDEX idx_pay_period_line_items_pay_period
-ON pay_period_line_items(pay_period_id, work_date ASC, created_at ASC);
-
-CREATE INDEX idx_pay_period_line_items_schedule_id
-ON pay_period_line_items(schedule_id);
-
-CREATE INDEX idx_pay_period_line_items_overtime_entry_id
-ON pay_period_line_items(overtime_entry_id);
-
 -- ==========================================
 -- OVERTIME ENTRIES
 -- ==========================================
@@ -1499,6 +1477,42 @@ ON overtime_entries(schedule_id);
 
 CREATE INDEX idx_overtime_entries_paid_period_id
 ON overtime_entries(paid_period_id);
+
+CREATE TABLE pay_period_line_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    pay_period_id UUID NOT NULL REFERENCES pay_periods(id) ON DELETE CASCADE,
+    schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
+    overtime_entry_id UUID NULL REFERENCES overtime_entries(id) ON DELETE SET NULL,
+    contract_type employee_contract_type_enum NOT NULL DEFAULT 'permanent',
+    work_date DATE NOT NULL,
+    line_type TEXT NOT NULL,
+    irregular_hours_profile irregular_hours_profile_enum NOT NULL DEFAULT 'none',
+    applied_rate_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
+    minutes_worked DECIMAL(10,2) NOT NULL DEFAULT 0,
+    base_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    premium_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pay_period_line_items_line_type_not_blank CHECK (btrim(line_type) <> ''),
+    CONSTRAINT pay_period_line_items_applied_rate_non_negative CHECK (applied_rate_percent >= 0),
+    CONSTRAINT pay_period_line_items_minutes_non_negative CHECK (minutes_worked >= 0),
+    CONSTRAINT pay_period_line_items_base_non_negative CHECK (base_amount >= 0),
+    CONSTRAINT pay_period_line_items_premium_non_negative CHECK (premium_amount >= 0),
+    CONSTRAINT pay_period_line_items_one_source CHECK (
+        (schedule_id IS NOT NULL AND overtime_entry_id IS NULL)
+        OR (schedule_id IS NULL AND overtime_entry_id IS NOT NULL)
+    )
+);
+
+CREATE INDEX idx_pay_period_line_items_pay_period
+ON pay_period_line_items(pay_period_id, work_date ASC, created_at ASC);
+
+CREATE INDEX idx_pay_period_line_items_schedule_id
+ON pay_period_line_items(schedule_id);
+
+CREATE INDEX idx_pay_period_line_items_overtime_entry_id
+ON pay_period_line_items(overtime_entry_id);
 
 CREATE TYPE calendar_event_kind_enum AS ENUM ('appointment', 'reminder');
 CREATE TYPE calendar_event_status_enum AS ENUM ('confirmed', 'cancelled');
@@ -1798,4 +1812,3 @@ CREATE TABLE employee_attachment (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-

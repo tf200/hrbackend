@@ -126,7 +126,6 @@ func registerPostgresTypes(ctx context.Context, conn *pgx.Conn) error {
 var postgresEnumTypeNames = []string{
 	"location_type_enum",
 	"permission_override_effect",
-	"notification_type_enum",
 	"gender_enum",
 	"employee_contract_type_enum",
 	"contract_hours_type_enum",
@@ -141,8 +140,6 @@ var postgresEnumTypeNames = []string{
 	"handbook_step_status_enum",
 	"handbook_template_status_enum",
 	"handbook_assignment_event_enum",
-	"time_entry_status_enum",
-	"time_entry_hour_type_enum",
 	"shift_swap_status_enum",
 	"leave_request_type_enum",
 	"leave_request_status_enum",
@@ -157,6 +154,9 @@ var postgresEnumTypeNames = []string{
 	"reminder_channel_enum",
 	"performance_assessment_status_enum",
 	"performance_work_assignment_status_enum",
+	"employee_contract_event_type_enum",
+	"overtime_status_enum",
+	"overtime_reason_enum",
 }
 
 func (a *App) Close(_ context.Context) error {
