@@ -23,8 +23,6 @@ INSERT INTO employee_contracts (
     start_date,
     contract_end_date,
     hours_per_week,
-    min_hours_per_week,
-    max_hours_per_week,
     roster_free_day,
     wage_tax_table,
     previous_contract_id,
@@ -44,13 +42,11 @@ INSERT INTO employee_contracts (
     $10,
     $11,
     $12,
-    $13,
-    $14,
     'amendment',
-    $15,
-    $16
+    $13,
+    $14
 )
-RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 `
 
 type AddEmployeeContractAmendmentParams struct {
@@ -63,8 +59,6 @@ type AddEmployeeContractAmendmentParams struct {
 	StartDate            pgtype.Date              `json:"start_date"`
 	ContractEndDate      pgtype.Date              `json:"contract_end_date"`
 	HoursPerWeek         *float64                 `json:"hours_per_week"`
-	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
 	RosterFreeDay        WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
 	PreviousContractID   *uuid.UUID               `json:"previous_contract_id"`
@@ -83,8 +77,6 @@ func (q *Queries) AddEmployeeContractAmendment(ctx context.Context, arg AddEmplo
 		arg.StartDate,
 		arg.ContractEndDate,
 		arg.HoursPerWeek,
-		arg.MinHoursPerWeek,
-		arg.MaxHoursPerWeek,
 		arg.RosterFreeDay,
 		arg.WageTaxTable,
 		arg.PreviousContractID,
@@ -104,8 +96,6 @@ func (q *Queries) AddEmployeeContractAmendment(ctx context.Context, arg AddEmplo
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -130,8 +120,6 @@ INSERT INTO employee_contracts (
     start_date,
     contract_end_date,
     hours_per_week,
-    min_hours_per_week,
-    max_hours_per_week,
     roster_free_day,
     wage_tax_table,
     created_by_employee_id
@@ -147,11 +135,9 @@ INSERT INTO employee_contracts (
     $9,
     $10,
     $11,
-    $12,
-    $13,
-    $14
+    $12
 )
-RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 `
 
 type AddEmployeeContractDetailsParams struct {
@@ -164,8 +150,6 @@ type AddEmployeeContractDetailsParams struct {
 	StartDate            pgtype.Date              `json:"start_date"`
 	ContractEndDate      pgtype.Date              `json:"contract_end_date"`
 	HoursPerWeek         *float64                 `json:"hours_per_week"`
-	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
 	RosterFreeDay        WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
 	CreatedByEmployeeID  *uuid.UUID               `json:"created_by_employee_id"`
@@ -182,8 +166,6 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 		arg.StartDate,
 		arg.ContractEndDate,
 		arg.HoursPerWeek,
-		arg.MinHoursPerWeek,
-		arg.MaxHoursPerWeek,
 		arg.RosterFreeDay,
 		arg.WageTaxTable,
 		arg.CreatedByEmployeeID,
@@ -201,8 +183,6 @@ func (q *Queries) AddEmployeeContractDetails(ctx context.Context, arg AddEmploye
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -227,8 +207,6 @@ INSERT INTO employee_contracts (
     start_date,
     contract_end_date,
     hours_per_week,
-    min_hours_per_week,
-    max_hours_per_week,
     roster_free_day,
     wage_tax_table,
     previous_contract_id,
@@ -247,12 +225,10 @@ INSERT INTO employee_contracts (
     $10,
     $11,
     $12,
-    $13,
-    $14,
     'new_contract',
-    $15
+    $13
 )
-RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 `
 
 type AddEmployeeNewContractParams struct {
@@ -265,8 +241,6 @@ type AddEmployeeNewContractParams struct {
 	StartDate            pgtype.Date              `json:"start_date"`
 	ContractEndDate      pgtype.Date              `json:"contract_end_date"`
 	HoursPerWeek         *float64                 `json:"hours_per_week"`
-	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
 	RosterFreeDay        WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
 	PreviousContractID   *uuid.UUID               `json:"previous_contract_id"`
@@ -284,8 +258,6 @@ func (q *Queries) AddEmployeeNewContract(ctx context.Context, arg AddEmployeeNew
 		arg.StartDate,
 		arg.ContractEndDate,
 		arg.HoursPerWeek,
-		arg.MinHoursPerWeek,
-		arg.MaxHoursPerWeek,
 		arg.RosterFreeDay,
 		arg.WageTaxTable,
 		arg.PreviousContractID,
@@ -304,8 +276,6 @@ func (q *Queries) AddEmployeeNewContract(ctx context.Context, arg AddEmployeeNew
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -326,7 +296,7 @@ SET
     updated_by_employee_id = $2,
     updated_at = NOW()
 WHERE id = $3
-RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 `
 
 type EndEmployeeContractSegmentParams struct {
@@ -350,8 +320,6 @@ func (q *Queries) EndEmployeeContractSegment(ctx context.Context, arg EndEmploye
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -366,7 +334,7 @@ func (q *Queries) EndEmployeeContractSegment(ctx context.Context, arg EndEmploye
 }
 
 const getActiveEmployeeContract = `-- name: GetActiveEmployeeContract :one
-SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 FROM employee_contracts
 WHERE employee_id = $1
   AND start_date <= CURRENT_DATE
@@ -391,8 +359,6 @@ func (q *Queries) GetActiveEmployeeContract(ctx context.Context, employeeID uuid
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -422,8 +388,6 @@ SELECT
     ec.contract_end_date,
     ec.effective_end_date,
     ec.hours_per_week,
-    ec.min_hours_per_week,
-    ec.max_hours_per_week,
     ec.roster_free_day,
     ec.wage_tax_table,
     ec.created_at,
@@ -455,8 +419,6 @@ type GetActiveEmployeeContractDetailRow struct {
 	ContractEndDate        pgtype.Date              `json:"contract_end_date"`
 	EffectiveEndDate       pgtype.Date              `json:"effective_end_date"`
 	HoursPerWeek           *float64                 `json:"hours_per_week"`
-	MinHoursPerWeek        *float64                 `json:"min_hours_per_week"`
-	MaxHoursPerWeek        *float64                 `json:"max_hours_per_week"`
 	RosterFreeDay          WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable           *WageTaxTableEnum        `json:"wage_tax_table"`
 	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
@@ -481,8 +443,6 @@ func (q *Queries) GetActiveEmployeeContractDetail(ctx context.Context, employeeI
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.CreatedAt,
@@ -492,7 +452,7 @@ func (q *Queries) GetActiveEmployeeContractDetail(ctx context.Context, employeeI
 }
 
 const getEmployeeContractAtDate = `-- name: GetEmployeeContractAtDate :one
-SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 FROM employee_contracts
 WHERE employee_id = $1
   AND start_date <= $2::date
@@ -522,8 +482,6 @@ func (q *Queries) GetEmployeeContractAtDate(ctx context.Context, arg GetEmployee
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -538,7 +496,7 @@ func (q *Queries) GetEmployeeContractAtDate(ctx context.Context, arg GetEmployee
 }
 
 const getEmployeeContractByID = `-- name: GetEmployeeContractByID :one
-SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 FROM employee_contracts
 WHERE id = $1
 `
@@ -558,8 +516,6 @@ func (q *Queries) GetEmployeeContractByID(ctx context.Context, id uuid.UUID) (Em
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,
@@ -589,8 +545,6 @@ SELECT
     ec.contract_end_date,
     ec.effective_end_date,
     ec.hours_per_week,
-    ec.min_hours_per_week,
-    ec.max_hours_per_week,
     ec.roster_free_day,
     ec.wage_tax_table,
     ec.created_at,
@@ -619,8 +573,6 @@ type GetLatestEmployeeContractDetailRow struct {
 	ContractEndDate        pgtype.Date              `json:"contract_end_date"`
 	EffectiveEndDate       pgtype.Date              `json:"effective_end_date"`
 	HoursPerWeek           *float64                 `json:"hours_per_week"`
-	MinHoursPerWeek        *float64                 `json:"min_hours_per_week"`
-	MaxHoursPerWeek        *float64                 `json:"max_hours_per_week"`
 	RosterFreeDay          WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable           *WageTaxTableEnum        `json:"wage_tax_table"`
 	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
@@ -645,8 +597,6 @@ func (q *Queries) GetLatestEmployeeContractDetail(ctx context.Context, employeeI
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.CreatedAt,
@@ -739,8 +689,6 @@ SELECT
     ec.previous_contract_id,
     ec.contract_event_type,
     ec.hours_per_week,
-    ec.min_hours_per_week,
-    ec.max_hours_per_week,
     ec.roster_free_day,
     ec.wage_tax_table,
     ec.created_at,
@@ -770,8 +718,6 @@ type ListEmployeeContractDetailsRow struct {
 	PreviousContractID     *uuid.UUID                    `json:"previous_contract_id"`
 	ContractEventType      EmployeeContractEventTypeEnum `json:"contract_event_type"`
 	HoursPerWeek           *float64                      `json:"hours_per_week"`
-	MinHoursPerWeek        *float64                      `json:"min_hours_per_week"`
-	MaxHoursPerWeek        *float64                      `json:"max_hours_per_week"`
 	RosterFreeDay          WeekdayEnum                   `json:"roster_free_day"`
 	WageTaxTable           *WageTaxTableEnum             `json:"wage_tax_table"`
 	CreatedAt              pgtype.Timestamptz            `json:"created_at"`
@@ -804,8 +750,6 @@ func (q *Queries) ListEmployeeContractDetails(ctx context.Context, employeeID uu
 			&i.PreviousContractID,
 			&i.ContractEventType,
 			&i.HoursPerWeek,
-			&i.MinHoursPerWeek,
-			&i.MaxHoursPerWeek,
 			&i.RosterFreeDay,
 			&i.WageTaxTable,
 			&i.CreatedAt,
@@ -822,7 +766,7 @@ func (q *Queries) ListEmployeeContractDetails(ctx context.Context, employeeID uu
 }
 
 const listEmployeeContracts = `-- name: ListEmployeeContracts :many
-SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 FROM employee_contracts
 WHERE employee_id = $1
 ORDER BY start_date ASC, created_at ASC
@@ -849,8 +793,6 @@ func (q *Queries) ListEmployeeContracts(ctx context.Context, employeeID uuid.UUI
 			&i.ContractEndDate,
 			&i.EffectiveEndDate,
 			&i.HoursPerWeek,
-			&i.MinHoursPerWeek,
-			&i.MaxHoursPerWeek,
 			&i.RosterFreeDay,
 			&i.WageTaxTable,
 			&i.PreviousContractID,
@@ -882,13 +824,11 @@ SET
     start_date = COALESCE($6::date, start_date),
     contract_end_date = COALESCE($7::date, contract_end_date),
     hours_per_week = COALESCE($8, hours_per_week),
-    min_hours_per_week = COALESCE($9, min_hours_per_week),
-    max_hours_per_week = COALESCE($10, max_hours_per_week),
-    roster_free_day = COALESCE($11, roster_free_day),
-    wage_tax_table = COALESCE($12::wage_tax_table_enum, wage_tax_table),
+    roster_free_day = COALESCE($9, roster_free_day),
+    wage_tax_table = COALESCE($10::wage_tax_table_enum, wage_tax_table),
     updated_at = NOW()
-WHERE id = $13 AND employee_id = $14
-RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+WHERE id = $11 AND employee_id = $12
+RETURNING id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
 `
 
 type UpdateEmployeeContractParams struct {
@@ -900,8 +840,6 @@ type UpdateEmployeeContractParams struct {
 	StartDate            pgtype.Date               `json:"start_date"`
 	ContractEndDate      pgtype.Date               `json:"contract_end_date"`
 	HoursPerWeek         *float64                  `json:"hours_per_week"`
-	MinHoursPerWeek      *float64                  `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64                  `json:"max_hours_per_week"`
 	RosterFreeDay        *WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum         `json:"wage_tax_table"`
 	ID                   uuid.UUID                 `json:"id"`
@@ -918,8 +856,6 @@ func (q *Queries) UpdateEmployeeContract(ctx context.Context, arg UpdateEmployee
 		arg.StartDate,
 		arg.ContractEndDate,
 		arg.HoursPerWeek,
-		arg.MinHoursPerWeek,
-		arg.MaxHoursPerWeek,
 		arg.RosterFreeDay,
 		arg.WageTaxTable,
 		arg.ID,
@@ -938,8 +874,6 @@ func (q *Queries) UpdateEmployeeContract(ctx context.Context, arg UpdateEmployee
 		&i.ContractEndDate,
 		&i.EffectiveEndDate,
 		&i.HoursPerWeek,
-		&i.MinHoursPerWeek,
-		&i.MaxHoursPerWeek,
 		&i.RosterFreeDay,
 		&i.WageTaxTable,
 		&i.PreviousContractID,

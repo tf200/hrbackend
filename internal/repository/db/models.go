@@ -1670,8 +1670,6 @@ type EmployeeContract struct {
 	ContractEndDate      pgtype.Date                   `json:"contract_end_date"`
 	EffectiveEndDate     pgtype.Date                   `json:"effective_end_date"`
 	HoursPerWeek         *float64                      `json:"hours_per_week"`
-	MinHoursPerWeek      *float64                      `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64                      `json:"max_hours_per_week"`
 	RosterFreeDay        WeekdayEnum                   `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum             `json:"wage_tax_table"`
 	PreviousContractID   *uuid.UUID                    `json:"previous_contract_id"`

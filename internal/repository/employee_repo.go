@@ -95,8 +95,6 @@ func (tx *employeeTxRepo) AddEmployeeContractDetails(ctx context.Context, employ
 		StartDate:            conv.PgDateFromTime(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
-		MinHoursPerWeek:      params.MinHoursPerWeek,
-		MaxHoursPerWeek:      params.MaxHoursPerWeek,
 		RosterFreeDay:        weekdayEnumFromString(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		CreatedByEmployeeID:  nil,
@@ -863,8 +861,6 @@ func toDomainContractDetail(row db.ListEmployeeContractDetailsRow) domain.Employ
 		ContractEventType:      string(row.ContractEventType),
 		IsActive:               isContractActiveNow(row.StartDate, row.EffectiveEndDate, row.ContractEndDate),
 		HoursPerWeek:           row.HoursPerWeek,
-		MinHoursPerWeek:        row.MinHoursPerWeek,
-		MaxHoursPerWeek:        row.MaxHoursPerWeek,
 		RosterFreeDay:          string(row.RosterFreeDay),
 		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
 		CreatedAt:              row.CreatedAt.Time,
@@ -874,25 +870,23 @@ func toDomainContractDetail(row db.ListEmployeeContractDetailsRow) domain.Employ
 
 func toDomainContractDetailFromRow(row db.EmployeeContract) domain.EmployeeContractDetail {
 	return domain.EmployeeContractDetail{
-		ID:                     row.ID,
-		JobTitle:               string(row.JobTitle),
-		DepartmentID:           row.DepartmentID,
-		LocationID:             row.LocationID,
-		OrganizationalRoleID:   row.OrganizationalRoleID,
-		ContractType:           string(row.ContractType),
-		StartDate:              conv.TimeFromPgDate(row.StartDate),
-		ContractEndDate:        conv.TimePtrFromPgDate(row.ContractEndDate),
-		EffectiveEndDate:       conv.TimePtrFromPgDate(row.EffectiveEndDate),
-		PreviousContractID:     row.PreviousContractID,
-		ContractEventType:      string(row.ContractEventType),
-		IsActive:               isContractActiveNow(row.StartDate, row.EffectiveEndDate, row.ContractEndDate),
-		HoursPerWeek:           row.HoursPerWeek,
-		MinHoursPerWeek:        row.MinHoursPerWeek,
-		MaxHoursPerWeek:        row.MaxHoursPerWeek,
-		RosterFreeDay:          string(row.RosterFreeDay),
-		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
-		CreatedAt:              row.CreatedAt.Time,
-		UpdatedAt:              row.UpdatedAt.Time,
+		ID:                   row.ID,
+		JobTitle:             string(row.JobTitle),
+		DepartmentID:         row.DepartmentID,
+		LocationID:           row.LocationID,
+		OrganizationalRoleID: row.OrganizationalRoleID,
+		ContractType:         string(row.ContractType),
+		StartDate:            conv.TimeFromPgDate(row.StartDate),
+		ContractEndDate:      conv.TimePtrFromPgDate(row.ContractEndDate),
+		EffectiveEndDate:     conv.TimePtrFromPgDate(row.EffectiveEndDate),
+		PreviousContractID:   row.PreviousContractID,
+		ContractEventType:    string(row.ContractEventType),
+		IsActive:             isContractActiveNow(row.StartDate, row.EffectiveEndDate, row.ContractEndDate),
+		HoursPerWeek:         row.HoursPerWeek,
+		RosterFreeDay:        string(row.RosterFreeDay),
+		WageTaxTable:         wageTaxTablePtrToStringPtr(row.WageTaxTable),
+		CreatedAt:            row.CreatedAt.Time,
+		UpdatedAt:            row.UpdatedAt.Time,
 	}
 }
 
@@ -1233,13 +1227,13 @@ func (r *EmployeeRepository) GetEmployeeContractByID(
 		return nil, err
 	}
 	return &domain.EmployeeContractInfo{
-		ID:                row.ID,
-		EmployeeID:        row.EmployeeID,
-		ContractType:      string(row.ContractType),
-		StartDate:         conv.TimeFromPgDate(row.StartDate),
-		ContractEndDate:   conv.TimePtrFromPgDate(row.ContractEndDate),
-		EffectiveEndDate:  conv.TimePtrFromPgDate(row.EffectiveEndDate),
-		HoursPerWeek:      row.HoursPerWeek,
+		ID:               row.ID,
+		EmployeeID:       row.EmployeeID,
+		ContractType:     string(row.ContractType),
+		StartDate:        conv.TimeFromPgDate(row.StartDate),
+		ContractEndDate:  conv.TimePtrFromPgDate(row.ContractEndDate),
+		EffectiveEndDate: conv.TimePtrFromPgDate(row.EffectiveEndDate),
+		HoursPerWeek:     row.HoursPerWeek,
 	}, nil
 }
 
@@ -1288,13 +1282,13 @@ func (tx *employeeTxRepo) GetEmployeeContractAtDate(
 		return nil, err
 	}
 	return &domain.EmployeeContractInfo{
-		ID:                contract.ID,
-		EmployeeID:        contract.EmployeeID,
-		ContractType:      string(contract.ContractType),
-		StartDate:         contract.StartDate.Time,
-		ContractEndDate:   conv.TimePtrFromPgDate(contract.ContractEndDate),
-		EffectiveEndDate:  conv.TimePtrFromPgDate(contract.EffectiveEndDate),
-		HoursPerWeek:      contract.HoursPerWeek,
+		ID:               contract.ID,
+		EmployeeID:       contract.EmployeeID,
+		ContractType:     string(contract.ContractType),
+		StartDate:        contract.StartDate.Time,
+		ContractEndDate:  conv.TimePtrFromPgDate(contract.ContractEndDate),
+		EffectiveEndDate: conv.TimePtrFromPgDate(contract.EffectiveEndDate),
+		HoursPerWeek:     contract.HoursPerWeek,
 	}, nil
 }
 
@@ -1314,8 +1308,6 @@ func (tx *employeeTxRepo) AddNewContract(
 		StartDate:            conv.PgDateFromTime(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
-		MinHoursPerWeek:      params.MinHoursPerWeek,
-		MaxHoursPerWeek:      params.MaxHoursPerWeek,
 		RosterFreeDay:        weekdayEnumFromString(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		PreviousContractID:   previousContractID,
@@ -1337,8 +1329,6 @@ func (tx *employeeTxRepo) UpdateEmployeeContract(ctx context.Context, employeeID
 		StartDate:            pgDateFromPtr(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
-		MinHoursPerWeek:      params.MinHoursPerWeek,
-		MaxHoursPerWeek:      params.MaxHoursPerWeek,
 		RosterFreeDay:        weekdayEnumPtrFromStringPtr(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		ID:                   contractID,
@@ -1364,8 +1354,6 @@ func (r *EmployeeRepository) UpdateEmployeeContract(ctx context.Context, employe
 		StartDate:            pgDateFromPtr(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
-		MinHoursPerWeek:      params.MinHoursPerWeek,
-		MaxHoursPerWeek:      params.MaxHoursPerWeek,
 		RosterFreeDay:        weekdayEnumPtrFromStringPtr(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		ID:                   contractID,
@@ -1397,8 +1385,6 @@ func (tx *employeeTxRepo) AddEmployeeContractAmendment(
 		StartDate:            conv.PgDateFromTime(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
-		MinHoursPerWeek:      params.MinHoursPerWeek,
-		MaxHoursPerWeek:      params.MaxHoursPerWeek,
 		RosterFreeDay:        weekdayEnumFromString(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		PreviousContractID:   &previousContractID,

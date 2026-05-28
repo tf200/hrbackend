@@ -117,6 +117,9 @@ func (s *EmployeeService) CreateEmployee(
 	params domain.CreateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
 	if params.Contract != nil {
+		if err := validateContractHours(params.Contract.ContractType, params.Contract.HoursPerWeek); err != nil {
+			return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+		}
 		if params.Contract.ContractEndDate != nil && params.Contract.ContractEndDate.Before(params.Contract.StartDate) {
 			return nil, fmt.Errorf("%w: contract_end_date cannot be before start_date", domain.ErrContractChangeInvalid)
 		}
@@ -551,6 +554,9 @@ func (s *EmployeeService) CreateContractAmendment(
 			domain.ErrContractChangeInvalid,
 		)
 	}
+	if err := validateContractHours(params.ContractType, params.HoursPerWeek); err != nil {
+		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+	}
 
 	var emp *domain.EmployeeDetail
 	err = s.repo.WithTx(ctx, func(tx domain.EmployeeTxRepository) error {
@@ -581,6 +587,9 @@ func (s *EmployeeService) CreateNewContract(
 	employeeID uuid.UUID,
 	params domain.CreateNewContractParams,
 ) (*domain.EmployeeDetail, error) {
+	if err := validateContractHours(params.ContractType, params.HoursPerWeek); err != nil {
+		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+	}
 	if params.ContractEndDate != nil && !params.ContractEndDate.After(params.StartDate) {
 		return nil, fmt.Errorf(
 			"%w: contract_end_date must be after start_date",
@@ -633,6 +642,10 @@ func (s *EmployeeService) UpdateEmployeeContract(
 	contractID uuid.UUID,
 	params domain.UpdateEmployeeContractParams,
 ) (*domain.EmployeeContractDetail, error) {
+	if err := validateOptionalContractHours(params.ContractType, params.HoursPerWeek); err != nil {
+		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
+	}
+
 	contract, err := s.repo.UpdateEmployeeContract(ctx, employeeID, contractID, params)
 	if err != nil {
 		s.logError(ctx, "UpdateEmployeeContract", err,
@@ -667,4 +680,28 @@ func isValidIrregularHoursProfile(value string) bool {
 	}
 }
 
+func validateContractHours(contractType string, hoursPerWeek *float64) error {
+	switch contractType {
+	case "permanent", "temporary":
+		if hoursPerWeek == nil || *hoursPerWeek <= 0 {
+			return fmt.Errorf("%s contract requires hours_per_week > 0", contractType)
+		}
+	case "on_call":
+		if hoursPerWeek != nil {
+			return fmt.Errorf("on_call contract cannot have hours_per_week")
+		}
+	default:
+		return fmt.Errorf("invalid contract_type: %s", contractType)
+	}
+	return nil
+}
 
+func validateOptionalContractHours(contractType *string, hoursPerWeek *float64) error {
+	if contractType == nil {
+		if hoursPerWeek != nil && *hoursPerWeek <= 0 {
+			return fmt.Errorf("hours_per_week must be > 0")
+		}
+		return nil
+	}
+	return validateContractHours(*contractType, hoursPerWeek)
+}

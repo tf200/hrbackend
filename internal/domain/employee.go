@@ -117,28 +117,26 @@ type EmployeeDetail struct {
 }
 
 type EmployeeContractDetail struct {
-	ID                uuid.UUID
-	JobTitle          string
-	DepartmentID      uuid.UUID
-	DepartmentName    *string
-	LocationID        uuid.UUID
-	LocationAddress   *string
+	ID                     uuid.UUID
+	JobTitle               string
+	DepartmentID           uuid.UUID
+	DepartmentName         *string
+	LocationID             uuid.UUID
+	LocationAddress        *string
 	OrganizationalRoleID   *uuid.UUID
 	OrganizationalRoleName *string
-	ContractType      string
+	ContractType           string
 	StartDate              time.Time
 	ContractEndDate        *time.Time
 	EffectiveEndDate       *time.Time
-	PreviousContractID *uuid.UUID
-	ContractEventType  string
-	IsActive           bool
-	HoursPerWeek      *float64
-	MinHoursPerWeek   *float64
-	MaxHoursPerWeek   *float64
-	RosterFreeDay     string
-	WageTaxTable      *string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	PreviousContractID     *uuid.UUID
+	ContractEventType      string
+	IsActive               bool
+	HoursPerWeek           *float64
+	RosterFreeDay          string
+	WageTaxTable           *string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
 }
 
 type EmployeeSalaryAssignmentDetail struct {
@@ -284,20 +282,18 @@ type CreateEmployeeContractParams struct {
 	StartDate            time.Time
 	ContractEndDate      *time.Time
 	HoursPerWeek         *float64
-	MinHoursPerWeek      *float64
-	MaxHoursPerWeek      *float64
 	RosterFreeDay        string
 	WageTaxTable         *string
 }
 
 type EmployeeContractInfo struct {
-	ID                uuid.UUID
-	EmployeeID        uuid.UUID
-	ContractType      string
-	StartDate         time.Time
-	ContractEndDate   *time.Time
-	EffectiveEndDate  *time.Time
-	HoursPerWeek      *float64
+	ID               uuid.UUID
+	EmployeeID       uuid.UUID
+	ContractType     string
+	StartDate        time.Time
+	ContractEndDate  *time.Time
+	EffectiveEndDate *time.Time
+	HoursPerWeek     *float64
 }
 
 type CreateNewContractParams struct {
@@ -309,8 +305,6 @@ type CreateNewContractParams struct {
 	StartDate            time.Time
 	ContractEndDate      *time.Time
 	HoursPerWeek         *float64
-	MinHoursPerWeek      *float64
-	MaxHoursPerWeek      *float64
 	RosterFreeDay        string
 	WageTaxTable         *string
 }
@@ -324,8 +318,6 @@ type UpdateEmployeeContractParams struct {
 	StartDate            *time.Time `json:"start_date"`
 	ContractEndDate      *time.Time `json:"contract_end_date"`
 	HoursPerWeek         *float64   `json:"hours_per_week"`
-	MinHoursPerWeek      *float64   `json:"min_hours_per_week"`
-	MaxHoursPerWeek      *float64   `json:"max_hours_per_week"`
 	RosterFreeDay        *string    `json:"roster_free_day"`
 	WageTaxTable         *string    `json:"wage_tax_table"`
 }
@@ -339,8 +331,6 @@ type CreateContractAmendmentParams struct {
 	StartDate            time.Time
 	ContractEndDate      *time.Time
 	HoursPerWeek         *float64
-	MinHoursPerWeek      *float64
-	MaxHoursPerWeek      *float64
 	RosterFreeDay        string
 	WageTaxTable         *string
 	ChangeReason         *string

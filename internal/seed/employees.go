@@ -49,8 +49,6 @@ type EmployeeContractSeed struct {
 	StartDate              time.Time
 	ContractEndDate        *time.Time
 	HoursPerWeek           *float64
-	MinHoursPerWeek        *float64
-	MaxHoursPerWeek        *float64
 	RosterFreeDay          string
 	WageTaxTable           *string
 }
@@ -417,18 +415,16 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 			start_date,
 			contract_end_date,
 			hours_per_week,
-			min_hours_per_week,
-			max_hours_per_week,
 			roster_free_day,
 			wage_tax_table,
 			contract_event_type
 		)
-		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7, $8, $9, $10, $11, $12, $13::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
+		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7, $8, $9, $10, $11::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
 		RETURNING id
 	`, employeeID, item.Contract.JobTitle, departmentID, locationID, organizationalRoleID,
 		item.Contract.ContractType, item.Contract.StartDate,
-		item.Contract.ContractEndDate, item.Contract.HoursPerWeek, item.Contract.MinHoursPerWeek,
-		item.Contract.MaxHoursPerWeek, item.Contract.RosterFreeDay, item.Contract.WageTaxTable).Scan(&contractID)
+		item.Contract.ContractEndDate, item.Contract.HoursPerWeek,
+		item.Contract.RosterFreeDay, item.Contract.WageTaxTable).Scan(&contractID)
 	if err != nil {
 		return fmt.Errorf("insert employee contract: %w", err)
 	}

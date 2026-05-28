@@ -564,8 +564,6 @@ CREATE TABLE employee_contracts (
     contract_end_date DATE NULL,
     effective_end_date DATE NULL,
     hours_per_week NUMERIC(4,1) NULL,
-    min_hours_per_week NUMERIC(4,1) NULL,
-    max_hours_per_week NUMERIC(4,1) NULL,
     roster_free_day weekday_enum NOT NULL,
     wage_tax_table wage_tax_table_enum NULL,
     previous_contract_id UUID NULL REFERENCES employee_contracts(id) ON DELETE SET NULL,
@@ -578,12 +576,11 @@ CREATE TABLE employee_contracts (
     CONSTRAINT employee_contracts_date_order CHECK (contract_end_date IS NULL OR contract_end_date >= start_date),
     CONSTRAINT employee_contracts_effective_end_date_order CHECK (effective_end_date IS NULL OR effective_end_date >= start_date),
     CONSTRAINT employee_contracts_hours_per_week_valid CHECK (hours_per_week IS NULL OR (hours_per_week >= 0 AND hours_per_week <= 40)),
-    CONSTRAINT employee_contracts_min_hours_valid CHECK (min_hours_per_week IS NULL OR (min_hours_per_week >= 0 AND min_hours_per_week <= 40)),
-    CONSTRAINT employee_contracts_max_hours_valid CHECK (max_hours_per_week IS NULL OR (max_hours_per_week >= 0 AND max_hours_per_week <= 40)),
     CONSTRAINT employee_contracts_hours_per_week_half_step CHECK (hours_per_week IS NULL OR hours_per_week * 2 = floor(hours_per_week * 2)),
-    CONSTRAINT employee_contracts_min_hours_half_step CHECK (min_hours_per_week IS NULL OR min_hours_per_week * 2 = floor(min_hours_per_week * 2)),
-    CONSTRAINT employee_contracts_max_hours_half_step CHECK (max_hours_per_week IS NULL OR max_hours_per_week * 2 = floor(max_hours_per_week * 2)),
-    CONSTRAINT employee_contracts_min_max_order CHECK (min_hours_per_week IS NULL OR max_hours_per_week IS NULL OR min_hours_per_week <= max_hours_per_week),
+    CONSTRAINT employee_contracts_hours_match_contract_type CHECK (
+        (contract_type IN ('permanent', 'temporary') AND hours_per_week IS NOT NULL AND hours_per_week > 0)
+        OR (contract_type = 'on_call' AND hours_per_week IS NULL)
+    ),
     CONSTRAINT employee_contracts_previous_not_self CHECK (previous_contract_id IS NULL OR previous_contract_id <> id),
     CONSTRAINT employee_contracts_unique_employee_start_date UNIQUE (employee_id, start_date)
 );
@@ -1231,7 +1228,7 @@ BEGIN
                     make_date(p_year, 12, 31)
                 )
             ) AS segment_end,
-            COALESCE(ec.hours_per_week, ec.min_hours_per_week, 0) AS weekly_hours
+            COALESCE(ec.hours_per_week, 0) AS weekly_hours
         FROM employee_contracts ec
         WHERE ec.employee_id = p_employee_id
     ) AS segments
