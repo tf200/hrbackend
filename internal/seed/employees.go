@@ -46,7 +46,6 @@ type EmployeeContractSeed struct {
 	LocationAlias          string
 	OrganizationalRoleName *string
 	ContractType           string
-	ContractHoursType      string
 	StartDate              time.Time
 	ContractEndDate        *time.Time
 	HoursPerWeek           *float64
@@ -415,7 +414,6 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 			location_id,
 			organizational_role_id,
 			contract_type,
-			contract_hours_type,
 			start_date,
 			contract_end_date,
 			hours_per_week,
@@ -425,10 +423,10 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 			wage_tax_table,
 			contract_event_type
 		)
-		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7::contract_hours_type_enum, $8, $9, $10, $11, $12, $13, $14::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
+		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7, $8, $9, $10, $11, $12, $13::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
 		RETURNING id
 	`, employeeID, item.Contract.JobTitle, departmentID, locationID, organizationalRoleID,
-		item.Contract.ContractType, item.Contract.ContractHoursType, item.Contract.StartDate,
+		item.Contract.ContractType, item.Contract.StartDate,
 		item.Contract.ContractEndDate, item.Contract.HoursPerWeek, item.Contract.MinHoursPerWeek,
 		item.Contract.MaxHoursPerWeek, item.Contract.RosterFreeDay, item.Contract.WageTaxTable).Scan(&contractID)
 	if err != nil {

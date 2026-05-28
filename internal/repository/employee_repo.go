@@ -92,7 +92,6 @@ func (tx *employeeTxRepo) AddEmployeeContractDetails(ctx context.Context, employ
 		LocationID:           params.LocationID,
 		OrganizationalRoleID: params.OrganizationalRoleID,
 		ContractType:         contractTypeFromString(params.ContractType),
-		ContractHoursType:    contractHoursTypeFromString(params.ContractHoursType),
 		StartDate:            conv.PgDateFromTime(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
@@ -857,7 +856,6 @@ func toDomainContractDetail(row db.ListEmployeeContractDetailsRow) domain.Employ
 		OrganizationalRoleID:   row.OrganizationalRoleID,
 		OrganizationalRoleName: row.OrganizationalRoleName,
 		ContractType:           string(row.ContractType),
-		ContractHoursType:      string(row.ContractHoursType),
 		StartDate:              conv.TimeFromPgDate(row.StartDate),
 		ContractEndDate:        conv.TimePtrFromPgDate(row.ContractEndDate),
 		EffectiveEndDate:       conv.TimePtrFromPgDate(row.EffectiveEndDate),
@@ -882,7 +880,6 @@ func toDomainContractDetailFromRow(row db.EmployeeContract) domain.EmployeeContr
 		LocationID:             row.LocationID,
 		OrganizationalRoleID:   row.OrganizationalRoleID,
 		ContractType:           string(row.ContractType),
-		ContractHoursType:      string(row.ContractHoursType),
 		StartDate:              conv.TimeFromPgDate(row.StartDate),
 		ContractEndDate:        conv.TimePtrFromPgDate(row.ContractEndDate),
 		EffectiveEndDate:       conv.TimePtrFromPgDate(row.EffectiveEndDate),
@@ -1177,24 +1174,6 @@ func employeeJobTitleEnumFromString(value string) db.EmployeeJobTitleEnum {
 	}
 }
 
-func contractHoursTypePtrFromStringPtr(value *string) *db.ContractHoursTypeEnum {
-	if value == nil {
-		return nil
-	}
-	return enumPtr(contractHoursTypeFromString(*value))
-}
-
-func contractHoursTypeFromString(value string) db.ContractHoursTypeEnum {
-	switch db.ContractHoursTypeEnum(value) {
-	case db.ContractHoursTypeEnumFixed,
-		db.ContractHoursTypeEnumZeroHours,
-		db.ContractHoursTypeEnumMinMax:
-		return db.ContractHoursTypeEnum(value)
-	default:
-		return ""
-	}
-}
-
 func wageTaxTablePtrFromStringPtr(value *string) *db.WageTaxTableEnum {
 	if value == nil {
 		return nil
@@ -1257,7 +1236,6 @@ func (r *EmployeeRepository) GetEmployeeContractByID(
 		ID:                row.ID,
 		EmployeeID:        row.EmployeeID,
 		ContractType:      string(row.ContractType),
-		ContractHoursType: string(row.ContractHoursType),
 		StartDate:         conv.TimeFromPgDate(row.StartDate),
 		ContractEndDate:   conv.TimePtrFromPgDate(row.ContractEndDate),
 		EffectiveEndDate:  conv.TimePtrFromPgDate(row.EffectiveEndDate),
@@ -1313,7 +1291,6 @@ func (tx *employeeTxRepo) GetEmployeeContractAtDate(
 		ID:                contract.ID,
 		EmployeeID:        contract.EmployeeID,
 		ContractType:      string(contract.ContractType),
-		ContractHoursType: string(contract.ContractHoursType),
 		StartDate:         contract.StartDate.Time,
 		ContractEndDate:   conv.TimePtrFromPgDate(contract.ContractEndDate),
 		EffectiveEndDate:  conv.TimePtrFromPgDate(contract.EffectiveEndDate),
@@ -1334,7 +1311,6 @@ func (tx *employeeTxRepo) AddNewContract(
 		LocationID:           params.LocationID,
 		OrganizationalRoleID: params.OrganizationalRoleID,
 		ContractType:         contractTypeFromString(params.ContractType),
-		ContractHoursType:    contractHoursTypeFromString(params.ContractHoursType),
 		StartDate:            conv.PgDateFromTime(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
@@ -1358,7 +1334,6 @@ func (tx *employeeTxRepo) UpdateEmployeeContract(ctx context.Context, employeeID
 		LocationID:           params.LocationID,
 		OrganizationalRoleID: params.OrganizationalRoleID,
 		ContractType:         contractTypePtrFromStringPtr(params.ContractType),
-		ContractHoursType:    contractHoursTypePtrFromStringPtr(params.ContractHoursType),
 		StartDate:            pgDateFromPtr(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
@@ -1386,7 +1361,6 @@ func (r *EmployeeRepository) UpdateEmployeeContract(ctx context.Context, employe
 		LocationID:           params.LocationID,
 		OrganizationalRoleID: params.OrganizationalRoleID,
 		ContractType:         contractTypePtrFromStringPtr(params.ContractType),
-		ContractHoursType:    contractHoursTypePtrFromStringPtr(params.ContractHoursType),
 		StartDate:            pgDateFromPtr(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,
@@ -1420,7 +1394,6 @@ func (tx *employeeTxRepo) AddEmployeeContractAmendment(
 		LocationID:           params.LocationID,
 		OrganizationalRoleID: params.OrganizationalRoleID,
 		ContractType:         contractTypeFromString(params.ContractType),
-		ContractHoursType:    contractHoursTypeFromString(params.ContractHoursType),
 		StartDate:            conv.PgDateFromTime(params.StartDate),
 		ContractEndDate:      pgDateFromPtr(params.ContractEndDate),
 		HoursPerWeek:         params.HoursPerWeek,

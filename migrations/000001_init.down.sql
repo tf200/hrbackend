@@ -157,7 +157,6 @@ DROP TYPE IF EXISTS marital_status_enum;
 DROP TYPE IF EXISTS name_in_use_enum;
 DROP TYPE IF EXISTS employee_job_title_enum;
 DROP TYPE IF EXISTS weekday_enum;
-DROP TYPE IF EXISTS contract_hours_type_enum;
 DROP TYPE IF EXISTS employee_contract_event_type_enum;
 DROP TYPE IF EXISTS employee_contract_type_enum;
 DROP TYPE IF EXISTS gender_enum;

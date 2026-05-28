@@ -16,7 +16,6 @@ type createEmployeeContractRequest struct {
 	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
-	ContractHoursType    string     `json:"contract_hours_type" binding:"required,oneof=fixed zero_hours min_max"`
 	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
 	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
@@ -32,7 +31,6 @@ type updateContractRequest struct {
 	LocationID           *uuid.UUID `json:"location_id"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         *string    `json:"contract_type" binding:"omitempty,oneof=permanent temporary on_call"`
-	ContractHoursType    *string    `json:"contract_hours_type" binding:"omitempty,oneof=fixed zero_hours min_max"`
 	StartDate            *string    `json:"start_date" binding:"omitempty,datetime=2006-01-02"`
 	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
@@ -48,7 +46,6 @@ type createContractRequest struct {
 	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
-	ContractHoursType    string     `json:"contract_hours_type" binding:"required,oneof=fixed zero_hours min_max"`
 	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
 	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
@@ -64,7 +61,6 @@ type createContractAmendmentRequest struct {
 	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
-	ContractHoursType    string     `json:"contract_hours_type" binding:"required,oneof=fixed zero_hours min_max"`
 	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
 	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
@@ -277,7 +273,6 @@ type employeeContractDetailResponse struct {
 	OrganizationalRoleID   *uuid.UUID `json:"organizational_role_id"`
 	OrganizationalRoleName *string    `json:"organizational_role_name"`
 	ContractType           string     `json:"contract_type"`
-	ContractHoursType      string     `json:"contract_hours_type"`
 	StartDate              time.Time  `json:"start_date"`
 	ContractEndDate        *time.Time `json:"contract_end_date"`
 	EffectiveEndDate       *time.Time `json:"effective_end_date"`
@@ -436,7 +431,6 @@ func toCreateEmployeeParams(req createEmployeeRequest) domain.CreateEmployeePara
 			LocationID:           req.Contract.LocationID,
 			OrganizationalRoleID: req.Contract.OrganizationalRoleID,
 			ContractType:         req.Contract.ContractType,
-			ContractHoursType:    req.Contract.ContractHoursType,
 			StartDate:            startDate,
 			ContractEndDate:      contractEndDate,
 			HoursPerWeek:         req.Contract.HoursPerWeek,
@@ -514,7 +508,6 @@ func toUpdateEmployeeContractParams(req updateContractRequest) domain.UpdateEmpl
 		LocationID:           req.LocationID,
 		OrganizationalRoleID: req.OrganizationalRoleID,
 		ContractType:         req.ContractType,
-		ContractHoursType:    req.ContractHoursType,
 		StartDate:            startDate,
 		ContractEndDate:      contractEndDate,
 		HoursPerWeek:         req.HoursPerWeek,
@@ -535,7 +528,6 @@ func toCreateNewContractParams(req createContractRequest) domain.CreateNewContra
 		LocationID:           req.LocationID,
 		OrganizationalRoleID: req.OrganizationalRoleID,
 		ContractType:         req.ContractType,
-		ContractHoursType:    req.ContractHoursType,
 		StartDate:            startDate,
 		ContractEndDate:      contractEndDate,
 		HoursPerWeek:         req.HoursPerWeek,
@@ -556,7 +548,6 @@ func toCreateContractAmendmentParams(req createContractAmendmentRequest) domain.
 		LocationID:           req.LocationID,
 		OrganizationalRoleID: req.OrganizationalRoleID,
 		ContractType:         req.ContractType,
-		ContractHoursType:    req.ContractHoursType,
 		StartDate:            startDate,
 		ContractEndDate:      contractEndDate,
 		HoursPerWeek:         req.HoursPerWeek,
@@ -849,7 +840,6 @@ func toEmployeeContractDetailResponse(contract *domain.EmployeeContractDetail) *
 		OrganizationalRoleID:   contract.OrganizationalRoleID,
 		OrganizationalRoleName: contract.OrganizationalRoleName,
 		ContractType:           contract.ContractType,
-		ContractHoursType:      contract.ContractHoursType,
 		StartDate:              contract.StartDate,
 		ContractEndDate:        contract.ContractEndDate,
 		EffectiveEndDate:       contract.EffectiveEndDate,

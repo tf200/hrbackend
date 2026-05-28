@@ -128,7 +128,6 @@ var postgresEnumTypeNames = []string{
 	"permission_override_effect",
 	"gender_enum",
 	"employee_contract_type_enum",
-	"contract_hours_type_enum",
 	"employee_job_title_enum",
 	"name_in_use_enum",
 	"marital_status_enum",

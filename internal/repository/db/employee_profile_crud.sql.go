@@ -14,7 +14,7 @@ import (
 
 const countEmployeeProfile = `-- name: CountEmployeeProfile :one
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )
@@ -168,7 +168,7 @@ SELECT
 FROM employee_profile ep
 JOIN custom_user cu ON ep.user_id = cu.id
 LEFT JOIN LATERAL (
-    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
     WHERE c.employee_id = ep.id
     ORDER BY c.start_date DESC, c.created_at DESC
@@ -337,7 +337,7 @@ func (q *Queries) GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) 
 
 const listEmployeeProfile = `-- name: ListEmployeeProfile :many
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, contract_hours_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, min_hours_per_week, max_hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )

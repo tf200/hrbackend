@@ -117,9 +117,6 @@ func (s *EmployeeService) CreateEmployee(
 	params domain.CreateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
 	if params.Contract != nil {
-		if _, err := parseContractHoursType(params.Contract.ContractHoursType, params.Contract.HoursPerWeek, params.Contract.MinHoursPerWeek, params.Contract.MaxHoursPerWeek); err != nil {
-			return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
-		}
 		if params.Contract.ContractEndDate != nil && params.Contract.ContractEndDate.Before(params.Contract.StartDate) {
 			return nil, fmt.Errorf("%w: contract_end_date cannot be before start_date", domain.ErrContractChangeInvalid)
 		}
@@ -555,15 +552,6 @@ func (s *EmployeeService) CreateContractAmendment(
 		)
 	}
 
-	if _, err := parseContractHoursType(
-		params.ContractHoursType,
-		params.HoursPerWeek,
-		params.MinHoursPerWeek,
-		params.MaxHoursPerWeek,
-	); err != nil {
-		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
-	}
-
 	var emp *domain.EmployeeDetail
 	err = s.repo.WithTx(ctx, func(tx domain.EmployeeTxRepository) error {
 		oldEndDate := params.StartDate.AddDate(0, 0, -1)
@@ -593,15 +581,6 @@ func (s *EmployeeService) CreateNewContract(
 	employeeID uuid.UUID,
 	params domain.CreateNewContractParams,
 ) (*domain.EmployeeDetail, error) {
-	if _, err := parseContractHoursType(
-		params.ContractHoursType,
-		params.HoursPerWeek,
-		params.MinHoursPerWeek,
-		params.MaxHoursPerWeek,
-	); err != nil {
-		return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
-	}
-
 	if params.ContractEndDate != nil && !params.ContractEndDate.After(params.StartDate) {
 		return nil, fmt.Errorf(
 			"%w: contract_end_date must be after start_date",
@@ -654,17 +633,6 @@ func (s *EmployeeService) UpdateEmployeeContract(
 	contractID uuid.UUID,
 	params domain.UpdateEmployeeContractParams,
 ) (*domain.EmployeeContractDetail, error) {
-	if params.ContractHoursType != nil {
-		if _, err := parseContractHoursType(
-			*params.ContractHoursType,
-			params.HoursPerWeek,
-			params.MinHoursPerWeek,
-			params.MaxHoursPerWeek,
-		); err != nil {
-			return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
-		}
-	}
-
 	contract, err := s.repo.UpdateEmployeeContract(ctx, employeeID, contractID, params)
 	if err != nil {
 		s.logError(ctx, "UpdateEmployeeContract", err,
@@ -699,25 +667,4 @@ func isValidIrregularHoursProfile(value string) bool {
 	}
 }
 
-func parseContractHoursType(ct string, hoursPerWeek, minHours, maxHours *float64) (string, error) {
-	switch ct {
-	case "fixed":
-		if hoursPerWeek == nil || *hoursPerWeek <= 0 {
-			return "", fmt.Errorf("fixed contract requires hours_per_week > 0")
-		}
-	case "min_max":
-		if minHours == nil || *minHours <= 0 {
-			return "", fmt.Errorf("min_max contract requires min_hours_per_week > 0")
-		}
-		if maxHours == nil || *maxHours <= 0 {
-			return "", fmt.Errorf("min_max contract requires max_hours_per_week > 0")
-		}
-		if *minHours > *maxHours {
-			return "", fmt.Errorf("min_hours_per_week cannot exceed max_hours_per_week")
-		}
-	case "zero_hours":
-	default:
-		return "", fmt.Errorf("invalid contract_hours_type: %s", ct)
-	}
-	return ct, nil
-}
+

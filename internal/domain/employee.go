@@ -126,7 +126,6 @@ type EmployeeContractDetail struct {
 	OrganizationalRoleID   *uuid.UUID
 	OrganizationalRoleName *string
 	ContractType      string
-	ContractHoursType string
 	StartDate              time.Time
 	ContractEndDate        *time.Time
 	EffectiveEndDate       *time.Time
@@ -282,7 +281,6 @@ type CreateEmployeeContractParams struct {
 	LocationID           uuid.UUID
 	OrganizationalRoleID *uuid.UUID
 	ContractType         string
-	ContractHoursType    string
 	StartDate            time.Time
 	ContractEndDate      *time.Time
 	HoursPerWeek         *float64
@@ -296,7 +294,6 @@ type EmployeeContractInfo struct {
 	ID                uuid.UUID
 	EmployeeID        uuid.UUID
 	ContractType      string
-	ContractHoursType string
 	StartDate         time.Time
 	ContractEndDate   *time.Time
 	EffectiveEndDate  *time.Time
@@ -309,7 +306,6 @@ type CreateNewContractParams struct {
 	LocationID           uuid.UUID
 	OrganizationalRoleID *uuid.UUID
 	ContractType         string
-	ContractHoursType    string
 	StartDate            time.Time
 	ContractEndDate      *time.Time
 	HoursPerWeek         *float64
@@ -325,7 +321,6 @@ type UpdateEmployeeContractParams struct {
 	LocationID           *uuid.UUID `json:"location_id"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         *string    `json:"contract_type"`
-	ContractHoursType    *string    `json:"contract_hours_type"`
 	StartDate            *time.Time `json:"start_date"`
 	ContractEndDate      *time.Time `json:"contract_end_date"`
 	HoursPerWeek         *float64   `json:"hours_per_week"`
@@ -341,7 +336,6 @@ type CreateContractAmendmentParams struct {
 	LocationID           uuid.UUID
 	OrganizationalRoleID *uuid.UUID
 	ContractType         string
-	ContractHoursType    string
 	StartDate            time.Time
 	ContractEndDate      *time.Time
 	HoursPerWeek         *float64

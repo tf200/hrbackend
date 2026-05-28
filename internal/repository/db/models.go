@@ -183,49 +183,6 @@ func (ns NullCalendarEventWorkApprovalStatusEnum) Value() (driver.Value, error) 
 	return string(ns.CalendarEventWorkApprovalStatusEnum), nil
 }
 
-type ContractHoursTypeEnum string
-
-const (
-	ContractHoursTypeEnumFixed     ContractHoursTypeEnum = "fixed"
-	ContractHoursTypeEnumZeroHours ContractHoursTypeEnum = "zero_hours"
-	ContractHoursTypeEnumMinMax    ContractHoursTypeEnum = "min_max"
-)
-
-func (e *ContractHoursTypeEnum) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ContractHoursTypeEnum(s)
-	case string:
-		*e = ContractHoursTypeEnum(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ContractHoursTypeEnum: %T", src)
-	}
-	return nil
-}
-
-type NullContractHoursTypeEnum struct {
-	ContractHoursTypeEnum ContractHoursTypeEnum `json:"contract_hours_type_enum"`
-	Valid                 bool                  `json:"valid"` // Valid is true if ContractHoursTypeEnum is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullContractHoursTypeEnum) Scan(value interface{}) error {
-	if value == nil {
-		ns.ContractHoursTypeEnum, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ContractHoursTypeEnum.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullContractHoursTypeEnum) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ContractHoursTypeEnum), nil
-}
-
 type EmployeeContractEventTypeEnum string
 
 const (
@@ -1709,7 +1666,6 @@ type EmployeeContract struct {
 	LocationID           uuid.UUID                     `json:"location_id"`
 	OrganizationalRoleID *uuid.UUID                    `json:"organizational_role_id"`
 	ContractType         EmployeeContractTypeEnum      `json:"contract_type"`
-	ContractHoursType    ContractHoursTypeEnum         `json:"contract_hours_type"`
 	StartDate            pgtype.Date                   `json:"start_date"`
 	ContractEndDate      pgtype.Date                   `json:"contract_end_date"`
 	EffectiveEndDate     pgtype.Date                   `json:"effective_end_date"`

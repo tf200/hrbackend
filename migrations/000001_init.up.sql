@@ -483,7 +483,6 @@ CREATE INDEX temporary_file_uploaded_at_idx ON temporary_file(uploaded_at);
 CREATE TYPE gender_enum AS ENUM ('male', 'female', 'other', 'unknown');
 -- Employee Contract Type ENUM
 CREATE TYPE employee_contract_type_enum AS ENUM ('permanent', 'temporary', 'on_call');
-CREATE TYPE contract_hours_type_enum AS ENUM ('fixed', 'zero_hours', 'min_max');
 CREATE TYPE employee_contract_event_type_enum AS ENUM ('initial', 'amendment', 'renewal', 'new_contract');
 CREATE TYPE irregular_hours_profile_enum AS ENUM ('none', 'roster', 'non_roster');
 CREATE TYPE weekday_enum AS ENUM ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
@@ -561,7 +560,6 @@ CREATE TABLE employee_contracts (
     location_id UUID NOT NULL REFERENCES location(id) ON DELETE RESTRICT,
     organizational_role_id UUID NULL REFERENCES organizational_roles(id) ON DELETE SET NULL,
     contract_type employee_contract_type_enum NOT NULL,
-    contract_hours_type contract_hours_type_enum NOT NULL,
     start_date DATE NOT NULL,
     contract_end_date DATE NULL,
     effective_end_date DATE NULL,
@@ -1233,11 +1231,7 @@ BEGIN
                     make_date(p_year, 12, 31)
                 )
             ) AS segment_end,
-            CASE
-                WHEN ec.contract_hours_type = 'fixed' THEN COALESCE(ec.hours_per_week, 0)
-                WHEN ec.contract_hours_type = 'min_max' THEN COALESCE(ec.min_hours_per_week, 0)
-                ELSE 0
-            END AS weekly_hours
+            COALESCE(ec.hours_per_week, ec.min_hours_per_week, 0) AS weekly_hours
         FROM employee_contracts ec
         WHERE ec.employee_id = p_employee_id
     ) AS segments
