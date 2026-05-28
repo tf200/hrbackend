@@ -486,6 +486,7 @@ CREATE TYPE employee_contract_type_enum AS ENUM ('permanent', 'temporary', 'on_c
 CREATE TYPE contract_hours_type_enum AS ENUM ('fixed', 'zero_hours', 'min_max');
 CREATE TYPE employee_contract_event_type_enum AS ENUM ('initial', 'amendment', 'renewal', 'new_contract');
 CREATE TYPE irregular_hours_profile_enum AS ENUM ('none', 'roster', 'non_roster');
+CREATE TYPE weekday_enum AS ENUM ('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');
 CREATE TYPE employee_job_title_enum AS ENUM ('youth_worker_d', 'care_coordinator', 'behavioral_scientist', 'quality_officer', 'pedagogical_worker', 'team_lead', 'manager', 'administrative_employee');
 CREATE TYPE name_in_use_enum AS ENUM ('first_name', 'last_name');
 CREATE TYPE marital_status_enum AS ENUM ('single', 'married', 'registered_partnership', 'divorced', 'widow');
@@ -567,7 +568,7 @@ CREATE TABLE employee_contracts (
     hours_per_week NUMERIC(4,1) NULL,
     min_hours_per_week NUMERIC(4,1) NULL,
     max_hours_per_week NUMERIC(4,1) NULL,
-    roster_free_day SMALLINT NULL,
+    roster_free_day weekday_enum NOT NULL,
     wage_tax_table wage_tax_table_enum NULL,
     previous_contract_id UUID NULL REFERENCES employee_contracts(id) ON DELETE SET NULL,
     contract_event_type employee_contract_event_type_enum NOT NULL DEFAULT 'initial',
@@ -578,7 +579,6 @@ CREATE TABLE employee_contracts (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT employee_contracts_date_order CHECK (contract_end_date IS NULL OR contract_end_date >= start_date),
     CONSTRAINT employee_contracts_effective_end_date_order CHECK (effective_end_date IS NULL OR effective_end_date >= start_date),
-    CONSTRAINT employee_contracts_roster_free_day_valid CHECK (roster_free_day IS NULL OR roster_free_day BETWEEN 0 AND 6),
     CONSTRAINT employee_contracts_hours_per_week_valid CHECK (hours_per_week IS NULL OR (hours_per_week >= 0 AND hours_per_week <= 40)),
     CONSTRAINT employee_contracts_min_hours_valid CHECK (min_hours_per_week IS NULL OR (min_hours_per_week >= 0 AND min_hours_per_week <= 40)),
     CONSTRAINT employee_contracts_max_hours_valid CHECK (max_hours_per_week IS NULL OR (max_hours_per_week >= 0 AND max_hours_per_week <= 40)),

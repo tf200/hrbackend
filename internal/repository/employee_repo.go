@@ -98,7 +98,7 @@ func (tx *employeeTxRepo) AddEmployeeContractDetails(ctx context.Context, employ
 		HoursPerWeek:         params.HoursPerWeek,
 		MinHoursPerWeek:      params.MinHoursPerWeek,
 		MaxHoursPerWeek:      params.MaxHoursPerWeek,
-		RosterFreeDay:        params.RosterFreeDay,
+		RosterFreeDay:        weekdayEnumFromString(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		CreatedByEmployeeID:  nil,
 	})
@@ -867,7 +867,7 @@ func toDomainContractDetail(row db.ListEmployeeContractDetailsRow) domain.Employ
 		HoursPerWeek:           row.HoursPerWeek,
 		MinHoursPerWeek:        row.MinHoursPerWeek,
 		MaxHoursPerWeek:        row.MaxHoursPerWeek,
-		RosterFreeDay:          row.RosterFreeDay,
+		RosterFreeDay:          string(row.RosterFreeDay),
 		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
 		CreatedAt:              row.CreatedAt.Time,
 		UpdatedAt:              row.UpdatedAt.Time,
@@ -892,7 +892,7 @@ func toDomainContractDetailFromRow(row db.EmployeeContract) domain.EmployeeContr
 		HoursPerWeek:           row.HoursPerWeek,
 		MinHoursPerWeek:        row.MinHoursPerWeek,
 		MaxHoursPerWeek:        row.MaxHoursPerWeek,
-		RosterFreeDay:          row.RosterFreeDay,
+		RosterFreeDay:          string(row.RosterFreeDay),
 		WageTaxTable:           wageTaxTablePtrToStringPtr(row.WageTaxTable),
 		CreatedAt:              row.CreatedAt.Time,
 		UpdatedAt:              row.UpdatedAt.Time,
@@ -1216,6 +1216,28 @@ func wageTaxTablePtrToStringPtr(value *db.WageTaxTableEnum) *string {
 	return &s
 }
 
+func weekdayEnumFromString(value string) db.WeekdayEnum {
+	switch db.WeekdayEnum(value) {
+	case db.WeekdayEnumMonday,
+		db.WeekdayEnumTuesday,
+		db.WeekdayEnumWednesday,
+		db.WeekdayEnumThursday,
+		db.WeekdayEnumFriday,
+		db.WeekdayEnumSaturday,
+		db.WeekdayEnumSunday:
+		return db.WeekdayEnum(value)
+	default:
+		return ""
+	}
+}
+
+func weekdayEnumPtrFromStringPtr(value *string) *db.WeekdayEnum {
+	if value == nil {
+		return nil
+	}
+	return enumPtr(weekdayEnumFromString(*value))
+}
+
 func enumPtr[T any](value T) *T {
 	return &value
 }
@@ -1318,7 +1340,7 @@ func (tx *employeeTxRepo) AddNewContract(
 		HoursPerWeek:         params.HoursPerWeek,
 		MinHoursPerWeek:      params.MinHoursPerWeek,
 		MaxHoursPerWeek:      params.MaxHoursPerWeek,
-		RosterFreeDay:        params.RosterFreeDay,
+		RosterFreeDay:        weekdayEnumFromString(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		PreviousContractID:   previousContractID,
 		CreatedByEmployeeID:  nil,
@@ -1342,7 +1364,7 @@ func (tx *employeeTxRepo) UpdateEmployeeContract(ctx context.Context, employeeID
 		HoursPerWeek:         params.HoursPerWeek,
 		MinHoursPerWeek:      params.MinHoursPerWeek,
 		MaxHoursPerWeek:      params.MaxHoursPerWeek,
-		RosterFreeDay:        params.RosterFreeDay,
+		RosterFreeDay:        weekdayEnumPtrFromStringPtr(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		ID:                   contractID,
 		EmployeeID:           employeeID,
@@ -1370,7 +1392,7 @@ func (r *EmployeeRepository) UpdateEmployeeContract(ctx context.Context, employe
 		HoursPerWeek:         params.HoursPerWeek,
 		MinHoursPerWeek:      params.MinHoursPerWeek,
 		MaxHoursPerWeek:      params.MaxHoursPerWeek,
-		RosterFreeDay:        params.RosterFreeDay,
+		RosterFreeDay:        weekdayEnumPtrFromStringPtr(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		ID:                   contractID,
 		EmployeeID:           employeeID,
@@ -1404,7 +1426,7 @@ func (tx *employeeTxRepo) AddEmployeeContractAmendment(
 		HoursPerWeek:         params.HoursPerWeek,
 		MinHoursPerWeek:      params.MinHoursPerWeek,
 		MaxHoursPerWeek:      params.MaxHoursPerWeek,
-		RosterFreeDay:        params.RosterFreeDay,
+		RosterFreeDay:        weekdayEnumFromString(params.RosterFreeDay),
 		WageTaxTable:         wageTaxTablePtrFromStringPtr(params.WageTaxTable),
 		PreviousContractID:   &previousContractID,
 		ChangeReason:         params.ChangeReason,

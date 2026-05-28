@@ -1461,6 +1461,53 @@ func (ns NullWageTaxTableEnum) Value() (driver.Value, error) {
 	return string(ns.WageTaxTableEnum), nil
 }
 
+type WeekdayEnum string
+
+const (
+	WeekdayEnumMonday    WeekdayEnum = "monday"
+	WeekdayEnumTuesday   WeekdayEnum = "tuesday"
+	WeekdayEnumWednesday WeekdayEnum = "wednesday"
+	WeekdayEnumThursday  WeekdayEnum = "thursday"
+	WeekdayEnumFriday    WeekdayEnum = "friday"
+	WeekdayEnumSaturday  WeekdayEnum = "saturday"
+	WeekdayEnumSunday    WeekdayEnum = "sunday"
+)
+
+func (e *WeekdayEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = WeekdayEnum(s)
+	case string:
+		*e = WeekdayEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for WeekdayEnum: %T", src)
+	}
+	return nil
+}
+
+type NullWeekdayEnum struct {
+	WeekdayEnum WeekdayEnum `json:"weekday_enum"`
+	Valid       bool        `json:"valid"` // Valid is true if WeekdayEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullWeekdayEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.WeekdayEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.WeekdayEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullWeekdayEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.WeekdayEnum), nil
+}
+
 type AppOrganizationProfile struct {
 	Singleton             bool               `json:"singleton"`
 	Name                  string             `json:"name"`
@@ -1627,7 +1674,7 @@ type EmployeeContract struct {
 	HoursPerWeek         *float64                      `json:"hours_per_week"`
 	MinHoursPerWeek      *float64                      `json:"min_hours_per_week"`
 	MaxHoursPerWeek      *float64                      `json:"max_hours_per_week"`
-	RosterFreeDay        *int16                        `json:"roster_free_day"`
+	RosterFreeDay        WeekdayEnum                   `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum             `json:"wage_tax_table"`
 	PreviousContractID   *uuid.UUID                    `json:"previous_contract_id"`
 	ContractEventType    EmployeeContractEventTypeEnum `json:"contract_event_type"`

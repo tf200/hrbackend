@@ -28,7 +28,7 @@ INSERT INTO employee_contracts (
     sqlc.narg('hours_per_week'),
     sqlc.narg('min_hours_per_week'),
     sqlc.narg('max_hours_per_week'),
-    sqlc.narg('roster_free_day'),
+    sqlc.arg('roster_free_day'),
     sqlc.narg('wage_tax_table'),
     sqlc.narg('created_by_employee_id')
 )
@@ -224,7 +224,7 @@ INSERT INTO employee_contracts (
     sqlc.narg('hours_per_week'),
     sqlc.narg('min_hours_per_week'),
     sqlc.narg('max_hours_per_week'),
-    sqlc.narg('roster_free_day'),
+    sqlc.arg('roster_free_day'),
     sqlc.narg('wage_tax_table'),
     sqlc.arg('previous_contract_id'),
     'amendment',
@@ -265,7 +265,7 @@ INSERT INTO employee_contracts (
     sqlc.narg('hours_per_week'),
     sqlc.narg('min_hours_per_week'),
     sqlc.narg('max_hours_per_week'),
-    sqlc.narg('roster_free_day'),
+    sqlc.arg('roster_free_day'),
     sqlc.narg('wage_tax_table'),
     sqlc.narg('previous_contract_id'),
     'new_contract',
@@ -296,4 +296,3 @@ JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
 WHERE esa.employee_id = $1
 ORDER BY esa.effective_from DESC, esa.created_at DESC
 LIMIT 1;
-

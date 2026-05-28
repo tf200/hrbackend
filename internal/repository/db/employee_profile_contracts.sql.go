@@ -68,7 +68,7 @@ type AddEmployeeContractAmendmentParams struct {
 	HoursPerWeek         *float64                 `json:"hours_per_week"`
 	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
 	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
-	RosterFreeDay        *int16                   `json:"roster_free_day"`
+	RosterFreeDay        WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
 	PreviousContractID   *uuid.UUID               `json:"previous_contract_id"`
 	ChangeReason         *string                  `json:"change_reason"`
@@ -174,7 +174,7 @@ type AddEmployeeContractDetailsParams struct {
 	HoursPerWeek         *float64                 `json:"hours_per_week"`
 	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
 	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
-	RosterFreeDay        *int16                   `json:"roster_free_day"`
+	RosterFreeDay        WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
 	CreatedByEmployeeID  *uuid.UUID               `json:"created_by_employee_id"`
 }
@@ -280,7 +280,7 @@ type AddEmployeeNewContractParams struct {
 	HoursPerWeek         *float64                 `json:"hours_per_week"`
 	MinHoursPerWeek      *float64                 `json:"min_hours_per_week"`
 	MaxHoursPerWeek      *float64                 `json:"max_hours_per_week"`
-	RosterFreeDay        *int16                   `json:"roster_free_day"`
+	RosterFreeDay        WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum        `json:"wage_tax_table"`
 	PreviousContractID   *uuid.UUID               `json:"previous_contract_id"`
 	CreatedByEmployeeID  *uuid.UUID               `json:"created_by_employee_id"`
@@ -476,7 +476,7 @@ type GetActiveEmployeeContractDetailRow struct {
 	HoursPerWeek           *float64                 `json:"hours_per_week"`
 	MinHoursPerWeek        *float64                 `json:"min_hours_per_week"`
 	MaxHoursPerWeek        *float64                 `json:"max_hours_per_week"`
-	RosterFreeDay          *int16                   `json:"roster_free_day"`
+	RosterFreeDay          WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable           *WageTaxTableEnum        `json:"wage_tax_table"`
 	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz       `json:"updated_at"`
@@ -645,7 +645,7 @@ type GetLatestEmployeeContractDetailRow struct {
 	HoursPerWeek           *float64                 `json:"hours_per_week"`
 	MinHoursPerWeek        *float64                 `json:"min_hours_per_week"`
 	MaxHoursPerWeek        *float64                 `json:"max_hours_per_week"`
-	RosterFreeDay          *int16                   `json:"roster_free_day"`
+	RosterFreeDay          WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable           *WageTaxTableEnum        `json:"wage_tax_table"`
 	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz       `json:"updated_at"`
@@ -799,7 +799,7 @@ type ListEmployeeContractDetailsRow struct {
 	HoursPerWeek           *float64                      `json:"hours_per_week"`
 	MinHoursPerWeek        *float64                      `json:"min_hours_per_week"`
 	MaxHoursPerWeek        *float64                      `json:"max_hours_per_week"`
-	RosterFreeDay          *int16                        `json:"roster_free_day"`
+	RosterFreeDay          WeekdayEnum                   `json:"roster_free_day"`
 	WageTaxTable           *WageTaxTableEnum             `json:"wage_tax_table"`
 	CreatedAt              pgtype.Timestamptz            `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz            `json:"updated_at"`
@@ -933,7 +933,7 @@ type UpdateEmployeeContractParams struct {
 	HoursPerWeek         *float64                  `json:"hours_per_week"`
 	MinHoursPerWeek      *float64                  `json:"min_hours_per_week"`
 	MaxHoursPerWeek      *float64                  `json:"max_hours_per_week"`
-	RosterFreeDay        *int16                    `json:"roster_free_day"`
+	RosterFreeDay        *WeekdayEnum              `json:"roster_free_day"`
 	WageTaxTable         *WageTaxTableEnum         `json:"wage_tax_table"`
 	ID                   uuid.UUID                 `json:"id"`
 	EmployeeID           uuid.UUID                 `json:"employee_id"`

@@ -22,7 +22,7 @@ type createEmployeeContractRequest struct {
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
 	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
 	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	RosterFreeDay        string     `json:"roster_free_day" binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
 	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
 }
 
@@ -38,7 +38,7 @@ type updateContractRequest struct {
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
 	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
 	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	RosterFreeDay        *string    `json:"roster_free_day" binding:"omitempty,oneof=monday tuesday wednesday thursday friday saturday sunday"`
 	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
 }
 
@@ -54,7 +54,7 @@ type createContractRequest struct {
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
 	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
 	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	RosterFreeDay        string     `json:"roster_free_day" binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
 	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
 }
 
@@ -70,7 +70,7 @@ type createContractAmendmentRequest struct {
 	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
 	MinHoursPerWeek      *float64   `json:"min_hours_per_week" binding:"omitempty,min=0,max=40"`
 	MaxHoursPerWeek      *float64   `json:"max_hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        *int16     `json:"roster_free_day" binding:"omitempty,min=0,max=6"`
+	RosterFreeDay        string     `json:"roster_free_day" binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
 	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
 	ChangeReason         *string    `json:"change_reason"`
 }
@@ -287,7 +287,7 @@ type employeeContractDetailResponse struct {
 	HoursPerWeek           *float64   `json:"hours_per_week"`
 	MinHoursPerWeek        *float64   `json:"min_hours_per_week"`
 	MaxHoursPerWeek        *float64   `json:"max_hours_per_week"`
-	RosterFreeDay          *int16     `json:"roster_free_day"`
+	RosterFreeDay          string     `json:"roster_free_day"`
 	WageTaxTable           *string    `json:"wage_tax_table"`
 	CreatedAt              time.Time  `json:"created_at"`
 	UpdatedAt              time.Time  `json:"updated_at"`

@@ -42,10 +42,10 @@ FROM (
 `
 
 type GetCriticalActionStatsRow struct {
-	PendingLeaveRequests int64 `json:"pending_leave_requests"`
-	PendingShiftSwaps    int64 `json:"pending_shift_swaps"`
-	PendingExpenseClaims int64 `json:"pending_expense_claims"`
-	PendingOvertimeEntries   int64 `json:"pending_overtime_entries"`
+	PendingLeaveRequests   int64 `json:"pending_leave_requests"`
+	PendingShiftSwaps      int64 `json:"pending_shift_swaps"`
+	PendingExpenseClaims   int64 `json:"pending_expense_claims"`
+	PendingOvertimeEntries int64 `json:"pending_overtime_entries"`
 }
 
 func (q *Queries) GetCriticalActionStats(ctx context.Context) (GetCriticalActionStatsRow, error) {

@@ -52,7 +52,7 @@ type EmployeeContractSeed struct {
 	HoursPerWeek           *float64
 	MinHoursPerWeek        *float64
 	MaxHoursPerWeek        *float64
-	RosterFreeDay          *int16
+	RosterFreeDay          string
 	WageTaxTable           *string
 }
 
