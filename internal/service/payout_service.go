@@ -144,7 +144,7 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 			if _, err := tx.ApplyLeaveBalanceDeduction(
 				ctx,
 				balance.LeaveBalanceID,
-				current.RequestedHours*60,
+				payoutHoursToMinutes(current.RequestedHours),
 				0,
 			); err != nil {
 				return err
@@ -1578,6 +1578,10 @@ func isLoondienstContractType(contractType string) bool {
 	default:
 		return false
 	}
+}
+
+func payoutHoursToMinutes(hours int32) int32 {
+	return hours * 60
 }
 
 type payrollMonthLiveSummary struct {
