@@ -19,6 +19,15 @@ WITH month_employees AS (
     WHERE oe.entry_date >= sqlc.arg('month_start')
       AND oe.entry_date <= sqlc.arg('month_end')
       AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
+
+    UNION
+
+    SELECT DISTINCT lpr.employee_id
+    FROM leave_payout_requests lpr
+    WHERE lpr.salary_month >= sqlc.arg('month_start')
+      AND lpr.salary_month <= sqlc.arg('month_end')
+      AND lpr.status = 'approved'::payout_request_status_enum
+      AND lpr.paid_period_id IS NULL
 )
 SELECT
     ep.id AS employee_id,
@@ -59,6 +68,15 @@ WITH month_employees AS (
     WHERE oe.entry_date >= sqlc.arg('month_start')
       AND oe.entry_date <= sqlc.arg('month_end')
       AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
+
+    UNION
+
+    SELECT DISTINCT lpr.employee_id
+    FROM leave_payout_requests lpr
+    WHERE lpr.salary_month >= sqlc.arg('month_start')
+      AND lpr.salary_month <= sqlc.arg('month_end')
+      AND lpr.status = 'approved'::payout_request_status_enum
+      AND lpr.paid_period_id IS NULL
 )
 SELECT
     ep.id AS employee_id,
@@ -103,7 +121,7 @@ ORDER BY pp.employee_id ASC, pp.created_at DESC;
 SELECT
     ppl.pay_period_id,
     ppl.applied_rate_percent,
-    COALESCE(SUM(ppl.minutes_worked), 0)::double precision AS worked_minutes,
+    COALESCE(SUM(CASE WHEN ppl.line_type = 'leave_payout' THEN 0 ELSE ppl.minutes_worked END), 0)::double precision AS worked_minutes,
     COALESCE(SUM(ppl.minutes_worked), 0)::double precision AS paid_minutes,
     COALESCE(SUM(ppl.base_amount), 0)::double precision AS base_amount,
     COALESCE(SUM(ppl.premium_amount), 0)::double precision AS premium_amount
@@ -128,13 +146,15 @@ WITH schedule_items AS (
         'schedule'::text AS source_type,
         s.id AS schedule_id,
         NULL::uuid AS overtime_entry_id,
+        NULL::uuid AS leave_payout_request_id,
         cc.contract_type,
         css.hourly_rate::double precision AS contract_rate,
+        NULL::double precision AS gross_amount_override,
         'none'::text AS irregular_hours_profile
     FROM schedules s
     JOIN employee_profile ep ON ep.id = s.employee_id
     JOIN LATERAL (
-        SELECT c.contract_type
+        SELECT c.id, c.contract_type
         FROM employee_contracts c
         WHERE c.employee_id = s.employee_id
           AND c.start_date <= DATE(s.start_datetime)
@@ -176,13 +196,15 @@ overtime_items AS (
         'overtime'::text AS source_type,
         NULL::uuid AS schedule_id,
         oe.id AS overtime_entry_id,
+        NULL::uuid AS leave_payout_request_id,
         cc.contract_type,
         css.hourly_rate::double precision AS contract_rate,
+        NULL::double precision AS gross_amount_override,
         'none'::text AS irregular_hours_profile
     FROM overtime_entries oe
     JOIN employee_profile ep ON ep.id = oe.employee_id
     JOIN LATERAL (
-        SELECT c.contract_type
+        SELECT c.id, c.contract_type
         FROM employee_contracts c
         WHERE c.employee_id = oe.employee_id
           AND c.start_date <= oe.entry_date
@@ -209,10 +231,50 @@ overtime_items AS (
       AND oe.status = 'approved'::overtime_status_enum
       AND oe.entry_date >= sqlc.arg('month_start')
       AND oe.entry_date <= sqlc.arg('month_end')
+),
+leave_payout_items AS (
+    SELECT
+        lpr.id AS source_id,
+        lpr.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        'Leave payout'::text AS label,
+        lpr.salary_month AS work_date,
+        NULL::time AS start_time_val,
+        NULL::time AS end_time_val,
+        0 AS break_minutes,
+        (lpr.requested_hours * 60)::double precision AS minutes_worked,
+        'leave_payout'::text AS source_type,
+        NULL::uuid AS schedule_id,
+        NULL::uuid AS overtime_entry_id,
+        lpr.id AS leave_payout_request_id,
+        cc.contract_type,
+        lpr.hourly_rate::double precision AS contract_rate,
+        lpr.gross_amount::double precision AS gross_amount_override,
+        'none'::text AS irregular_hours_profile
+    FROM leave_payout_requests lpr
+    JOIN employee_profile ep ON ep.id = lpr.employee_id
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = lpr.employee_id
+          AND c.start_date <= lpr.salary_month
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE lpr.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+      AND lpr.status = 'approved'::payout_request_status_enum
+      AND lpr.paid_period_id IS NULL
+      AND lpr.salary_month >= sqlc.arg('month_start')
+      AND lpr.salary_month <= sqlc.arg('month_end')
 )
 SELECT * FROM schedule_items
 UNION ALL
 SELECT * FROM overtime_items
+UNION ALL
+SELECT * FROM leave_payout_items
 ORDER BY employee_id ASC, work_date ASC, source_type ASC, source_id ASC;
 
 -- name: ListPayrollMonthPendingOvertimeSummaries :many

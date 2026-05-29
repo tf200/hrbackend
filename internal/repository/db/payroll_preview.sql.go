@@ -71,8 +71,10 @@ WITH schedule_items AS (
         'schedule'::text AS source_type,
         s.id AS schedule_id,
         NULL::uuid AS overtime_entry_id,
+        NULL::uuid AS leave_payout_request_id,
         cc.contract_type,
         css.hourly_rate::double precision AS contract_rate,
+        NULL::double precision AS gross_amount_override,
         'none'::text AS irregular_hours_profile
     FROM schedules s
     JOIN employee_profile ep ON ep.id = s.employee_id
@@ -122,8 +124,10 @@ overtime_items AS (
         'overtime'::text AS source_type,
         NULL::uuid AS schedule_id,
         oe.id AS overtime_entry_id,
+        NULL::uuid AS leave_payout_request_id,
         cc.contract_type,
         css.hourly_rate::double precision AS contract_rate,
+        NULL::double precision AS gross_amount_override,
         'none'::text AS irregular_hours_profile
     FROM overtime_entries oe
     JOIN employee_profile ep ON ep.id = oe.employee_id
@@ -159,10 +163,50 @@ overtime_items AS (
       AND oe.paid_period_id IS NULL
       AND oe.entry_date >= $2
       AND oe.entry_date <= $3
+),
+leave_payout_items AS (
+    SELECT
+        lpr.id AS source_id,
+        lpr.employee_id,
+        ep.first_name AS employee_first_name,
+        ep.last_name AS employee_last_name,
+        'Leave payout'::text AS label,
+        lpr.salary_month AS work_date,
+        NULL::time AS start_time_val,
+        NULL::time AS end_time_val,
+        0 AS break_minutes,
+        (lpr.requested_hours * 60)::double precision AS minutes_worked,
+        'leave_payout'::text AS source_type,
+        NULL::uuid AS schedule_id,
+        NULL::uuid AS overtime_entry_id,
+        lpr.id AS leave_payout_request_id,
+        cc.contract_type,
+        lpr.hourly_rate::double precision AS contract_rate,
+        lpr.gross_amount::double precision AS gross_amount_override,
+        'none'::text AS irregular_hours_profile
+    FROM leave_payout_requests lpr
+    JOIN employee_profile ep ON ep.id = lpr.employee_id
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = lpr.employee_id
+          AND c.start_date <= lpr.salary_month
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE lpr.employee_id = $1
+      AND lpr.status = 'approved'::payout_request_status_enum
+      AND lpr.paid_period_id IS NULL
+      AND lpr.salary_month >= $2
+      AND lpr.salary_month <= $3
 )
-SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, contract_type, contract_rate, irregular_hours_profile FROM schedule_items
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, leave_payout_request_id, contract_type, contract_rate, gross_amount_override, irregular_hours_profile FROM schedule_items
 UNION ALL
-SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, contract_type, contract_rate, irregular_hours_profile FROM overtime_items
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, leave_payout_request_id, contract_type, contract_rate, gross_amount_override, irregular_hours_profile FROM overtime_items
+UNION ALL
+SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, leave_payout_request_id, contract_type, contract_rate, gross_amount_override, irregular_hours_profile FROM leave_payout_items
 ORDER BY work_date ASC, source_type ASC, source_id ASC
 `
 
@@ -186,8 +230,10 @@ type ListPayrollPreviewWorkItemsRow struct {
 	SourceType            string                   `json:"source_type"`
 	ScheduleID            uuid.UUID                `json:"schedule_id"`
 	OvertimeEntryID       *uuid.UUID               `json:"overtime_entry_id"`
+	LeavePayoutRequestID  *uuid.UUID               `json:"leave_payout_request_id"`
 	ContractType          EmployeeContractTypeEnum `json:"contract_type"`
 	ContractRate          float64                  `json:"contract_rate"`
+	GrossAmountOverride   *float64                 `json:"gross_amount_override"`
 	IrregularHoursProfile string                   `json:"irregular_hours_profile"`
 }
 
@@ -214,8 +260,10 @@ func (q *Queries) ListPayrollPreviewWorkItems(ctx context.Context, arg ListPayro
 			&i.SourceType,
 			&i.ScheduleID,
 			&i.OvertimeEntryID,
+			&i.LeavePayoutRequestID,
 			&i.ContractType,
 			&i.ContractRate,
+			&i.GrossAmountOverride,
 			&i.IrregularHoursProfile,
 		); err != nil {
 			return nil, err

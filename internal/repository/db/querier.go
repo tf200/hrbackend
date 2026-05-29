@@ -29,6 +29,7 @@ type Querier interface {
 	ApproveExpenseRequest(ctx context.Context, arg ApproveExpenseRequestParams) (ExpenseRequest, error)
 	ApproveOvertimeEntry(ctx context.Context, arg ApproveOvertimeEntryParams) (ApproveOvertimeEntryRow, error)
 	ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutRequestParams) (LeavePayoutRequest, error)
+	AssignLeavePayoutRequestsToPayPeriod(ctx context.Context, arg AssignLeavePayoutRequestsToPayPeriodParams) error
 	AssignOvertimeEntriesToPayPeriod(ctx context.Context, arg AssignOvertimeEntriesToPayPeriodParams) error
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error)
@@ -282,6 +283,7 @@ type Querier interface {
 	MarkEmployeeHandbookCompleted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	MarkEmployeeHandbookStarted(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 	MarkExpenseRequestReimbursed(ctx context.Context, arg MarkExpenseRequestReimbursedParams) (ExpenseRequest, error)
+	MarkLeavePayoutRequestsPaidByPayPeriod(ctx context.Context, arg MarkLeavePayoutRequestsPaidByPayPeriodParams) error
 	MarkNotificationRead(ctx context.Context, arg MarkNotificationReadParams) error
 	MarkPayPeriodPaid(ctx context.Context, id uuid.UUID) (PayPeriod, error)
 	MarkPayoutRequestPaid(ctx context.Context, arg MarkPayoutRequestPaidParams) (LeavePayoutRequest, error)

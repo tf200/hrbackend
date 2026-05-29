@@ -1464,6 +1464,12 @@ ON pay_periods(employee_id, period_start DESC, period_end DESC);
 CREATE INDEX idx_pay_periods_status_period
 ON pay_periods(status, period_start DESC, period_end DESC);
 
+ALTER TABLE leave_payout_requests
+ADD COLUMN paid_period_id UUID NULL REFERENCES pay_periods(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_leave_payout_requests_paid_period_id
+ON leave_payout_requests(paid_period_id);
+
 -- ==========================================
 -- OVERTIME ENTRIES
 -- ==========================================
@@ -1521,6 +1527,7 @@ CREATE TABLE pay_period_line_items (
     pay_period_id UUID NOT NULL REFERENCES pay_periods(id) ON DELETE CASCADE,
     schedule_id UUID NULL REFERENCES schedules(id) ON DELETE SET NULL,
     overtime_entry_id UUID NULL REFERENCES overtime_entries(id) ON DELETE SET NULL,
+    leave_payout_request_id UUID NULL REFERENCES leave_payout_requests(id) ON DELETE SET NULL,
     contract_type employee_contract_type_enum NOT NULL DEFAULT 'permanent',
     work_date DATE NOT NULL,
     line_type TEXT NOT NULL,
@@ -1538,8 +1545,7 @@ CREATE TABLE pay_period_line_items (
     CONSTRAINT pay_period_line_items_base_non_negative CHECK (base_amount >= 0),
     CONSTRAINT pay_period_line_items_premium_non_negative CHECK (premium_amount >= 0),
     CONSTRAINT pay_period_line_items_one_source CHECK (
-        (schedule_id IS NOT NULL AND overtime_entry_id IS NULL)
-        OR (schedule_id IS NULL AND overtime_entry_id IS NOT NULL)
+        ((schedule_id IS NOT NULL)::INT + (overtime_entry_id IS NOT NULL)::INT + (leave_payout_request_id IS NOT NULL)::INT) = 1
     )
 );
 
@@ -1551,6 +1557,9 @@ ON pay_period_line_items(schedule_id);
 
 CREATE INDEX idx_pay_period_line_items_overtime_entry_id
 ON pay_period_line_items(overtime_entry_id);
+
+CREATE INDEX idx_pay_period_line_items_leave_payout_request_id
+ON pay_period_line_items(leave_payout_request_id);
 
 CREATE TYPE calendar_event_kind_enum AS ENUM ('appointment', 'reminder');
 CREATE TYPE calendar_event_status_enum AS ENUM ('confirmed', 'cancelled');

@@ -937,6 +937,7 @@ func (r *payoutTxRepo) CreatePayPeriodLineItem(
 		PayPeriodID:           payPeriodID,
 		ScheduleID:            item.ScheduleID,
 		OvertimeEntryID:       item.OvertimeEntryID,
+		LeavePayoutRequestID:  item.LeavePayoutRequestID,
 		ContractType:          db.EmployeeContractTypeEnum(item.ContractType),
 		WorkDate:              conv.PgDateFromTime(item.WorkDate),
 		LineType:              item.LineType,
@@ -963,6 +964,20 @@ func (r *payoutTxRepo) AssignOvertimeEntriesToPayPeriod(
 		PayPeriodID:      &payPeriodID,
 		OvertimeEntryIds: overtimeEntryIDs,
 	})
+}
+
+func (r *payoutTxRepo) AssignLeavePayoutRequestsToPayPeriod(
+	ctx context.Context,
+	payPeriodID uuid.UUID,
+	leavePayoutRequestIDs []uuid.UUID,
+) error {
+	return r.queries.AssignLeavePayoutRequestsToPayPeriod(
+		ctx,
+		db.AssignLeavePayoutRequestsToPayPeriodParams{
+			PayPeriodID:           &payPeriodID,
+			LeavePayoutRequestIds: leavePayoutRequestIDs,
+		},
+	)
 }
 
 func (r *payoutTxRepo) GetPayPeriodForUpdate(
@@ -1021,6 +1036,19 @@ func (r *payoutTxRepo) MarkPayPeriodPaid(
 		row.UpdatedAt,
 	)
 	return &model, nil
+}
+
+func (r *payoutTxRepo) MarkLeavePayoutRequestsPaidByPayPeriod(
+	ctx context.Context,
+	payPeriodID, paidByEmployeeID uuid.UUID,
+) error {
+	return r.queries.MarkLeavePayoutRequestsPaidByPayPeriod(
+		ctx,
+		db.MarkLeavePayoutRequestsPaidByPayPeriodParams{
+			PaidByEmployeeID: &paidByEmployeeID,
+			PayPeriodID:      &payPeriodID,
+		},
+	)
 }
 
 func toDomainPayoutRequestFromRow(row db.LeavePayoutRequest) domain.PayoutRequest {
@@ -1140,6 +1168,7 @@ func toDomainPayPeriodLineItem(row db.PayPeriodLineItem) domain.PayPeriodLineIte
 		PayPeriodID:           row.PayPeriodID,
 		ScheduleID:            row.ScheduleID,
 		OvertimeEntryID:       row.OvertimeEntryID,
+		LeavePayoutRequestID:  row.LeavePayoutRequestID,
 		ContractType:          string(row.ContractType),
 		WorkDate:              conv.TimeFromPgDate(row.WorkDate),
 		LineType:              row.LineType,
@@ -1170,8 +1199,10 @@ func toDomainPayrollWorkItem(row db.ListPayrollPreviewWorkItemsRow) domain.Payro
 		SourceType:            row.SourceType,
 		ScheduleID:            scheduleIDPtr(row.SourceType, row.ScheduleID),
 		OvertimeEntryID:       row.OvertimeEntryID,
+		LeavePayoutRequestID:  row.LeavePayoutRequestID,
 		ContractType:          string(row.ContractType),
 		ContractRate:          &row.ContractRate,
+		GrossAmountOverride:   row.GrossAmountOverride,
 		IrregularHoursProfile: row.IrregularHoursProfile,
 	}
 }
@@ -1192,8 +1223,10 @@ func toDomainPayrollWorkItemFromApproved(row db.ListPayrollMonthApprovedWorkItem
 		SourceType:            row.SourceType,
 		ScheduleID:            scheduleIDPtr(row.SourceType, row.ScheduleID),
 		OvertimeEntryID:       row.OvertimeEntryID,
+		LeavePayoutRequestID:  row.LeavePayoutRequestID,
 		ContractType:          string(row.ContractType),
 		ContractRate:          &row.ContractRate,
+		GrossAmountOverride:   row.GrossAmountOverride,
 		IrregularHoursProfile: row.IrregularHoursProfile,
 	}
 }
@@ -1214,8 +1247,10 @@ func toDomainPayrollWorkItemFromLock(row db.LockPayrollPreviewWorkItemsRow) doma
 		SourceType:            row.SourceType,
 		ScheduleID:            scheduleIDPtr(row.SourceType, row.ScheduleID),
 		OvertimeEntryID:       row.OvertimeEntryID,
+		LeavePayoutRequestID:  row.LeavePayoutRequestID,
 		ContractType:          string(row.ContractType),
 		ContractRate:          &row.ContractRate,
+		GrossAmountOverride:   row.GrossAmountOverride,
 		IrregularHoursProfile: row.IrregularHoursProfile,
 	}
 }

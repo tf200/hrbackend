@@ -33,8 +33,9 @@ const (
 	PayPeriodStatusDraft = "draft"
 	PayPeriodStatusPaid  = "paid"
 
-	PayrollSourceSchedule = "schedule"
-	PayrollSourceOvertime = "overtime"
+	PayrollSourceSchedule    = "schedule"
+	PayrollSourceOvertime    = "overtime"
+	PayrollSourceLeavePayout = "leave_payout"
 )
 
 type PayoutRequest struct {
@@ -123,6 +124,7 @@ type PayrollPreview struct {
 type PayrollPreviewLineItem struct {
 	ScheduleID            *uuid.UUID
 	OvertimeEntryID       *uuid.UUID
+	LeavePayoutRequestID  *uuid.UUID
 	SourceType            string
 	Label                 string
 	ContractType          string
@@ -151,8 +153,10 @@ type PayrollWorkItem struct {
 	SourceType            string
 	ScheduleID            *uuid.UUID
 	OvertimeEntryID       *uuid.UUID
+	LeavePayoutRequestID  *uuid.UUID
 	ContractType          string
 	ContractRate          *float64
+	GrossAmountOverride   *float64
 	IrregularHoursProfile string
 }
 
@@ -183,6 +187,7 @@ type PayPeriodLineItem struct {
 	PayPeriodID           uuid.UUID
 	ScheduleID            *uuid.UUID
 	OvertimeEntryID       *uuid.UUID
+	LeavePayoutRequestID  *uuid.UUID
 	ContractType          string
 	WorkDate              time.Time
 	LineType              string
@@ -436,8 +441,17 @@ type PayoutTxRepository interface {
 		payPeriodID uuid.UUID,
 		overtimeEntryIDs []uuid.UUID,
 	) error
+	AssignLeavePayoutRequestsToPayPeriod(
+		ctx context.Context,
+		payPeriodID uuid.UUID,
+		leavePayoutRequestIDs []uuid.UUID,
+	) error
 	GetPayPeriodForUpdate(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	MarkPayPeriodPaid(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
+	MarkLeavePayoutRequestsPaidByPayPeriod(
+		ctx context.Context,
+		payPeriodID, paidByEmployeeID uuid.UUID,
+	) error
 }
 
 type CreatePayoutRequestTxParams struct {

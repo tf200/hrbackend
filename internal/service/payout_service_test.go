@@ -250,10 +250,18 @@ func (r *fakePayoutTxRepository) AssignOvertimeEntriesToPayPeriod(context.Contex
 	return nil
 }
 
+func (r *fakePayoutTxRepository) AssignLeavePayoutRequestsToPayPeriod(context.Context, uuid.UUID, []uuid.UUID) error {
+	return nil
+}
+
 func (r *fakePayoutTxRepository) GetPayPeriodForUpdate(context.Context, uuid.UUID) (*domain.PayPeriod, error) {
 	return nil, nil
 }
 
 func (r *fakePayoutTxRepository) MarkPayPeriodPaid(context.Context, uuid.UUID) (*domain.PayPeriod, error) {
 	return nil, nil
+}
+
+func (r *fakePayoutTxRepository) MarkLeavePayoutRequestsPaidByPayPeriod(context.Context, uuid.UUID, uuid.UUID) error {
+	return nil
 }

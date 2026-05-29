@@ -1921,6 +1921,7 @@ type LeavePayoutRequest struct {
 	PaidAt              pgtype.Timestamptz      `json:"paid_at"`
 	CreatedAt           pgtype.Timestamptz      `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `json:"updated_at"`
+	PaidPeriodID        *uuid.UUID              `json:"paid_period_id"`
 }
 
 type LeavePolicy struct {
@@ -2064,6 +2065,7 @@ type PayPeriodLineItem struct {
 	PayPeriodID           uuid.UUID                 `json:"pay_period_id"`
 	ScheduleID            *uuid.UUID                `json:"schedule_id"`
 	OvertimeEntryID       *uuid.UUID                `json:"overtime_entry_id"`
+	LeavePayoutRequestID  *uuid.UUID                `json:"leave_payout_request_id"`
 	ContractType          EmployeeContractTypeEnum  `json:"contract_type"`
 	WorkDate              pgtype.Date               `json:"work_date"`
 	LineType              string                    `json:"line_type"`

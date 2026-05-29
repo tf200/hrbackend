@@ -473,6 +473,13 @@ func (s *PayoutService) ClosePayPeriod(
 			}
 		}
 
+		leavePayoutRequestIDs := uniquePreviewLeavePayoutRequestIDs(preview.LineItems)
+		if len(leavePayoutRequestIDs) > 0 {
+			if err := tx.AssignLeavePayoutRequestsToPayPeriod(ctx, created.ID, leavePayoutRequestIDs); err != nil {
+				return err
+			}
+		}
+
 		result = created
 		return nil
 	})
@@ -1101,7 +1108,10 @@ func (s *PayoutService) MarkPayPeriodPaidByAdmin(
 		}
 
 		updated, err = tx.MarkPayPeriodPaid(ctx, payPeriodID)
-		return err
+		if err != nil {
+			return err
+		}
+		return tx.MarkLeavePayoutRequestsPaidByPayPeriod(ctx, payPeriodID, adminEmployeeID)
 	})
 	if err != nil {
 		return nil, err
@@ -1305,7 +1315,12 @@ func (s *PayoutService) buildPayrollPreview(
 		var baseAmount float64
 		var premiumAmount float64
 
-		if item.SourceType == domain.PayrollSourceOvertime && item.StartTime == "" {
+		if item.SourceType == domain.PayrollSourceLeavePayout {
+			lineItems, workedMinutes, baseAmount, premiumAmount, err = buildLeavePayoutLineItems(item)
+			if err != nil {
+				return nil, domain.ErrPayoutRequestInvalidRequest
+			}
+		} else if item.SourceType == domain.PayrollSourceOvertime && item.StartTime == "" {
 			lineItems, workedMinutes, baseAmount, premiumAmount = buildSimpleOvertimeLineItems(item, *item.ContractRate)
 		} else {
 			lineItems, workedMinutes, baseAmount, premiumAmount, err = buildPayrollPreviewLineItems(item, *item.ContractRate, holidaySet)
@@ -1351,6 +1366,40 @@ func buildSimpleOvertimeLineItems(
 	}
 
 	return []domain.PayrollPreviewLineItem{lineItem}, totalMinutes, baseAmount, 0
+}
+
+func buildLeavePayoutLineItems(
+	item domain.PayrollWorkItem,
+) ([]domain.PayrollPreviewLineItem, int32, float64, float64, error) {
+	if item.LeavePayoutRequestID == nil || item.GrossAmountOverride == nil || *item.GrossAmountOverride <= 0 {
+		return nil, 0, 0, 0, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	totalMinutes := int32(math.Round(item.MinutesWorked))
+	if totalMinutes <= 0 {
+		return nil, 0, 0, 0, domain.ErrPayoutRequestInvalidRequest
+	}
+	baseAmount := roundCurrency(*item.GrossAmountOverride)
+	paidMinutes := float64(totalMinutes)
+
+	lineItem := domain.PayrollPreviewLineItem{
+		LeavePayoutRequestID:  item.LeavePayoutRequestID,
+		SourceType:            item.SourceType,
+		Label:                 item.Label,
+		ContractType:          item.ContractType,
+		WorkDate:              item.WorkDate,
+		StartTime:             "",
+		EndTime:               "",
+		BreakMinutes:          0,
+		IrregularHoursProfile: item.IrregularHoursProfile,
+		AppliedRatePercent:    0,
+		MinutesWorked:         0,
+		PaidMinutes:           paidMinutes,
+		BaseAmount:            baseAmount,
+		PremiumAmount:         0,
+	}
+
+	return []domain.PayrollPreviewLineItem{lineItem}, 0, baseAmount, 0, nil
 }
 
 func buildPayrollPreviewLineItems(
@@ -1623,7 +1672,12 @@ func buildPayrollMonthLiveSummaries(
 		var premiumAmount float64
 		var err error
 
-		if item.SourceType == domain.PayrollSourceOvertime && item.StartTime == "" {
+		if item.SourceType == domain.PayrollSourceLeavePayout {
+			lineItems, workedMinutes, baseAmount, premiumAmount, err = buildLeavePayoutLineItems(item)
+			if err != nil {
+				return nil, domain.ErrPayoutRequestInvalidRequest
+			}
+		} else if item.SourceType == domain.PayrollSourceOvertime && item.StartTime == "" {
 			lineItems, workedMinutes, baseAmount, premiumAmount = buildSimpleOvertimeLineItems(item, *item.ContractRate)
 		} else {
 			lineItems, workedMinutes, baseAmount, premiumAmount, err = buildPayrollPreviewLineItems(item, *item.ContractRate, holidaySet)
@@ -1722,7 +1776,11 @@ func buildLockedPayrollSnapshot(lineItems []domain.PayPeriodLineItem) lockedPayr
 	var irregularGrossAmount float64
 
 	for _, item := range lineItems {
-		workedMinutes = roundCurrency(workedMinutes + item.MinutesWorked)
+		itemWorkedMinutes := item.MinutesWorked
+		if item.LineType == domain.PayrollSourceLeavePayout {
+			itemWorkedMinutes = 0
+		}
+		workedMinutes = roundCurrency(workedMinutes + itemWorkedMinutes)
 		paidMinutes = roundCurrency(paidMinutes + item.MinutesWorked)
 		baseGrossAmount = roundCurrency(baseGrossAmount + item.BaseAmount)
 		irregularGrossAmount = roundCurrency(irregularGrossAmount + item.PremiumAmount)
@@ -1732,7 +1790,7 @@ func buildLockedPayrollSnapshot(lineItems []domain.PayPeriodLineItem) lockedPayr
 			bucket = &domain.PayrollMultiplierSummary{RatePercent: item.AppliedRatePercent}
 			multiplierBuckets[item.AppliedRatePercent] = bucket
 		}
-		bucket.WorkedMinutes = roundCurrency(bucket.WorkedMinutes + item.MinutesWorked)
+		bucket.WorkedMinutes = roundCurrency(bucket.WorkedMinutes + itemWorkedMinutes)
 		bucket.PaidMinutes = roundCurrency(bucket.PaidMinutes + item.MinutesWorked)
 		bucket.BaseAmount = roundCurrency(bucket.BaseAmount + item.BaseAmount)
 		bucket.PremiumAmount = roundCurrency(bucket.PremiumAmount + item.PremiumAmount)
@@ -2004,6 +2062,7 @@ func buildPayPeriodLineItem(
 	return domain.PayPeriodLineItem{
 		ScheduleID:            item.ScheduleID,
 		OvertimeEntryID:       item.OvertimeEntryID,
+		LeavePayoutRequestID:  item.LeavePayoutRequestID,
 		ContractType:          item.ContractType,
 		WorkDate:              item.WorkDate,
 		LineType:              item.SourceType,
@@ -2028,6 +2087,22 @@ func uniquePreviewOvertimeEntryIDs(items []domain.PayrollPreviewLineItem) []uuid
 		}
 		seen[*item.OvertimeEntryID] = struct{}{}
 		result = append(result, *item.OvertimeEntryID)
+	}
+	return result
+}
+
+func uniquePreviewLeavePayoutRequestIDs(items []domain.PayrollPreviewLineItem) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(items))
+	result := make([]uuid.UUID, 0, len(items))
+	for _, item := range items {
+		if item.LeavePayoutRequestID == nil {
+			continue
+		}
+		if _, ok := seen[*item.LeavePayoutRequestID]; ok {
+			continue
+		}
+		seen[*item.LeavePayoutRequestID] = struct{}{}
+		result = append(result, *item.LeavePayoutRequestID)
 	}
 	return result
 }
