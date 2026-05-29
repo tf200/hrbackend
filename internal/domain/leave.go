@@ -102,6 +102,28 @@ type LeaveBalancePage struct {
 	TotalCount int64
 }
 
+type LeaveBalanceDetails struct {
+	Balance          LeaveBalance
+	ContractAccruals []LeaveContractAccrual
+}
+
+type LeaveContractAccrual struct {
+	ContractID        uuid.UUID
+	ContractType      string
+	ContractHours     *float64
+	ContractStartDate time.Time
+	ContractEndDate   *time.Time
+	EffectiveEndDate  *time.Time
+	SegmentStartDate  time.Time
+	SegmentEndDate    time.Time
+	YearDays          int32
+	SegmentDays       int32
+	FullYearMinutes   int32
+	ScheduleMinutes   int32
+	OvertimeMinutes   int32
+	GainedMinutes     int32
+}
+
 type LeavePolicy struct {
 	LeaveType      string
 	DeductsBalance bool
@@ -169,6 +191,11 @@ type ListMyLeaveBalancesParams struct {
 	Limit      int32
 	Offset     int32
 	Year       *int32
+}
+
+type GetLeaveBalanceDetailsParams struct {
+	EmployeeID uuid.UUID
+	Year       int32
 }
 
 type AdjustLeaveBalanceParams struct {
@@ -266,6 +293,10 @@ type LeaveRepository interface {
 		ctx context.Context,
 		params ListMyLeaveBalancesParams,
 	) (*LeaveBalancePage, error)
+	GetLeaveBalanceDetails(
+		ctx context.Context,
+		params GetLeaveBalanceDetailsParams,
+	) (*LeaveBalanceDetails, error)
 }
 
 type LeaveService interface {
@@ -317,5 +348,9 @@ type LeaveService interface {
 		ctx context.Context,
 		params ListMyLeaveBalancesParams,
 	) (*LeaveBalancePage, error)
+	GetLeaveBalanceDetails(
+		ctx context.Context,
+		params GetLeaveBalanceDetailsParams,
+	) (*LeaveBalanceDetails, error)
 	AdjustLeaveBalance(ctx context.Context, params AdjustLeaveBalanceParams) (*LeaveBalance, error)
 }

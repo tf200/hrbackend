@@ -417,6 +417,22 @@ func (s *LeaveService) ListMyLeaveBalances(
 	return s.repository.ListMyLeaveBalances(ctx, params)
 }
 
+func (s *LeaveService) GetLeaveBalanceDetails(
+	ctx context.Context,
+	params domain.GetLeaveBalanceDetailsParams,
+) (*domain.LeaveBalanceDetails, error) {
+	if params.EmployeeID == uuid.Nil {
+		return nil, domain.ErrLeaveRequestInvalidRequest
+	}
+	if params.Year == 0 {
+		params.Year = int32(time.Now().UTC().Year())
+	}
+	if params.Year < 2000 || params.Year > 2100 {
+		return nil, domain.ErrLeaveRequestInvalidRequest
+	}
+	return s.repository.GetLeaveBalanceDetails(ctx, params)
+}
+
 func (s *LeaveService) AdjustLeaveBalance(
 	ctx context.Context,
 	params domain.AdjustLeaveBalanceParams,

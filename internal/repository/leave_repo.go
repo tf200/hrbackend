@@ -351,6 +351,54 @@ func (r *LeaveRepository) ListMyLeaveBalances(
 	return page, nil
 }
 
+func (r *LeaveRepository) GetLeaveBalanceDetails(
+	ctx context.Context,
+	params domain.GetLeaveBalanceDetailsParams,
+) (*domain.LeaveBalanceDetails, error) {
+	row, err := r.store.GetLeaveBalanceDetails(ctx, db.GetLeaveBalanceDetailsParams{
+		EmployeeID: params.EmployeeID,
+		Year:       params.Year,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrLeaveRequestNotFound
+		}
+		return nil, err
+	}
+
+	accrualRows, err := r.store.ListLeaveContractAccrualsForYear(ctx, db.ListLeaveContractAccrualsForYearParams{
+		EmployeeID: params.EmployeeID,
+		Year:       params.Year,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	balance := toDomainLeaveBalance(
+		row.ID,
+		row.EmployeeID,
+		strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
+		row.Year,
+		row.LegalTotalMinutes,
+		row.LegalAdjustmentMinutes,
+		row.ExtraTotalMinutes,
+		row.LegalUsedMinutes,
+		row.ExtraUsedMinutes,
+		row.ContractHours,
+		stringPtr(string(row.ContractType)),
+		conv.TimePtrFromPgDate(row.ContractStartDate),
+		conv.TimePtrFromPgDate(row.ContractEndDate),
+		conv.TimePtrFromPgDate(row.EffectiveEndDate),
+		row.CreatedAt,
+		row.UpdatedAt,
+	)
+
+	return &domain.LeaveBalanceDetails{
+		Balance:          balance,
+		ContractAccruals: toDomainLeaveContractAccruals(accrualRows),
+	}, nil
+}
+
 type leaveTxRepo struct {
 	queries *db.Queries
 }
@@ -805,6 +853,29 @@ func toDomainLeaveBalance(
 		CreatedAt:              conv.TimeFromPgTimestamptz(createdAt),
 		UpdatedAt:              conv.TimeFromPgTimestamptz(updatedAt),
 	}
+}
+
+func toDomainLeaveContractAccruals(rows []db.ListLeaveContractAccrualsForYearRow) []domain.LeaveContractAccrual {
+	items := make([]domain.LeaveContractAccrual, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.LeaveContractAccrual{
+			ContractID:        row.ContractID,
+			ContractType:      string(row.ContractType),
+			ContractHours:     row.ContractHours,
+			ContractStartDate: conv.TimeFromPgDate(row.ContractStartDate),
+			ContractEndDate:   conv.TimePtrFromPgDate(row.ContractEndDate),
+			EffectiveEndDate:  conv.TimePtrFromPgDate(row.EffectiveEndDate),
+			SegmentStartDate:  conv.TimeFromPgDate(row.SegmentStartDate),
+			SegmentEndDate:    conv.TimeFromPgDate(row.SegmentEndDate),
+			YearDays:          row.YearDays,
+			SegmentDays:       row.SegmentDays,
+			FullYearMinutes:   row.FullYearMinutes,
+			ScheduleMinutes:   row.ScheduleMinutes,
+			OvertimeMinutes:   row.OvertimeMinutes,
+			GainedMinutes:     row.GainedMinutes,
+		})
+	}
+	return items
 }
 
 func toDomainLeaveCalendar(rows []db.ListLeaveCalendarRowsRow) []domain.LeaveCalendarEmployee {

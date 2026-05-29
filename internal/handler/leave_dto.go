@@ -91,6 +91,10 @@ type listMyLeaveBalancesRequest struct {
 	Year *int32 `form:"year" binding:"omitempty,min=2000,max=2100"`
 }
 
+type getLeaveBalanceDetailsRequest struct {
+	Year int32 `form:"year" binding:"omitempty,min=2000,max=2100"`
+}
+
 type adjustLeaveBalanceRequest struct {
 	EmployeeID                  uuid.UUID `json:"employee_id"                     binding:"required"`
 	Year                        int32     `json:"year"                            binding:"required,min=2000,max=2100"`
@@ -196,6 +200,28 @@ type managerLeaveBalanceResponse struct {
 	Contract     leaveContractDetailsResponse `json:"contract"`
 	CreatedAt    time.Time                    `json:"created_at"`
 	UpdatedAt    time.Time                    `json:"updated_at"`
+}
+
+type leaveContractAccrualResponse struct {
+	ContractID        uuid.UUID  `json:"contract_id"`
+	ContractType      string     `json:"contract_type"`
+	ContractHours     *float64   `json:"contract_hours,omitempty"`
+	ContractStartDate time.Time  `json:"contract_start_date"`
+	ContractEndDate   *time.Time `json:"contract_end_date,omitempty"`
+	EffectiveEndDate  *time.Time `json:"effective_end_date,omitempty"`
+	SegmentStartDate  time.Time  `json:"segment_start_date"`
+	SegmentEndDate    time.Time  `json:"segment_end_date"`
+	YearDays          int32      `json:"year_days"`
+	SegmentDays       int32      `json:"segment_days"`
+	FullYearMinutes   int32      `json:"full_year_minutes"`
+	ScheduleMinutes   int32      `json:"schedule_minutes"`
+	OvertimeMinutes   int32      `json:"overtime_minutes"`
+	GainedMinutes     int32      `json:"gained_minutes"`
+}
+
+type leaveBalanceDetailsResponse struct {
+	managerLeaveBalanceResponse
+	ContractAccruals []leaveContractAccrualResponse `json:"contract_accruals"`
 }
 
 type adjustLeaveBalanceResponse struct {
@@ -378,6 +404,16 @@ func toListMyLeaveBalancesParams(
 	}
 }
 
+func toGetLeaveBalanceDetailsParams(
+	employeeID uuid.UUID,
+	req getLeaveBalanceDetailsRequest,
+) domain.GetLeaveBalanceDetailsParams {
+	return domain.GetLeaveBalanceDetailsParams{
+		EmployeeID: employeeID,
+		Year:       req.Year,
+	}
+}
+
 func toAdjustLeaveBalanceParams(
 	adminEmployeeID uuid.UUID,
 	req adjustLeaveBalanceRequest,
@@ -503,6 +539,33 @@ func toManagerLeaveBalanceResponse(item domain.LeaveBalance) managerLeaveBalance
 		},
 		CreatedAt: item.CreatedAt,
 		UpdatedAt: item.UpdatedAt,
+	}
+}
+
+func toLeaveBalanceDetailsResponse(item domain.LeaveBalanceDetails) leaveBalanceDetailsResponse {
+	accruals := make([]leaveContractAccrualResponse, len(item.ContractAccruals))
+	for i, accrual := range item.ContractAccruals {
+		accruals[i] = leaveContractAccrualResponse{
+			ContractID:        accrual.ContractID,
+			ContractType:      accrual.ContractType,
+			ContractHours:     accrual.ContractHours,
+			ContractStartDate: accrual.ContractStartDate,
+			ContractEndDate:   accrual.ContractEndDate,
+			EffectiveEndDate:  accrual.EffectiveEndDate,
+			SegmentStartDate:  accrual.SegmentStartDate,
+			SegmentEndDate:    accrual.SegmentEndDate,
+			YearDays:          accrual.YearDays,
+			SegmentDays:       accrual.SegmentDays,
+			FullYearMinutes:   accrual.FullYearMinutes,
+			ScheduleMinutes:   accrual.ScheduleMinutes,
+			OvertimeMinutes:   accrual.OvertimeMinutes,
+			GainedMinutes:     accrual.GainedMinutes,
+		}
+	}
+
+	return leaveBalanceDetailsResponse{
+		managerLeaveBalanceResponse: toManagerLeaveBalanceResponse(item.Balance),
+		ContractAccruals:            accruals,
 	}
 }
 

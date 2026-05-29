@@ -227,6 +227,102 @@ func (q *Queries) GetEmployeeContractForLeave(ctx context.Context, employeeID uu
 	return i, err
 }
 
+const getLeaveBalanceDetails = `-- name: GetLeaveBalanceDetails :one
+SELECT
+    lb.id,
+    lb.employee_id,
+    lb.year,
+    (ent.legal_calculated_minutes + lb.legal_adjustment_minutes)::int AS legal_total_minutes,
+    lb.legal_adjustment_minutes,
+    lb.extra_total_minutes,
+    lb.legal_used_minutes,
+    lb.extra_used_minutes,
+    lb.created_at,
+    lb.updated_at,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    ec.hours_per_week AS contract_hours,
+    ec.contract_type,
+    ec.start_date AS contract_start_date,
+    ec.contract_end_date,
+    ec.effective_end_date
+FROM leave_balances lb
+JOIN employee_profile ep ON ep.id = lb.employee_id
+JOIN LATERAL (
+    SELECT calculate_legal_leave_minutes(
+        lb.employee_id,
+        lb.year,
+        CASE
+            WHEN lb.year < EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                (make_date(lb.year, 12, 31)::timestamp + INTERVAL '23 hours 59 minutes 59 seconds')::timestamptz
+            WHEN lb.year = EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                CURRENT_TIMESTAMP
+            ELSE
+                make_date(lb.year, 1, 1)::timestamptz
+        END
+    )::int AS legal_calculated_minutes
+) ent ON true
+LEFT JOIN LATERAL (
+    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts c
+    WHERE c.employee_id = ep.id
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+) ec ON true
+WHERE lb.employee_id = $1
+  AND lb.year = $2::int
+`
+
+type GetLeaveBalanceDetailsParams struct {
+	EmployeeID uuid.UUID `json:"employee_id"`
+	Year       int32     `json:"year"`
+}
+
+type GetLeaveBalanceDetailsRow struct {
+	ID                     uuid.UUID                `json:"id"`
+	EmployeeID             uuid.UUID                `json:"employee_id"`
+	Year                   int32                    `json:"year"`
+	LegalTotalMinutes      int32                    `json:"legal_total_minutes"`
+	LegalAdjustmentMinutes int32                    `json:"legal_adjustment_minutes"`
+	ExtraTotalMinutes      int32                    `json:"extra_total_minutes"`
+	LegalUsedMinutes       int32                    `json:"legal_used_minutes"`
+	ExtraUsedMinutes       int32                    `json:"extra_used_minutes"`
+	CreatedAt              pgtype.Timestamptz       `json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz       `json:"updated_at"`
+	EmployeeFirstName      string                   `json:"employee_first_name"`
+	EmployeeLastName       string                   `json:"employee_last_name"`
+	ContractHours          *float64                 `json:"contract_hours"`
+	ContractType           EmployeeContractTypeEnum `json:"contract_type"`
+	ContractStartDate      pgtype.Date              `json:"contract_start_date"`
+	ContractEndDate        pgtype.Date              `json:"contract_end_date"`
+	EffectiveEndDate       pgtype.Date              `json:"effective_end_date"`
+}
+
+func (q *Queries) GetLeaveBalanceDetails(ctx context.Context, arg GetLeaveBalanceDetailsParams) (GetLeaveBalanceDetailsRow, error) {
+	row := q.db.QueryRow(ctx, getLeaveBalanceDetails, arg.EmployeeID, arg.Year)
+	var i GetLeaveBalanceDetailsRow
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.Year,
+		&i.LegalTotalMinutes,
+		&i.LegalAdjustmentMinutes,
+		&i.ExtraTotalMinutes,
+		&i.LegalUsedMinutes,
+		&i.ExtraUsedMinutes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EmployeeFirstName,
+		&i.EmployeeLastName,
+		&i.ContractHours,
+		&i.ContractType,
+		&i.ContractStartDate,
+		&i.ContractEndDate,
+		&i.EffectiveEndDate,
+	)
+	return i, err
+}
+
 const listLeaveBalancesForEmployeeFromYearForUpdate = `-- name: ListLeaveBalancesForEmployeeFromYearForUpdate :many
 SELECT id, employee_id, year, legal_adjustment_minutes, extra_total_minutes, legal_used_minutes, extra_used_minutes, created_at, updated_at
 FROM leave_balances
@@ -391,6 +487,164 @@ func (q *Queries) ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveB
 			&i.ContractEndDate,
 			&i.EffectiveEndDate,
 			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLeaveContractAccrualsForYear = `-- name: ListLeaveContractAccrualsForYear :many
+WITH input AS (
+    SELECT
+        $1::uuid AS employee_id,
+        $2::int AS year,
+        CASE
+            WHEN $2::int < EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                (make_date($2::int, 12, 31)::timestamp + INTERVAL '23 hours 59 minutes 59 seconds')::timestamptz
+            WHEN $2::int = EXTRACT(YEAR FROM CURRENT_DATE)::int THEN
+                CURRENT_TIMESTAMP
+            ELSE
+                make_date($2::int, 1, 1)::timestamptz
+        END AS as_of
+), segments AS (
+    SELECT
+        ec.id AS contract_id,
+        ec.employee_id,
+        ec.contract_type,
+        ec.hours_per_week AS contract_hours,
+        ec.start_date AS contract_start_date,
+        ec.contract_end_date,
+        ec.effective_end_date,
+        GREATEST(ec.start_date, make_date(input.year, 1, 1)) AS segment_start_date,
+        LEAST(
+            COALESCE(ec.contract_end_date, make_date(input.year, 12, 31)),
+            COALESCE(ec.effective_end_date, make_date(input.year, 12, 31)),
+            COALESCE(
+                (
+                    LEAD(ec.start_date) OVER (
+                        PARTITION BY ec.employee_id
+                        ORDER BY ec.start_date
+                    ) - INTERVAL '1 day'
+                )::date,
+                make_date(input.year, 12, 31)
+            ),
+            make_date(input.year, 12, 31),
+            input.as_of::date
+        ) AS segment_end_date,
+        COALESCE(ec.hours_per_week, 0) AS weekly_hours,
+        input.year,
+        input.as_of
+    FROM employee_contracts ec
+    JOIN input ON input.employee_id = ec.employee_id
+)
+SELECT
+    segments.contract_id,
+    segments.contract_type,
+    segments.contract_hours,
+    segments.contract_start_date,
+    segments.contract_end_date,
+    segments.effective_end_date,
+    segments.segment_start_date::date AS segment_start_date,
+    segments.segment_end_date::date AS segment_end_date,
+    (make_date(segments.year + 1, 1, 1) - make_date(segments.year, 1, 1))::int AS year_days,
+    (segments.segment_end_date - segments.segment_start_date + 1)::int AS segment_days,
+    CASE
+        WHEN segments.contract_type = 'on_call' THEN 0
+        ELSE ROUND(segments.weekly_hours * 60.0 * 4.0)::int
+    END AS full_year_minutes,
+    COALESCE(worked.schedule_minutes, 0)::int AS schedule_minutes,
+    COALESCE(worked.overtime_minutes, 0)::int AS overtime_minutes,
+    GREATEST(
+        0,
+        ROUND(
+            CASE
+                WHEN segments.contract_type = 'on_call' THEN
+                    (COALESCE(worked.schedule_minutes, 0) + COALESCE(worked.overtime_minutes, 0)) / 13.0
+                WHEN segments.weekly_hours <= 0 THEN
+                    0
+                ELSE
+                    (segments.weekly_hours * 60.0 * 4.0) * (
+                        (segments.segment_end_date - segments.segment_start_date + 1)::numeric /
+                        (make_date(segments.year + 1, 1, 1) - make_date(segments.year, 1, 1))::numeric
+                    )
+            END
+        )::int
+    )::int AS gained_minutes
+FROM segments
+LEFT JOIN LATERAL (
+    SELECT
+        COALESCE(SUM(
+            EXTRACT(EPOCH FROM (s.end_datetime - s.start_datetime)) / 60
+        ), 0)::numeric AS schedule_minutes,
+        COALESCE((
+            SELECT SUM(oe.minutes)::numeric
+            FROM overtime_entries oe
+            WHERE oe.employee_id = segments.employee_id
+              AND oe.status = 'approved'
+              AND oe.entry_date >= segments.segment_start_date
+              AND oe.entry_date <= segments.segment_end_date
+        ), 0)::numeric AS overtime_minutes
+    FROM schedules s
+    WHERE s.employee_id = segments.employee_id
+      AND DATE(s.start_datetime) >= segments.segment_start_date
+      AND DATE(s.start_datetime) <= segments.segment_end_date
+      AND s.end_datetime <= segments.as_of
+) worked ON segments.contract_type = 'on_call'
+WHERE segments.segment_end_date >= segments.segment_start_date
+ORDER BY segments.segment_start_date ASC, segments.contract_start_date ASC
+`
+
+type ListLeaveContractAccrualsForYearParams struct {
+	EmployeeID uuid.UUID `json:"employee_id"`
+	Year       int32     `json:"year"`
+}
+
+type ListLeaveContractAccrualsForYearRow struct {
+	ContractID        uuid.UUID                `json:"contract_id"`
+	ContractType      EmployeeContractTypeEnum `json:"contract_type"`
+	ContractHours     *float64                 `json:"contract_hours"`
+	ContractStartDate pgtype.Date              `json:"contract_start_date"`
+	ContractEndDate   pgtype.Date              `json:"contract_end_date"`
+	EffectiveEndDate  pgtype.Date              `json:"effective_end_date"`
+	SegmentStartDate  pgtype.Date              `json:"segment_start_date"`
+	SegmentEndDate    pgtype.Date              `json:"segment_end_date"`
+	YearDays          int32                    `json:"year_days"`
+	SegmentDays       int32                    `json:"segment_days"`
+	FullYearMinutes   int32                    `json:"full_year_minutes"`
+	ScheduleMinutes   int32                    `json:"schedule_minutes"`
+	OvertimeMinutes   int32                    `json:"overtime_minutes"`
+	GainedMinutes     int32                    `json:"gained_minutes"`
+}
+
+func (q *Queries) ListLeaveContractAccrualsForYear(ctx context.Context, arg ListLeaveContractAccrualsForYearParams) ([]ListLeaveContractAccrualsForYearRow, error) {
+	rows, err := q.db.Query(ctx, listLeaveContractAccrualsForYear, arg.EmployeeID, arg.Year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLeaveContractAccrualsForYearRow{}
+	for rows.Next() {
+		var i ListLeaveContractAccrualsForYearRow
+		if err := rows.Scan(
+			&i.ContractID,
+			&i.ContractType,
+			&i.ContractHours,
+			&i.ContractStartDate,
+			&i.ContractEndDate,
+			&i.EffectiveEndDate,
+			&i.SegmentStartDate,
+			&i.SegmentEndDate,
+			&i.YearDays,
+			&i.SegmentDays,
+			&i.FullYearMinutes,
+			&i.ScheduleMinutes,
+			&i.OvertimeMinutes,
+			&i.GainedMinutes,
 		); err != nil {
 			return nil, err
 		}

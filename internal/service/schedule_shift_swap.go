@@ -79,14 +79,16 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 		notifData.RecipientEmployeeName = details.RecipientEmployeeName
 	}
 
-	s.notificationService.Notify(ctx, domain.NotificationRequest{
-		Recipients: domain.NotificationRecipients{
-			EmployeeIDs: []uuid.UUID{req.RecipientEmployeeID},
-			Roles:       []string{"admin"},
-		},
-		Message: "A shift swap has been requested",
-		Data:    notifData,
-	})
+	if s.notificationService != nil {
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				EmployeeIDs: []uuid.UUID{req.RecipientEmployeeID},
+				Roles:       []string{"admin"},
+			},
+			Message: "A shift swap has been requested",
+			Data:    notifData,
+		})
+	}
 
 	resp := &domain.CreateShiftSwapResponse{
 		ID:                  created.ID,

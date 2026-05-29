@@ -475,12 +475,13 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			PrivatePhoneNumber: strPtr(gofakeit.Phone()),
 			WorkPhoneNumber:    strPtr(gofakeit.Phone()),
 			Contract: &seed.EmployeeContractSeed{
-				JobTitle:          "administrative_employee",
-				DepartmentAlias:   "hr",
-				LocationAlias:     zzpLocationAlias,
-				ContractType:      "on_call",
-				StartDate:         time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
-				WageTaxTable:      strPtr("white_table"),
+				JobTitle:        "administrative_employee",
+				DepartmentAlias: "hr",
+				LocationAlias:   zzpLocationAlias,
+				ContractType:    "on_call",
+				StartDate:       time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+				RosterFreeDay:   "saturday",
+				WageTaxTable:    strPtr("white_table"),
 			},
 		}
 		result.Employees = append(result.Employees, zzpSeed)
@@ -557,13 +558,14 @@ func buildEmployeeContractSeed(locationAlias, departmentAlias, position string, 
 	}
 
 	return seed.EmployeeContractSeed{
-		JobTitle:          jobTitle,
-		DepartmentAlias:   departmentAlias,
-		LocationAlias:     locationAlias,
-		ContractType:      "permanent",
-		StartDate:         time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
-		HoursPerWeek:      float64Ptr(hoursPerWeek),
-		WageTaxTable:      strPtr("white_table"),
+		JobTitle:        jobTitle,
+		DepartmentAlias: departmentAlias,
+		LocationAlias:   locationAlias,
+		ContractType:    "permanent",
+		StartDate:       time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		HoursPerWeek:    float64Ptr(hoursPerWeek),
+		RosterFreeDay:   "saturday",
+		WageTaxTable:    strPtr("white_table"),
 	}
 }
 
@@ -733,10 +735,6 @@ func lateArrivalTimeForShiftSlot(slot int16) string {
 		return "08:10"
 	}
 }
-
-
-
-
 
 func sanitizeEmailPart(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))

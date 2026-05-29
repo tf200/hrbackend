@@ -691,6 +691,13 @@ func (f *fakeLeaveRepository) ListMyLeaveBalances(
 	return nil, nil
 }
 
+func (f *fakeLeaveRepository) GetLeaveBalanceDetails(
+	_ context.Context,
+	_ domain.GetLeaveBalanceDetailsParams,
+) (*domain.LeaveBalanceDetails, error) {
+	return nil, nil
+}
+
 func (f *fakeLeaveRepository) AdjustLeaveBalance(
 	_ context.Context,
 	_ domain.AdjustLeaveBalanceParams,

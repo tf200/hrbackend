@@ -1172,7 +1172,7 @@ func toDomainPayrollWorkItem(row db.ListPayrollPreviewWorkItemsRow) domain.Payro
 		OvertimeEntryID:       row.OvertimeEntryID,
 		ContractType:          string(row.ContractType),
 		ContractRate:          &row.ContractRate,
-		IrregularHoursProfile: "",
+		IrregularHoursProfile: row.IrregularHoursProfile,
 	}
 }
 
@@ -1194,7 +1194,7 @@ func toDomainPayrollWorkItemFromApproved(row db.ListPayrollMonthApprovedWorkItem
 		OvertimeEntryID:       row.OvertimeEntryID,
 		ContractType:          string(row.ContractType),
 		ContractRate:          &row.ContractRate,
-		IrregularHoursProfile: "",
+		IrregularHoursProfile: row.IrregularHoursProfile,
 	}
 }
 
@@ -1216,7 +1216,7 @@ func toDomainPayrollWorkItemFromLock(row db.LockPayrollPreviewWorkItemsRow) doma
 		OvertimeEntryID:       row.OvertimeEntryID,
 		ContractType:          string(row.ContractType),
 		ContractRate:          &row.ContractRate,
-		IrregularHoursProfile: "",
+		IrregularHoursProfile: row.IrregularHoursProfile,
 	}
 }
 
