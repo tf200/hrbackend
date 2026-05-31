@@ -234,6 +234,50 @@ func (h *SalaryHandler) GetOnCallPayrollMonthSummary(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "On-call payroll month summary retrieved successfully"))
 }
 
+func (h *SalaryHandler) GetFixedPayrollMonthStats(ctx *gin.Context) {
+	var req payrollMonthStatsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPayrollMonthStatsParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	stats, err := h.service.GetFixedPayrollMonthStats(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollMonthStatsResponse(stats), "Fixed payroll month stats retrieved successfully"))
+}
+
+func (h *SalaryHandler) GetOnCallPayrollMonthStats(ctx *gin.Context) {
+	var req payrollMonthStatsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPayrollMonthStatsParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	stats, err := h.service.GetOnCallPayrollMonthStats(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollMonthStatsResponse(stats), "On-call payroll month stats retrieved successfully"))
+}
+
 func (h *SalaryHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
 	var req payrollMonthSummaryRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -356,6 +400,65 @@ func (h *SalaryHandler) ClosePayPeriod(ctx *gin.Context) {
 		http.StatusCreated,
 		httpapi.OK(toPayPeriodResponse(item), "Pay period created successfully"),
 	)
+}
+
+func (h *SalaryHandler) PreviewFixedPayrollMonthClose(ctx *gin.Context) {
+	h.previewPayrollMonthClose(ctx, domain.PayrollGroupFixed)
+}
+
+func (h *SalaryHandler) CloseFixedPayrollMonth(ctx *gin.Context) {
+	h.closePayrollMonth(ctx, domain.PayrollGroupFixed)
+}
+
+func (h *SalaryHandler) PreviewOnCallPayrollMonthClose(ctx *gin.Context) {
+	h.previewPayrollMonthClose(ctx, domain.PayrollGroupOnCall)
+}
+
+func (h *SalaryHandler) CloseOnCallPayrollMonth(ctx *gin.Context) {
+	h.closePayrollMonth(ctx, domain.PayrollGroupOnCall)
+}
+
+func (h *SalaryHandler) previewPayrollMonthClose(ctx *gin.Context, payrollGroup string) {
+	var req closePayrollMonthRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+	params, err := toClosePayrollMonthParams(req, payrollGroup)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+	result, err := h.service.PreviewPayrollMonthClose(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollMonthCloseResultResponse(result), "Payroll month close preview retrieved successfully"))
+}
+
+func (h *SalaryHandler) closePayrollMonth(ctx *gin.Context, payrollGroup string) {
+	var req closePayrollMonthRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+	params, err := toClosePayrollMonthParams(req, payrollGroup)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+	result, err := h.service.ClosePayrollMonthByAdmin(ctx.Request.Context(), adminEmployeeID, params)
+	if err != nil {
+		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+	ctx.JSON(http.StatusCreated, httpapi.OK(toPayrollMonthCloseResultResponse(result), "Payroll month closed successfully"))
 }
 
 func (h *SalaryHandler) ListPayPeriods(ctx *gin.Context) {

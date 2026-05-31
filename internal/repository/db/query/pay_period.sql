@@ -6,6 +6,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,
@@ -18,7 +20,8 @@ FROM pay_periods pp
 JOIN employee_profile ep ON ep.id = pp.employee_id
 WHERE pp.employee_id = sqlc.arg('employee_id')
   AND pp.period_start = sqlc.arg('period_start')
-  AND pp.period_end = sqlc.arg('period_end');
+  AND pp.period_end = sqlc.arg('period_end')
+  AND pp.payroll_group = sqlc.arg('payroll_group');
 
 -- name: LockPayrollPreviewWorkItems :many
 WITH schedule_items AS (
@@ -72,7 +75,8 @@ WITH schedule_items AS (
     JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
     WHERE s.employee_id = sqlc.arg(employee_id)
       AND DATE(s.start_datetime) >= sqlc.arg(period_start)
-      AND DATE(s.start_datetime) <= sqlc.arg(period_end)
+      AND s.end_datetime <= sqlc.arg(cutoff_at)
+      AND s.paid_period_id IS NULL
 ),
 overtime_items AS (
     SELECT
@@ -127,7 +131,7 @@ overtime_items AS (
       AND oe.status = 'approved'::overtime_status_enum
       AND oe.paid_period_id IS NULL
       AND oe.entry_date >= sqlc.arg(period_start)
-      AND oe.entry_date <= sqlc.arg(period_end)
+      AND oe.entry_date <= sqlc.arg(cutoff_date)
 ),
 leave_payout_items AS (
     SELECT
@@ -165,7 +169,7 @@ leave_payout_items AS (
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
       AND lpr.salary_month >= sqlc.arg(period_start)
-      AND lpr.salary_month <= sqlc.arg(period_end)
+      AND lpr.salary_month <= sqlc.arg(cutoff_date)
 )
 SELECT * FROM schedule_items
 UNION ALL
@@ -181,7 +185,7 @@ WHERE employee_id = sqlc.arg(employee_id)
   AND status = 'approved'::overtime_status_enum
   AND paid_period_id IS NULL
   AND entry_date >= sqlc.arg(period_start)
-  AND entry_date <= sqlc.arg(period_end)
+  AND entry_date <= sqlc.arg(cutoff_date)
 FOR UPDATE;
 
 -- name: CreatePayPeriod :one
@@ -189,6 +193,8 @@ INSERT INTO pay_periods (
     employee_id,
     period_start,
     period_end,
+    payroll_group,
+    cutoff_at,
     status,
     base_gross_amount,
     irregular_gross_amount,
@@ -198,6 +204,8 @@ INSERT INTO pay_periods (
     sqlc.arg('employee_id'),
     sqlc.arg('period_start'),
     sqlc.arg('period_end'),
+    sqlc.arg('payroll_group'),
+    sqlc.narg('cutoff_at'),
     'draft'::pay_period_status_enum,
     sqlc.arg('base_gross_amount'),
     sqlc.arg('irregular_gross_amount'),
@@ -245,6 +253,13 @@ SET
     updated_at = NOW()
 WHERE id = ANY(sqlc.arg('overtime_entry_ids')::uuid[]);
 
+-- name: AssignSchedulesToPayPeriod :exec
+UPDATE schedules
+SET
+    paid_period_id = sqlc.arg('pay_period_id'),
+    updated_at = NOW()
+WHERE id = ANY(sqlc.arg('schedule_ids')::uuid[]);
+
 -- name: AssignLeavePayoutRequestsToPayPeriod :exec
 UPDATE leave_payout_requests
 SET
@@ -260,6 +275,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,
@@ -280,6 +297,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,

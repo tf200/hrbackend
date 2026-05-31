@@ -289,6 +289,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,

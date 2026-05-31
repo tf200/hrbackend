@@ -62,10 +62,46 @@ func RegisterSalaryRoutes(
 		handler.GetFixedPayrollMonthSummary,
 	)
 	rg.GET(
+		"/payroll-month-summary/fixed/stats",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetFixedPayrollMonthStats,
+	)
+	rg.POST(
+		"/payroll-month-summary/fixed/close-preview",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.PreviewFixedPayrollMonthClose,
+	)
+	rg.POST(
+		"/payroll-month-summary/fixed/close",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.CloseFixedPayrollMonth,
+	)
+	rg.GET(
 		"/payroll-month-summary/on-call",
 		auth,
 		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetOnCallPayrollMonthSummary,
+	)
+	rg.GET(
+		"/payroll-month-summary/on-call/stats",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetOnCallPayrollMonthStats,
+	)
+	rg.POST(
+		"/payroll-month-summary/on-call/close-preview",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.PreviewOnCallPayrollMonthClose,
+	)
+	rg.POST(
+		"/payroll-month-summary/on-call/close",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.CloseOnCallPayrollMonth,
 	)
 	rg.GET(
 		"/payroll-month-summary/ort-overview",

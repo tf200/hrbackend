@@ -967,6 +967,7 @@ CREATE TABLE schedules (
     is_custom BOOLEAN NOT NULL DEFAULT FALSE,
     start_datetime TIMESTAMPTZ NOT NULL,
     end_datetime TIMESTAMPTZ NOT NULL,
+    paid_period_id UUID NULL,
     created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -993,6 +994,9 @@ ON schedules(employee_id, start_datetime);
 
 CREATE INDEX idx_schedules_employee_end_datetime
 ON schedules(employee_id, end_datetime);
+
+CREATE INDEX idx_schedules_payroll_close
+ON schedules(employee_id, end_datetime, paid_period_id);
 
 -- ==========================================
 -- TIME ENTRIES
@@ -1376,6 +1380,8 @@ CREATE TABLE pay_periods (
     employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
     period_start DATE NOT NULL,
     period_end DATE NOT NULL,
+    payroll_group TEXT NOT NULL DEFAULT 'fixed',
+    cutoff_at TIMESTAMPTZ NULL,
     status pay_period_status_enum NOT NULL DEFAULT 'draft',
     base_gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
     irregular_gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
@@ -1388,11 +1394,19 @@ CREATE TABLE pay_periods (
     CONSTRAINT pay_periods_base_gross_non_negative CHECK (base_gross_amount >= 0),
     CONSTRAINT pay_periods_irregular_gross_non_negative CHECK (irregular_gross_amount >= 0),
     CONSTRAINT pay_periods_gross_non_negative CHECK (gross_amount >= 0),
-    CONSTRAINT pay_periods_unique_employee_period UNIQUE (employee_id, period_start, period_end)
+    CONSTRAINT pay_periods_payroll_group_valid CHECK (payroll_group IN ('fixed', 'on_call')),
+    CONSTRAINT pay_periods_unique_employee_group_period UNIQUE (employee_id, payroll_group, period_start, period_end)
 );
+
+ALTER TABLE schedules
+ADD CONSTRAINT schedules_paid_period_id_fkey
+FOREIGN KEY (paid_period_id) REFERENCES pay_periods(id) ON DELETE SET NULL;
 
 CREATE INDEX idx_pay_periods_employee_period
 ON pay_periods(employee_id, period_start DESC, period_end DESC);
+
+CREATE INDEX idx_pay_periods_group_period
+ON pay_periods(payroll_group, period_start DESC, period_end DESC);
 
 CREATE INDEX idx_pay_periods_status_period
 ON pay_periods(status, period_start DESC, period_end DESC);
@@ -1479,6 +1493,7 @@ CREATE TABLE pay_period_line_items (
     CONSTRAINT pay_period_line_items_premium_non_negative CHECK (premium_amount >= 0),
     CONSTRAINT pay_period_line_items_one_source CHECK (
         ((schedule_id IS NOT NULL)::INT + (overtime_entry_id IS NOT NULL)::INT + (leave_payout_request_id IS NOT NULL)::INT) = 1
+        OR line_type = 'fixed_base'
     )
 );
 

@@ -174,6 +174,8 @@ func (r *SalaryRepository) GetPayPeriodByID(
 		fullName(row.EmployeeFirstName, row.EmployeeLastName),
 		row.PeriodStart,
 		row.PeriodEnd,
+		row.PayrollGroup,
+		row.CutoffAt,
 		string(row.Status),
 		row.BaseGrossAmount,
 		row.IrregularGrossAmount,
@@ -214,6 +216,8 @@ func (r *SalaryRepository) ListPayPeriods(
 			fullName(row.EmployeeFirstName, row.EmployeeLastName),
 			row.PeriodStart,
 			row.PeriodEnd,
+			row.PayrollGroup,
+			row.CutoffAt,
 			string(row.Status),
 			row.BaseGrossAmount,
 			row.IrregularGrossAmount,
@@ -437,6 +441,8 @@ func (r *SalaryRepository) ListPayPeriodsByEmployeesAndRange(
 			fullName(row.EmployeeFirstName, row.EmployeeLastName),
 			row.PeriodStart,
 			row.PeriodEnd,
+			row.PayrollGroup,
+			row.CutoffAt,
 			string(row.Status),
 			row.BaseGrossAmount,
 			row.IrregularGrossAmount,
@@ -689,11 +695,13 @@ func (r *salaryTxRepo) GetPayPeriodByEmployeePeriod(
 	ctx context.Context,
 	employeeID uuid.UUID,
 	periodStart, periodEnd time.Time,
+	payrollGroup string,
 ) (*domain.PayPeriod, error) {
 	row, err := r.queries.GetPayPeriodByEmployeePeriod(ctx, db.GetPayPeriodByEmployeePeriodParams{
-		EmployeeID:  employeeID,
-		PeriodStart: conv.PgDateFromTime(periodStart),
-		PeriodEnd:   conv.PgDateFromTime(periodEnd),
+		EmployeeID:   employeeID,
+		PeriodStart:  conv.PgDateFromTime(periodStart),
+		PeriodEnd:    conv.PgDateFromTime(periodEnd),
+		PayrollGroup: payrollGroup,
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -708,6 +716,8 @@ func (r *salaryTxRepo) GetPayPeriodByEmployeePeriod(
 		fullName(row.EmployeeFirstName, row.EmployeeLastName),
 		row.PeriodStart,
 		row.PeriodEnd,
+		row.PayrollGroup,
+		row.CutoffAt,
 		string(row.Status),
 		row.BaseGrossAmount,
 		row.IrregularGrossAmount,
@@ -727,7 +737,7 @@ func (r *salaryTxRepo) LockPayrollOvertimeEntries(
 	ids, err := r.queries.LockPayrollOvertimeEntries(ctx, db.LockPayrollOvertimeEntriesParams{
 		EmployeeID:  params.EmployeeID,
 		PeriodStart: conv.PgDateFromTime(params.PeriodStart),
-		PeriodEnd:   conv.PgDateFromTime(params.PeriodEnd),
+		CutoffDate:  conv.PgDateFromTime(params.PeriodEnd),
 	})
 	if err != nil {
 		return nil, err
@@ -742,7 +752,8 @@ func (r *salaryTxRepo) LockPayrollPreviewWorkItems(
 	rows, err := r.queries.LockPayrollPreviewWorkItems(ctx, db.LockPayrollPreviewWorkItemsParams{
 		EmployeeID:  params.EmployeeID,
 		PeriodStart: conv.PgTimestamptzFromTime(params.PeriodStart),
-		PeriodEnd:   conv.PgTimestamptzFromTime(params.PeriodEnd),
+		CutoffAt:    conv.PgTimestamptzFromTime(params.PeriodEnd),
+		CutoffDate:  conv.PgDateFromTime(params.PeriodEnd),
 	})
 	if err != nil {
 		return nil, err
@@ -765,6 +776,8 @@ func (r *salaryTxRepo) CreatePayPeriod(
 		EmployeeID:           params.EmployeeID,
 		PeriodStart:          conv.PgDateFromTime(params.PeriodStart),
 		PeriodEnd:            conv.PgDateFromTime(params.PeriodEnd),
+		PayrollGroup:         params.PayrollGroup,
+		CutoffAt:             conv.PgTimestamptzFromTime(params.CutoffAt),
 		BaseGrossAmount:      preview.BaseGrossAmount,
 		IrregularGrossAmount: preview.IrregularGrossAmount,
 		GrossAmount:          preview.GrossAmount,
@@ -783,6 +796,8 @@ func (r *salaryTxRepo) CreatePayPeriod(
 		preview.EmployeeName,
 		row.PeriodStart,
 		row.PeriodEnd,
+		row.PayrollGroup,
+		row.CutoffAt,
 		string(row.Status),
 		row.BaseGrossAmount,
 		row.IrregularGrossAmount,
@@ -833,6 +848,17 @@ func (r *salaryTxRepo) AssignOvertimeEntriesToPayPeriod(
 	})
 }
 
+func (r *salaryTxRepo) AssignSchedulesToPayPeriod(
+	ctx context.Context,
+	payPeriodID uuid.UUID,
+	scheduleIDs []uuid.UUID,
+) error {
+	return r.queries.AssignSchedulesToPayPeriod(ctx, db.AssignSchedulesToPayPeriodParams{
+		PayPeriodID: &payPeriodID,
+		ScheduleIds: scheduleIDs,
+	})
+}
+
 func (r *salaryTxRepo) AssignLeavePayoutRequestsToPayPeriod(
 	ctx context.Context,
 	payPeriodID uuid.UUID,
@@ -864,6 +890,8 @@ func (r *salaryTxRepo) GetPayPeriodForUpdate(
 		"",
 		row.PeriodStart,
 		row.PeriodEnd,
+		row.PayrollGroup,
+		row.CutoffAt,
 		string(row.Status),
 		row.BaseGrossAmount,
 		row.IrregularGrossAmount,
@@ -893,6 +921,8 @@ func (r *salaryTxRepo) MarkPayPeriodPaid(
 		"",
 		row.PeriodStart,
 		row.PeriodEnd,
+		row.PayrollGroup,
+		row.CutoffAt,
 		string(row.Status),
 		row.BaseGrossAmount,
 		row.IrregularGrossAmount,
@@ -926,6 +956,8 @@ func toDomainPayPeriod(
 	employeeName string,
 	periodStart pgtype.Date,
 	periodEnd pgtype.Date,
+	payrollGroup string,
+	cutoffAt pgtype.Timestamptz,
 	status string,
 	baseGrossAmount float64,
 	irregularGrossAmount float64,
@@ -941,6 +973,8 @@ func toDomainPayPeriod(
 		EmployeeName:         employeeName,
 		PeriodStart:          conv.TimeFromPgDate(periodStart),
 		PeriodEnd:            conv.TimeFromPgDate(periodEnd),
+		PayrollGroup:         payrollGroup,
+		CutoffAt:             timePtrFromPgTimestamptz(cutoffAt),
 		Status:               status,
 		BaseGrossAmount:      baseGrossAmount,
 		IrregularGrossAmount: irregularGrossAmount,

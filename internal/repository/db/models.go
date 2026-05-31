@@ -2022,6 +2022,8 @@ type PayPeriod struct {
 	EmployeeID           uuid.UUID           `json:"employee_id"`
 	PeriodStart          pgtype.Date         `json:"period_start"`
 	PeriodEnd            pgtype.Date         `json:"period_end"`
+	PayrollGroup         string              `json:"payroll_group"`
+	CutoffAt             pgtype.Timestamptz  `json:"cutoff_at"`
 	Status               PayPeriodStatusEnum `json:"status"`
 	BaseGrossAmount      float64             `json:"base_gross_amount"`
 	IrregularGrossAmount float64             `json:"irregular_gross_amount"`
@@ -2163,6 +2165,7 @@ type Schedule struct {
 	IsCustom               bool               `json:"is_custom"`
 	StartDatetime          pgtype.Timestamptz `json:"start_datetime"`
 	EndDatetime            pgtype.Timestamptz `json:"end_datetime"`
+	PaidPeriodID           *uuid.UUID         `json:"paid_period_id"`
 	CreatedByEmployeeID    uuid.UUID          `json:"created_by_employee_id"`
 	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`

@@ -48,11 +48,31 @@ func (q *Queries) AssignOvertimeEntriesToPayPeriod(ctx context.Context, arg Assi
 	return err
 }
 
+const assignSchedulesToPayPeriod = `-- name: AssignSchedulesToPayPeriod :exec
+UPDATE schedules
+SET
+    paid_period_id = $1,
+    updated_at = NOW()
+WHERE id = ANY($2::uuid[])
+`
+
+type AssignSchedulesToPayPeriodParams struct {
+	PayPeriodID *uuid.UUID  `json:"pay_period_id"`
+	ScheduleIds []uuid.UUID `json:"schedule_ids"`
+}
+
+func (q *Queries) AssignSchedulesToPayPeriod(ctx context.Context, arg AssignSchedulesToPayPeriodParams) error {
+	_, err := q.db.Exec(ctx, assignSchedulesToPayPeriod, arg.PayPeriodID, arg.ScheduleIds)
+	return err
+}
+
 const createPayPeriod = `-- name: CreatePayPeriod :one
 INSERT INTO pay_periods (
     employee_id,
     period_start,
     period_end,
+    payroll_group,
+    cutoff_at,
     status,
     base_gross_amount,
     irregular_gross_amount,
@@ -62,23 +82,27 @@ INSERT INTO pay_periods (
     $1,
     $2,
     $3,
-    'draft'::pay_period_status_enum,
     $4,
     $5,
+    'draft'::pay_period_status_enum,
     $6,
-    $7
+    $7,
+    $8,
+    $9
 )
-RETURNING id, employee_id, period_start, period_end, status, base_gross_amount, irregular_gross_amount, gross_amount, paid_at, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, period_start, period_end, payroll_group, cutoff_at, status, base_gross_amount, irregular_gross_amount, gross_amount, paid_at, created_by_employee_id, created_at, updated_at
 `
 
 type CreatePayPeriodParams struct {
-	EmployeeID           uuid.UUID   `json:"employee_id"`
-	PeriodStart          pgtype.Date `json:"period_start"`
-	PeriodEnd            pgtype.Date `json:"period_end"`
-	BaseGrossAmount      float64     `json:"base_gross_amount"`
-	IrregularGrossAmount float64     `json:"irregular_gross_amount"`
-	GrossAmount          float64     `json:"gross_amount"`
-	CreatedByEmployeeID  *uuid.UUID  `json:"created_by_employee_id"`
+	EmployeeID           uuid.UUID          `json:"employee_id"`
+	PeriodStart          pgtype.Date        `json:"period_start"`
+	PeriodEnd            pgtype.Date        `json:"period_end"`
+	PayrollGroup         string             `json:"payroll_group"`
+	CutoffAt             pgtype.Timestamptz `json:"cutoff_at"`
+	BaseGrossAmount      float64            `json:"base_gross_amount"`
+	IrregularGrossAmount float64            `json:"irregular_gross_amount"`
+	GrossAmount          float64            `json:"gross_amount"`
+	CreatedByEmployeeID  *uuid.UUID         `json:"created_by_employee_id"`
 }
 
 func (q *Queries) CreatePayPeriod(ctx context.Context, arg CreatePayPeriodParams) (PayPeriod, error) {
@@ -86,6 +110,8 @@ func (q *Queries) CreatePayPeriod(ctx context.Context, arg CreatePayPeriodParams
 		arg.EmployeeID,
 		arg.PeriodStart,
 		arg.PeriodEnd,
+		arg.PayrollGroup,
+		arg.CutoffAt,
 		arg.BaseGrossAmount,
 		arg.IrregularGrossAmount,
 		arg.GrossAmount,
@@ -97,6 +123,8 @@ func (q *Queries) CreatePayPeriod(ctx context.Context, arg CreatePayPeriodParams
 		&i.EmployeeID,
 		&i.PeriodStart,
 		&i.PeriodEnd,
+		&i.PayrollGroup,
+		&i.CutoffAt,
 		&i.Status,
 		&i.BaseGrossAmount,
 		&i.IrregularGrossAmount,
@@ -204,6 +232,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,
@@ -217,12 +247,14 @@ JOIN employee_profile ep ON ep.id = pp.employee_id
 WHERE pp.employee_id = $1
   AND pp.period_start = $2
   AND pp.period_end = $3
+  AND pp.payroll_group = $4
 `
 
 type GetPayPeriodByEmployeePeriodParams struct {
-	EmployeeID  uuid.UUID   `json:"employee_id"`
-	PeriodStart pgtype.Date `json:"period_start"`
-	PeriodEnd   pgtype.Date `json:"period_end"`
+	EmployeeID   uuid.UUID   `json:"employee_id"`
+	PeriodStart  pgtype.Date `json:"period_start"`
+	PeriodEnd    pgtype.Date `json:"period_end"`
+	PayrollGroup string      `json:"payroll_group"`
 }
 
 type GetPayPeriodByEmployeePeriodRow struct {
@@ -232,6 +264,8 @@ type GetPayPeriodByEmployeePeriodRow struct {
 	EmployeeLastName     string              `json:"employee_last_name"`
 	PeriodStart          pgtype.Date         `json:"period_start"`
 	PeriodEnd            pgtype.Date         `json:"period_end"`
+	PayrollGroup         string              `json:"payroll_group"`
+	CutoffAt             pgtype.Timestamptz  `json:"cutoff_at"`
 	Status               PayPeriodStatusEnum `json:"status"`
 	BaseGrossAmount      float64             `json:"base_gross_amount"`
 	IrregularGrossAmount float64             `json:"irregular_gross_amount"`
@@ -243,7 +277,12 @@ type GetPayPeriodByEmployeePeriodRow struct {
 }
 
 func (q *Queries) GetPayPeriodByEmployeePeriod(ctx context.Context, arg GetPayPeriodByEmployeePeriodParams) (GetPayPeriodByEmployeePeriodRow, error) {
-	row := q.db.QueryRow(ctx, getPayPeriodByEmployeePeriod, arg.EmployeeID, arg.PeriodStart, arg.PeriodEnd)
+	row := q.db.QueryRow(ctx, getPayPeriodByEmployeePeriod,
+		arg.EmployeeID,
+		arg.PeriodStart,
+		arg.PeriodEnd,
+		arg.PayrollGroup,
+	)
 	var i GetPayPeriodByEmployeePeriodRow
 	err := row.Scan(
 		&i.ID,
@@ -252,6 +291,8 @@ func (q *Queries) GetPayPeriodByEmployeePeriod(ctx context.Context, arg GetPayPe
 		&i.EmployeeLastName,
 		&i.PeriodStart,
 		&i.PeriodEnd,
+		&i.PayrollGroup,
+		&i.CutoffAt,
 		&i.Status,
 		&i.BaseGrossAmount,
 		&i.IrregularGrossAmount,
@@ -272,6 +313,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,
@@ -292,6 +335,8 @@ type GetPayPeriodByIDRow struct {
 	EmployeeLastName     string              `json:"employee_last_name"`
 	PeriodStart          pgtype.Date         `json:"period_start"`
 	PeriodEnd            pgtype.Date         `json:"period_end"`
+	PayrollGroup         string              `json:"payroll_group"`
+	CutoffAt             pgtype.Timestamptz  `json:"cutoff_at"`
 	Status               PayPeriodStatusEnum `json:"status"`
 	BaseGrossAmount      float64             `json:"base_gross_amount"`
 	IrregularGrossAmount float64             `json:"irregular_gross_amount"`
@@ -312,6 +357,8 @@ func (q *Queries) GetPayPeriodByID(ctx context.Context, id uuid.UUID) (GetPayPer
 		&i.EmployeeLastName,
 		&i.PeriodStart,
 		&i.PeriodEnd,
+		&i.PayrollGroup,
+		&i.CutoffAt,
 		&i.Status,
 		&i.BaseGrossAmount,
 		&i.IrregularGrossAmount,
@@ -392,6 +439,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,
@@ -433,6 +482,8 @@ type ListPayPeriodsPaginatedRow struct {
 	EmployeeLastName     string              `json:"employee_last_name"`
 	PeriodStart          pgtype.Date         `json:"period_start"`
 	PeriodEnd            pgtype.Date         `json:"period_end"`
+	PayrollGroup         string              `json:"payroll_group"`
+	CutoffAt             pgtype.Timestamptz  `json:"cutoff_at"`
 	Status               PayPeriodStatusEnum `json:"status"`
 	BaseGrossAmount      float64             `json:"base_gross_amount"`
 	IrregularGrossAmount float64             `json:"irregular_gross_amount"`
@@ -465,6 +516,8 @@ func (q *Queries) ListPayPeriodsPaginated(ctx context.Context, arg ListPayPeriod
 			&i.EmployeeLastName,
 			&i.PeriodStart,
 			&i.PeriodEnd,
+			&i.PayrollGroup,
+			&i.CutoffAt,
 			&i.Status,
 			&i.BaseGrossAmount,
 			&i.IrregularGrossAmount,
@@ -486,7 +539,7 @@ func (q *Queries) ListPayPeriodsPaginated(ctx context.Context, arg ListPayPeriod
 }
 
 const lockPayPeriodByID = `-- name: LockPayPeriodByID :one
-SELECT id, employee_id, period_start, period_end, status, base_gross_amount, irregular_gross_amount, gross_amount, paid_at, created_by_employee_id, created_at, updated_at
+SELECT id, employee_id, period_start, period_end, payroll_group, cutoff_at, status, base_gross_amount, irregular_gross_amount, gross_amount, paid_at, created_by_employee_id, created_at, updated_at
 FROM pay_periods
 WHERE id = $1
 FOR UPDATE
@@ -500,6 +553,8 @@ func (q *Queries) LockPayPeriodByID(ctx context.Context, id uuid.UUID) (PayPerio
 		&i.EmployeeID,
 		&i.PeriodStart,
 		&i.PeriodEnd,
+		&i.PayrollGroup,
+		&i.CutoffAt,
 		&i.Status,
 		&i.BaseGrossAmount,
 		&i.IrregularGrossAmount,
@@ -526,11 +581,11 @@ FOR UPDATE
 type LockPayrollOvertimeEntriesParams struct {
 	EmployeeID  uuid.UUID   `json:"employee_id"`
 	PeriodStart pgtype.Date `json:"period_start"`
-	PeriodEnd   pgtype.Date `json:"period_end"`
+	CutoffDate  pgtype.Date `json:"cutoff_date"`
 }
 
 func (q *Queries) LockPayrollOvertimeEntries(ctx context.Context, arg LockPayrollOvertimeEntriesParams) ([]uuid.UUID, error) {
-	rows, err := q.db.Query(ctx, lockPayrollOvertimeEntries, arg.EmployeeID, arg.PeriodStart, arg.PeriodEnd)
+	rows, err := q.db.Query(ctx, lockPayrollOvertimeEntries, arg.EmployeeID, arg.PeriodStart, arg.CutoffDate)
 	if err != nil {
 		return nil, err
 	}
@@ -601,7 +656,8 @@ WITH schedule_items AS (
     JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
     WHERE s.employee_id = $1
       AND DATE(s.start_datetime) >= $2
-      AND DATE(s.start_datetime) <= $3
+      AND s.end_datetime <= $3
+      AND s.paid_period_id IS NULL
 ),
 overtime_items AS (
     SELECT
@@ -656,7 +712,7 @@ overtime_items AS (
       AND oe.status = 'approved'::overtime_status_enum
       AND oe.paid_period_id IS NULL
       AND oe.entry_date >= $2
-      AND oe.entry_date <= $3
+      AND oe.entry_date <= $4
 ),
 leave_payout_items AS (
     SELECT
@@ -694,7 +750,7 @@ leave_payout_items AS (
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
       AND lpr.salary_month >= $2
-      AND lpr.salary_month <= $3
+      AND lpr.salary_month <= $4
 )
 SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, leave_payout_request_id, contract_type, contract_rate, gross_amount_override, irregular_hours_profile FROM schedule_items
 UNION ALL
@@ -707,7 +763,8 @@ ORDER BY work_date ASC, source_type ASC, source_id ASC
 type LockPayrollPreviewWorkItemsParams struct {
 	EmployeeID  uuid.UUID          `json:"employee_id"`
 	PeriodStart pgtype.Timestamptz `json:"period_start"`
-	PeriodEnd   pgtype.Timestamptz `json:"period_end"`
+	CutoffAt    pgtype.Timestamptz `json:"cutoff_at"`
+	CutoffDate  pgtype.Date        `json:"cutoff_date"`
 }
 
 type LockPayrollPreviewWorkItemsRow struct {
@@ -732,7 +789,12 @@ type LockPayrollPreviewWorkItemsRow struct {
 }
 
 func (q *Queries) LockPayrollPreviewWorkItems(ctx context.Context, arg LockPayrollPreviewWorkItemsParams) ([]LockPayrollPreviewWorkItemsRow, error) {
-	rows, err := q.db.Query(ctx, lockPayrollPreviewWorkItems, arg.EmployeeID, arg.PeriodStart, arg.PeriodEnd)
+	rows, err := q.db.Query(ctx, lockPayrollPreviewWorkItems,
+		arg.EmployeeID,
+		arg.PeriodStart,
+		arg.CutoffAt,
+		arg.CutoffDate,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -798,7 +860,7 @@ SET
     paid_at = NOW(),
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, employee_id, period_start, period_end, status, base_gross_amount, irregular_gross_amount, gross_amount, paid_at, created_by_employee_id, created_at, updated_at
+RETURNING id, employee_id, period_start, period_end, payroll_group, cutoff_at, status, base_gross_amount, irregular_gross_amount, gross_amount, paid_at, created_by_employee_id, created_at, updated_at
 `
 
 func (q *Queries) MarkPayPeriodPaid(ctx context.Context, id uuid.UUID) (PayPeriod, error) {
@@ -809,6 +871,8 @@ func (q *Queries) MarkPayPeriodPaid(ctx context.Context, id uuid.UUID) (PayPerio
 		&i.EmployeeID,
 		&i.PeriodStart,
 		&i.PeriodEnd,
+		&i.PayrollGroup,
+		&i.CutoffAt,
 		&i.Status,
 		&i.BaseGrossAmount,
 		&i.IrregularGrossAmount,

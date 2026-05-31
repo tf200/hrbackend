@@ -28,10 +28,10 @@ WITH inserted_schedule AS (
     ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
     )
-    RETURNING id, employee_id, location_id, location_shift_id, shift_name_snapshot, shift_start_time_snapshot, shift_end_time_snapshot, is_custom, start_datetime, end_datetime, created_by_employee_id, created_at, updated_at
+    RETURNING id, employee_id, location_id, location_shift_id, shift_name_snapshot, shift_start_time_snapshot, shift_end_time_snapshot, is_custom, start_datetime, end_datetime, paid_period_id, created_by_employee_id, created_at, updated_at
 )
 SELECT 
-    s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.created_by_employee_id, s.created_at, s.updated_at,
+    s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.paid_period_id, s.created_by_employee_id, s.created_at, s.updated_at,
     l.name as location_name
 FROM inserted_schedule s
 JOIN location l ON s.location_id = l.id
@@ -61,6 +61,7 @@ type CreateScheduleRow struct {
 	IsCustom               bool               `json:"is_custom"`
 	StartDatetime          pgtype.Timestamptz `json:"start_datetime"`
 	EndDatetime            pgtype.Timestamptz `json:"end_datetime"`
+	PaidPeriodID           *uuid.UUID         `json:"paid_period_id"`
 	CreatedByEmployeeID    uuid.UUID          `json:"created_by_employee_id"`
 	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
@@ -92,6 +93,7 @@ func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) 
 		&i.IsCustom,
 		&i.StartDatetime,
 		&i.EndDatetime,
+		&i.PaidPeriodID,
 		&i.CreatedByEmployeeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -377,7 +379,7 @@ func (q *Queries) GetEmployeeShiftOverviewStats(ctx context.Context, arg GetEmpl
 }
 
 const getScheduleById = `-- name: GetScheduleById :one
-SELECT s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.created_by_employee_id, s.created_at, s.updated_at,
+SELECT s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.paid_period_id, s.created_by_employee_id, s.created_at, s.updated_at,
     e.first_name AS employee_first_name,
     e.last_name AS employee_last_name,
     l.name AS location_name,
@@ -402,6 +404,7 @@ type GetScheduleByIdRow struct {
 	IsCustom               bool               `json:"is_custom"`
 	StartDatetime          pgtype.Timestamptz `json:"start_datetime"`
 	EndDatetime            pgtype.Timestamptz `json:"end_datetime"`
+	PaidPeriodID           *uuid.UUID         `json:"paid_period_id"`
 	CreatedByEmployeeID    uuid.UUID          `json:"created_by_employee_id"`
 	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
@@ -426,6 +429,7 @@ func (q *Queries) GetScheduleById(ctx context.Context, id uuid.UUID) (GetSchedul
 		&i.IsCustom,
 		&i.StartDatetime,
 		&i.EndDatetime,
+		&i.PaidPeriodID,
 		&i.CreatedByEmployeeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -890,10 +894,10 @@ WITH updated_schedule AS (
         is_custom = $10,
         updated_at = NOW()
     WHERE schedules.id = $1
-    RETURNING id, employee_id, location_id, location_shift_id, shift_name_snapshot, shift_start_time_snapshot, shift_end_time_snapshot, is_custom, start_datetime, end_datetime, created_by_employee_id, created_at, updated_at
+    RETURNING id, employee_id, location_id, location_shift_id, shift_name_snapshot, shift_start_time_snapshot, shift_end_time_snapshot, is_custom, start_datetime, end_datetime, paid_period_id, created_by_employee_id, created_at, updated_at
 )
 SELECT 
-    s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.created_by_employee_id, s.created_at, s.updated_at,
+    s.id, s.employee_id, s.location_id, s.location_shift_id, s.shift_name_snapshot, s.shift_start_time_snapshot, s.shift_end_time_snapshot, s.is_custom, s.start_datetime, s.end_datetime, s.paid_period_id, s.created_by_employee_id, s.created_at, s.updated_at,
     l.name as location_name
 FROM updated_schedule s
 JOIN location l ON s.location_id = l.id
@@ -923,6 +927,7 @@ type UpdateScheduleRow struct {
 	IsCustom               bool               `json:"is_custom"`
 	StartDatetime          pgtype.Timestamptz `json:"start_datetime"`
 	EndDatetime            pgtype.Timestamptz `json:"end_datetime"`
+	PaidPeriodID           *uuid.UUID         `json:"paid_period_id"`
 	CreatedByEmployeeID    uuid.UUID          `json:"created_by_employee_id"`
 	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
@@ -954,6 +959,7 @@ func (q *Queries) UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) 
 		&i.IsCustom,
 		&i.StartDatetime,
 		&i.EndDatetime,
+		&i.PaidPeriodID,
 		&i.CreatedByEmployeeID,
 		&i.CreatedAt,
 		&i.UpdatedAt,

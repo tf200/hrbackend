@@ -53,6 +53,9 @@ const (
 	PayPeriodStatusDraft = "draft"
 	PayPeriodStatusPaid  = "paid"
 
+	PayrollGroupFixed  = "fixed"
+	PayrollGroupOnCall = "on_call"
+
 	PayrollSourceSchedule    = "schedule"
 	PayrollSourceOvertime    = "overtime"
 	PayrollSourceLeavePayout = "leave_payout"
@@ -126,6 +129,8 @@ type PayPeriod struct {
 	EmployeeName         string
 	PeriodStart          time.Time
 	PeriodEnd            time.Time
+	PayrollGroup         string
+	CutoffAt             *time.Time
 	Status               string
 	BaseGrossAmount      float64
 	IrregularGrossAmount float64
@@ -189,6 +194,16 @@ type FixedPayrollMonthSummaryPage struct {
 type OnCallPayrollMonthSummaryPage struct {
 	Items      []OnCallPayrollMonthSummaryRow
 	TotalCount int64
+}
+
+type PayrollMonthStats struct {
+	Month                       time.Time
+	TotalBaseContractPay        float64
+	TotalORTPay                 float64
+	TotalOvertimePay            float64
+	TotalRequestedLeaveHoursPay float64
+	TotalRequestedLeaveHours    float64
+	TotalGrossPayable           float64
 }
 
 type PayrollMonthORTOverviewPage struct {
@@ -460,9 +475,38 @@ type PayrollLockedMultiplierSummary struct {
 }
 
 type ClosePayPeriodParams struct {
-	EmployeeID  uuid.UUID
-	PeriodStart time.Time
-	PeriodEnd   time.Time
+	EmployeeID   uuid.UUID
+	PeriodStart  time.Time
+	PeriodEnd    time.Time
+	PayrollGroup string
+	CutoffAt     time.Time
+}
+
+type ClosePayrollMonthParams struct {
+	PayrollGroup string
+	Month        time.Time
+	EmployeeIDs  []uuid.UUID
+	CutoffAt     time.Time
+}
+
+type PayrollMonthCloseEmployeeResult struct {
+	EmployeeID     uuid.UUID
+	EmployeeName   string
+	Status         string
+	Reason         string
+	PayPeriodID    *uuid.UUID
+	GrossAmount    float64
+	PendingEntries int32
+}
+
+type PayrollMonthCloseResult struct {
+	Month        time.Time
+	PayrollGroup string
+	CutoffAt     time.Time
+	ClosedCount  int32
+	SkippedCount int32
+	FailedCount  int32
+	Items        []PayrollMonthCloseEmployeeResult
 }
 
 type ListPayPeriodsParams struct {
@@ -477,6 +521,7 @@ type SalaryTxRepository interface {
 		ctx context.Context,
 		employeeID uuid.UUID,
 		periodStart, periodEnd time.Time,
+		payrollGroup string,
 	) (*PayPeriod, error)
 	LockPayrollOvertimeEntries(
 		ctx context.Context,
@@ -501,6 +546,11 @@ type SalaryTxRepository interface {
 		ctx context.Context,
 		payPeriodID uuid.UUID,
 		overtimeEntryIDs []uuid.UUID,
+	) error
+	AssignSchedulesToPayPeriod(
+		ctx context.Context,
+		payPeriodID uuid.UUID,
+		scheduleIDs []uuid.UUID,
 	) error
 	AssignLeavePayoutRequestsToPayPeriod(
 		ctx context.Context,
@@ -605,6 +655,15 @@ type SalaryService interface {
 		adminEmployeeID uuid.UUID,
 		params ClosePayPeriodParams,
 	) (*PayPeriod, error)
+	PreviewPayrollMonthClose(
+		ctx context.Context,
+		params ClosePayrollMonthParams,
+	) (*PayrollMonthCloseResult, error)
+	ClosePayrollMonthByAdmin(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		params ClosePayrollMonthParams,
+	) (*PayrollMonthCloseResult, error)
 	GetPayPeriodByID(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	ListPayPeriods(ctx context.Context, params ListPayPeriodsParams) (*PayPeriodPage, error)
 	MarkPayPeriodPaidByAdmin(
@@ -619,6 +678,14 @@ type SalaryService interface {
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
 	) (*OnCallPayrollMonthSummaryPage, error)
+	GetFixedPayrollMonthStats(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+	) (*PayrollMonthStats, error)
+	GetOnCallPayrollMonthStats(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+	) (*PayrollMonthStats, error)
 	GetPayrollMonthORTOverview(
 		ctx context.Context,
 		params PayrollMonthORTOverviewParams,

@@ -30,7 +30,7 @@ type salaryScaleStepsResponse struct {
 }
 
 type salaryScaleGroupResponse struct {
-	Scale int32                        `json:"scale"`
+	Scale int32                           `json:"scale"`
 	Steps []salaryScaleStepOptionResponse `json:"steps"`
 }
 
@@ -45,12 +45,12 @@ type salaryScaleStepOptionResponse struct {
 }
 
 type salaryScaleStepsMeta struct {
-	SalaryTableID   uuid.UUID `json:"salary_table_id"`
-	CaoCode         string    `json:"cao_code"`
-	SalaryTableName string    `json:"salary_table_name"`
-	EffectiveFrom   time.Time `json:"effective_from"`
+	SalaryTableID   uuid.UUID  `json:"salary_table_id"`
+	CaoCode         string     `json:"cao_code"`
+	SalaryTableName string     `json:"salary_table_name"`
+	EffectiveFrom   time.Time  `json:"effective_from"`
 	EffectiveTo     *time.Time `json:"effective_to"`
-	ScaleCount      int       `json:"scale_count"`
+	ScaleCount      int        `json:"scale_count"`
 }
 
 func toSalaryScaleStepsResponse(result *domain.SalaryScaleStepsResult) salaryScaleStepsResponse {
@@ -91,10 +91,18 @@ func toSalaryScaleStepsResponse(result *domain.SalaryScaleStepsResult) salarySca
 		Meta:   meta,
 	}
 }
+
 type closePayPeriodRequest struct {
-	EmployeeID  uuid.UUID `json:"employee_id"  binding:"required"`
-	PeriodStart string    `json:"period_start" binding:"required,datetime=2006-01-02"`
-	PeriodEnd   string    `json:"period_end"   binding:"required,datetime=2006-01-02"`
+	EmployeeID   uuid.UUID  `json:"employee_id"    binding:"required"`
+	PeriodStart  string     `json:"period_start"   binding:"required,datetime=2006-01-02"`
+	PeriodEnd    string     `json:"period_end"     binding:"required,datetime=2006-01-02"`
+	PayrollGroup string     `json:"payroll_group"  binding:"omitempty,oneof=fixed on_call"`
+	CutoffAt     *time.Time `json:"cutoff_at"      binding:"omitempty"`
+}
+type closePayrollMonthRequest struct {
+	Month       string      `json:"month"        binding:"required,datetime=2006-01"`
+	EmployeeIDs []uuid.UUID `json:"employee_ids" binding:"omitempty"`
+	CutoffAt    *time.Time  `json:"cutoff_at"    binding:"omitempty"`
 }
 type listPayPeriodsRequest struct {
 	httpapi.PageRequest
@@ -103,6 +111,10 @@ type listPayPeriodsRequest struct {
 }
 type payrollMonthSummaryRequest struct {
 	httpapi.PageRequest
+	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
+	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
+}
+type payrollMonthStatsRequest struct {
 	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
@@ -151,6 +163,8 @@ type payPeriodResponse struct {
 	EmployeeName         string                  `json:"employee_name"`
 	PeriodStart          string                  `json:"period_start"`
 	PeriodEnd            string                  `json:"period_end"`
+	PayrollGroup         string                  `json:"payroll_group"`
+	CutoffAt             *time.Time              `json:"cutoff_at,omitempty"`
 	Status               string                  `json:"status"`
 	BaseGrossAmount      float64                 `json:"base_gross_amount"`
 	IrregularGrossAmount float64                 `json:"irregular_gross_amount"`
@@ -160,6 +174,24 @@ type payPeriodResponse struct {
 	CreatedAt            time.Time               `json:"created_at"`
 	UpdatedAt            time.Time               `json:"updated_at"`
 	LineItems            []payPeriodLineResponse `json:"line_items,omitempty"`
+}
+type payrollMonthCloseResultResponse struct {
+	Month        string                                    `json:"month"`
+	PayrollGroup string                                    `json:"payroll_group"`
+	CutoffAt     time.Time                                 `json:"cutoff_at"`
+	ClosedCount  int32                                     `json:"closed_count"`
+	SkippedCount int32                                     `json:"skipped_count"`
+	FailedCount  int32                                     `json:"failed_count"`
+	Items        []payrollMonthCloseEmployeeResultResponse `json:"items"`
+}
+type payrollMonthCloseEmployeeResultResponse struct {
+	EmployeeID     uuid.UUID  `json:"employee_id"`
+	EmployeeName   string     `json:"employee_name"`
+	Status         string     `json:"status"`
+	Reason         string     `json:"reason,omitempty"`
+	PayPeriodID    *uuid.UUID `json:"pay_period_id,omitempty"`
+	GrossAmount    float64    `json:"gross_amount"`
+	PendingEntries int32      `json:"pending_entries"`
 }
 type payPeriodLineResponse struct {
 	ID                    uuid.UUID       `json:"id"`
@@ -282,6 +314,15 @@ type onCallPayrollMonthSummaryResponse struct {
 	OvertimeBreakdown       []onCallPayrollOvertimeBreakdownItem `json:"overtime_breakdown"`
 	LeavePayoutBreakdown    []onCallPayrollLeavePayoutItem       `json:"leave_payout_breakdown"`
 }
+type payrollMonthStatsResponse struct {
+	Month                       string  `json:"month"`
+	TotalBaseContractPay        float64 `json:"total_base_contract_pay"`
+	TotalORTPay                 float64 `json:"total_ort_pay"`
+	TotalOvertimePay            float64 `json:"total_overtime_pay"`
+	TotalRequestedLeaveHoursPay float64 `json:"total_requested_leave_hours_pay"`
+	TotalRequestedLeaveHours    float64 `json:"total_requested_leave_hours"`
+	TotalGrossPayable           float64 `json:"total_gross_payable"`
+}
 type onCallPayrollWorkedHoursItem struct {
 	ScheduleID  *uuid.UUID `json:"schedule_id,omitempty"`
 	WorkDate    string     `json:"work_date"`
@@ -363,6 +404,7 @@ type payrollMonthMultiplierSummaryItem struct {
 	BaseAmount    float64 `json:"base_amount"`
 	PremiumAmount float64 `json:"premium_amount"`
 }
+
 func toClosePayPeriodParams(req closePayPeriodRequest) (domain.ClosePayPeriodParams, error) {
 	periodStart, err := time.Parse(timeEntryDateLayout, req.PeriodStart)
 	if err != nil {
@@ -373,10 +415,32 @@ func toClosePayPeriodParams(req closePayPeriodRequest) (domain.ClosePayPeriodPar
 		return domain.ClosePayPeriodParams{}, err
 	}
 	return domain.ClosePayPeriodParams{
-		EmployeeID:  req.EmployeeID,
-		PeriodStart: periodStart.UTC(),
-		PeriodEnd:   periodEnd.UTC(),
+		EmployeeID:   req.EmployeeID,
+		PeriodStart:  periodStart.UTC(),
+		PeriodEnd:    periodEnd.UTC(),
+		PayrollGroup: req.PayrollGroup,
+		CutoffAt:     timePtrValue(req.CutoffAt),
 	}, nil
+}
+
+func toClosePayrollMonthParams(req closePayrollMonthRequest, payrollGroup string) (domain.ClosePayrollMonthParams, error) {
+	month, err := time.Parse(payoutMonthLayout, req.Month)
+	if err != nil {
+		return domain.ClosePayrollMonthParams{}, err
+	}
+	return domain.ClosePayrollMonthParams{
+		PayrollGroup: payrollGroup,
+		Month:        month.UTC(),
+		EmployeeIDs:  req.EmployeeIDs,
+		CutoffAt:     timePtrValue(req.CutoffAt),
+	}, nil
+}
+
+func timePtrValue(value *time.Time) time.Time {
+	if value == nil {
+		return time.Time{}
+	}
+	return value.UTC()
 }
 func toListPayPeriodsParams(req listPayPeriodsRequest) domain.ListPayPeriodsParams {
 	return domain.ListPayPeriodsParams{
@@ -399,6 +463,18 @@ func toPayrollMonthSummaryParams(
 		Offset:         (req.Page - 1) * req.PageSize,
 		EmployeeSearch: req.EmployeeSearch,
 		ContractType:   nil,
+	}, nil
+}
+func toPayrollMonthStatsParams(
+	req payrollMonthStatsRequest,
+) (domain.PayrollMonthSummaryParams, error) {
+	month, err := time.Parse(payoutMonthLayout, req.Month)
+	if err != nil {
+		return domain.PayrollMonthSummaryParams{}, err
+	}
+	return domain.PayrollMonthSummaryParams{
+		Month:          month.UTC(),
+		EmployeeSearch: req.EmployeeSearch,
 	}, nil
 }
 func toPayrollMonthORTOverviewParams(
@@ -497,6 +573,8 @@ func toPayPeriodResponse(item *domain.PayPeriod) payPeriodResponse {
 		EmployeeName:         item.EmployeeName,
 		PeriodStart:          item.PeriodStart.UTC().Format(timeEntryDateLayout),
 		PeriodEnd:            item.PeriodEnd.UTC().Format(timeEntryDateLayout),
+		PayrollGroup:         item.PayrollGroup,
+		CutoffAt:             item.CutoffAt,
 		Status:               item.Status,
 		BaseGrossAmount:      item.BaseGrossAmount,
 		IrregularGrossAmount: item.IrregularGrossAmount,
@@ -506,6 +584,29 @@ func toPayPeriodResponse(item *domain.PayPeriod) payPeriodResponse {
 		CreatedAt:            item.CreatedAt,
 		UpdatedAt:            item.UpdatedAt,
 		LineItems:            lines,
+	}
+}
+func toPayrollMonthCloseResultResponse(result *domain.PayrollMonthCloseResult) payrollMonthCloseResultResponse {
+	items := make([]payrollMonthCloseEmployeeResultResponse, len(result.Items))
+	for i, item := range result.Items {
+		items[i] = payrollMonthCloseEmployeeResultResponse{
+			EmployeeID:     item.EmployeeID,
+			EmployeeName:   item.EmployeeName,
+			Status:         item.Status,
+			Reason:         item.Reason,
+			PayPeriodID:    item.PayPeriodID,
+			GrossAmount:    item.GrossAmount,
+			PendingEntries: item.PendingEntries,
+		}
+	}
+	return payrollMonthCloseResultResponse{
+		Month:        result.Month.UTC().Format(payoutMonthLayout),
+		PayrollGroup: result.PayrollGroup,
+		CutoffAt:     result.CutoffAt,
+		ClosedCount:  result.ClosedCount,
+		SkippedCount: result.SkippedCount,
+		FailedCount:  result.FailedCount,
+		Items:        items,
 	}
 }
 func toPayPeriodResponses(items []domain.PayPeriod) []payPeriodResponse {
@@ -714,6 +815,17 @@ func toOnCallPayrollMonthSummaryResponses(
 	}
 	return results
 }
+func toPayrollMonthStatsResponse(stats *domain.PayrollMonthStats) payrollMonthStatsResponse {
+	return payrollMonthStatsResponse{
+		Month:                       stats.Month.UTC().Format(payoutMonthLayout),
+		TotalBaseContractPay:        stats.TotalBaseContractPay,
+		TotalORTPay:                 stats.TotalORTPay,
+		TotalOvertimePay:            stats.TotalOvertimePay,
+		TotalRequestedLeaveHoursPay: stats.TotalRequestedLeaveHoursPay,
+		TotalRequestedLeaveHours:    stats.TotalRequestedLeaveHours,
+		TotalGrossPayable:           stats.TotalGrossPayable,
+	}
+}
 func toPayrollMonthMultiplierSummaryItems(
 	items []domain.PayrollMultiplierSummary,
 ) []payrollMonthMultiplierSummaryItem {
@@ -862,6 +974,7 @@ func formatPayoutSalaryMonth(value *time.Time) *string {
 	formatted := value.UTC().Format(payoutMonthLayout)
 	return &formatted
 }
+
 // ---------------------------------------------------------------------------
 // Salary page DTOs
 // ---------------------------------------------------------------------------
@@ -988,6 +1101,7 @@ type salaryPageActionsResponse struct {
 	PDFURL                string `json:"pdf_url"`
 	CanRequestLeavePayout bool   `json:"can_request_leave_payout"`
 }
+
 // ---------------------------------------------------------------------------
 // Salary page mappers
 // ---------------------------------------------------------------------------
@@ -1095,6 +1209,7 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 		},
 	}
 }
+
 // ---------------------------------------------------------------------------
 // Salary page helper functions
 // ---------------------------------------------------------------------------
@@ -1303,12 +1418,14 @@ func lineItemsFromPreview(items []domain.PayrollPreviewLineItem) []salaryPageLin
 	}
 	return res
 }
+
 type payPeriodLineItemMetadata struct {
 	StartTime    string  `json:"start_time"`
 	EndTime      string  `json:"end_time"`
 	PaidMinutes  float64 `json:"paid_minutes"`
 	BreakMinutes int32   `json:"break_minutes"`
 }
+
 func lineItemsFromPayPeriod(items []domain.PayPeriodLineItem) []salaryPageLineItemResponse {
 	res := make([]salaryPageLineItemResponse, 0, len(items))
 	for _, item := range items {

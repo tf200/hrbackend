@@ -173,6 +173,114 @@ func TestSalaryHandlerGetORTRulesSuccess(t *testing.T) {
 	}
 }
 
+func TestSalaryHandlerGetFixedPayrollMonthStatsSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	service := &fakeSalaryService{
+		fixedStats: &domain.PayrollMonthStats{
+			Month:                       time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+			TotalBaseContractPay:        4200,
+			TotalORTPay:                 200,
+			TotalOvertimePay:            125.5,
+			TotalRequestedLeaveHoursPay: 50,
+			TotalRequestedLeaveHours:    2,
+			TotalGrossPayable:           4575.5,
+		},
+	}
+
+	router := gin.New()
+	handler := NewSalaryHandler(service)
+	router.GET("/payroll-month-summary/fixed/stats", handler.GetFixedPayrollMonthStats)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/payroll-month-summary/fixed/stats?month=2026-04&employee_search=ann",
+		nil,
+	)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+	}
+	if service.fixedStatsParams.Month.Format("2006-01") != "2026-04" {
+		t.Fatalf("unexpected parsed month: %s", service.fixedStatsParams.Month.Format("2006-01"))
+	}
+	if service.fixedStatsParams.EmployeeSearch == nil || *service.fixedStatsParams.EmployeeSearch != "ann" {
+		t.Fatalf("unexpected employee_search: %#v", service.fixedStatsParams.EmployeeSearch)
+	}
+
+	var response struct {
+		Success bool                      `json:"success"`
+		Message string                    `json:"message"`
+		Data    payrollMonthStatsResponse `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if !response.Success {
+		t.Fatalf("expected success response")
+	}
+	if response.Message != "Fixed payroll month stats retrieved successfully" {
+		t.Fatalf("unexpected message: %s", response.Message)
+	}
+	if response.Data.Month != "2026-04" || response.Data.TotalORTPay != 200 || response.Data.TotalGrossPayable != 4575.5 {
+		t.Fatalf("unexpected stats response: %#v", response.Data)
+	}
+}
+
+func TestSalaryHandlerGetOnCallPayrollMonthStatsSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	service := &fakeSalaryService{
+		onCallStats: &domain.PayrollMonthStats{
+			Month:                       time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+			TotalBaseContractPay:        850,
+			TotalOvertimePay:            100,
+			TotalRequestedLeaveHoursPay: 25,
+			TotalRequestedLeaveHours:    1,
+			TotalGrossPayable:           975,
+		},
+	}
+
+	router := gin.New()
+	handler := NewSalaryHandler(service)
+	router.GET("/payroll-month-summary/on-call/stats", handler.GetOnCallPayrollMonthStats)
+
+	req := httptest.NewRequest(http.MethodGet, "/payroll-month-summary/on-call/stats?month=2026-04", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+	}
+	if service.onCallStatsParams.Month.Format("2006-01") != "2026-04" {
+		t.Fatalf("unexpected parsed month: %s", service.onCallStatsParams.Month.Format("2006-01"))
+	}
+
+	var response struct {
+		Success bool                      `json:"success"`
+		Message string                    `json:"message"`
+		Data    payrollMonthStatsResponse `json:"data"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if !response.Success {
+		t.Fatalf("expected success response")
+	}
+	if response.Message != "On-call payroll month stats retrieved successfully" {
+		t.Fatalf("unexpected message: %s", response.Message)
+	}
+	if response.Data.Month != "2026-04" || response.Data.TotalBaseContractPay != 850 {
+		t.Fatalf("unexpected stats response: %#v", response.Data)
+	}
+}
+
 func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T) {
 	employeeID := uuid.New()
 	month := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
@@ -239,6 +347,12 @@ type fakeSalaryService struct {
 	ortOverviewErr    error
 	ortRules          *domain.ORTRulesResponse
 	ortRulesErr       error
+	fixedStats        *domain.PayrollMonthStats
+	fixedStatsParams  domain.PayrollMonthSummaryParams
+	fixedStatsErr     error
+	onCallStats       *domain.PayrollMonthStats
+	onCallStatsParams domain.PayrollMonthSummaryParams
+	onCallStatsErr    error
 	salaryPageData    *domain.SalaryPageData
 	salaryPageErr     error
 }
@@ -267,6 +381,19 @@ func (f *fakeSalaryService) ClosePayPeriod(
 	_ uuid.UUID,
 	_ domain.ClosePayPeriodParams,
 ) (*domain.PayPeriod, error) {
+	panic("unexpected call")
+}
+func (f *fakeSalaryService) PreviewPayrollMonthClose(
+	_ context.Context,
+	_ domain.ClosePayrollMonthParams,
+) (*domain.PayrollMonthCloseResult, error) {
+	panic("unexpected call")
+}
+func (f *fakeSalaryService) ClosePayrollMonthByAdmin(
+	_ context.Context,
+	_ uuid.UUID,
+	_ domain.ClosePayrollMonthParams,
+) (*domain.PayrollMonthCloseResult, error) {
 	panic("unexpected call")
 }
 func (f *fakeSalaryService) GetPayPeriodByID(
@@ -298,6 +425,26 @@ func (f *fakeSalaryService) GetOnCallPayrollMonthSummary(
 	_ domain.PayrollMonthSummaryParams,
 ) (*domain.OnCallPayrollMonthSummaryPage, error) {
 	panic("unexpected call")
+}
+func (f *fakeSalaryService) GetFixedPayrollMonthStats(
+	_ context.Context,
+	params domain.PayrollMonthSummaryParams,
+) (*domain.PayrollMonthStats, error) {
+	f.fixedStatsParams = params
+	if f.fixedStatsErr != nil {
+		return nil, f.fixedStatsErr
+	}
+	return f.fixedStats, nil
+}
+func (f *fakeSalaryService) GetOnCallPayrollMonthStats(
+	_ context.Context,
+	params domain.PayrollMonthSummaryParams,
+) (*domain.PayrollMonthStats, error) {
+	f.onCallStatsParams = params
+	if f.onCallStatsErr != nil {
+		return nil, f.onCallStatsErr
+	}
+	return f.onCallStats, nil
 }
 func (f *fakeSalaryService) GetPayrollMonthORTOverview(
 	_ context.Context,

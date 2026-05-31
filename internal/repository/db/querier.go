@@ -30,6 +30,7 @@ type Querier interface {
 	AssignLeavePayoutRequestsToPayPeriod(ctx context.Context, arg AssignLeavePayoutRequestsToPayPeriodParams) error
 	AssignOvertimeEntriesToPayPeriod(ctx context.Context, arg AssignOvertimeEntriesToPayPeriodParams) error
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
+	AssignSchedulesToPayPeriod(ctx context.Context, arg AssignSchedulesToPayPeriodParams) error
 	AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error)
 	CancelExpenseRequest(ctx context.Context, id uuid.UUID) (ExpenseRequest, error)
 	CancelTrainingAssignment(ctx context.Context, arg CancelTrainingAssignmentParams) (EmployeeTrainingAssignment, error)

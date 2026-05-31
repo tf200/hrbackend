@@ -400,6 +400,8 @@ SELECT
     ep.last_name AS employee_last_name,
     pp.period_start,
     pp.period_end,
+    pp.payroll_group,
+    pp.cutoff_at,
     pp.status,
     pp.base_gross_amount,
     pp.irregular_gross_amount,
@@ -429,6 +431,8 @@ type ListPayPeriodsByEmployeeIDsAndRangeRow struct {
 	EmployeeLastName     string              `json:"employee_last_name"`
 	PeriodStart          pgtype.Date         `json:"period_start"`
 	PeriodEnd            pgtype.Date         `json:"period_end"`
+	PayrollGroup         string              `json:"payroll_group"`
+	CutoffAt             pgtype.Timestamptz  `json:"cutoff_at"`
 	Status               PayPeriodStatusEnum `json:"status"`
 	BaseGrossAmount      float64             `json:"base_gross_amount"`
 	IrregularGrossAmount float64             `json:"irregular_gross_amount"`
@@ -455,6 +459,8 @@ func (q *Queries) ListPayPeriodsByEmployeeIDsAndRange(ctx context.Context, arg L
 			&i.EmployeeLastName,
 			&i.PeriodStart,
 			&i.PeriodEnd,
+			&i.PayrollGroup,
+			&i.CutoffAt,
 			&i.Status,
 			&i.BaseGrossAmount,
 			&i.IrregularGrossAmount,
