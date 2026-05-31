@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestPayoutHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
+func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	employeeID := uuid.New()
 	payPeriodID := uuid.New()
-	service := &fakePayoutService{
+	service := &fakeSalaryService{
 		ortOverviewPage: &domain.PayrollMonthORTOverviewPage{
 			Month: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
 			Distribution: []domain.PayrollMultiplierSummary{
@@ -61,7 +61,7 @@ func TestPayoutHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 	}
 
 	router := gin.New()
-	handler := NewPayoutHandler(service)
+	handler := NewSalaryHandler(service)
 	router.GET("/payroll-month-summary/ort-overview", handler.GetPayrollMonthORTOverview)
 
 	req := httptest.NewRequest(
@@ -115,11 +115,11 @@ func TestPayoutHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 	}
 }
 
-func TestPayoutHandlerGetORTRulesSuccess(t *testing.T) {
+func TestSalaryHandlerGetORTRulesSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	roster := domain.IrregularHoursProfileRoster
-	service := &fakePayoutService{
+	service := &fakeSalaryService{
 		ortRules: &domain.ORTRulesResponse{
 			Rules: []domain.ORTRule{
 				{
@@ -138,7 +138,7 @@ func TestPayoutHandlerGetORTRulesSuccess(t *testing.T) {
 	}
 
 	router := gin.New()
-	handler := NewPayoutHandler(service)
+	handler := NewSalaryHandler(service)
 	router.GET("/payroll/ort-rules", handler.GetORTRules)
 
 	req := httptest.NewRequest(http.MethodGet, "/payroll/ort-rules", nil)
@@ -233,7 +233,7 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 	}
 }
 
-type fakePayoutService struct {
+type fakeSalaryService struct {
 	ortOverviewPage   *domain.PayrollMonthORTOverviewPage
 	ortOverviewParams domain.PayrollMonthORTOverviewParams
 	ortOverviewErr    error
@@ -243,117 +243,63 @@ type fakePayoutService struct {
 	salaryPageErr     error
 }
 
-func (f *fakePayoutService) CreatePayoutRequest(
+func (f *fakeSalaryService) ListSalaryScaleSteps(
 	_ context.Context,
-	_ uuid.UUID,
-	_ domain.CreatePayoutRequestParams,
-) (*domain.PayoutRequest, error) {
+	_ domain.ListSalaryScaleStepsParams,
+) (*domain.SalaryScaleStepsResult, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) DecidePayoutRequestByAdmin(
-	_ context.Context,
-	_, _ uuid.UUID,
-	_ domain.DecidePayoutRequestParams,
-) (*domain.PayoutRequest, error) {
-	panic("unexpected call")
-}
-
-func (f *fakePayoutService) MarkPayoutRequestPaidByAdmin(
-	_ context.Context,
-	_, _ uuid.UUID,
-) (*domain.PayoutRequest, error) {
-	panic("unexpected call")
-}
-
-func (f *fakePayoutService) CreateApprovedPayoutRequestByAdmin(
-	_ context.Context,
-	_ uuid.UUID,
-	_ domain.CreatePayoutRequestByAdminParams,
-) (*domain.PayoutRequest, error) {
-	panic("unexpected call")
-}
-
-func (f *fakePayoutService) ListMyPayoutRequests(
-	_ context.Context,
-	_ domain.ListMyPayoutRequestsParams,
-) (*domain.PayoutRequestPage, error) {
-	panic("unexpected call")
-}
-
-func (f *fakePayoutService) ListPayoutRequests(
-	_ context.Context,
-	_ domain.ListPayoutRequestsParams,
-) (*domain.PayoutRequestPage, error) {
-	panic("unexpected call")
-}
-
-func (f *fakePayoutService) PreviewPayroll(
+func (f *fakeSalaryService) PreviewPayroll(
 	_ context.Context,
 	_ domain.PayrollPreviewParams,
 ) (*domain.PayrollPreview, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) PreviewMyPayroll(
+func (f *fakeSalaryService) PreviewMyPayroll(
 	_ context.Context,
 	_ uuid.UUID,
 	_, _ time.Time,
 ) (*domain.PayrollPreview, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) ClosePayPeriod(
+func (f *fakeSalaryService) ClosePayPeriod(
 	_ context.Context,
 	_ uuid.UUID,
 	_ domain.ClosePayPeriodParams,
 ) (*domain.PayPeriod, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) GetPayPeriodByID(
+func (f *fakeSalaryService) GetPayPeriodByID(
 	_ context.Context,
 	_ uuid.UUID,
 ) (*domain.PayPeriod, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) ListPayPeriods(
+func (f *fakeSalaryService) ListPayPeriods(
 	_ context.Context,
 	_ domain.ListPayPeriodsParams,
 ) (*domain.PayPeriodPage, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) MarkPayPeriodPaidByAdmin(
+func (f *fakeSalaryService) MarkPayPeriodPaidByAdmin(
 	_ context.Context,
 	_, _ uuid.UUID,
 ) (*domain.PayPeriod, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) GetPayrollMonthSummary(
-	_ context.Context,
-	_ domain.PayrollMonthSummaryParams,
-) (*domain.PayrollMonthSummaryPage, error) {
-	panic("unexpected call")
-}
-
-func (f *fakePayoutService) GetFixedPayrollMonthSummary(
+func (f *fakeSalaryService) GetFixedPayrollMonthSummary(
 	_ context.Context,
 	_ domain.PayrollMonthSummaryParams,
 ) (*domain.FixedPayrollMonthSummaryPage, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) GetOnCallPayrollMonthSummary(
+func (f *fakeSalaryService) GetOnCallPayrollMonthSummary(
 	_ context.Context,
 	_ domain.PayrollMonthSummaryParams,
 ) (*domain.OnCallPayrollMonthSummaryPage, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) GetPayrollMonthORTOverview(
+func (f *fakeSalaryService) GetPayrollMonthORTOverview(
 	_ context.Context,
 	params domain.PayrollMonthORTOverviewParams,
 ) (*domain.PayrollMonthORTOverviewPage, error) {
@@ -363,15 +309,13 @@ func (f *fakePayoutService) GetPayrollMonthORTOverview(
 	}
 	return f.ortOverviewPage, nil
 }
-
-func (f *fakePayoutService) GetORTRules(_ context.Context) (*domain.ORTRulesResponse, error) {
+func (f *fakeSalaryService) GetORTRules(_ context.Context) (*domain.ORTRulesResponse, error) {
 	if f.ortRulesErr != nil {
 		return nil, f.ortRulesErr
 	}
 	return f.ortRules, nil
 }
-
-func (f *fakePayoutService) GetPayrollMonthDetail(
+func (f *fakeSalaryService) GetPayrollMonthDetail(
 	_ context.Context,
 	_ uuid.UUID,
 	_ time.Time,
@@ -379,8 +323,7 @@ func (f *fakePayoutService) GetPayrollMonthDetail(
 ) (*domain.PayrollMonthDetail, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) ExportPayrollMonthPDF(
+func (f *fakeSalaryService) ExportPayrollMonthPDF(
 	_ context.Context,
 	_ uuid.UUID,
 	_ time.Time,
@@ -388,8 +331,7 @@ func (f *fakePayoutService) ExportPayrollMonthPDF(
 ) ([]byte, string, error) {
 	panic("unexpected call")
 }
-
-func (f *fakePayoutService) GetMySalaryPage(
+func (f *fakeSalaryService) GetMySalaryPage(
 	_ context.Context,
 	_ uuid.UUID,
 	_ time.Time,
@@ -400,7 +342,7 @@ func (f *fakePayoutService) GetMySalaryPage(
 	return f.salaryPageData, nil
 }
 
-var _ domain.PayoutService = (*fakePayoutService)(nil)
+var _ domain.SalaryService = (*fakeSalaryService)(nil)
 
 func stringPtr(v string) *string {
 	return &v

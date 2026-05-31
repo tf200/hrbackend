@@ -23,14 +23,19 @@ func (s *SalaryService) ListSalaryScaleSteps(
 ) (*domain.SalaryScaleStepsResult, error) {
 	result, err := s.repo.ListSalaryScaleSteps(ctx, params)
 	if err != nil {
-		s.logError(ctx, "ListSalaryScaleSteps", err)
+		s.logError(ctx, "ListSalaryScaleSteps", "failed to list salary scale steps", err)
 		return nil, err
 	}
 	return result, nil
 }
 
-func (s *SalaryService) logError(ctx context.Context, method string, err error, fields ...zap.Field) {
+func (s *SalaryService) logError(
+	ctx context.Context,
+	method, message string,
+	err error,
+	fields ...zap.Field,
+) {
 	if s.logger != nil {
-		s.logger.LogError(ctx, "SalaryService."+method, err.Error(), err, fields...)
+		s.logger.LogError(ctx, "SalaryService."+method, message, err, fields...)
 	}
 }

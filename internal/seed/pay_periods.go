@@ -47,8 +47,8 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 	}
 
 	store := dbrepo.NewStoreWithTx(tx)
-	payoutRepo := repository.NewPayoutRepository(store)
-	payoutService := service.NewPayoutService(payoutRepo, nil)
+	salaryRepo := repository.NewSalaryRepository(store)
+	salaryService := service.NewSalaryService(salaryRepo, nil)
 
 	for _, item := range s.Periods {
 		alias := strings.TrimSpace(item.Alias)
@@ -88,12 +88,12 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 			)
 		}
 
-		existing, err := findExistingPayPeriod(ctx, payoutService, employeeID, item.PeriodStart, item.PeriodEnd)
+		existing, err := findExistingPayPeriod(ctx, salaryService, employeeID, item.PeriodStart, item.PeriodEnd)
 		if err != nil {
 			return fmt.Errorf("seed pay_periods[%s]: inspect existing period: %w", alias, err)
 		}
 		if existing == nil {
-			created, err := payoutService.ClosePayPeriod(ctx, creatorID, domain.ClosePayPeriodParams{
+			created, err := salaryService.ClosePayPeriod(ctx, creatorID, domain.ClosePayPeriodParams{
 				EmployeeID:  employeeID,
 				PeriodStart: dateOnlyUTC(item.PeriodStart),
 				PeriodEnd:   dateOnlyUTC(item.PeriodEnd),
@@ -114,7 +114,7 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 			if err != nil {
 				return err
 			}
-			updated, err := payoutService.MarkPayPeriodPaidByAdmin(ctx, paidByEmployeeID, existing.ID)
+			updated, err := salaryService.MarkPayPeriodPaidByAdmin(ctx, paidByEmployeeID, existing.ID)
 			if err != nil {
 				return fmt.Errorf("seed pay_periods[%s]: mark paid: %w", alias, err)
 			}
@@ -135,11 +135,11 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 
 func findExistingPayPeriod(
 	ctx context.Context,
-	payoutService domain.PayoutService,
+	salaryService domain.SalaryService,
 	employeeID uuid.UUID,
 	periodStart, periodEnd time.Time,
 ) (*domain.PayPeriod, error) {
-	page, err := payoutService.ListPayPeriods(ctx, domain.ListPayPeriodsParams{
+	page, err := salaryService.ListPayPeriods(ctx, domain.ListPayPeriodsParams{
 		Limit:  500,
 		Offset: 0,
 	})
