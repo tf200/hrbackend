@@ -46,6 +46,12 @@ DROP TABLE IF EXISTS performance_assessments;
 DROP TABLE IF EXISTS performance_questions;
 DROP TABLE IF EXISTS performance_domains;
 
+-- Payroll tables
+DROP TABLE IF EXISTS pay_period_line_items;
+
+-- Overtime entries table
+DROP TABLE IF EXISTS overtime_entries CASCADE;
+
 -- Leave management tables
 DROP TABLE IF EXISTS leave_payout_requests;
 DROP TABLE IF EXISTS leave_requests;
@@ -60,12 +66,6 @@ DROP TABLE IF EXISTS shift_swap_requests;
 
 -- Late arrivals table
 DROP TABLE IF EXISTS late_arrivals;
-
--- Payroll tables
-DROP TABLE IF EXISTS pay_period_line_items;
-
--- Overtime entries table
-DROP TABLE IF EXISTS overtime_entries CASCADE;
 
 DROP TABLE IF EXISTS pay_periods;
 
