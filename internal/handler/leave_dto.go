@@ -95,14 +95,6 @@ type getLeaveBalanceDetailsRequest struct {
 	Year int32 `form:"year" binding:"omitempty,min=2000,max=2100"`
 }
 
-type adjustLeaveBalanceRequest struct {
-	EmployeeID                  uuid.UUID `json:"employee_id"                     binding:"required"`
-	Year                        int32     `json:"year"                            binding:"required,min=2000,max=2100"`
-	LegalAdjustmentMinutesDelta int32     `json:"legal_adjustment_minutes_delta"`
-	ExtraTotalMinutesDelta      int32     `json:"extra_total_minutes_delta"`
-	Reason                      string    `json:"reason"                          binding:"required"`
-}
-
 type leaveRequestResponse struct {
 	ID                  uuid.UUID  `json:"id"`
 	EmployeeID          uuid.UUID  `json:"employee_id"`
@@ -156,20 +148,13 @@ type leaveRequestStatsResponse struct {
 }
 
 type leaveBalanceResponse struct {
-	ID                     uuid.UUID `json:"id"`
-	EmployeeID             uuid.UUID `json:"employee_id"`
-	EmployeeName           string    `json:"employee_name"`
-	Year                   int32     `json:"year"`
-	LegalTotalMinutes      int32     `json:"legal_total_minutes"`
-	LegalAdjustmentMinutes int32     `json:"legal_adjustment_minutes"`
-	ExtraTotalMinutes      int32     `json:"extra_total_minutes"`
-	LegalUsedMinutes       int32     `json:"legal_used_minutes"`
-	ExtraUsedMinutes       int32     `json:"extra_used_minutes"`
-	LegalRemainingMinutes  int32     `json:"legal_remaining_minutes"`
-	ExtraRemainingMinutes  int32     `json:"extra_remaining_minutes"`
-	TotalRemainingMinutes  int32     `json:"total_remaining_minutes"`
-	CreatedAt              time.Time `json:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at"`
+	EmployeeID            uuid.UUID `json:"employee_id"`
+	EmployeeName          string    `json:"employee_name"`
+	Year                  int32     `json:"year"`
+	LegalTotalMinutes     int32     `json:"legal_total_minutes"`
+	LegalUsedMinutes      int32     `json:"legal_used_minutes"`
+	LegalRemainingMinutes int32     `json:"legal_remaining_minutes"`
+	TotalRemainingMinutes int32     `json:"total_remaining_minutes"`
 }
 
 type leaveBudgetTypeResponse struct {
@@ -192,14 +177,11 @@ type leaveContractDetailsResponse struct {
 }
 
 type managerLeaveBalanceResponse struct {
-	ID           uuid.UUID                    `json:"id"`
 	EmployeeID   uuid.UUID                    `json:"employee_id"`
 	EmployeeName string                       `json:"employee_name"`
 	Year         int32                        `json:"year"`
 	LeaveBudget  leaveBudgetByTypeResponse    `json:"leave_budget"`
 	Contract     leaveContractDetailsResponse `json:"contract"`
-	CreatedAt    time.Time                    `json:"created_at"`
-	UpdatedAt    time.Time                    `json:"updated_at"`
 }
 
 type leaveContractAccrualResponse struct {
@@ -222,10 +204,6 @@ type leaveContractAccrualResponse struct {
 type leaveBalanceDetailsResponse struct {
 	managerLeaveBalanceResponse
 	ContractAccruals []leaveContractAccrualResponse `json:"contract_accruals"`
-}
-
-type adjustLeaveBalanceResponse struct {
-	Balance leaveBalanceResponse `json:"balance"`
 }
 
 func toCreateLeaveRequestParams(
@@ -414,20 +392,6 @@ func toGetLeaveBalanceDetailsParams(
 	}
 }
 
-func toAdjustLeaveBalanceParams(
-	adminEmployeeID uuid.UUID,
-	req adjustLeaveBalanceRequest,
-) domain.AdjustLeaveBalanceParams {
-	return domain.AdjustLeaveBalanceParams{
-		AdminEmployeeID:             adminEmployeeID,
-		EmployeeID:                  req.EmployeeID,
-		Year:                        req.Year,
-		LegalAdjustmentMinutesDelta: req.LegalAdjustmentMinutesDelta,
-		ExtraTotalMinutesDelta:      req.ExtraTotalMinutesDelta,
-		Reason:                      req.Reason,
-	}
-}
-
 func toLeaveRequestResponse(item *domain.LeaveRequest) leaveRequestResponse {
 	return leaveRequestResponse{
 		ID:                  item.ID,
@@ -495,26 +459,18 @@ func toLeaveRequestStatsResponse(stats *domain.LeaveRequestStats) leaveRequestSt
 
 func toLeaveBalanceResponse(item domain.LeaveBalance) leaveBalanceResponse {
 	return leaveBalanceResponse{
-		ID:                     item.ID,
-		EmployeeID:             item.EmployeeID,
-		EmployeeName:           item.EmployeeName,
-		Year:                   item.Year,
-		LegalTotalMinutes:      item.LegalTotalMinutes,
-		LegalAdjustmentMinutes: item.LegalAdjustmentMinutes,
-		ExtraTotalMinutes:      item.ExtraTotalMinutes,
-		LegalUsedMinutes:       item.LegalUsedMinutes,
-		ExtraUsedMinutes:       item.ExtraUsedMinutes,
-		LegalRemainingMinutes:  item.LegalRemainingMinutes,
-		ExtraRemainingMinutes:  item.ExtraRemainingMinutes,
-		TotalRemainingMinutes:  item.TotalRemainingMinutes,
-		CreatedAt:              item.CreatedAt,
-		UpdatedAt:              item.UpdatedAt,
+		EmployeeID:            item.EmployeeID,
+		EmployeeName:          item.EmployeeName,
+		Year:                  item.Year,
+		LegalTotalMinutes:     item.LegalTotalMinutes,
+		LegalUsedMinutes:      item.LegalUsedMinutes,
+		LegalRemainingMinutes: item.LegalRemainingMinutes,
+		TotalRemainingMinutes: item.TotalRemainingMinutes,
 	}
 }
 
 func toManagerLeaveBalanceResponse(item domain.LeaveBalance) managerLeaveBalanceResponse {
 	return managerLeaveBalanceResponse{
-		ID:           item.ID,
 		EmployeeID:   item.EmployeeID,
 		EmployeeName: item.EmployeeName,
 		Year:         item.Year,
@@ -524,11 +480,7 @@ func toManagerLeaveBalanceResponse(item domain.LeaveBalance) managerLeaveBalance
 				UsedMinutes:      item.LegalUsedMinutes,
 				RemainingMinutes: item.LegalRemainingMinutes,
 			},
-			Budget: leaveBudgetTypeResponse{
-				TotalMinutes:     item.ExtraTotalMinutes,
-				UsedMinutes:      item.ExtraUsedMinutes,
-				RemainingMinutes: item.ExtraRemainingMinutes,
-			},
+			Budget: leaveBudgetTypeResponse{},
 		},
 		Contract: leaveContractDetailsResponse{
 			ContractHours:     item.ContractHours,
@@ -537,8 +489,6 @@ func toManagerLeaveBalanceResponse(item domain.LeaveBalance) managerLeaveBalance
 			ContractEndDate:   item.ContractEndDate,
 			EffectiveEndDate:  item.EffectiveEndDate,
 		},
-		CreatedAt: item.CreatedAt,
-		UpdatedAt: item.UpdatedAt,
 	}
 }
 

@@ -98,12 +98,6 @@ func RegisterLeaveRoutes(
 		requirePermission(permission.Leave.Balance.ViewAll),
 		handler.GetEmployeeLeaveBalanceDetails,
 	)
-	rg.POST(
-		"/leave-balances/adjust",
-		auth,
-		requirePermission(permission.Leave.Balance.Adjust),
-		handler.AdjustLeaveBalance,
-	)
 }
 
 type LeaveHandler struct {
@@ -491,33 +485,6 @@ func (h *LeaveHandler) GetEmployeeLeaveBalanceDetails(ctx *gin.Context) {
 			"Leave balance details retrieved successfully",
 		),
 	)
-}
-
-func (h *LeaveHandler) AdjustLeaveBalance(ctx *gin.Context) {
-	var req adjustLeaveBalanceRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
-	if adminEmployeeID == uuid.Nil {
-		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
-		return
-	}
-
-	item, err := h.service.AdjustLeaveBalance(
-		ctx.Request.Context(),
-		toAdjustLeaveBalanceParams(adminEmployeeID, req),
-	)
-	if err != nil {
-		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, httpapi.OK(adjustLeaveBalanceResponse{
-		Balance: toLeaveBalanceResponse(*item),
-	}, "Leave balance adjusted successfully"))
 }
 
 func mapLeaveErrorStatus(err error) int {

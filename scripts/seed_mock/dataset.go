@@ -393,44 +393,7 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 		),
 	)
 
-	result.PayoutRequests = append(result.PayoutRequests,
-		seed.PayoutRequestSeed{
-			Alias:                          "finance_head_paid_payout",
-			EmployeeAlias:                  "finance_head",
-			BalanceAdjustedByEmployeeAlias: "hr_head",
-			RequestedHours:                 6,
-			BalanceYear:                    2026,
-			Status:                         "paid",
-			RequestNote:                    strPtr("Seeded extra-hours payout for payroll visibility"),
-			DecisionByEmployeeAlias:        strPtr("hr_head"),
-			PaidByEmployeeAlias:            strPtr("hr_head"),
-			SalaryMonth:                    timePtr(time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)),
-			DecisionNote:                   strPtr("Approved for July payroll"),
-		},
-		seed.PayoutRequestSeed{
-			Alias:                          "hr_head_approved_payout",
-			EmployeeAlias:                  "hr_head",
-			BalanceAdjustedByEmployeeAlias: "hr_head",
-			RequestedHours:                 4,
-			BalanceYear:                    2026,
-			Status:                         "approved",
-			RequestNote:                    strPtr("Seeded approved payout request"),
-			DecisionByEmployeeAlias:        strPtr("hr_head"),
-			SalaryMonth:                    timePtr(time.Date(2026, time.August, 1, 0, 0, 0, 0, time.UTC)),
-			DecisionNote:                   strPtr("Approved for August payroll"),
-		},
-		seed.PayoutRequestSeed{
-			Alias:                          "operations_head_rejected_payout",
-			EmployeeAlias:                  "operations_head",
-			BalanceAdjustedByEmployeeAlias: "hr_head",
-			RequestedHours:                 5,
-			BalanceYear:                    2026,
-			Status:                         "rejected",
-			RequestNote:                    strPtr("Seeded rejected payout request"),
-			DecisionByEmployeeAlias:        strPtr("hr_head"),
-			DecisionNote:                   strPtr("Rejected pending staffing review"),
-		},
-	)
+
 
 	result.PayPeriods = append(result.PayPeriods,
 		seed.PayPeriodSeed{

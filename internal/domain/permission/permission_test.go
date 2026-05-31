@@ -11,7 +11,7 @@ func TestPermissionValues_NonEmpty(t *testing.T) {
 		Handbook.Step.Create, Handbook.Step.Delete, Handbook.Step.Update, Handbook.Step.View,
 		Handbook.Template.Create, Handbook.Template.Publish, Handbook.Template.Update, Handbook.Template.View,
 		LateArrival.Create, LateArrival.CreateAll, LateArrival.View, LateArrival.ViewAll,
-		Leave.Balance.Adjust, Leave.Balance.View, Leave.Balance.ViewAll,
+		Leave.Balance.View, Leave.Balance.ViewAll,
 		Leave.Request.Create, Leave.Request.Decide, Leave.Request.Update, Leave.Request.UpdateAll, Leave.Request.View, Leave.Request.ViewAll,
 		Location.Create, Location.Delete, Location.Update, Location.View,
 		Payout.Request.Create, Payout.Request.Decide, Payout.Request.MarkPaid, Payout.Request.View, Payout.Request.ViewAll,

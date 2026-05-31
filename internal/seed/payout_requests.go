@@ -142,37 +142,7 @@ func ensureExtraLeaveHoursForPayout(
 	employeeID uuid.UUID,
 	item PayoutRequestSeed,
 ) error {
-	page, err := leaveService.ListMyLeaveBalances(ctx, domain.ListMyLeaveBalancesParams{
-		EmployeeID: employeeID,
-		Year:       int32Ptr(item.BalanceYear),
-		Limit:      10,
-		Offset:     0,
-	})
-	if err != nil {
-		return err
-	}
-
-	var extraRemaining int32
-	if len(page.Items) > 0 {
-		extraRemaining = page.Items[0].ExtraRemainingMinutes / 60
-	}
-	if extraRemaining >= item.RequestedHours {
-		return nil
-	}
-
-	actorID, ok := env.State.EmployeeID(strings.TrimSpace(item.BalanceAdjustedByEmployeeAlias))
-	if !ok {
-		return fmt.Errorf("balance adjustment actor alias %q missing in seed state", item.BalanceAdjustedByEmployeeAlias)
-	}
-
-	_, err = leaveService.AdjustLeaveBalance(ctx, domain.AdjustLeaveBalanceParams{
-		AdminEmployeeID:        actorID,
-		EmployeeID:             employeeID,
-		Year:                   item.BalanceYear,
-		ExtraTotalMinutesDelta: (item.RequestedHours - extraRemaining) * 60,
-		Reason:                 fmt.Sprintf("seed payout request %s extra-hour top-up", strings.TrimSpace(item.Alias)),
-	})
-	return err
+	return nil
 }
 
 func listAllPayoutRequestsForEmployee(

@@ -36,63 +36,7 @@ func (s *PayoutService) CreatePayoutRequest(
 	actorEmployeeID uuid.UUID,
 	params domain.CreatePayoutRequestParams,
 ) (*domain.PayoutRequest, error) {
-	if actorEmployeeID == uuid.Nil {
-		return nil, domain.ErrPayoutRequestInvalidRequest
-	}
-	if params.RequestedHours <= 0 || params.BalanceYear < 2000 || params.BalanceYear > 2100 {
-		return nil, domain.ErrPayoutRequestInvalidRequest
-	}
-
-	params.EmployeeID = actorEmployeeID
-	params.CreatedByEmployeeID = actorEmployeeID
-
-	var created *domain.PayoutRequest
-	err := s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
-		contract, err := tx.GetEmployeePayoutContract(ctx, params.EmployeeID)
-		if err != nil {
-			return err
-		}
-		if !isLoondienstContractType(contract.ContractType) {
-			return domain.ErrPayoutRequestInvalidRequest
-		}
-		if contract.ContractRate == nil || *contract.ContractRate <= 0 {
-			return domain.ErrPayoutRequestInvalidRequest
-		}
-
-		if err := tx.EnsureLeaveBalanceForYear(
-			ctx,
-			params.EmployeeID,
-			params.BalanceYear,
-		); err != nil {
-			return err
-		}
-		balance, err := tx.GetPayoutBalanceForUpdate(ctx, params.EmployeeID, params.BalanceYear)
-		if err != nil {
-			return err
-		}
-		if balance.ExtraRemaining < params.RequestedHours {
-			return domain.ErrPayoutRequestInsufficientHours
-		}
-
-		hourlyRate := roundCurrency(*contract.ContractRate)
-		grossAmount := roundCurrency(float64(params.RequestedHours) * hourlyRate)
-
-		created, err = tx.CreatePayoutRequest(ctx, domain.CreatePayoutRequestTxParams{
-			EmployeeID:          params.EmployeeID,
-			CreatedByEmployeeID: params.CreatedByEmployeeID,
-			RequestedHours:      params.RequestedHours,
-			BalanceYear:         params.BalanceYear,
-			HourlyRate:          hourlyRate,
-			GrossAmount:         grossAmount,
-			RequestNote:         params.RequestNote,
-		})
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return created, nil
+	return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
 }
 
 func (s *PayoutService) CreateApprovedPayoutRequestByAdmin(
@@ -100,79 +44,7 @@ func (s *PayoutService) CreateApprovedPayoutRequestByAdmin(
 	adminEmployeeID uuid.UUID,
 	params domain.CreatePayoutRequestByAdminParams,
 ) (*domain.PayoutRequest, error) {
-	if adminEmployeeID == uuid.Nil || params.EmployeeID == uuid.Nil {
-		return nil, domain.ErrPayoutRequestInvalidRequest
-	}
-	if params.RequestedHours <= 0 || params.BalanceYear < 2000 || params.BalanceYear > 2100 {
-		return nil, domain.ErrPayoutRequestInvalidRequest
-	}
-	if params.SalaryMonth.IsZero() {
-		return nil, domain.ErrPayoutRequestInvalidRequest
-	}
-
-	var result *domain.PayoutRequest
-	err := s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
-		contract, err := tx.GetEmployeePayoutContract(ctx, params.EmployeeID)
-		if err != nil {
-			return err
-		}
-		if !isLoondienstContractType(contract.ContractType) {
-			return domain.ErrPayoutRequestInvalidRequest
-		}
-		if contract.ContractRate == nil || *contract.ContractRate <= 0 {
-			return domain.ErrPayoutRequestInvalidRequest
-		}
-
-		if err := tx.EnsureLeaveBalanceForYear(ctx, params.EmployeeID, params.BalanceYear); err != nil {
-			return err
-		}
-		balance, err := tx.GetPayoutBalanceForUpdate(ctx, params.EmployeeID, params.BalanceYear)
-		if err != nil {
-			return err
-		}
-		if balance.ExtraRemaining < params.RequestedHours {
-			return domain.ErrPayoutRequestInsufficientHours
-		}
-
-		hourlyRate := roundCurrency(*contract.ContractRate)
-		grossAmount := roundCurrency(float64(params.RequestedHours) * hourlyRate)
-
-		created, err := tx.CreatePayoutRequest(ctx, domain.CreatePayoutRequestTxParams{
-			EmployeeID:          params.EmployeeID,
-			CreatedByEmployeeID: adminEmployeeID,
-			RequestedHours:      params.RequestedHours,
-			BalanceYear:         params.BalanceYear,
-			HourlyRate:          hourlyRate,
-			GrossAmount:         grossAmount,
-			RequestNote:         params.RequestNote,
-		})
-		if err != nil {
-			return err
-		}
-
-		if _, err := tx.ApplyLeaveBalanceDeduction(
-			ctx,
-			balance.LeaveBalanceID,
-			payoutHoursToMinutes(params.RequestedHours),
-			0,
-		); err != nil {
-			return err
-		}
-
-		result, err = tx.ApprovePayoutRequest(
-			ctx,
-			created.ID,
-			adminEmployeeID,
-			params.SalaryMonth,
-			params.DecisionNote,
-		)
-		return err
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
 }
 
 func (s *PayoutService) DecidePayoutRequestByAdmin(
@@ -188,8 +60,8 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 	if decision != "approve" && decision != "reject" {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
-	if decision == "approve" && (params.SalaryMonth == nil || params.SalaryMonth.IsZero()) {
-		return nil, domain.ErrPayoutRequestInvalidRequest
+	if decision == "approve" {
+		return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
 	}
 
 	var updated *domain.PayoutRequest
@@ -200,44 +72,6 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 		}
 		if current.Status != domain.PayoutRequestStatusPending {
 			return domain.ErrPayoutRequestStateInvalid
-		}
-
-		if decision == "approve" {
-			if err := tx.EnsureLeaveBalanceForYear(
-				ctx,
-				current.EmployeeID,
-				current.BalanceYear,
-			); err != nil {
-				return err
-			}
-			balance, err := tx.GetPayoutBalanceForUpdate(
-				ctx,
-				current.EmployeeID,
-				current.BalanceYear,
-			)
-			if err != nil {
-				return err
-			}
-			if balance.ExtraRemaining < current.RequestedHours {
-				return domain.ErrPayoutRequestInsufficientHours
-			}
-			if _, err := tx.ApplyLeaveBalanceDeduction(
-				ctx,
-				balance.LeaveBalanceID,
-				payoutHoursToMinutes(current.RequestedHours),
-				0,
-			); err != nil {
-				return err
-			}
-
-			updated, err = tx.ApprovePayoutRequest(
-				ctx,
-				payoutRequestID,
-				adminEmployeeID,
-				params.SalaryMonth.UTC(),
-				params.DecisionNote,
-			)
-			return err
 		}
 
 		updated, err = tx.RejectPayoutRequest(
@@ -1323,13 +1157,8 @@ func (s *PayoutService) GetMySalaryPage(
 		leavePayouts = []domain.PayoutRequest{}
 	}
 
-	// 5. Fetch remaining extra leave balance for the year
-	balanceYear := int32(monthStart.Year())
-	extraRemaining, err := s.repository.GetLeaveBalanceExtraRemaining(ctx, employeeID, balanceYear)
-	if err != nil {
-		s.logError(ctx, "GetMySalaryPage", "failed to get leave balance", err)
-		return nil, fmt.Errorf("failed to get leave balance: %w", err)
-	}
+	// 5. Extra leave is no longer supported
+	extraRemaining := int32(0)
 
 	// 6. Assemble response
 	return &domain.SalaryPageData{

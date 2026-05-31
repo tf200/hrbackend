@@ -24,8 +24,6 @@ type Querier interface {
 	AddPermissionsToRole(ctx context.Context, arg AddPermissionsToRoleParams) error
 	// Bulk-insert explicit overrides for a user (idempotent by replacement flow).
 	AddUserPermissionOverrides(ctx context.Context, arg AddUserPermissionOverridesParams) error
-	ApplyLeaveBalanceDeduction(ctx context.Context, arg ApplyLeaveBalanceDeductionParams) (LeaveBalance, error)
-	ApplyLeaveBalanceTotalAdjustment(ctx context.Context, arg ApplyLeaveBalanceTotalAdjustmentParams) (LeaveBalance, error)
 	ApproveExpenseRequest(ctx context.Context, arg ApproveExpenseRequestParams) (ExpenseRequest, error)
 	ApproveOvertimeEntry(ctx context.Context, arg ApproveOvertimeEntryParams) (ApproveOvertimeEntryRow, error)
 	ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutRequestParams) (LeavePayoutRequest, error)
@@ -42,6 +40,7 @@ type Querier interface {
 	CloneHandbookTemplateToDraft(ctx context.Context, arg CloneHandbookTemplateToDraftParams) (CloneHandbookTemplateToDraftRow, error)
 	CompleteEmployeeHandbookStep(ctx context.Context, arg CompleteEmployeeHandbookStepParams) (EmployeeHandbookStepProgress, error)
 	ComputeLegalLeaveTotalForYear(ctx context.Context, arg ComputeLegalLeaveTotalForYearParams) (int32, error)
+	ComputeLegalLeaveUsedForYear(ctx context.Context, arg ComputeLegalLeaveUsedForYearParams) (int32, error)
 	CountEligibleEmployeesForHandbookAssignment(ctx context.Context, arg CountEligibleEmployeesForHandbookAssignmentParams) (int64, error)
 	CountEmployeeHandbookAssignments(ctx context.Context, arg CountEmployeeHandbookAssignmentsParams) (int64, error)
 	CountEmployeeProfile(ctx context.Context, arg CountEmployeeProfileParams) (int64, error)
@@ -62,7 +61,6 @@ type Querier interface {
 	CreateHandbookStep(ctx context.Context, arg CreateHandbookStepParams) (HandbookStep, error)
 	CreateHandbookTemplateForDepartment(ctx context.Context, arg CreateHandbookTemplateForDepartmentParams) (HandbookTemplate, error)
 	CreateLateArrival(ctx context.Context, arg CreateLateArrivalParams) (LateArrival, error)
-	CreateLeaveBalanceAdjustmentAudit(ctx context.Context, arg CreateLeaveBalanceAdjustmentAuditParams) (LeaveBalanceAdjustment, error)
 	CreateLeaveRequest(ctx context.Context, arg CreateLeaveRequestParams) (LeaveRequest, error)
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	CreateNotifications(ctx context.Context, arg CreateNotificationsParams) ([]Notification, error)
@@ -101,7 +99,6 @@ type Querier interface {
 	DeleteUserPermissionOverrides(ctx context.Context, userID uuid.UUID) error
 	Enable2Fa(ctx context.Context, arg Enable2FaParams) (int64, error)
 	EndEmployeeContractSegment(ctx context.Context, arg EndEmployeeContractSegmentParams) (EmployeeContract, error)
-	EnsureLeaveBalanceForYear(ctx context.Context, arg EnsureLeaveBalanceForYearParams) error
 	ExpirePendingShiftSwapRequests(ctx context.Context) error
 	GetActiveEmployeeContract(ctx context.Context, employeeID uuid.UUID) (EmployeeContract, error)
 	GetActiveEmployeeContractDetail(ctx context.Context, employeeID uuid.UUID) (GetActiveEmployeeContractDetailRow, error)
@@ -216,7 +213,6 @@ type Querier interface {
 	// Returns permissions inherited from the user's assigned role.
 	ListInheritedUserPermissions(ctx context.Context, userID uuid.UUID) ([]ListInheritedUserPermissionsRow, error)
 	ListLateArrivalsPaginated(ctx context.Context, arg ListLateArrivalsPaginatedParams) ([]ListLateArrivalsPaginatedRow, error)
-	ListLeaveBalancesForEmployeeFromYearForUpdate(ctx context.Context, arg ListLeaveBalancesForEmployeeFromYearForUpdateParams) ([]LeaveBalance, error)
 	ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveBalancesPaginatedParams) ([]ListLeaveBalancesPaginatedRow, error)
 	ListLeaveCalendarRows(ctx context.Context, arg ListLeaveCalendarRowsParams) ([]ListLeaveCalendarRowsRow, error)
 	ListLeaveContractAccrualsForYear(ctx context.Context, arg ListLeaveContractAccrualsForYearParams) ([]ListLeaveContractAccrualsForYearRow, error)
@@ -272,8 +268,8 @@ type Querier interface {
 	ListUserIDsByEmployeeIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error)
 	// Returns explicit allow/deny overrides configured for a user.
 	ListUserPermissionOverrides(ctx context.Context, userID uuid.UUID) ([]ListUserPermissionOverridesRow, error)
+	LockEmployeeProfileForLeaveBalance(ctx context.Context, employeeID uuid.UUID) (uuid.UUID, error)
 	LockExpenseRequestByID(ctx context.Context, id uuid.UUID) (ExpenseRequest, error)
-	LockLeaveBalanceByEmployeeYear(ctx context.Context, arg LockLeaveBalanceByEmployeeYearParams) (LeaveBalance, error)
 	LockLeaveRequestByID(ctx context.Context, id uuid.UUID) (LeaveRequest, error)
 	LockOvertimeEntryByID(ctx context.Context, id uuid.UUID) (OvertimeEntry, error)
 	LockPayPeriodByID(ctx context.Context, id uuid.UUID) (PayPeriod, error)

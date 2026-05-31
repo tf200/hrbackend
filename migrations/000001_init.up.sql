@@ -156,7 +156,6 @@ WITH seeded(name, sort_order) AS (
         ('HANDBOOK.TEMPLATE.PUBLISH', 130),
         ('HANDBOOK.TEMPLATE.UPDATE', 140),
         ('HANDBOOK.TEMPLATE.VIEW', 150),
-        ('LEAVE.BALANCE.ADJUST', 160),
         ('LEAVE.BALANCE.VIEW', 170),
         ('LEAVE.BALANCE.VIEW_ALL', 180),
         ('LEAVE.REQUEST.CREATE', 190),
@@ -287,7 +286,6 @@ WHERE p.name IN (
     'HANDBOOK.TEMPLATE.PUBLISH',
     'HANDBOOK.TEMPLATE.UPDATE',
     'HANDBOOK.TEMPLATE.VIEW',
-    'LEAVE.BALANCE.ADJUST',
     'LEAVE.BALANCE.VIEW',
     'LEAVE.BALANCE.VIEW_ALL',
     'LEAVE.REQUEST.CREATE',
@@ -1160,51 +1158,6 @@ INSERT INTO leave_policies (leave_type, requires_approval, deducts_balance, is_a
     ('unpaid', TRUE, FALSE, TRUE),
     ('other', TRUE, FALSE, TRUE);
 
-CREATE TABLE leave_balances (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    year INT NOT NULL,
-    legal_adjustment_minutes INT NOT NULL DEFAULT 0,
-    extra_total_minutes INT NOT NULL DEFAULT 0,
-    legal_used_minutes INT NOT NULL DEFAULT 0,
-    extra_used_minutes INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT leave_balances_unique_employee_year UNIQUE (employee_id, year),
-    CONSTRAINT leave_balances_minutes_valid CHECK (
-        extra_total_minutes >= 0
-        AND legal_used_minutes >= 0
-        AND extra_used_minutes >= 0
-    ),
-    CONSTRAINT leave_balances_extra_usage_not_exceed_total CHECK (
-        extra_used_minutes <= extra_total_minutes
-    )
-);
-
-CREATE INDEX idx_leave_balances_employee_year ON leave_balances(employee_id, year);
-
-CREATE TABLE leave_balance_adjustments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    leave_balance_id UUID NOT NULL REFERENCES leave_balances(id) ON DELETE CASCADE,
-    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    year INT NOT NULL,
-    legal_adjustment_minutes_delta INT NOT NULL DEFAULT 0,
-    extra_total_minutes_delta INT NOT NULL DEFAULT 0,
-    reason TEXT NOT NULL,
-    adjusted_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
-    legal_adjustment_minutes_before INT NOT NULL,
-    extra_total_minutes_before INT NOT NULL,
-    legal_adjustment_minutes_after INT NOT NULL,
-    extra_total_minutes_after INT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT leave_balance_adjustments_non_zero_delta CHECK (
-        legal_adjustment_minutes_delta <> 0 OR extra_total_minutes_delta <> 0
-    )
-);
-
-CREATE INDEX idx_leave_balance_adjustments_employee_year_created_at
-ON leave_balance_adjustments(employee_id, year, created_at DESC);
-
 CREATE OR REPLACE FUNCTION calculate_legal_leave_minutes(p_employee_id UUID, p_year INT, p_as_of TIMESTAMPTZ)
 RETURNS INT AS $$
 DECLARE
@@ -1283,39 +1236,6 @@ BEGIN
     RETURN COALESCE(computed_legal_minutes, 0);
 END;
 $$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION initialize_leave_balance_on_contract_insert()
-RETURNS TRIGGER AS $$
-DECLARE
-    current_year INT;
-BEGIN
-    current_year := EXTRACT(YEAR FROM CURRENT_DATE)::INT;
-
-    INSERT INTO leave_balances (
-        employee_id,
-        year,
-        legal_adjustment_minutes,
-        extra_total_minutes,
-        legal_used_minutes,
-        extra_used_minutes
-    ) VALUES (
-        NEW.employee_id,
-        current_year,
-        0,
-        0,
-        0,
-        0
-    )
-    ON CONFLICT (employee_id, year) DO NOTHING;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_initialize_leave_balance_on_contract_insert
-AFTER INSERT ON employee_contracts
-FOR EACH ROW
-EXECUTE FUNCTION initialize_leave_balance_on_contract_insert();
 
 CREATE TABLE leave_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

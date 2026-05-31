@@ -11,49 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestDecidePayoutRequestByAdminApproveDeductsExtraLeaveBalance(t *testing.T) {
+func TestDecidePayoutRequestByAdminApproveUnavailable(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	requestID := uuid.New()
-	employeeID := uuid.New()
-	balanceID := uuid.New()
 	salaryMonth := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-
-	repo := &fakePayoutRepository{
-		tx: &fakePayoutTxRepository{
-			currentRequest: &domain.PayoutRequest{
-				ID:             requestID,
-				EmployeeID:     employeeID,
-				RequestedHours: 8,
-				BalanceYear:    2026,
-				Status:         domain.PayoutRequestStatusPending,
-			},
-			balance: &domain.PayoutBalanceSnapshot{
-				LeaveBalanceID: balanceID,
-				ExtraRemaining: 16,
-			},
-		},
-	}
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
 	service := NewPayoutService(repo, nil)
 
-	updated, err := service.DecidePayoutRequestByAdmin(ctx, adminID, requestID, domain.DecidePayoutRequestParams{
+	_, err := service.DecidePayoutRequestByAdmin(ctx, adminID, requestID, domain.DecidePayoutRequestParams{
 		Decision:    "approve",
 		SalaryMonth: &salaryMonth,
 	})
-	if err != nil {
-		t.Fatalf("expected approve to succeed, got error: %v", err)
-	}
-	if updated.Status != domain.PayoutRequestStatusApproved {
-		t.Fatalf("expected approved status, got %q", updated.Status)
-	}
-	if repo.tx.deductBalanceID != balanceID {
-		t.Fatalf("expected deduction from balance %s, got %s", balanceID, repo.tx.deductBalanceID)
-	}
-	if repo.tx.deductExtraMinutes != 480 {
-		t.Fatalf("expected 480 deducted extra minutes, got %d", repo.tx.deductExtraMinutes)
-	}
-	if repo.tx.deductLegalMinutes != 0 {
-		t.Fatalf("expected no legal minutes deducted, got %d", repo.tx.deductLegalMinutes)
+	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
+		t.Fatalf("expected unavailable invalid request, got %v", err)
 	}
 }
 
@@ -83,39 +54,23 @@ func TestMarkPayoutRequestPaidByAdminDoesNotDeductLeaveBalanceAgain(t *testing.T
 	if updated.Status != domain.PayoutRequestStatusPaid {
 		t.Fatalf("expected paid status, got %q", updated.Status)
 	}
-	if repo.tx.deductCalls != 0 {
-		t.Fatalf("expected no balance deduction on mark-paid, got %d calls", repo.tx.deductCalls)
-	}
+
 }
 
 type fakePayoutRepository struct {
 	tx *fakePayoutTxRepository
 }
 
-func TestCreateApprovedPayoutRequestByAdmin(t *testing.T) {
+func TestCreateApprovedPayoutRequestByAdminUnavailable(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	employeeID := uuid.New()
-	balanceID := uuid.New()
 	salaryMonth := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-	rate := 100.0
 	requestedHours := int32(8)
-
-	repo := &fakePayoutRepository{
-		tx: &fakePayoutTxRepository{
-			payoutContract: &domain.PayoutContract{
-				ContractType: "permanent",
-				ContractRate: &rate,
-			},
-			balance: &domain.PayoutBalanceSnapshot{
-				LeaveBalanceID: balanceID,
-				ExtraRemaining: 16,
-			},
-		},
-	}
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
 	service := NewPayoutService(repo, nil)
 
-	result, err := service.CreateApprovedPayoutRequestByAdmin(ctx, adminID, domain.CreatePayoutRequestByAdminParams{
+	_, err := service.CreateApprovedPayoutRequestByAdmin(ctx, adminID, domain.CreatePayoutRequestByAdminParams{
 		EmployeeID:     employeeID,
 		RequestedHours: requestedHours,
 		BalanceYear:    2026,
@@ -123,69 +78,16 @@ func TestCreateApprovedPayoutRequestByAdmin(t *testing.T) {
 		RequestNote:    ptrString("admin-initiated"),
 		DecisionNote:   ptrString("approved by admin"),
 	})
-	if err != nil {
-		t.Fatalf("expected success, got error: %v", err)
-	}
-	if result.Status != domain.PayoutRequestStatusApproved {
-		t.Fatalf("expected approved status, got %q", result.Status)
-	}
-	if result.EmployeeID != employeeID {
-		t.Fatalf("expected employee %s, got %s", employeeID, result.EmployeeID)
-	}
-	if result.CreatedByEmployeeID != adminID {
-		t.Fatalf("expected created_by %s, got %s", adminID, result.CreatedByEmployeeID)
-	}
-	if result.DecidedByEmployeeID == nil || *result.DecidedByEmployeeID != adminID {
-		t.Fatalf("expected decided_by %s, got %v", adminID, result.DecidedByEmployeeID)
-	}
-	if result.SalaryMonth == nil || !result.SalaryMonth.Equal(salaryMonth) {
-		t.Fatalf("expected salary_month %v, got %v", salaryMonth, result.SalaryMonth)
-	}
-	if result.HourlyRate != rate {
-		t.Fatalf("expected hourly_rate %f, got %f", rate, result.HourlyRate)
-	}
-	if result.GrossAmount != float64(requestedHours)*rate {
-		t.Fatalf("expected gross_amount %f, got %f", float64(requestedHours)*rate, result.GrossAmount)
-	}
-
-	if repo.tx.deductCalls != 1 {
-		t.Fatalf("expected 1 deduction call, got %d", repo.tx.deductCalls)
-	}
-	if repo.tx.deductBalanceID != balanceID {
-		t.Fatalf("expected deduction from balance %s, got %s", balanceID, repo.tx.deductBalanceID)
-	}
-	if repo.tx.deductExtraMinutes != payoutHoursToMinutes(requestedHours) {
-		t.Fatalf("expected %d deducted extra minutes, got %d", payoutHoursToMinutes(requestedHours), repo.tx.deductExtraMinutes)
-	}
-	if repo.tx.deductLegalMinutes != 0 {
-		t.Fatalf("expected no legal minutes deducted, got %d", repo.tx.deductLegalMinutes)
-	}
-
-	if repo.tx.createPayoutParams.EmployeeID != employeeID {
-		t.Fatalf("expected create payout for employee %s, got %s", employeeID, repo.tx.createPayoutParams.EmployeeID)
-	}
-	if repo.tx.createPayoutParams.CreatedByEmployeeID != adminID {
-		t.Fatalf("expected create payout created_by %s, got %s", adminID, repo.tx.createPayoutParams.CreatedByEmployeeID)
+	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
+		t.Fatalf("expected unavailable invalid request, got %v", err)
 	}
 }
 
-func TestCreateApprovedPayoutRequestByAdminInsufficientHours(t *testing.T) {
+func TestCreateApprovedPayoutRequestByAdminNoLongerChecksExtraHours(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	employeeID := uuid.New()
-	rate := 100.0
-
-	repo := &fakePayoutRepository{
-		tx: &fakePayoutTxRepository{
-			payoutContract: &domain.PayoutContract{
-				ContractType: "permanent",
-				ContractRate: &rate,
-			},
-			balance: &domain.PayoutBalanceSnapshot{
-				ExtraRemaining: 4,
-			},
-		},
-	}
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
 	service := NewPayoutService(repo, nil)
 
 	_, err := service.CreateApprovedPayoutRequestByAdmin(ctx, adminID, domain.CreatePayoutRequestByAdminParams{
@@ -194,11 +96,8 @@ func TestCreateApprovedPayoutRequestByAdminInsufficientHours(t *testing.T) {
 		BalanceYear:    2026,
 		SalaryMonth:    time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
 	})
-	if err == nil {
-		t.Fatal("expected insufficient hours error, got nil")
-	}
-	if !errors.Is(err, domain.ErrPayoutRequestInsufficientHours) {
-		t.Fatalf("expected ErrPayoutRequestInsufficientHours, got %v", err)
+	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
+		t.Fatalf("expected unavailable invalid request, got %v", err)
 	}
 }
 
@@ -290,17 +189,8 @@ func (r *fakePayoutRepository) ListPayoutRequestsByEmployeeAndMonth(context.Cont
 	return nil, nil
 }
 
-func (r *fakePayoutRepository) GetLeaveBalanceExtraRemaining(context.Context, uuid.UUID, int32) (int32, error) {
-	return 0, nil
-}
-
 type fakePayoutTxRepository struct {
 	currentRequest     *domain.PayoutRequest
-	balance            *domain.PayoutBalanceSnapshot
-	deductCalls        int
-	deductBalanceID    uuid.UUID
-	deductExtraMinutes int32
-	deductLegalMinutes int32
 	payoutContract     *domain.PayoutContract
 	createdPayout      *domain.PayoutRequest
 	createPayoutParams domain.CreatePayoutRequestTxParams
@@ -308,14 +198,6 @@ type fakePayoutTxRepository struct {
 
 func (r *fakePayoutTxRepository) GetEmployeePayoutContract(context.Context, uuid.UUID) (*domain.PayoutContract, error) {
 	return r.payoutContract, nil
-}
-
-func (r *fakePayoutTxRepository) EnsureLeaveBalanceForYear(context.Context, uuid.UUID, int32) error {
-	return nil
-}
-
-func (r *fakePayoutTxRepository) GetPayoutBalanceForUpdate(context.Context, uuid.UUID, int32) (*domain.PayoutBalanceSnapshot, error) {
-	return r.balance, nil
 }
 
 func (r *fakePayoutTxRepository) CreatePayoutRequest(_ context.Context, params domain.CreatePayoutRequestTxParams) (*domain.PayoutRequest, error) {
@@ -366,14 +248,6 @@ func (r *fakePayoutTxRepository) MarkPayoutRequestPaid(_ context.Context, _ uuid
 	updated.Status = domain.PayoutRequestStatusPaid
 	updated.PaidByEmployeeID = &paidByEmployeeID
 	return &updated, nil
-}
-
-func (r *fakePayoutTxRepository) ApplyLeaveBalanceDeduction(_ context.Context, balanceID uuid.UUID, extraHours, legalHours int32) (*domain.LeaveBalance, error) {
-	r.deductCalls++
-	r.deductBalanceID = balanceID
-	r.deductExtraMinutes = extraHours
-	r.deductLegalMinutes = legalHours
-	return &domain.LeaveBalance{ID: balanceID}, nil
 }
 
 func (r *fakePayoutTxRepository) GetPayPeriodByEmployeePeriod(context.Context, uuid.UUID, time.Time, time.Time) (*domain.PayPeriod, error) {

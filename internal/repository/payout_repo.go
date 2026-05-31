@@ -714,27 +714,6 @@ func (r *PayoutRepository) ListPayoutRequestsByEmployeeAndMonth(
 	return items, nil
 }
 
-func (r *PayoutRepository) GetLeaveBalanceExtraRemaining(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	year int32,
-) (int32, error) {
-	sql := `
-		SELECT COALESCE(
-			(SELECT (extra_total_minutes - extra_used_minutes) / 60
-			 FROM leave_balances
-			 WHERE employee_id = $1 AND year = $2),
-			0
-		)::INT AS extra_remaining
-	`
-	var extraRemaining int32
-	err := r.store.ConnPool.QueryRow(ctx, sql, employeeID, year).Scan(&extraRemaining)
-	if err != nil {
-		return 0, err
-	}
-	return extraRemaining, nil
-}
-
 type payoutTxRepo struct {
 	queries *db.Queries
 }
@@ -755,41 +734,6 @@ func (r *payoutTxRepo) GetEmployeePayoutContract(
 	return &domain.PayoutContract{
 		ContractType: string(row.ContractType),
 		ContractRate: &contractRate,
-	}, nil
-}
-
-func (r *payoutTxRepo) EnsureLeaveBalanceForYear(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	year int32,
-) error {
-	return r.queries.EnsureLeaveBalanceForYear(ctx, db.EnsureLeaveBalanceForYearParams{
-		EmployeeID: employeeID,
-		Year:       year,
-	})
-}
-
-func (r *payoutTxRepo) GetPayoutBalanceForUpdate(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	year int32,
-) (*domain.PayoutBalanceSnapshot, error) {
-	row, err := r.queries.LockLeaveBalanceByEmployeeYear(
-		ctx,
-		db.LockLeaveBalanceByEmployeeYearParams{
-			EmployeeID: employeeID,
-			Year:       year,
-		},
-	)
-	if err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrPayoutRequestNotFound
-		}
-		return nil, err
-	}
-	return &domain.PayoutBalanceSnapshot{
-		LeaveBalanceID: row.ID,
-		ExtraRemaining: (row.ExtraTotalMinutes - row.ExtraUsedMinutes) / 60,
 	}, nil
 }
 
@@ -885,40 +829,6 @@ func (r *payoutTxRepo) MarkPayoutRequestPaid(
 		return nil, err
 	}
 	model := toDomainPayoutRequestFromRow(row)
-	return &model, nil
-}
-
-func (r *payoutTxRepo) ApplyLeaveBalanceDeduction(
-	ctx context.Context,
-	balanceID uuid.UUID,
-	extraMinutes, legalMinutes int32,
-) (*domain.LeaveBalance, error) {
-	row, err := r.queries.ApplyLeaveBalanceDeduction(ctx, db.ApplyLeaveBalanceDeductionParams{
-		ID:           balanceID,
-		ExtraMinutes: extraMinutes,
-		LegalMinutes: legalMinutes,
-	})
-	if err != nil {
-		return nil, err
-	}
-	model := toDomainLeaveBalance(
-		row.ID,
-		row.EmployeeID,
-		"",
-		row.Year,
-		row.LegalAdjustmentMinutes,
-		row.LegalAdjustmentMinutes,
-		row.ExtraTotalMinutes,
-		row.LegalUsedMinutes,
-		row.ExtraUsedMinutes,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		row.CreatedAt,
-		row.UpdatedAt,
-	)
 	return &model, nil
 }
 

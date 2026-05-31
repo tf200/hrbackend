@@ -9,13 +9,12 @@ import (
 )
 
 var (
-	ErrPayoutRequestInvalidRequest    = errors.New("invalid payout request")
-	ErrPayoutRequestNotFound          = errors.New("payout request not found")
-	ErrPayoutRequestForbidden         = errors.New("payout request is not accessible by the actor")
-	ErrPayoutRequestStateInvalid      = errors.New("payout request is not in an editable state")
-	ErrPayoutRequestInsufficientHours = errors.New("insufficient extra leave balance for payout")
-	ErrPayPeriodNotFound              = errors.New("pay period not found")
-	ErrPayPeriodStateInvalid          = errors.New(
+	ErrPayoutRequestInvalidRequest = errors.New("invalid payout request")
+	ErrPayoutRequestNotFound       = errors.New("payout request not found")
+	ErrPayoutRequestForbidden      = errors.New("payout request is not accessible by the actor")
+	ErrPayoutRequestStateInvalid   = errors.New("payout request is not in an editable state")
+	ErrPayPeriodNotFound           = errors.New("pay period not found")
+	ErrPayPeriodStateInvalid       = errors.New(
 		"pay period is not in a valid state for this operation",
 	)
 	ErrPayPeriodAlreadyExists = errors.New(
@@ -105,11 +104,6 @@ type ListPayoutRequestsParams struct {
 	Offset         int32
 	Status         *string
 	EmployeeSearch *string
-}
-
-type PayoutBalanceSnapshot struct {
-	LeaveBalanceID uuid.UUID
-	ExtraRemaining int32
 }
 
 type PayrollPreviewParams struct {
@@ -528,12 +522,6 @@ type ListPayPeriodsParams struct {
 
 type PayoutTxRepository interface {
 	GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (*PayoutContract, error)
-	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
-	GetPayoutBalanceForUpdate(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		year int32,
-	) (*PayoutBalanceSnapshot, error)
 	CreatePayoutRequest(
 		ctx context.Context,
 		params CreatePayoutRequestTxParams,
@@ -557,11 +545,6 @@ type PayoutTxRepository interface {
 		ctx context.Context,
 		payoutRequestID, paidByEmployeeID uuid.UUID,
 	) (*PayoutRequest, error)
-	ApplyLeaveBalanceDeduction(
-		ctx context.Context,
-		balanceID uuid.UUID,
-		extraHours, legalHours int32,
-	) (*LeaveBalance, error)
 	GetPayPeriodByEmployeePeriod(
 		ctx context.Context,
 		employeeID uuid.UUID,
@@ -698,11 +681,6 @@ type PayoutRepository interface {
 		employeeID uuid.UUID,
 		salaryMonth time.Time,
 	) ([]PayoutRequest, error)
-	GetLeaveBalanceExtraRemaining(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		year int32,
-	) (int32, error)
 }
 
 type PayoutService interface {

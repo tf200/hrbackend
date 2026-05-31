@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"math"
 	"strings"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"hrbackend/pkg/ptr"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -284,22 +282,16 @@ func (r *LeaveRepository) ListLeaveBalances(
 
 	for _, row := range rows {
 		page.Items = append(page.Items, toDomainLeaveBalance(
-			row.ID,
 			row.EmployeeID,
 			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 			row.Year,
 			row.LegalTotalMinutes,
-			row.LegalAdjustmentMinutes,
-			row.ExtraTotalMinutes,
 			row.LegalUsedMinutes,
-			row.ExtraUsedMinutes,
 			row.ContractHours,
 			stringPtr(string(row.ContractType)),
 			conv.TimePtrFromPgDate(row.ContractStartDate),
 			conv.TimePtrFromPgDate(row.ContractEndDate),
 			conv.TimePtrFromPgDate(row.EffectiveEndDate),
-			row.CreatedAt,
-			row.UpdatedAt,
 		))
 	}
 
@@ -329,22 +321,16 @@ func (r *LeaveRepository) ListMyLeaveBalances(
 
 	for _, row := range rows {
 		page.Items = append(page.Items, toDomainLeaveBalance(
-			row.ID,
 			row.EmployeeID,
 			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 			row.Year,
 			row.LegalTotalMinutes,
-			row.LegalAdjustmentMinutes,
-			row.ExtraTotalMinutes,
 			row.LegalUsedMinutes,
-			row.ExtraUsedMinutes,
 			row.ContractHours,
 			stringPtr(string(row.ContractType)),
 			conv.TimePtrFromPgDate(row.ContractStartDate),
 			conv.TimePtrFromPgDate(row.ContractEndDate),
 			conv.TimePtrFromPgDate(row.EffectiveEndDate),
-			row.CreatedAt,
-			row.UpdatedAt,
 		))
 	}
 
@@ -375,22 +361,16 @@ func (r *LeaveRepository) GetLeaveBalanceDetails(
 	}
 
 	balance := toDomainLeaveBalance(
-		row.ID,
 		row.EmployeeID,
 		strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
 		row.Year,
 		row.LegalTotalMinutes,
-		row.LegalAdjustmentMinutes,
-		row.ExtraTotalMinutes,
 		row.LegalUsedMinutes,
-		row.ExtraUsedMinutes,
 		row.ContractHours,
 		stringPtr(string(row.ContractType)),
 		conv.TimePtrFromPgDate(row.ContractStartDate),
 		conv.TimePtrFromPgDate(row.ContractEndDate),
 		conv.TimePtrFromPgDate(row.EffectiveEndDate),
-		row.CreatedAt,
-		row.UpdatedAt,
 	)
 
 	return &domain.LeaveBalanceDetails{
@@ -530,61 +510,17 @@ func (r *leaveTxRepo) GetActiveLeavePolicyByType(
 	}, nil
 }
 
-func (r *leaveTxRepo) EnsureLeaveBalanceForYear(
+func (r *leaveTxRepo) LockEmployeeForLeaveBalance(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	year int32,
 ) error {
-	err := r.queries.EnsureLeaveBalanceForYear(ctx, db.EnsureLeaveBalanceForYearParams{
-		EmployeeID: employeeID,
-		Year:       year,
-	})
+	_, err := r.queries.LockEmployeeProfileForLeaveBalance(ctx, employeeID)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		if isDBNotFound(err) {
 			return domain.ErrLeaveRequestNotFound
 		}
 	}
 	return err
-}
-
-func (r *leaveTxRepo) GetLeaveBalanceForUpdate(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	year int32,
-) (*domain.LeaveBalance, error) {
-	row, err := r.queries.LockLeaveBalanceByEmployeeYear(
-		ctx,
-		db.LockLeaveBalanceByEmployeeYearParams{
-			EmployeeID: employeeID,
-			Year:       year,
-		},
-	)
-	if err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrLeaveRequestNotFound
-		}
-		return nil, err
-	}
-	model := toDomainLeaveBalance(
-		row.ID,
-		row.EmployeeID,
-		"",
-		row.Year,
-		row.LegalAdjustmentMinutes,
-		row.LegalAdjustmentMinutes,
-		row.ExtraTotalMinutes,
-		row.LegalUsedMinutes,
-		row.ExtraUsedMinutes,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		row.CreatedAt,
-		row.UpdatedAt,
-	)
-	return &model, nil
 }
 
 func (r *leaveTxRepo) GetLeaveHoursPerDay(
@@ -646,98 +582,15 @@ func (r *leaveTxRepo) ComputeLegalLeaveTotalForYear(
 	})
 }
 
-func (r *leaveTxRepo) ApplyLeaveBalanceDeduction(
+func (r *leaveTxRepo) ComputeLegalLeaveUsedForYear(
 	ctx context.Context,
-	balanceID uuid.UUID,
-	extraMinutes, legalMinutes int32,
-) (*domain.LeaveBalance, error) {
-	row, err := r.queries.ApplyLeaveBalanceDeduction(ctx, db.ApplyLeaveBalanceDeductionParams{
-		ID:           balanceID,
-		ExtraMinutes: extraMinutes,
-		LegalMinutes: legalMinutes,
+	employeeID uuid.UUID,
+	year int32,
+) (int32, error) {
+	return r.queries.ComputeLegalLeaveUsedForYear(ctx, db.ComputeLegalLeaveUsedForYearParams{
+		EmployeeID: employeeID,
+		Year:       year,
 	})
-	if err != nil {
-		return nil, err
-	}
-	model := toDomainLeaveBalance(
-		row.ID,
-		row.EmployeeID,
-		"",
-		row.Year,
-		row.LegalAdjustmentMinutes,
-		row.LegalAdjustmentMinutes,
-		row.ExtraTotalMinutes,
-		row.LegalUsedMinutes,
-		row.ExtraUsedMinutes,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		row.CreatedAt,
-		row.UpdatedAt,
-	)
-	return &model, nil
-}
-
-func (r *leaveTxRepo) ApplyLeaveBalanceTotalAdjustment(
-	ctx context.Context,
-	balanceID uuid.UUID,
-	legalAdjustmentMinutesDelta, extraTotalMinutesDelta int32,
-) (*domain.LeaveBalance, error) {
-	row, err := r.queries.ApplyLeaveBalanceTotalAdjustment(
-		ctx,
-		db.ApplyLeaveBalanceTotalAdjustmentParams{
-			ID:                          balanceID,
-			LegalAdjustmentMinutesDelta: legalAdjustmentMinutesDelta,
-			ExtraTotalMinutesDelta:      extraTotalMinutesDelta,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	model := toDomainLeaveBalance(
-		row.ID,
-		row.EmployeeID,
-		"",
-		row.Year,
-		row.LegalAdjustmentMinutes,
-		row.LegalAdjustmentMinutes,
-		row.ExtraTotalMinutes,
-		row.LegalUsedMinutes,
-		row.ExtraUsedMinutes,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		row.CreatedAt,
-		row.UpdatedAt,
-	)
-	return &model, nil
-}
-
-func (r *leaveTxRepo) CreateLeaveBalanceAdjustmentAudit(
-	ctx context.Context,
-	params domain.CreateLeaveBalanceAdjustmentAuditParams,
-) error {
-	_, err := r.queries.CreateLeaveBalanceAdjustmentAudit(
-		ctx,
-		db.CreateLeaveBalanceAdjustmentAuditParams{
-			LeaveBalanceID:               params.LeaveBalanceID,
-			EmployeeID:                   params.EmployeeID,
-			Year:                         params.Year,
-			LegalAdjustmentMinutesDelta:  params.LegalAdjustmentMinutesDelta,
-			ExtraTotalMinutesDelta:       params.ExtraTotalMinutesDelta,
-			Reason:                       params.Reason,
-			AdjustedByEmployeeID:         params.AdjustedByEmployeeID,
-			LegalAdjustmentMinutesBefore: params.LegalAdjustmentMinutesBefore,
-			ExtraTotalMinutesBefore:      params.ExtraTotalMinutesBefore,
-			LegalAdjustmentMinutesAfter:  params.LegalAdjustmentMinutesAfter,
-			ExtraTotalMinutesAfter:       params.ExtraTotalMinutesAfter,
-		},
-	)
-	return err
 }
 
 func toDomainLeaveRequest(row db.LeaveRequest) domain.LeaveRequest {
@@ -813,45 +666,31 @@ func toDomainLeaveRequestListItem(
 }
 
 func toDomainLeaveBalance(
-	id uuid.UUID,
 	employeeID uuid.UUID,
 	employeeName string,
 	year int32,
 	legalTotalMinutes int32,
-	legalAdjustmentMinutes int32,
-	extraTotalMinutes int32,
 	legalUsedMinutes int32,
-	extraUsedMinutes int32,
 	contractHours *float64,
 	contractType *string,
 	contractStartDate *time.Time,
 	contractEndDate *time.Time,
 	effectiveEndDate *time.Time,
-	createdAt pgtype.Timestamptz,
-	updatedAt pgtype.Timestamptz,
 ) domain.LeaveBalance {
 	legalRemaining := legalTotalMinutes - legalUsedMinutes
-	extraRemaining := extraTotalMinutes - extraUsedMinutes
 	return domain.LeaveBalance{
-		ID:                     id,
-		EmployeeID:             employeeID,
-		EmployeeName:           employeeName,
-		Year:                   year,
-		LegalTotalMinutes:      legalTotalMinutes,
-		LegalAdjustmentMinutes: legalAdjustmentMinutes,
-		ExtraTotalMinutes:      extraTotalMinutes,
-		LegalUsedMinutes:       legalUsedMinutes,
-		ExtraUsedMinutes:       extraUsedMinutes,
-		LegalRemainingMinutes:  legalRemaining,
-		ExtraRemainingMinutes:  extraRemaining,
-		TotalRemainingMinutes:  legalRemaining + extraRemaining,
-		ContractHours:          contractHours,
-		ContractType:           contractType,
-		ContractStartDate:      contractStartDate,
-		ContractEndDate:        contractEndDate,
-		EffectiveEndDate:       effectiveEndDate,
-		CreatedAt:              conv.TimeFromPgTimestamptz(createdAt),
-		UpdatedAt:              conv.TimeFromPgTimestamptz(updatedAt),
+		EmployeeID:            employeeID,
+		EmployeeName:          employeeName,
+		Year:                  year,
+		LegalTotalMinutes:     legalTotalMinutes,
+		LegalUsedMinutes:      legalUsedMinutes,
+		LegalRemainingMinutes: legalRemaining,
+		TotalRemainingMinutes: legalRemaining,
+		ContractHours:         contractHours,
+		ContractType:          contractType,
+		ContractStartDate:     contractStartDate,
+		ContractEndDate:       contractEndDate,
+		EffectiveEndDate:      effectiveEndDate,
 	}
 }
 

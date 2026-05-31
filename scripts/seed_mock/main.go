@@ -96,9 +96,6 @@ func main() {
 		"leave_requests": seed.LeaveRequestsSeeder{
 			Requests: cfg.LeaveRequests,
 		},
-		"payout_requests": seed.PayoutRequestsSeeder{
-			Requests: cfg.PayoutRequests,
-		},
 		"schedules": seed.SchedulesSeeder{
 			Schedules: cfg.Schedules,
 		},
@@ -131,7 +128,6 @@ func main() {
 		"employees":                     {"location", "departments", "salary_tables"},
 		"department_heads":              {"departments", "employees"},
 		"leave_requests":                {"employees"},
-		"payout_requests":               {"employees"},
 		"schedules":                     {"location", "employees"},
 		"shift_swap_requests":           {"employees", "schedules"},
 		"late_arrivals":                 {"employees", "schedules"},
@@ -150,7 +146,6 @@ func main() {
 		"employees",
 		"department_heads",
 		"leave_requests",
-		"payout_requests",
 		"schedules",
 		"pay_periods",
 		"shift_swap_requests",

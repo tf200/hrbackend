@@ -55,8 +55,6 @@ DROP TABLE IF EXISTS overtime_entries CASCADE;
 -- Leave management tables
 DROP TABLE IF EXISTS leave_payout_requests;
 DROP TABLE IF EXISTS leave_requests;
-DROP TABLE IF EXISTS leave_balance_adjustments;
-DROP TABLE IF EXISTS leave_balances;
 DROP TABLE IF EXISTS leave_policies;
 
 DROP TYPE IF EXISTS leave_duration_type_enum;

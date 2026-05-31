@@ -1874,34 +1874,6 @@ type LateArrival struct {
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
-type LeaveBalance struct {
-	ID                     uuid.UUID          `json:"id"`
-	EmployeeID             uuid.UUID          `json:"employee_id"`
-	Year                   int32              `json:"year"`
-	LegalAdjustmentMinutes int32              `json:"legal_adjustment_minutes"`
-	ExtraTotalMinutes      int32              `json:"extra_total_minutes"`
-	LegalUsedMinutes       int32              `json:"legal_used_minutes"`
-	ExtraUsedMinutes       int32              `json:"extra_used_minutes"`
-	CreatedAt              pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
-}
-
-type LeaveBalanceAdjustment struct {
-	ID                           uuid.UUID          `json:"id"`
-	LeaveBalanceID               uuid.UUID          `json:"leave_balance_id"`
-	EmployeeID                   uuid.UUID          `json:"employee_id"`
-	Year                         int32              `json:"year"`
-	LegalAdjustmentMinutesDelta  int32              `json:"legal_adjustment_minutes_delta"`
-	ExtraTotalMinutesDelta       int32              `json:"extra_total_minutes_delta"`
-	Reason                       string             `json:"reason"`
-	AdjustedByEmployeeID         uuid.UUID          `json:"adjusted_by_employee_id"`
-	LegalAdjustmentMinutesBefore int32              `json:"legal_adjustment_minutes_before"`
-	ExtraTotalMinutesBefore      int32              `json:"extra_total_minutes_before"`
-	LegalAdjustmentMinutesAfter  int32              `json:"legal_adjustment_minutes_after"`
-	ExtraTotalMinutesAfter       int32              `json:"extra_total_minutes_after"`
-	CreatedAt                    pgtype.Timestamptz `json:"created_at"`
-}
-
 type LeavePayoutRequest struct {
 	ID                  uuid.UUID               `json:"id"`
 	EmployeeID          uuid.UUID               `json:"employee_id"`

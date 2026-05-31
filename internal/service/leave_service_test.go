@@ -501,12 +501,11 @@ func TestNormalizeUpdateParamsPartialUpdateKeepsExistingFields(t *testing.T) {
 	}
 }
 
-func TestDecideLeaveRequestUsesRequestedMinutesAndExtraFirst(t *testing.T) {
+func TestDecideLeaveRequestUsesLiveLegalBalance(t *testing.T) {
 	employeeID := uuid.New()
 	adminID := uuid.New()
 	leaveRequestID := uuid.New()
 	start := currentUTCDate().AddDate(0, 0, 1)
-	balanceID := uuid.New()
 	tx := &fakeLeaveTxRepository{
 		request: &domain.LeaveRequest{
 			ID:               leaveRequestID,
@@ -519,15 +518,7 @@ func TestDecideLeaveRequestUsesRequestedMinutesAndExtraFirst(t *testing.T) {
 		},
 		policy:                 &domain.LeavePolicy{LeaveType: "vacation", DeductsBalance: true},
 		legalCalculatedMinutes: 1000,
-		balance: &domain.LeaveBalance{
-			ID:                     balanceID,
-			EmployeeID:             employeeID,
-			Year:                   int32(start.Year()),
-			LegalAdjustmentMinutes: 0,
-			ExtraTotalMinutes:      60,
-			LegalUsedMinutes:       0,
-			ExtraUsedMinutes:       0,
-		},
+		legalUsedMinutes:       910,
 	}
 	svc := &LeaveService{repository: &fakeLeaveRepository{tx: tx}}
 
@@ -535,8 +526,8 @@ func TestDecideLeaveRequestUsesRequestedMinutesAndExtraFirst(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tx.appliedExtraMinutes != 60 || tx.appliedLegalMinutes != 30 {
-		t.Fatalf("expected extra=60 legal=30, got extra=%d legal=%d", tx.appliedExtraMinutes, tx.appliedLegalMinutes)
+	if !tx.lockedEmployeeForBalance {
+		t.Fatal("expected employee balance lock")
 	}
 }
 
@@ -557,20 +548,12 @@ func TestDecideLeaveRequestRejectsInsufficientLiveBalance(t *testing.T) {
 		},
 		policy:                 &domain.LeavePolicy{LeaveType: "vacation", DeductsBalance: true},
 		legalCalculatedMinutes: 30,
-		balance: &domain.LeaveBalance{
-			ID:         uuid.New(),
-			EmployeeID: employeeID,
-			Year:       int32(start.Year()),
-		},
 	}
 	svc := &LeaveService{repository: &fakeLeaveRepository{tx: tx}}
 
 	_, err := svc.DecideLeaveRequestByAdmin(context.Background(), adminID, leaveRequestID, domain.DecideLeaveRequestParams{Decision: "approve"})
 	if err != domain.ErrLeaveBalanceInsufficient {
 		t.Fatalf("expected insufficient balance, got %v", err)
-	}
-	if tx.appliedExtraMinutes != 0 || tx.appliedLegalMinutes != 0 {
-		t.Fatalf("did not expect deduction, got extra=%d legal=%d", tx.appliedExtraMinutes, tx.appliedLegalMinutes)
 	}
 }
 
@@ -698,22 +681,14 @@ func (f *fakeLeaveRepository) GetLeaveBalanceDetails(
 	return nil, nil
 }
 
-func (f *fakeLeaveRepository) AdjustLeaveBalance(
-	_ context.Context,
-	_ domain.AdjustLeaveBalanceParams,
-) (*domain.LeaveBalance, error) {
-	return nil, nil
-}
-
 var _ domain.LeaveRepository = (*fakeLeaveRepository)(nil)
 
 type fakeLeaveTxRepository struct {
-	request                *domain.LeaveRequest
-	policy                 *domain.LeavePolicy
-	balance                *domain.LeaveBalance
-	legalCalculatedMinutes int32
-	appliedExtraMinutes    int32
-	appliedLegalMinutes    int32
+	request                  *domain.LeaveRequest
+	policy                   *domain.LeavePolicy
+	legalCalculatedMinutes   int32
+	legalUsedMinutes         int32
+	lockedEmployeeForBalance bool
 }
 
 func (f *fakeLeaveTxRepository) GetLeaveRequestForUpdate(_ context.Context, _ uuid.UUID) (*domain.LeaveRequest, error) {
@@ -736,7 +711,8 @@ func (f *fakeLeaveTxRepository) GetActiveLeavePolicyByType(_ context.Context, _ 
 	return f.policy, nil
 }
 
-func (f *fakeLeaveTxRepository) EnsureLeaveBalanceForYear(_ context.Context, _ uuid.UUID, _ int32) error {
+func (f *fakeLeaveTxRepository) LockEmployeeForLeaveBalance(_ context.Context, _ uuid.UUID) error {
+	f.lockedEmployeeForBalance = true
 	return nil
 }
 
@@ -752,22 +728,8 @@ func (f *fakeLeaveTxRepository) ComputeLegalLeaveTotalForYear(_ context.Context,
 	return f.legalCalculatedMinutes, nil
 }
 
-func (f *fakeLeaveTxRepository) GetLeaveBalanceForUpdate(_ context.Context, _ uuid.UUID, _ int32) (*domain.LeaveBalance, error) {
-	return f.balance, nil
-}
-
-func (f *fakeLeaveTxRepository) ApplyLeaveBalanceDeduction(_ context.Context, _ uuid.UUID, extraMinutes, legalMinutes int32) (*domain.LeaveBalance, error) {
-	f.appliedExtraMinutes = extraMinutes
-	f.appliedLegalMinutes = legalMinutes
-	return f.balance, nil
-}
-
-func (f *fakeLeaveTxRepository) ApplyLeaveBalanceTotalAdjustment(_ context.Context, _ uuid.UUID, _, _ int32) (*domain.LeaveBalance, error) {
-	return f.balance, nil
-}
-
-func (f *fakeLeaveTxRepository) CreateLeaveBalanceAdjustmentAudit(_ context.Context, _ domain.CreateLeaveBalanceAdjustmentAuditParams) error {
-	return nil
+func (f *fakeLeaveTxRepository) ComputeLegalLeaveUsedForYear(_ context.Context, _ uuid.UUID, _ int32) (int32, error) {
+	return f.legalUsedMinutes, nil
 }
 
 var _ domain.LeaveTxRepository = (*fakeLeaveTxRepository)(nil)

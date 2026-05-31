@@ -74,10 +74,10 @@ var Handbook = struct {
 }
 
 var LateArrival = struct {
-	Create   Permission
+	Create    Permission
 	CreateAll Permission
-	View     Permission
-	ViewAll  Permission
+	View      Permission
+	ViewAll   Permission
 }{
 	Create:    "LATE_ARRIVAL.CREATE",
 	CreateAll: "LATE_ARRIVAL.CREATE_ALL",
@@ -87,7 +87,6 @@ var LateArrival = struct {
 
 var Leave = struct {
 	Balance struct {
-		Adjust  Permission
 		View    Permission
 		ViewAll Permission
 	}
@@ -101,11 +100,9 @@ var Leave = struct {
 	}
 }{
 	Balance: struct {
-		Adjust  Permission
 		View    Permission
 		ViewAll Permission
 	}{
-		Adjust:  "LEAVE.BALANCE.ADJUST",
 		View:    "LEAVE.BALANCE.VIEW",
 		ViewAll: "LEAVE.BALANCE.VIEW_ALL",
 	},
@@ -190,10 +187,10 @@ var Expense = struct {
 }
 
 var PayPeriod = struct {
-	Close             Permission
-	MarkPaid          Permission
-	MonthSummaryView  Permission
-	ViewAll           Permission
+	Close            Permission
+	MarkPaid         Permission
+	MonthSummaryView Permission
+	ViewAll          Permission
 }{
 	Close:            "PAY_PERIOD.CLOSE",
 	MarkPaid:         "PAY_PERIOD.MARK_PAID",
@@ -209,13 +206,13 @@ var Role = struct {
 
 var Performance = struct {
 	Assessment struct {
-		Create Permission
-		Delete Permission
-		View   Permission
+		Create  Permission
+		Delete  Permission
+		View    Permission
 		ViewAll Permission
 	}
-	Stats     Permission
-	Upcoming  struct {
+	Stats    Permission
+	Upcoming struct {
 		Invite Permission
 	}
 	WorkAssignment struct {
@@ -257,7 +254,7 @@ var Training = struct {
 		Create Permission
 		View   Permission
 	}
-	Assign         Permission
+	Assign          Permission
 	AssignmentsView Permission
 }{
 	Catalog: struct {
@@ -332,5 +329,3 @@ var Overtime = struct {
 	View:      "OVERTIME.VIEW",
 	ViewAll:   "OVERTIME.VIEW_ALL",
 }
-
-

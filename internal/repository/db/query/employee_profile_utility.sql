@@ -98,19 +98,24 @@ WITH ranges AS (
 ), leave_balance AS (
     SELECT
         COALESCE(
-            (
-                calculate_legal_leave_minutes(
-                    sqlc.arg('employee_id'),
-                    r.balance_year,
-                    CURRENT_TIMESTAMP
-                ) + COALESCE(lb.legal_adjustment_minutes, 0) - COALESCE(lb.legal_used_minutes, 0)
-            )
-            + (COALESCE(lb.extra_total_minutes, 0) - COALESCE(lb.extra_used_minutes, 0)),
+            calculate_legal_leave_minutes(
+                sqlc.arg('employee_id'),
+                r.balance_year,
+                CURRENT_TIMESTAMP
+            ) - COALESCE(used.legal_used_minutes, 0),
             0
         )::int AS remaining_leave_balance_minutes
     FROM ranges r
-    LEFT JOIN leave_balances lb ON lb.employee_id = sqlc.arg('employee_id')
-      AND lb.year = r.balance_year
+    LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(lr.requested_minutes), 0)::int AS legal_used_minutes
+        FROM leave_requests lr
+        JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+        WHERE lr.employee_id = sqlc.arg('employee_id')
+          AND lr.status = 'approved'::leave_request_status_enum
+          AND lp.deducts_balance = TRUE
+          AND lr.start_date >= r.year_start
+          AND lr.start_date < r.next_year_start
+    ) used ON true
 ), last_review AS (
     SELECT pa.total_score::double precision AS last_performance_review_score
     FROM performance_assessments pa

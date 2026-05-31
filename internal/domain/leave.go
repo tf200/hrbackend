@@ -76,25 +76,18 @@ type LeaveRequestStats struct {
 }
 
 type LeaveBalance struct {
-	ID                     uuid.UUID
-	EmployeeID             uuid.UUID
-	EmployeeName           string
-	Year                   int32
-	LegalTotalMinutes      int32
-	LegalAdjustmentMinutes int32
-	ExtraTotalMinutes      int32
-	LegalUsedMinutes       int32
-	ExtraUsedMinutes       int32
-	LegalRemainingMinutes  int32
-	ExtraRemainingMinutes  int32
-	TotalRemainingMinutes  int32
-	ContractHours          *float64
-	ContractType           *string
-	ContractStartDate      *time.Time
-	ContractEndDate        *time.Time
-	EffectiveEndDate       *time.Time
-	CreatedAt              time.Time
-	UpdatedAt              time.Time
+	EmployeeID            uuid.UUID
+	EmployeeName          string
+	Year                  int32
+	LegalTotalMinutes     int32
+	LegalUsedMinutes      int32
+	LegalRemainingMinutes int32
+	TotalRemainingMinutes int32
+	ContractHours         *float64
+	ContractType          *string
+	ContractStartDate     *time.Time
+	ContractEndDate       *time.Time
+	EffectiveEndDate      *time.Time
 }
 
 type LeaveBalancePage struct {
@@ -198,15 +191,6 @@ type GetLeaveBalanceDetailsParams struct {
 	Year       int32
 }
 
-type AdjustLeaveBalanceParams struct {
-	AdminEmployeeID             uuid.UUID
-	EmployeeID                  uuid.UUID
-	Year                        int32
-	LegalAdjustmentMinutesDelta int32
-	ExtraTotalMinutesDelta      int32
-	Reason                      string
-}
-
 type LeaveContractAtDate struct {
 	EmployeeID    uuid.UUID
 	RosterFreeDay string
@@ -227,43 +211,11 @@ type LeaveTxRepository interface {
 		decidedByEmployeeID uuid.UUID,
 	) (*LeaveRequest, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
-	EnsureLeaveBalanceForYear(ctx context.Context, employeeID uuid.UUID, year int32) error
+	LockEmployeeForLeaveBalance(ctx context.Context, employeeID uuid.UUID) error
 	GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error)
 	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, date time.Time) (*LeaveContractAtDate, error)
 	ComputeLegalLeaveTotalForYear(ctx context.Context, employeeID uuid.UUID, year int32, asOf time.Time) (int32, error)
-	GetLeaveBalanceForUpdate(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		year int32,
-	) (*LeaveBalance, error)
-	ApplyLeaveBalanceDeduction(
-		ctx context.Context,
-		balanceID uuid.UUID,
-		extraMinutes, legalMinutes int32,
-	) (*LeaveBalance, error)
-	ApplyLeaveBalanceTotalAdjustment(
-		ctx context.Context,
-		balanceID uuid.UUID,
-		legalAdjustmentMinutesDelta, extraTotalMinutesDelta int32,
-	) (*LeaveBalance, error)
-	CreateLeaveBalanceAdjustmentAudit(
-		ctx context.Context,
-		params CreateLeaveBalanceAdjustmentAuditParams,
-	) error
-}
-
-type CreateLeaveBalanceAdjustmentAuditParams struct {
-	LeaveBalanceID               uuid.UUID
-	EmployeeID                   uuid.UUID
-	Year                         int32
-	LegalAdjustmentMinutesDelta  int32
-	ExtraTotalMinutesDelta       int32
-	Reason                       string
-	AdjustedByEmployeeID         uuid.UUID
-	LegalAdjustmentMinutesBefore int32
-	ExtraTotalMinutesBefore      int32
-	LegalAdjustmentMinutesAfter  int32
-	ExtraTotalMinutesAfter       int32
+	ComputeLegalLeaveUsedForYear(ctx context.Context, employeeID uuid.UUID, year int32) (int32, error)
 }
 
 type LeaveRepository interface {
@@ -352,5 +304,4 @@ type LeaveService interface {
 		ctx context.Context,
 		params GetLeaveBalanceDetailsParams,
 	) (*LeaveBalanceDetails, error)
-	AdjustLeaveBalance(ctx context.Context, params AdjustLeaveBalanceParams) (*LeaveBalance, error)
 }

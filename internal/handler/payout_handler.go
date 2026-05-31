@@ -612,8 +612,6 @@ func mapPayoutErrorStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, domain.ErrPayoutRequestStateInvalid):
 		return http.StatusConflict
-	case errors.Is(err, domain.ErrPayoutRequestInsufficientHours):
-		return http.StatusConflict
 	case errors.Is(err, domain.ErrPayPeriodNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, domain.ErrPayPeriodStateInvalid):
