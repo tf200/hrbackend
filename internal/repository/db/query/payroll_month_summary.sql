@@ -94,6 +94,193 @@ WHERE (
 )
 ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC;
 
+-- name: ListFixedPayrollMonthEmployeesPaginated :many
+WITH fixed_month_employees AS (
+    SELECT DISTINCT c.employee_id
+    FROM employee_contracts c
+    JOIN employee_salary_assignments esa ON esa.employee_id = c.employee_id
+      AND (esa.contract_id IS NULL OR esa.contract_id = c.id)
+    WHERE c.contract_type IN ('permanent'::employee_contract_type_enum, 'temporary'::employee_contract_type_enum)
+      AND c.start_date <= sqlc.arg('month_end')
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= sqlc.arg('month_start'))
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= sqlc.arg('month_start'))
+      AND esa.effective_from <= LEAST(
+          sqlc.arg('month_end')::date,
+          COALESCE(c.effective_end_date, sqlc.arg('month_end')::date),
+          COALESCE(c.contract_end_date, sqlc.arg('month_end')::date)
+      )
+      AND (esa.effective_to IS NULL OR esa.effective_to > GREATEST(sqlc.arg('month_start')::date, c.start_date))
+)
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    COUNT(*) OVER() AS total_count
+FROM fixed_month_employees fme
+JOIN employee_profile ep ON ep.id = fme.employee_id
+WHERE (
+    sqlc.narg('employee_search')::text IS NULL
+    OR sqlc.narg('employee_search')::text = ''
+    OR ep.first_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR ep.last_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+)
+ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: ListFixedPayrollContractSegments :many
+WITH contract_windows AS (
+    SELECT
+        c.id AS contract_id,
+        c.employee_id,
+        c.contract_type,
+        GREATEST(c.start_date, sqlc.arg('month_start')::date)::date AS active_from,
+        LEAST(
+            sqlc.arg('month_end')::date,
+            COALESCE(c.effective_end_date, sqlc.arg('month_end')::date),
+            COALESCE(c.contract_end_date, sqlc.arg('month_end')::date)
+        )::date AS active_until,
+        c.hours_per_week::double precision AS hours_per_week
+    FROM employee_contracts c
+    WHERE c.employee_id = ANY(sqlc.arg('employee_ids')::uuid[])
+      AND c.contract_type IN ('permanent'::employee_contract_type_enum, 'temporary'::employee_contract_type_enum)
+      AND c.start_date <= sqlc.arg('month_end')
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= sqlc.arg('month_start'))
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= sqlc.arg('month_start'))
+)
+SELECT
+    cw.employee_id,
+    cw.contract_id,
+    cw.contract_type,
+    cw.active_from,
+    cw.active_until,
+    cw.hours_per_week,
+    cst.full_time_hours_per_week::double precision AS full_time_hours_per_week,
+    css.monthly_salary::double precision AS monthly_salary,
+    css.hourly_rate::double precision AS hourly_rate
+FROM contract_windows cw
+JOIN LATERAL (
+    SELECT esa.salary_scale_step_id
+    FROM employee_salary_assignments esa
+    WHERE esa.employee_id = cw.employee_id
+      AND (esa.contract_id IS NULL OR esa.contract_id = cw.contract_id)
+      AND esa.effective_from <= cw.active_until
+      AND (esa.effective_to IS NULL OR esa.effective_to > cw.active_from)
+    ORDER BY
+      (esa.contract_id = cw.contract_id) DESC,
+      esa.effective_from DESC,
+      esa.created_at DESC
+    LIMIT 1
+) latest_salary ON TRUE
+JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+WHERE cw.active_until >= cw.active_from
+ORDER BY cw.employee_id ASC, cw.active_from ASC, cw.contract_id ASC;
+
+-- name: ListOnCallPayrollMonthEmployeesPaginated :many
+WITH on_call_month_employees AS (
+    SELECT DISTINCT pp.employee_id
+    FROM pay_periods pp
+    JOIN pay_period_line_items ppl ON ppl.pay_period_id = pp.id
+    WHERE pp.period_start = sqlc.arg('month_start')
+      AND pp.period_end = sqlc.arg('month_end')
+      AND ppl.contract_type = 'on_call'::employee_contract_type_enum
+
+    UNION
+
+    SELECT DISTINCT s.employee_id
+    FROM schedules s
+    JOIN LATERAL (
+        SELECT c.id, c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = s.employee_id
+          AND c.start_date <= DATE(s.start_datetime)
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= DATE(s.start_datetime))
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= DATE(s.start_datetime))
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE DATE(s.start_datetime) >= sqlc.arg('month_start')
+      AND DATE(s.start_datetime) <= sqlc.arg('month_end')
+      AND cc.contract_type = 'on_call'::employee_contract_type_enum
+      AND EXISTS (
+          SELECT 1
+          FROM employee_salary_assignments esa
+          WHERE esa.employee_id = s.employee_id
+            AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+            AND esa.effective_from <= DATE(s.start_datetime)
+            AND (esa.effective_to IS NULL OR esa.effective_to > DATE(s.start_datetime))
+      )
+
+    UNION
+
+    SELECT DISTINCT oe.employee_id
+    FROM overtime_entries oe
+    JOIN LATERAL (
+        SELECT c.id, c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = oe.employee_id
+          AND c.start_date <= oe.entry_date
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= oe.entry_date)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE oe.entry_date >= sqlc.arg('month_start')
+      AND oe.entry_date <= sqlc.arg('month_end')
+      AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
+      AND cc.contract_type = 'on_call'::employee_contract_type_enum
+      AND (
+          oe.status = 'submitted'::overtime_status_enum
+          OR EXISTS (
+              SELECT 1
+              FROM employee_salary_assignments esa
+              WHERE esa.employee_id = oe.employee_id
+                AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+                AND esa.effective_from <= oe.entry_date
+                AND (esa.effective_to IS NULL OR esa.effective_to > oe.entry_date)
+          )
+      )
+
+    UNION
+
+    SELECT DISTINCT lpr.employee_id
+    FROM leave_payout_requests lpr
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = lpr.employee_id
+          AND c.start_date <= lpr.salary_month
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE lpr.salary_month >= sqlc.arg('month_start')
+      AND lpr.salary_month <= sqlc.arg('month_end')
+      AND lpr.status = 'approved'::payout_request_status_enum
+      AND lpr.paid_period_id IS NULL
+      AND cc.contract_type = 'on_call'::employee_contract_type_enum
+)
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    COUNT(*) OVER() AS total_count
+FROM on_call_month_employees ocme
+JOIN employee_profile ep ON ep.id = ocme.employee_id
+WHERE (
+    sqlc.narg('employee_search')::text IS NULL
+    OR sqlc.narg('employee_search')::text = ''
+    OR ep.first_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR ep.last_name ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || sqlc.narg('employee_search')::text || '%'
+)
+ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
 -- name: ListPayPeriodsByEmployeeIDsAndRange :many
 SELECT
     pp.id,

@@ -12,6 +12,186 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const listFixedPayrollContractSegments = `-- name: ListFixedPayrollContractSegments :many
+WITH contract_windows AS (
+    SELECT
+        c.id AS contract_id,
+        c.employee_id,
+        c.contract_type,
+        GREATEST(c.start_date, $1::date)::date AS active_from,
+        LEAST(
+            $2::date,
+            COALESCE(c.effective_end_date, $2::date),
+            COALESCE(c.contract_end_date, $2::date)
+        )::date AS active_until,
+        c.hours_per_week::double precision AS hours_per_week
+    FROM employee_contracts c
+    WHERE c.employee_id = ANY($3::uuid[])
+      AND c.contract_type IN ('permanent'::employee_contract_type_enum, 'temporary'::employee_contract_type_enum)
+      AND c.start_date <= $2
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= $1)
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= $1)
+)
+SELECT
+    cw.employee_id,
+    cw.contract_id,
+    cw.contract_type,
+    cw.active_from,
+    cw.active_until,
+    cw.hours_per_week,
+    cst.full_time_hours_per_week::double precision AS full_time_hours_per_week,
+    css.monthly_salary::double precision AS monthly_salary,
+    css.hourly_rate::double precision AS hourly_rate
+FROM contract_windows cw
+JOIN LATERAL (
+    SELECT esa.salary_scale_step_id
+    FROM employee_salary_assignments esa
+    WHERE esa.employee_id = cw.employee_id
+      AND (esa.contract_id IS NULL OR esa.contract_id = cw.contract_id)
+      AND esa.effective_from <= cw.active_until
+      AND (esa.effective_to IS NULL OR esa.effective_to > cw.active_from)
+    ORDER BY
+      (esa.contract_id = cw.contract_id) DESC,
+      esa.effective_from DESC,
+      esa.created_at DESC
+    LIMIT 1
+) latest_salary ON TRUE
+JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id
+JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+WHERE cw.active_until >= cw.active_from
+ORDER BY cw.employee_id ASC, cw.active_from ASC, cw.contract_id ASC
+`
+
+type ListFixedPayrollContractSegmentsParams struct {
+	MonthStart  pgtype.Date `json:"month_start"`
+	MonthEnd    pgtype.Date `json:"month_end"`
+	EmployeeIds []uuid.UUID `json:"employee_ids"`
+}
+
+type ListFixedPayrollContractSegmentsRow struct {
+	EmployeeID           uuid.UUID                `json:"employee_id"`
+	ContractID           uuid.UUID                `json:"contract_id"`
+	ContractType         EmployeeContractTypeEnum `json:"contract_type"`
+	ActiveFrom           pgtype.Date              `json:"active_from"`
+	ActiveUntil          pgtype.Date              `json:"active_until"`
+	HoursPerWeek         float64                  `json:"hours_per_week"`
+	FullTimeHoursPerWeek float64                  `json:"full_time_hours_per_week"`
+	MonthlySalary        float64                  `json:"monthly_salary"`
+	HourlyRate           float64                  `json:"hourly_rate"`
+}
+
+func (q *Queries) ListFixedPayrollContractSegments(ctx context.Context, arg ListFixedPayrollContractSegmentsParams) ([]ListFixedPayrollContractSegmentsRow, error) {
+	rows, err := q.db.Query(ctx, listFixedPayrollContractSegments, arg.MonthStart, arg.MonthEnd, arg.EmployeeIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFixedPayrollContractSegmentsRow{}
+	for rows.Next() {
+		var i ListFixedPayrollContractSegmentsRow
+		if err := rows.Scan(
+			&i.EmployeeID,
+			&i.ContractID,
+			&i.ContractType,
+			&i.ActiveFrom,
+			&i.ActiveUntil,
+			&i.HoursPerWeek,
+			&i.FullTimeHoursPerWeek,
+			&i.MonthlySalary,
+			&i.HourlyRate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFixedPayrollMonthEmployeesPaginated = `-- name: ListFixedPayrollMonthEmployeesPaginated :many
+WITH fixed_month_employees AS (
+    SELECT DISTINCT c.employee_id
+    FROM employee_contracts c
+    JOIN employee_salary_assignments esa ON esa.employee_id = c.employee_id
+      AND (esa.contract_id IS NULL OR esa.contract_id = c.id)
+    WHERE c.contract_type IN ('permanent'::employee_contract_type_enum, 'temporary'::employee_contract_type_enum)
+      AND c.start_date <= $4
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= $5)
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= $5)
+      AND esa.effective_from <= LEAST(
+          $4::date,
+          COALESCE(c.effective_end_date, $4::date),
+          COALESCE(c.contract_end_date, $4::date)
+      )
+      AND (esa.effective_to IS NULL OR esa.effective_to > GREATEST($5::date, c.start_date))
+)
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    COUNT(*) OVER() AS total_count
+FROM fixed_month_employees fme
+JOIN employee_profile ep ON ep.id = fme.employee_id
+WHERE (
+    $1::text IS NULL
+    OR $1::text = ''
+    OR ep.first_name ILIKE '%' || $1::text || '%'
+    OR ep.last_name ILIKE '%' || $1::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || $1::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || $1::text || '%'
+)
+ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC
+LIMIT $3 OFFSET $2
+`
+
+type ListFixedPayrollMonthEmployeesPaginatedParams struct {
+	EmployeeSearch *string     `json:"employee_search"`
+	Offset         int32       `json:"offset"`
+	Limit          int32       `json:"limit"`
+	MonthEnd       pgtype.Date `json:"month_end"`
+	MonthStart     pgtype.Date `json:"month_start"`
+}
+
+type ListFixedPayrollMonthEmployeesPaginatedRow struct {
+	EmployeeID        uuid.UUID `json:"employee_id"`
+	EmployeeFirstName string    `json:"employee_first_name"`
+	EmployeeLastName  string    `json:"employee_last_name"`
+	TotalCount        int64     `json:"total_count"`
+}
+
+func (q *Queries) ListFixedPayrollMonthEmployeesPaginated(ctx context.Context, arg ListFixedPayrollMonthEmployeesPaginatedParams) ([]ListFixedPayrollMonthEmployeesPaginatedRow, error) {
+	rows, err := q.db.Query(ctx, listFixedPayrollMonthEmployeesPaginated,
+		arg.EmployeeSearch,
+		arg.Offset,
+		arg.Limit,
+		arg.MonthEnd,
+		arg.MonthStart,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFixedPayrollMonthEmployeesPaginatedRow{}
+	for rows.Next() {
+		var i ListFixedPayrollMonthEmployeesPaginatedRow
+		if err := rows.Scan(
+			&i.EmployeeID,
+			&i.EmployeeFirstName,
+			&i.EmployeeLastName,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLockedPayPeriodMultiplierSummaries = `-- name: ListLockedPayPeriodMultiplierSummaries :many
 SELECT
     ppl.pay_period_id,
@@ -51,6 +231,156 @@ func (q *Queries) ListLockedPayPeriodMultiplierSummaries(ctx context.Context, pa
 			&i.PaidMinutes,
 			&i.BaseAmount,
 			&i.PremiumAmount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOnCallPayrollMonthEmployeesPaginated = `-- name: ListOnCallPayrollMonthEmployeesPaginated :many
+WITH on_call_month_employees AS (
+    SELECT DISTINCT pp.employee_id
+    FROM pay_periods pp
+    JOIN pay_period_line_items ppl ON ppl.pay_period_id = pp.id
+    WHERE pp.period_start = $4
+      AND pp.period_end = $5
+      AND ppl.contract_type = 'on_call'::employee_contract_type_enum
+
+    UNION
+
+    SELECT DISTINCT s.employee_id
+    FROM schedules s
+    JOIN LATERAL (
+        SELECT c.id, c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = s.employee_id
+          AND c.start_date <= DATE(s.start_datetime)
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= DATE(s.start_datetime))
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= DATE(s.start_datetime))
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE DATE(s.start_datetime) >= $4
+      AND DATE(s.start_datetime) <= $5
+      AND cc.contract_type = 'on_call'::employee_contract_type_enum
+      AND EXISTS (
+          SELECT 1
+          FROM employee_salary_assignments esa
+          WHERE esa.employee_id = s.employee_id
+            AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+            AND esa.effective_from <= DATE(s.start_datetime)
+            AND (esa.effective_to IS NULL OR esa.effective_to > DATE(s.start_datetime))
+      )
+
+    UNION
+
+    SELECT DISTINCT oe.employee_id
+    FROM overtime_entries oe
+    JOIN LATERAL (
+        SELECT c.id, c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = oe.employee_id
+          AND c.start_date <= oe.entry_date
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= oe.entry_date)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= oe.entry_date)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE oe.entry_date >= $4
+      AND oe.entry_date <= $5
+      AND oe.status IN ('approved'::overtime_status_enum, 'submitted'::overtime_status_enum)
+      AND cc.contract_type = 'on_call'::employee_contract_type_enum
+      AND (
+          oe.status = 'submitted'::overtime_status_enum
+          OR EXISTS (
+              SELECT 1
+              FROM employee_salary_assignments esa
+              WHERE esa.employee_id = oe.employee_id
+                AND (esa.contract_id IS NULL OR esa.contract_id = cc.id)
+                AND esa.effective_from <= oe.entry_date
+                AND (esa.effective_to IS NULL OR esa.effective_to > oe.entry_date)
+          )
+      )
+
+    UNION
+
+    SELECT DISTINCT lpr.employee_id
+    FROM leave_payout_requests lpr
+    JOIN LATERAL (
+        SELECT c.contract_type
+        FROM employee_contracts c
+        WHERE c.employee_id = lpr.employee_id
+          AND c.start_date <= lpr.salary_month
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+        ORDER BY c.start_date DESC, c.created_at DESC
+        LIMIT 1
+    ) cc ON TRUE
+    WHERE lpr.salary_month >= $4
+      AND lpr.salary_month <= $5
+      AND lpr.status = 'approved'::payout_request_status_enum
+      AND lpr.paid_period_id IS NULL
+      AND cc.contract_type = 'on_call'::employee_contract_type_enum
+)
+SELECT
+    ep.id AS employee_id,
+    ep.first_name AS employee_first_name,
+    ep.last_name AS employee_last_name,
+    COUNT(*) OVER() AS total_count
+FROM on_call_month_employees ocme
+JOIN employee_profile ep ON ep.id = ocme.employee_id
+WHERE (
+    $1::text IS NULL
+    OR $1::text = ''
+    OR ep.first_name ILIKE '%' || $1::text || '%'
+    OR ep.last_name ILIKE '%' || $1::text || '%'
+    OR (ep.first_name || ' ' || ep.last_name) ILIKE '%' || $1::text || '%'
+    OR (ep.last_name || ' ' || ep.first_name) ILIKE '%' || $1::text || '%'
+)
+ORDER BY ep.first_name ASC, ep.last_name ASC, ep.id ASC
+LIMIT $3 OFFSET $2
+`
+
+type ListOnCallPayrollMonthEmployeesPaginatedParams struct {
+	EmployeeSearch *string     `json:"employee_search"`
+	Offset         int32       `json:"offset"`
+	Limit          int32       `json:"limit"`
+	MonthStart     pgtype.Date `json:"month_start"`
+	MonthEnd       pgtype.Date `json:"month_end"`
+}
+
+type ListOnCallPayrollMonthEmployeesPaginatedRow struct {
+	EmployeeID        uuid.UUID `json:"employee_id"`
+	EmployeeFirstName string    `json:"employee_first_name"`
+	EmployeeLastName  string    `json:"employee_last_name"`
+	TotalCount        int64     `json:"total_count"`
+}
+
+func (q *Queries) ListOnCallPayrollMonthEmployeesPaginated(ctx context.Context, arg ListOnCallPayrollMonthEmployeesPaginatedParams) ([]ListOnCallPayrollMonthEmployeesPaginatedRow, error) {
+	rows, err := q.db.Query(ctx, listOnCallPayrollMonthEmployeesPaginated,
+		arg.EmployeeSearch,
+		arg.Offset,
+		arg.Limit,
+		arg.MonthStart,
+		arg.MonthEnd,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListOnCallPayrollMonthEmployeesPaginatedRow{}
+	for rows.Next() {
+		var i ListOnCallPayrollMonthEmployeesPaginatedRow
+		if err := rows.Scan(
+			&i.EmployeeID,
+			&i.EmployeeFirstName,
+			&i.EmployeeLastName,
+			&i.TotalCount,
 		); err != nil {
 			return nil, err
 		}

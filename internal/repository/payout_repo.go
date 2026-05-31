@@ -337,6 +337,110 @@ func (r *PayoutRepository) ListPayrollMonthEmployeesAll(
 	return items, nil
 }
 
+func (r *PayoutRepository) ListFixedPayrollMonthEmployees(
+	ctx context.Context,
+	params domain.PayrollMonthSummaryParams,
+	monthStart, monthEnd time.Time,
+) ([]domain.PayrollMonthEmployee, int64, error) {
+	rows, err := r.store.ListFixedPayrollMonthEmployeesPaginated(
+		ctx,
+		db.ListFixedPayrollMonthEmployeesPaginatedParams{
+			EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
+			Offset:         params.Offset,
+			Limit:          params.Limit,
+			MonthStart:     conv.PgDateFromTime(monthStart),
+			MonthEnd:       conv.PgDateFromTime(monthEnd),
+		},
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	items := make([]domain.PayrollMonthEmployee, 0, len(rows))
+	var totalCount int64
+	if len(rows) > 0 {
+		totalCount = rows[0].TotalCount
+	}
+	for _, row := range rows {
+		items = append(items, domain.PayrollMonthEmployee{
+			EmployeeID:   row.EmployeeID,
+			EmployeeName: fullName(row.EmployeeFirstName, row.EmployeeLastName),
+		})
+	}
+	return items, totalCount, nil
+}
+
+func (r *PayoutRepository) ListOnCallPayrollMonthEmployees(
+	ctx context.Context,
+	params domain.PayrollMonthSummaryParams,
+	monthStart, monthEnd time.Time,
+) ([]domain.PayrollMonthEmployee, int64, error) {
+	rows, err := r.store.ListOnCallPayrollMonthEmployeesPaginated(
+		ctx,
+		db.ListOnCallPayrollMonthEmployeesPaginatedParams{
+			EmployeeSearch: ptr.TrimString(params.EmployeeSearch),
+			Offset:         params.Offset,
+			Limit:          params.Limit,
+			MonthStart:     conv.PgDateFromTime(monthStart),
+			MonthEnd:       conv.PgDateFromTime(monthEnd),
+		},
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	items := make([]domain.PayrollMonthEmployee, 0, len(rows))
+	var totalCount int64
+	if len(rows) > 0 {
+		totalCount = rows[0].TotalCount
+	}
+	for _, row := range rows {
+		items = append(items, domain.PayrollMonthEmployee{
+			EmployeeID:   row.EmployeeID,
+			EmployeeName: fullName(row.EmployeeFirstName, row.EmployeeLastName),
+		})
+	}
+	return items, totalCount, nil
+}
+
+func (r *PayoutRepository) ListFixedPayrollContractSegments(
+	ctx context.Context,
+	employeeIDs []uuid.UUID,
+	monthStart, monthEnd time.Time,
+) ([]domain.FixedPayrollContractSegmentSource, error) {
+	if len(employeeIDs) == 0 {
+		return []domain.FixedPayrollContractSegmentSource{}, nil
+	}
+
+	rows, err := r.store.ListFixedPayrollContractSegments(
+		ctx,
+		db.ListFixedPayrollContractSegmentsParams{
+			EmployeeIds: employeeIDs,
+			MonthStart:  conv.PgDateFromTime(monthStart),
+			MonthEnd:    conv.PgDateFromTime(monthEnd),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.FixedPayrollContractSegmentSource, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.FixedPayrollContractSegmentSource{
+			EmployeeID:           row.EmployeeID,
+			ContractID:           row.ContractID,
+			ContractType:         string(row.ContractType),
+			ActiveFrom:           conv.TimeFromPgDate(row.ActiveFrom),
+			ActiveUntil:          conv.TimeFromPgDate(row.ActiveUntil),
+			HoursPerWeek:         row.HoursPerWeek,
+			FullTimeHoursPerWeek: row.FullTimeHoursPerWeek,
+			MonthlySalary:        row.MonthlySalary,
+			HourlyRate:           row.HourlyRate,
+		})
+	}
+	return items, nil
+}
+
 func (r *PayoutRepository) ListPayPeriodsByEmployeesAndRange(
 	ctx context.Context,
 	employeeIDs []uuid.UUID,

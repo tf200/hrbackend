@@ -15,14 +15,23 @@ import (
 )
 
 const (
-	payoutMonthLayout    = "2006-01"
-	timeEntryDateLayout  = "2006-01-02"
+	payoutMonthLayout   = "2006-01"
+	timeEntryDateLayout = "2006-01-02"
 )
 
 type createPayoutRequestRequest struct {
 	RequestedHours int32   `json:"requested_hours" binding:"required,min=1"`
 	BalanceYear    int32   `json:"balance_year"    binding:"required,min=2000,max=2100"`
 	RequestNote    *string `json:"request_note"`
+}
+
+type createPayoutRequestByAdminRequest struct {
+	EmployeeID     uuid.UUID `json:"employee_id"     binding:"required"`
+	RequestedHours int32     `json:"requested_hours" binding:"required,min=1"`
+	BalanceYear    int32     `json:"balance_year"    binding:"required,min=2000,max=2100"`
+	SalaryMonth    string    `json:"salary_month"    binding:"required,datetime=2006-01"`
+	RequestNote    *string   `json:"request_note"`
+	DecisionNote   *string   `json:"decision_note"`
 }
 
 type decidePayoutRequestByAdminRequest struct {
@@ -182,6 +191,125 @@ type payrollMonthSummaryResponse struct {
 	MultiplierSummaries  []payrollMonthMultiplierSummaryItem `json:"multiplier_summaries"`
 }
 
+type fixedPayrollMonthSummaryResponse struct {
+	EmployeeID              uuid.UUID                           `json:"employee_id"`
+	EmployeeName            string                              `json:"employee_name"`
+	Month                   string                              `json:"month"`
+	IsCurrentMonth          bool                                `json:"is_current_month"`
+	CalculationMode         string                              `json:"calculation_mode"`
+	DataSource              string                              `json:"data_source"`
+	ContractBaseAmount      float64                             `json:"contract_base_amount"`
+	ActualORTAmount         float64                             `json:"actual_ort_amount"`
+	ForecastORTAmount       float64                             `json:"forecast_ort_amount"`
+	ApprovedOvertimeAmount  float64                             `json:"approved_overtime_amount"`
+	LeavePayoutAmount       float64                             `json:"leave_payout_amount"`
+	PayableGrossAmount      float64                             `json:"payable_gross_amount"`
+	ProjectedGrossAmount    float64                             `json:"projected_gross_amount"`
+	ContractPaidMinutes     float64                             `json:"contract_paid_minutes"`
+	ScheduledActualMinutes  int32                               `json:"scheduled_actual_minutes"`
+	ScheduledFutureMinutes  int32                               `json:"scheduled_future_minutes"`
+	ApprovedOvertimeMinutes int32                               `json:"approved_overtime_minutes"`
+	LeavePayoutMinutes      int32                               `json:"leave_payout_minutes"`
+	PendingEntryCount       int32                               `json:"pending_entry_count"`
+	PendingWorkedMinutes    int32                               `json:"pending_worked_minutes"`
+	ContractSegments        []fixedPayrollContractSegmentItem   `json:"contract_segments"`
+	ORTBreakdown            []fixedPayrollORTBreakdownItem      `json:"ort_breakdown"`
+	OvertimeBreakdown       []fixedPayrollOvertimeBreakdownItem `json:"overtime_breakdown"`
+	LeavePayoutBreakdown    []fixedPayrollLeavePayoutItem       `json:"leave_payout_breakdown"`
+}
+
+type fixedPayrollContractSegmentItem struct {
+	ContractID           uuid.UUID `json:"contract_id"`
+	ContractType         string    `json:"contract_type"`
+	ActiveFrom           string    `json:"active_from"`
+	ActiveUntil          string    `json:"active_until"`
+	HoursPerWeek         float64   `json:"hours_per_week"`
+	FullTimeHoursPerWeek float64   `json:"full_time_hours_per_week"`
+	MonthlySalary        float64   `json:"monthly_salary"`
+	HourlyRate           float64   `json:"hourly_rate"`
+	ProrationRatio       float64   `json:"proration_ratio"`
+	BaseAmount           float64   `json:"base_amount"`
+}
+
+type fixedPayrollORTBreakdownItem struct {
+	ScheduleID    *uuid.UUID `json:"schedule_id,omitempty"`
+	WorkDate      string     `json:"work_date"`
+	StartTime     string     `json:"start_time"`
+	EndTime       string     `json:"end_time"`
+	Status        string     `json:"status"`
+	RatePercent   float64    `json:"rate_percent"`
+	Minutes       int32      `json:"minutes"`
+	BasisAmount   float64    `json:"basis_amount"`
+	PremiumAmount float64    `json:"premium_amount"`
+}
+
+type fixedPayrollOvertimeBreakdownItem struct {
+	OvertimeEntryID *uuid.UUID `json:"overtime_entry_id,omitempty"`
+	WorkDate        string     `json:"work_date"`
+	Minutes         int32      `json:"minutes"`
+	Amount          float64    `json:"amount"`
+	Status          string     `json:"status"`
+}
+
+type fixedPayrollLeavePayoutItem struct {
+	LeavePayoutRequestID *uuid.UUID `json:"leave_payout_request_id,omitempty"`
+	SalaryMonth          string     `json:"salary_month"`
+	RequestedHours       int32      `json:"requested_hours"`
+	Minutes              int32      `json:"minutes"`
+	Amount               float64    `json:"amount"`
+	Status               string     `json:"status"`
+}
+
+type onCallPayrollMonthSummaryResponse struct {
+	EmployeeID              uuid.UUID                            `json:"employee_id"`
+	EmployeeName            string                               `json:"employee_name"`
+	Month                   string                               `json:"month"`
+	IsCurrentMonth          bool                                 `json:"is_current_month"`
+	CalculationMode         string                               `json:"calculation_mode"`
+	DataSource              string                               `json:"data_source"`
+	WorkedMinutes           int32                                `json:"worked_minutes"`
+	WorkedHoursAmount       float64                              `json:"worked_hours_amount"`
+	ApprovedOvertimeMinutes int32                                `json:"approved_overtime_minutes"`
+	ApprovedOvertimeAmount  float64                              `json:"approved_overtime_amount"`
+	LeavePayoutMinutes      int32                                `json:"leave_payout_minutes"`
+	LeavePayoutAmount       float64                              `json:"leave_payout_amount"`
+	PayableGrossAmount      float64                              `json:"payable_gross_amount"`
+	PendingEntryCount       int32                                `json:"pending_entry_count"`
+	PendingWorkedMinutes    int32                                `json:"pending_worked_minutes"`
+	WorkedHoursBreakdown    []onCallPayrollWorkedHoursItem       `json:"worked_hours_breakdown"`
+	OvertimeBreakdown       []onCallPayrollOvertimeBreakdownItem `json:"overtime_breakdown"`
+	LeavePayoutBreakdown    []onCallPayrollLeavePayoutItem       `json:"leave_payout_breakdown"`
+}
+
+type onCallPayrollWorkedHoursItem struct {
+	ScheduleID  *uuid.UUID `json:"schedule_id,omitempty"`
+	WorkDate    string     `json:"work_date"`
+	StartTime   string     `json:"start_time"`
+	EndTime     string     `json:"end_time"`
+	Minutes     int32      `json:"minutes"`
+	HourlyRate  float64    `json:"hourly_rate"`
+	BaseAmount  float64    `json:"base_amount"`
+	TotalAmount float64    `json:"total_amount"`
+}
+
+type onCallPayrollOvertimeBreakdownItem struct {
+	OvertimeEntryID *uuid.UUID `json:"overtime_entry_id,omitempty"`
+	WorkDate        string     `json:"work_date"`
+	Minutes         int32      `json:"minutes"`
+	HourlyRate      float64    `json:"hourly_rate"`
+	Amount          float64    `json:"amount"`
+	Status          string     `json:"status"`
+}
+
+type onCallPayrollLeavePayoutItem struct {
+	LeavePayoutRequestID *uuid.UUID `json:"leave_payout_request_id,omitempty"`
+	SalaryMonth          string     `json:"salary_month"`
+	RequestedHours       int32      `json:"requested_hours"`
+	Minutes              int32      `json:"minutes"`
+	Amount               float64    `json:"amount"`
+	Status               string     `json:"status"`
+}
+
 type payrollMonthDetailResponse struct {
 	EmployeeID   uuid.UUID               `json:"employee_id"`
 	EmployeeName string                  `json:"employee_name"`
@@ -254,6 +382,23 @@ func toCreatePayoutRequestParams(
 		BalanceYear:         req.BalanceYear,
 		RequestNote:         req.RequestNote,
 	}
+}
+
+func toCreatePayoutRequestByAdminParams(
+	req createPayoutRequestByAdminRequest,
+) (domain.CreatePayoutRequestByAdminParams, error) {
+	salaryMonth, err := time.Parse(payoutMonthLayout, req.SalaryMonth)
+	if err != nil {
+		return domain.CreatePayoutRequestByAdminParams{}, err
+	}
+	return domain.CreatePayoutRequestByAdminParams{
+		EmployeeID:     req.EmployeeID,
+		RequestedHours: req.RequestedHours,
+		BalanceYear:    req.BalanceYear,
+		SalaryMonth:    salaryMonth.UTC(),
+		RequestNote:    req.RequestNote,
+		DecisionNote:   req.DecisionNote,
+	}, nil
 }
 
 func toDecidePayoutRequestParams(
@@ -531,6 +676,174 @@ func toPayrollMonthSummaryResponses(
 	results := make([]payrollMonthSummaryResponse, len(items))
 	for i, item := range items {
 		results[i] = toPayrollMonthSummaryResponse(item)
+	}
+	return results
+}
+
+func toFixedPayrollMonthSummaryResponse(
+	item domain.FixedPayrollMonthSummaryRow,
+) fixedPayrollMonthSummaryResponse {
+	contractSegments := make([]fixedPayrollContractSegmentItem, len(item.ContractSegments))
+	for i, segment := range item.ContractSegments {
+		contractSegments[i] = fixedPayrollContractSegmentItem{
+			ContractID:           segment.ContractID,
+			ContractType:         segment.ContractType,
+			ActiveFrom:           segment.ActiveFrom.UTC().Format(timeEntryDateLayout),
+			ActiveUntil:          segment.ActiveUntil.UTC().Format(timeEntryDateLayout),
+			HoursPerWeek:         segment.HoursPerWeek,
+			FullTimeHoursPerWeek: segment.FullTimeHoursPerWeek,
+			MonthlySalary:        segment.MonthlySalary,
+			HourlyRate:           segment.HourlyRate,
+			ProrationRatio:       segment.ProrationRatio,
+			BaseAmount:           segment.BaseAmount,
+		}
+	}
+
+	ortBreakdown := make([]fixedPayrollORTBreakdownItem, len(item.ORTBreakdown))
+	for i, breakdown := range item.ORTBreakdown {
+		ortBreakdown[i] = fixedPayrollORTBreakdownItem{
+			ScheduleID:    breakdown.ScheduleID,
+			WorkDate:      breakdown.WorkDate.UTC().Format(timeEntryDateLayout),
+			StartTime:     breakdown.StartTime,
+			EndTime:       breakdown.EndTime,
+			Status:        breakdown.Status,
+			RatePercent:   breakdown.RatePercent,
+			Minutes:       breakdown.Minutes,
+			BasisAmount:   breakdown.BasisAmount,
+			PremiumAmount: breakdown.PremiumAmount,
+		}
+	}
+
+	overtimeBreakdown := make([]fixedPayrollOvertimeBreakdownItem, len(item.OvertimeBreakdown))
+	for i, breakdown := range item.OvertimeBreakdown {
+		overtimeBreakdown[i] = fixedPayrollOvertimeBreakdownItem{
+			OvertimeEntryID: breakdown.OvertimeEntryID,
+			WorkDate:        breakdown.WorkDate.UTC().Format(timeEntryDateLayout),
+			Minutes:         breakdown.Minutes,
+			Amount:          breakdown.Amount,
+			Status:          breakdown.Status,
+		}
+	}
+
+	leavePayoutBreakdown := make([]fixedPayrollLeavePayoutItem, len(item.LeavePayoutBreakdown))
+	for i, breakdown := range item.LeavePayoutBreakdown {
+		leavePayoutBreakdown[i] = fixedPayrollLeavePayoutItem{
+			LeavePayoutRequestID: breakdown.LeavePayoutRequestID,
+			SalaryMonth:          breakdown.SalaryMonth.UTC().Format(payoutMonthLayout),
+			RequestedHours:       breakdown.RequestedHours,
+			Minutes:              breakdown.Minutes,
+			Amount:               breakdown.Amount,
+			Status:               breakdown.Status,
+		}
+	}
+
+	return fixedPayrollMonthSummaryResponse{
+		EmployeeID:              item.EmployeeID,
+		EmployeeName:            item.EmployeeName,
+		Month:                   item.Month.UTC().Format(payoutMonthLayout),
+		IsCurrentMonth:          item.IsCurrentMonth,
+		CalculationMode:         item.CalculationMode,
+		DataSource:              item.DataSource,
+		ContractBaseAmount:      item.ContractBaseAmount,
+		ActualORTAmount:         item.ActualORTAmount,
+		ForecastORTAmount:       item.ForecastORTAmount,
+		ApprovedOvertimeAmount:  item.ApprovedOvertimeAmount,
+		LeavePayoutAmount:       item.LeavePayoutAmount,
+		PayableGrossAmount:      item.PayableGrossAmount,
+		ProjectedGrossAmount:    item.ProjectedGrossAmount,
+		ContractPaidMinutes:     item.ContractPaidMinutes,
+		ScheduledActualMinutes:  item.ScheduledActualMinutes,
+		ScheduledFutureMinutes:  item.ScheduledFutureMinutes,
+		ApprovedOvertimeMinutes: item.ApprovedOvertimeMinutes,
+		LeavePayoutMinutes:      item.LeavePayoutMinutes,
+		PendingEntryCount:       item.PendingEntryCount,
+		PendingWorkedMinutes:    item.PendingWorkedMinutes,
+		ContractSegments:        contractSegments,
+		ORTBreakdown:            ortBreakdown,
+		OvertimeBreakdown:       overtimeBreakdown,
+		LeavePayoutBreakdown:    leavePayoutBreakdown,
+	}
+}
+
+func toFixedPayrollMonthSummaryResponses(
+	items []domain.FixedPayrollMonthSummaryRow,
+) []fixedPayrollMonthSummaryResponse {
+	results := make([]fixedPayrollMonthSummaryResponse, len(items))
+	for i, item := range items {
+		results[i] = toFixedPayrollMonthSummaryResponse(item)
+	}
+	return results
+}
+
+func toOnCallPayrollMonthSummaryResponse(
+	item domain.OnCallPayrollMonthSummaryRow,
+) onCallPayrollMonthSummaryResponse {
+	workedHours := make([]onCallPayrollWorkedHoursItem, len(item.WorkedHoursBreakdown))
+	for i, breakdown := range item.WorkedHoursBreakdown {
+		workedHours[i] = onCallPayrollWorkedHoursItem{
+			ScheduleID:  breakdown.ScheduleID,
+			WorkDate:    breakdown.WorkDate.UTC().Format(timeEntryDateLayout),
+			StartTime:   breakdown.StartTime,
+			EndTime:     breakdown.EndTime,
+			Minutes:     breakdown.Minutes,
+			HourlyRate:  breakdown.HourlyRate,
+			BaseAmount:  breakdown.BaseAmount,
+			TotalAmount: breakdown.TotalAmount,
+		}
+	}
+
+	overtime := make([]onCallPayrollOvertimeBreakdownItem, len(item.OvertimeBreakdown))
+	for i, breakdown := range item.OvertimeBreakdown {
+		overtime[i] = onCallPayrollOvertimeBreakdownItem{
+			OvertimeEntryID: breakdown.OvertimeEntryID,
+			WorkDate:        breakdown.WorkDate.UTC().Format(timeEntryDateLayout),
+			Minutes:         breakdown.Minutes,
+			HourlyRate:      breakdown.HourlyRate,
+			Amount:          breakdown.Amount,
+			Status:          breakdown.Status,
+		}
+	}
+
+	leavePayouts := make([]onCallPayrollLeavePayoutItem, len(item.LeavePayoutBreakdown))
+	for i, breakdown := range item.LeavePayoutBreakdown {
+		leavePayouts[i] = onCallPayrollLeavePayoutItem{
+			LeavePayoutRequestID: breakdown.LeavePayoutRequestID,
+			SalaryMonth:          breakdown.SalaryMonth.UTC().Format(payoutMonthLayout),
+			RequestedHours:       breakdown.RequestedHours,
+			Minutes:              breakdown.Minutes,
+			Amount:               breakdown.Amount,
+			Status:               breakdown.Status,
+		}
+	}
+
+	return onCallPayrollMonthSummaryResponse{
+		EmployeeID:              item.EmployeeID,
+		EmployeeName:            item.EmployeeName,
+		Month:                   item.Month.UTC().Format(payoutMonthLayout),
+		IsCurrentMonth:          item.IsCurrentMonth,
+		CalculationMode:         item.CalculationMode,
+		DataSource:              item.DataSource,
+		WorkedMinutes:           item.WorkedMinutes,
+		WorkedHoursAmount:       item.WorkedHoursAmount,
+		ApprovedOvertimeMinutes: item.ApprovedOvertimeMinutes,
+		ApprovedOvertimeAmount:  item.ApprovedOvertimeAmount,
+		LeavePayoutMinutes:      item.LeavePayoutMinutes,
+		LeavePayoutAmount:       item.LeavePayoutAmount,
+		PayableGrossAmount:      item.PayableGrossAmount,
+		PendingEntryCount:       item.PendingEntryCount,
+		PendingWorkedMinutes:    item.PendingWorkedMinutes,
+		WorkedHoursBreakdown:    workedHours,
+		OvertimeBreakdown:       overtime,
+		LeavePayoutBreakdown:    leavePayouts,
+	}
+}
+
+func toOnCallPayrollMonthSummaryResponses(
+	items []domain.OnCallPayrollMonthSummaryRow,
+) []onCallPayrollMonthSummaryResponse {
+	results := make([]onCallPayrollMonthSummaryResponse, len(items))
+	for i, item := range items {
+		results[i] = toOnCallPayrollMonthSummaryResponse(item)
 	}
 	return results
 }

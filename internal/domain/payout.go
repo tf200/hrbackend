@@ -84,6 +84,15 @@ type DecidePayoutRequestParams struct {
 	SalaryMonth  *time.Time
 }
 
+type CreatePayoutRequestByAdminParams struct {
+	EmployeeID     uuid.UUID
+	RequestedHours int32
+	BalanceYear    int32
+	SalaryMonth    time.Time
+	RequestNote    *string
+	DecisionNote   *string
+}
+
 type ListMyPayoutRequestsParams struct {
 	EmployeeID uuid.UUID
 	Limit      int32
@@ -226,6 +235,16 @@ type PayrollMonthSummaryPage struct {
 	TotalCount int64
 }
 
+type FixedPayrollMonthSummaryPage struct {
+	Items      []FixedPayrollMonthSummaryRow
+	TotalCount int64
+}
+
+type OnCallPayrollMonthSummaryPage struct {
+	Items      []OnCallPayrollMonthSummaryRow
+	TotalCount int64
+}
+
 type PayrollMonthORTOverviewPage struct {
 	Month        time.Time
 	Distribution []PayrollMultiplierSummary
@@ -257,6 +276,125 @@ type PayrollMonthSummaryRow struct {
 	PayPeriodStatus      *string
 	PaidAt               *time.Time
 	MultiplierSummaries  []PayrollMultiplierSummary
+}
+
+type FixedPayrollMonthSummaryRow struct {
+	EmployeeID              uuid.UUID
+	EmployeeName            string
+	Month                   time.Time
+	IsCurrentMonth          bool
+	CalculationMode         string
+	DataSource              string
+	ContractBaseAmount      float64
+	ActualORTAmount         float64
+	ForecastORTAmount       float64
+	ApprovedOvertimeAmount  float64
+	LeavePayoutAmount       float64
+	PayableGrossAmount      float64
+	ProjectedGrossAmount    float64
+	ContractPaidMinutes     float64
+	ScheduledActualMinutes  int32
+	ScheduledFutureMinutes  int32
+	ApprovedOvertimeMinutes int32
+	LeavePayoutMinutes      int32
+	PendingEntryCount       int32
+	PendingWorkedMinutes    int32
+	ContractSegments        []FixedPayrollContractSegment
+	ORTBreakdown            []FixedPayrollORTBreakdown
+	OvertimeBreakdown       []FixedPayrollOvertimeBreakdown
+	LeavePayoutBreakdown    []FixedPayrollLeavePayoutBreakdown
+}
+
+type FixedPayrollContractSegment struct {
+	ContractID           uuid.UUID
+	ContractType         string
+	ActiveFrom           time.Time
+	ActiveUntil          time.Time
+	HoursPerWeek         float64
+	FullTimeHoursPerWeek float64
+	MonthlySalary        float64
+	HourlyRate           float64
+	ProrationRatio       float64
+	BaseAmount           float64
+}
+
+type FixedPayrollORTBreakdown struct {
+	ScheduleID    *uuid.UUID
+	WorkDate      time.Time
+	StartTime     string
+	EndTime       string
+	Status        string
+	RatePercent   float64
+	Minutes       int32
+	BasisAmount   float64
+	PremiumAmount float64
+}
+
+type FixedPayrollOvertimeBreakdown struct {
+	OvertimeEntryID *uuid.UUID
+	WorkDate        time.Time
+	Minutes         int32
+	Amount          float64
+	Status          string
+}
+
+type FixedPayrollLeavePayoutBreakdown struct {
+	LeavePayoutRequestID *uuid.UUID
+	SalaryMonth          time.Time
+	RequestedHours       int32
+	Minutes              int32
+	Amount               float64
+	Status               string
+}
+
+type OnCallPayrollMonthSummaryRow struct {
+	EmployeeID              uuid.UUID
+	EmployeeName            string
+	Month                   time.Time
+	IsCurrentMonth          bool
+	CalculationMode         string
+	DataSource              string
+	WorkedMinutes           int32
+	WorkedHoursAmount       float64
+	ApprovedOvertimeMinutes int32
+	ApprovedOvertimeAmount  float64
+	LeavePayoutMinutes      int32
+	LeavePayoutAmount       float64
+	PayableGrossAmount      float64
+	PendingEntryCount       int32
+	PendingWorkedMinutes    int32
+	WorkedHoursBreakdown    []OnCallPayrollWorkedHoursBreakdown
+	OvertimeBreakdown       []OnCallPayrollOvertimeBreakdown
+	LeavePayoutBreakdown    []OnCallPayrollLeavePayoutBreakdown
+}
+
+type OnCallPayrollWorkedHoursBreakdown struct {
+	ScheduleID  *uuid.UUID
+	WorkDate    time.Time
+	StartTime   string
+	EndTime     string
+	Minutes     int32
+	HourlyRate  float64
+	BaseAmount  float64
+	TotalAmount float64
+}
+
+type OnCallPayrollOvertimeBreakdown struct {
+	OvertimeEntryID *uuid.UUID
+	WorkDate        time.Time
+	Minutes         int32
+	HourlyRate      float64
+	Amount          float64
+	Status          string
+}
+
+type OnCallPayrollLeavePayoutBreakdown struct {
+	LeavePayoutRequestID *uuid.UUID
+	SalaryMonth          time.Time
+	RequestedHours       int32
+	Minutes              int32
+	Amount               float64
+	Status               string
 }
 
 type PayrollMonthORTOverviewRow struct {
@@ -330,6 +468,18 @@ type ORTRule struct {
 type PayrollMonthEmployee struct {
 	EmployeeID   uuid.UUID
 	EmployeeName string
+}
+
+type FixedPayrollContractSegmentSource struct {
+	EmployeeID           uuid.UUID
+	ContractID           uuid.UUID
+	ContractType         string
+	ActiveFrom           time.Time
+	ActiveUntil          time.Time
+	HoursPerWeek         float64
+	FullTimeHoursPerWeek float64
+	MonthlySalary        float64
+	HourlyRate           float64
 }
 
 type PayrollMonthPendingSummary struct {
@@ -497,6 +647,21 @@ type PayoutRepository interface {
 		params PayrollMonthORTOverviewParams,
 		monthStart, monthEnd time.Time,
 	) ([]PayrollMonthEmployee, error)
+	ListFixedPayrollMonthEmployees(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollMonthEmployee, int64, error)
+	ListOnCallPayrollMonthEmployees(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+		monthStart, monthEnd time.Time,
+	) ([]PayrollMonthEmployee, int64, error)
+	ListFixedPayrollContractSegments(
+		ctx context.Context,
+		employeeIDs []uuid.UUID,
+		monthStart, monthEnd time.Time,
+	) ([]FixedPayrollContractSegmentSource, error)
 	ListPayPeriodsByEmployeesAndRange(
 		ctx context.Context,
 		employeeIDs []uuid.UUID,
@@ -555,6 +720,11 @@ type PayoutService interface {
 		ctx context.Context,
 		adminEmployeeID, payoutRequestID uuid.UUID,
 	) (*PayoutRequest, error)
+	CreateApprovedPayoutRequestByAdmin(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		params CreatePayoutRequestByAdminParams,
+	) (*PayoutRequest, error)
 	ListMyPayoutRequests(
 		ctx context.Context,
 		params ListMyPayoutRequestsParams,
@@ -584,6 +754,14 @@ type PayoutService interface {
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
 	) (*PayrollMonthSummaryPage, error)
+	GetFixedPayrollMonthSummary(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+	) (*FixedPayrollMonthSummaryPage, error)
+	GetOnCallPayrollMonthSummary(
+		ctx context.Context,
+		params PayrollMonthSummaryParams,
+	) (*OnCallPayrollMonthSummaryPage, error)
 	GetPayrollMonthORTOverview(
 		ctx context.Context,
 		params PayrollMonthORTOverviewParams,

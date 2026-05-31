@@ -51,6 +51,41 @@ func (h *PayoutHandler) CreatePayoutRequest(ctx *gin.Context) {
 	)
 }
 
+func (h *PayoutHandler) CreatePayoutRequestByAdmin(ctx *gin.Context) {
+	var req createPayoutRequestByAdminRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	params, err := toCreatePayoutRequestByAdminParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	item, err := h.service.CreateApprovedPayoutRequestByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		params,
+	)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toPayoutRequestResponse(*item), "Payout request created and approved successfully"),
+	)
+}
+
 func (h *PayoutHandler) ListMyPayoutRequests(ctx *gin.Context) {
 	var req listMyPayoutRequestsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
@@ -244,7 +279,7 @@ func (h *PayoutHandler) GetORTRules(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(toORTRulesResponse(rules), "ORT rules retrieved successfully"))
 }
 
-func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
+func (h *PayoutHandler) GetFixedPayrollMonthSummary(ctx *gin.Context) {
 	var req payrollMonthSummaryRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
@@ -257,7 +292,7 @@ func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.GetPayrollMonthSummary(ctx.Request.Context(), params)
+	page, err := h.service.GetFixedPayrollMonthSummary(ctx.Request.Context(), params)
 	if err != nil {
 		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -266,10 +301,38 @@ func (h *PayoutHandler) GetPayrollMonthSummary(ctx *gin.Context) {
 	response := httpapi.NewPageResponse(
 		ctx,
 		req.PageRequest,
-		toPayrollMonthSummaryResponses(page.Items),
+		toFixedPayrollMonthSummaryResponses(page.Items),
 		page.TotalCount,
 	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month summary retrieved successfully"))
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Fixed payroll month summary retrieved successfully"))
+}
+
+func (h *PayoutHandler) GetOnCallPayrollMonthSummary(ctx *gin.Context) {
+	var req payrollMonthSummaryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := toPayrollMonthSummaryParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	page, err := h.service.GetOnCallPayrollMonthSummary(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toOnCallPayrollMonthSummaryResponses(page.Items),
+		page.TotalCount,
+	)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "On-call payroll month summary retrieved successfully"))
 }
 
 func (h *PayoutHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
@@ -299,37 +362,6 @@ func (h *PayoutHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
 	)
 	response := toPayrollMonthORTOverviewResponse(page, paged)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month ORT overview retrieved successfully"))
-}
-
-func (h *PayoutHandler) GetZZPPayrollMonthSummary(ctx *gin.Context) {
-	var req payrollMonthSummaryRequest
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	params, err := toPayrollMonthSummaryParams(req)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	contractType := "on_call"
-	params.ContractType = &contractType
-
-	page, err := h.service.GetPayrollMonthSummary(ctx.Request.Context(), params)
-	if err != nil {
-		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	response := httpapi.NewPageResponse(
-		ctx,
-		req.PageRequest,
-		toPayrollMonthSummaryResponses(page.Items),
-		page.TotalCount,
-	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "On-call payroll month summary retrieved successfully"))
 }
 
 func (h *PayoutHandler) GetPayrollMonthDetail(ctx *gin.Context) {

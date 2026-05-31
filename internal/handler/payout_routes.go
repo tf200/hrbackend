@@ -49,22 +49,22 @@ func RegisterPayoutRoutes(
 		handler.GetORTRules,
 	)
 	rg.GET(
-		"/payroll-month-summary",
+		"/payroll-month-summary/fixed",
 		auth,
 		requirePermission(permission.PayPeriod.MonthSummaryView),
-		handler.GetPayrollMonthSummary,
+		handler.GetFixedPayrollMonthSummary,
+	)
+	rg.GET(
+		"/payroll-month-summary/on-call",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetOnCallPayrollMonthSummary,
 	)
 	rg.GET(
 		"/payroll-month-summary/ort-overview",
 		auth,
 		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetPayrollMonthORTOverview,
-	)
-	rg.GET(
-		"/payroll-month-summary/zzp",
-		auth,
-		requirePermission(permission.PayPeriod.MonthSummaryView),
-		handler.GetZZPPayrollMonthSummary,
 	)
 	rg.GET(
 		"/payroll-month-summary/details",
@@ -96,6 +96,12 @@ func RegisterPayoutRoutes(
 		auth,
 		requirePermission(permission.PayPeriod.MarkPaid),
 		handler.MarkPayPeriodPaidByAdmin,
+	)
+	rg.POST(
+		"/payout-requests/admin",
+		auth,
+		requirePermission(permission.Payout.Request.Decide),
+		handler.CreatePayoutRequestByAdmin,
 	)
 	rg.POST(
 		"/payout-requests",

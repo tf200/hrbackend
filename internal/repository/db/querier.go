@@ -208,6 +208,8 @@ type Querier interface {
 	ListEmployeesEligibleForDepartmentHandbookSeed(ctx context.Context, arg ListEmployeesEligibleForDepartmentHandbookSeedParams) ([]uuid.UUID, error)
 	ListEmployeesWithContractHours(ctx context.Context, dollar_1 []uuid.UUID) ([]ListEmployeesWithContractHoursRow, error)
 	ListExpenseRequestsPaginated(ctx context.Context, arg ListExpenseRequestsPaginatedParams) ([]ListExpenseRequestsPaginatedRow, error)
+	ListFixedPayrollContractSegments(ctx context.Context, arg ListFixedPayrollContractSegmentsParams) ([]ListFixedPayrollContractSegmentsRow, error)
+	ListFixedPayrollMonthEmployeesPaginated(ctx context.Context, arg ListFixedPayrollMonthEmployeesPaginatedParams) ([]ListFixedPayrollMonthEmployeesPaginatedRow, error)
 	ListHandbookStepsByTemplate(ctx context.Context, templateID uuid.UUID) ([]HandbookStep, error)
 	ListHandbookTemplatesByDepartment(ctx context.Context, departmentID uuid.UUID) ([]HandbookTemplate, error)
 	// ---------- 5. USER-PERMISSION OVERRIDES ----------
@@ -234,6 +236,7 @@ type Querier interface {
 	ListNotificationUserIDsByPermissions(ctx context.Context, permissionNames []string) ([]uuid.UUID, error)
 	ListNotificationUserIDsByRoles(ctx context.Context, roleNames []string) ([]uuid.UUID, error)
 	ListNotificationsByUserID(ctx context.Context, arg ListNotificationsByUserIDParams) ([]Notification, error)
+	ListOnCallPayrollMonthEmployeesPaginated(ctx context.Context, arg ListOnCallPayrollMonthEmployeesPaginatedParams) ([]ListOnCallPayrollMonthEmployeesPaginatedRow, error)
 	ListOpenShiftCoverage(ctx context.Context, days int32) ([]ListOpenShiftCoverageRow, error)
 	ListOrganisations(ctx context.Context) ([]ListOrganisationsRow, error)
 	ListOrganisationsPaginated(ctx context.Context, arg ListOrganisationsPaginatedParams) ([]ListOrganisationsPaginatedRow, error)

@@ -266,6 +266,14 @@ func (f *fakePayoutService) MarkPayoutRequestPaidByAdmin(
 	panic("unexpected call")
 }
 
+func (f *fakePayoutService) CreateApprovedPayoutRequestByAdmin(
+	_ context.Context,
+	_ uuid.UUID,
+	_ domain.CreatePayoutRequestByAdminParams,
+) (*domain.PayoutRequest, error) {
+	panic("unexpected call")
+}
+
 func (f *fakePayoutService) ListMyPayoutRequests(
 	_ context.Context,
 	_ domain.ListMyPayoutRequestsParams,
@@ -328,6 +336,20 @@ func (f *fakePayoutService) GetPayrollMonthSummary(
 	_ context.Context,
 	_ domain.PayrollMonthSummaryParams,
 ) (*domain.PayrollMonthSummaryPage, error) {
+	panic("unexpected call")
+}
+
+func (f *fakePayoutService) GetFixedPayrollMonthSummary(
+	_ context.Context,
+	_ domain.PayrollMonthSummaryParams,
+) (*domain.FixedPayrollMonthSummaryPage, error) {
+	panic("unexpected call")
+}
+
+func (f *fakePayoutService) GetOnCallPayrollMonthSummary(
+	_ context.Context,
+	_ domain.PayrollMonthSummaryParams,
+) (*domain.OnCallPayrollMonthSummaryPage, error) {
 	panic("unexpected call")
 }
 
