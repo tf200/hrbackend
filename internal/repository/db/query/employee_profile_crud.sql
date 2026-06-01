@@ -78,7 +78,9 @@ WHERE
     (sqlc.narg('contract_type')::employee_contract_type_enum IS NULL OR ec.contract_type = sqlc.narg('contract_type')::employee_contract_type_enum) AND
     (sqlc.narg('search')::TEXT IS NULL OR
         ep.first_name ILIKE '%' || sqlc.narg('search') || '%' OR
-        ep.last_name ILIKE '%' || sqlc.narg('search') || '%')
+        ep.last_name ILIKE '%' || sqlc.narg('search') || '%' OR
+        concat_ws(' ', ep.first_name, ep.last_name) ILIKE '%' || sqlc.narg('search') || '%' OR
+        concat_ws(' ', ep.last_name, ep.first_name) ILIKE '%' || sqlc.narg('search') || '%')
 ORDER BY ep.created_at DESC
 LIMIT $1 OFFSET $2;
 
@@ -103,7 +105,12 @@ WHERE
         ELSE true
     END) AND
     (sqlc.narg('location_id')::uuid IS NULL OR ec.location_id = sqlc.narg('location_id')::uuid) AND
-    (sqlc.narg('contract_type')::employee_contract_type_enum IS NULL OR ec.contract_type = sqlc.narg('contract_type')::employee_contract_type_enum);
+    (sqlc.narg('contract_type')::employee_contract_type_enum IS NULL OR ec.contract_type = sqlc.narg('contract_type')::employee_contract_type_enum) AND
+    (sqlc.narg('search')::TEXT IS NULL OR
+        ep.first_name ILIKE '%' || sqlc.narg('search') || '%' OR
+        ep.last_name ILIKE '%' || sqlc.narg('search') || '%' OR
+        concat_ws(' ', ep.first_name, ep.last_name) ILIKE '%' || sqlc.narg('search') || '%' OR
+        concat_ws(' ', ep.last_name, ep.first_name) ILIKE '%' || sqlc.narg('search') || '%');
 
 -- name: GetEmployeeProfileByUserID :one
 WITH inherited_permissions AS (

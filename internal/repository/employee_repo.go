@@ -316,6 +316,7 @@ func (r *EmployeeRepository) CountEmployees(
 		IncludeOutOfService: params.IncludeOutOfService,
 		LocationID:          params.LocationID,
 		ContractType:        contractTypePtrFromStringPtr(params.ContractType),
+		Search:              params.Search,
 	})
 }
 

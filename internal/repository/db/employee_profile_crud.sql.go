@@ -33,7 +33,12 @@ WHERE
         ELSE true
     END) AND
     ($3::uuid IS NULL OR ec.location_id = $3::uuid) AND
-    ($4::employee_contract_type_enum IS NULL OR ec.contract_type = $4::employee_contract_type_enum)
+    ($4::employee_contract_type_enum IS NULL OR ec.contract_type = $4::employee_contract_type_enum) AND
+    ($5::TEXT IS NULL OR
+        ep.first_name ILIKE '%' || $5 || '%' OR
+        ep.last_name ILIKE '%' || $5 || '%' OR
+        concat_ws(' ', ep.first_name, ep.last_name) ILIKE '%' || $5 || '%' OR
+        concat_ws(' ', ep.last_name, ep.first_name) ILIKE '%' || $5 || '%')
 `
 
 type CountEmployeeProfileParams struct {
@@ -41,6 +46,7 @@ type CountEmployeeProfileParams struct {
 	IncludeOutOfService *bool                     `json:"include_out_of_service"`
 	LocationID          *uuid.UUID                `json:"location_id"`
 	ContractType        *EmployeeContractTypeEnum `json:"contract_type"`
+	Search              *string                   `json:"search"`
 }
 
 func (q *Queries) CountEmployeeProfile(ctx context.Context, arg CountEmployeeProfileParams) (int64, error) {
@@ -49,6 +55,7 @@ func (q *Queries) CountEmployeeProfile(ctx context.Context, arg CountEmployeePro
 		arg.IncludeOutOfService,
 		arg.LocationID,
 		arg.ContractType,
+		arg.Search,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -389,7 +396,9 @@ WHERE
     ($6::employee_contract_type_enum IS NULL OR ec.contract_type = $6::employee_contract_type_enum) AND
     ($7::TEXT IS NULL OR
         ep.first_name ILIKE '%' || $7 || '%' OR
-        ep.last_name ILIKE '%' || $7 || '%')
+        ep.last_name ILIKE '%' || $7 || '%' OR
+        concat_ws(' ', ep.first_name, ep.last_name) ILIKE '%' || $7 || '%' OR
+        concat_ws(' ', ep.last_name, ep.first_name) ILIKE '%' || $7 || '%')
 ORDER BY ep.created_at DESC
 LIMIT $1 OFFSET $2
 `
