@@ -20,6 +20,7 @@ import (
 	pkgbucket "hrbackend/pkg/bucket"
 	pkgjwt "hrbackend/pkg/jwt"
 	pkglogger "hrbackend/pkg/logger"
+	pkgpdf "hrbackend/pkg/pdf"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -139,6 +140,11 @@ var postgresEnumTypeNames = []string{
 	"handbook_step_status_enum",
 	"handbook_template_status_enum",
 	"handbook_assignment_event_enum",
+	"sign_document_status_enum",
+	"sign_document_recipient_status_enum",
+	"sign_document_field_type_enum",
+	"sign_document_event_enum",
+	"employee_signature_type_enum",
 	"shift_swap_status_enum",
 	"leave_request_type_enum",
 	"leave_request_status_enum",
@@ -288,11 +294,13 @@ func buildRouter(
 	trainingRepo := repository.NewTrainingRepository(store)
 	trainingService := service.NewTrainingService(trainingRepo, logger)
 
-	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
-	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
-
 	attachmentRepo := repository.NewAttachmentRepository(store)
 	attachmentService := service.NewAttachmentService(attachmentRepo, storageClient, logger)
+	signDocumentRepo := repository.NewSignDocumentRepository(store)
+	signDocumentService := service.NewSignDocumentService(signDocumentRepo, attachmentRepo, storageClient, pkgpdf.NewSignDocumentStamper(), logger)
+
+	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
+	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
 
 	authHandler := handler.NewAuthHandler(authService)
 	wsAuthService := service.NewWebSocketAuthService(wsTicketStore, logger, cfg.WsTicketTTL)
@@ -315,9 +323,10 @@ func buildRouter(
 	performanceHandler := handler.NewPerformanceHandler(performanceService)
 	handbookHandler := handler.NewHandbookHandler(handbookService)
 	trainingHandler := handler.NewTrainingHandler(trainingService)
-	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
 	attachmentHandler := handler.NewAttachmentHandler(attachmentService)
+	signDocumentHandler := handler.NewSignDocumentHandler(signDocumentService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
+	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
 
 	api := router.Group("/api")
 	auth := authMiddleware.Handle()
@@ -342,9 +351,10 @@ func buildRouter(
 	handler.RegisterPerformanceRoutes(api, performanceHandler, auth, requirePermission)
 	handler.RegisterHandbookRoutes(api, handbookHandler, auth, requirePermission)
 	handler.RegisterTrainingRoutes(api, trainingHandler, auth, requirePermission)
-	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
 	handler.RegisterAttachmentRoutes(api, attachmentHandler, auth)
+	handler.RegisterSignDocumentRoutes(api, signDocumentHandler, auth, requirePermission)
 	handler.RegisterNotificationRoutes(api, notificationHandler, auth)
+	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
 
 	return router
 }

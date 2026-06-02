@@ -115,6 +115,8 @@ type LeaveContractAccrual struct {
 	ScheduleMinutes   int32
 	OvertimeMinutes   int32
 	GainedMinutes     int32
+	DeductedMinutes   int32
+	RemainingMinutes  int32
 }
 
 type LeavePolicy struct {

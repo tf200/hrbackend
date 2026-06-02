@@ -22,7 +22,7 @@ SET
     decided_at = NOW(),
     updated_at = NOW()
 WHERE id = $4
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, requested_at, decided_at, paid_at, created_at, updated_at, paid_period_id
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type ApprovePayoutRequestParams struct {
@@ -54,12 +54,12 @@ func (q *Queries) ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutReq
 		&i.DecisionNote,
 		&i.DecidedByEmployeeID,
 		&i.PaidByEmployeeID,
+		&i.PaidPeriodID,
 		&i.RequestedAt,
 		&i.DecidedAt,
 		&i.PaidAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.PaidPeriodID,
 	)
 	return i, err
 }
@@ -84,7 +84,7 @@ INSERT INTO leave_payout_requests (
     $7,
     NOW()
 )
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, requested_at, decided_at, paid_at, created_at, updated_at, paid_period_id
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type CreatePayoutRequestParams struct {
@@ -122,12 +122,12 @@ func (q *Queries) CreatePayoutRequest(ctx context.Context, arg CreatePayoutReque
 		&i.DecisionNote,
 		&i.DecidedByEmployeeID,
 		&i.PaidByEmployeeID,
+		&i.PaidPeriodID,
 		&i.RequestedAt,
 		&i.DecidedAt,
 		&i.PaidAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.PaidPeriodID,
 	)
 	return i, err
 }
@@ -406,7 +406,7 @@ func (q *Queries) ListPayoutRequestsPaginated(ctx context.Context, arg ListPayou
 }
 
 const lockPayoutRequestByID = `-- name: LockPayoutRequestByID :one
-SELECT id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, requested_at, decided_at, paid_at, created_at, updated_at, paid_period_id
+SELECT id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 FROM leave_payout_requests
 WHERE id = $1
 FOR UPDATE
@@ -429,12 +429,12 @@ func (q *Queries) LockPayoutRequestByID(ctx context.Context, id uuid.UUID) (Leav
 		&i.DecisionNote,
 		&i.DecidedByEmployeeID,
 		&i.PaidByEmployeeID,
+		&i.PaidPeriodID,
 		&i.RequestedAt,
 		&i.DecidedAt,
 		&i.PaidAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.PaidPeriodID,
 	)
 	return i, err
 }
@@ -447,7 +447,7 @@ SET
     paid_at = NOW(),
     updated_at = NOW()
 WHERE id = $2
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, requested_at, decided_at, paid_at, created_at, updated_at, paid_period_id
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type MarkPayoutRequestPaidParams struct {
@@ -472,12 +472,12 @@ func (q *Queries) MarkPayoutRequestPaid(ctx context.Context, arg MarkPayoutReque
 		&i.DecisionNote,
 		&i.DecidedByEmployeeID,
 		&i.PaidByEmployeeID,
+		&i.PaidPeriodID,
 		&i.RequestedAt,
 		&i.DecidedAt,
 		&i.PaidAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.PaidPeriodID,
 	)
 	return i, err
 }
@@ -491,7 +491,7 @@ SET
     decided_at = NOW(),
     updated_at = NOW()
 WHERE id = $3
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, requested_at, decided_at, paid_at, created_at, updated_at, paid_period_id
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type RejectPayoutRequestParams struct {
@@ -517,12 +517,12 @@ func (q *Queries) RejectPayoutRequest(ctx context.Context, arg RejectPayoutReque
 		&i.DecisionNote,
 		&i.DecidedByEmployeeID,
 		&i.PaidByEmployeeID,
+		&i.PaidPeriodID,
 		&i.RequestedAt,
 		&i.DecidedAt,
 		&i.PaidAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.PaidPeriodID,
 	)
 	return i, err
 }

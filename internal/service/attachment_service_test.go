@@ -108,6 +108,10 @@ func (f *fakeStorage) GetFileInfos(ctx context.Context, objectKeys []string) (ma
 	return nil, nil
 }
 
+func (f *fakeStorage) Download(ctx context.Context, objectKey string) ([]byte, error) {
+	return nil, nil
+}
+
 func (f *fakeStorage) Delete(ctx context.Context, objectKey string) error {
 	return f.deleteErr
 }

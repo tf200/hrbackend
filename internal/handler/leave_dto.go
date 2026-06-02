@@ -199,6 +199,8 @@ type leaveContractAccrualResponse struct {
 	ScheduleMinutes   int32      `json:"schedule_minutes"`
 	OvertimeMinutes   int32      `json:"overtime_minutes"`
 	GainedMinutes     int32      `json:"gained_minutes"`
+	DeductedMinutes   int32      `json:"deducted_minutes"`
+	RemainingMinutes  int32      `json:"remaining_minutes"`
 }
 
 type leaveBalanceDetailsResponse struct {
@@ -510,6 +512,8 @@ func toLeaveBalanceDetailsResponse(item domain.LeaveBalanceDetails) leaveBalance
 			ScheduleMinutes:   accrual.ScheduleMinutes,
 			OvertimeMinutes:   accrual.OvertimeMinutes,
 			GainedMinutes:     accrual.GainedMinutes,
+			DeductedMinutes:   accrual.DeductedMinutes,
+			RemainingMinutes:  accrual.RemainingMinutes,
 		}
 	}
 

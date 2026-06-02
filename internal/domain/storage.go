@@ -25,5 +25,6 @@ type Storage interface {
 	) (string, error)
 	GetFileInfo(ctx context.Context, objectKey string) (int64, error)
 	GetFileInfos(ctx context.Context, objectKeys []string) (map[string]int64, error)
+	Download(ctx context.Context, objectKey string) ([]byte, error)
 	Delete(ctx context.Context, objectKey string) error
 }

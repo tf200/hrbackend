@@ -51,6 +51,10 @@ func (n *NoopClient) GetFileInfos(
 	return nil, ErrBucketDisabled
 }
 
+func (n *NoopClient) Download(ctx context.Context, objectKey string) ([]byte, error) {
+	return nil, ErrBucketDisabled
+}
+
 func (n *NoopClient) Delete(ctx context.Context, objectKey string) error {
 	return ErrBucketDisabled
 }

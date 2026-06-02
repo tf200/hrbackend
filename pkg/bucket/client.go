@@ -3,6 +3,7 @@ package bucket
 import (
 	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"sync"
 	"time"
@@ -139,6 +140,20 @@ func (o *ObjectStorageClient) GetFileInfos(
 	}
 
 	return results, nil
+}
+
+func (o *ObjectStorageClient) Download(ctx context.Context, objectKey string) ([]byte, error) {
+	obj, err := o.client.GetObject(ctx, o.bucket, objectKey, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get object: %w", err)
+	}
+	defer obj.Close()
+
+	data, err := io.ReadAll(obj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read object: %w", err)
+	}
+	return data, nil
 }
 
 func (o *ObjectStorageClient) Delete(ctx context.Context, objectKey string) error {

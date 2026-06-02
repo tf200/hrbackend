@@ -1,213 +1,212 @@
 package handler
 
 import (
-	"time"
-
 	"hrbackend/internal/domain"
+	"hrbackend/internal/httpapi"
 
 	"github.com/google/uuid"
 )
 
-const adminDashboardDateLayout = "2006-01-02"
-
-type listOpenShiftCoverageRequest struct {
-	Days *int32 `form:"days" binding:"omitempty,min=1,max=31"`
+type fullTimeEmployeeDeptBreakdownItemResponse struct {
+	DepartmentID   uuid.UUID `json:"department_id"`
+	DepartmentName string    `json:"department_name"`
+	TotalEmployees int64     `json:"total_employees"`
 }
 
-type adminAvailabilityStatsResponse struct {
-	Active       int64 `json:"active"`
-	OnLeave      int64 `json:"on_leave"`
-	Sick         int64 `json:"sick"`
-	OutOfService int64 `json:"out_of_service"`
-	Unscheduled  int64 `json:"unscheduled"`
+type fullTimeEmployeeLocBreakdownItemResponse struct {
+	LocationID     uuid.UUID `json:"location_id"`
+	LocationName   string    `json:"location_name"`
+	TotalEmployees int64     `json:"total_employees"`
 }
 
-func toAdminAvailabilityStatsResponse(
-	stats *domain.AvailabilityStats,
-) adminAvailabilityStatsResponse {
-	return adminAvailabilityStatsResponse{
-		Active:       stats.Active,
-		OnLeave:      stats.OnLeave,
-		Sick:         stats.Sick,
-		OutOfService: stats.OutOfService,
-		Unscheduled:  stats.Unscheduled,
-	}
+type fullTimeEmployeeBreakdownsResponse struct {
+	ByDepartment []fullTimeEmployeeDeptBreakdownItemResponse `json:"by_department"`
+	ByLocation   []fullTimeEmployeeLocBreakdownItemResponse  `json:"by_location"`
 }
 
-type adminOpenShiftCoverageResponse struct {
-	Days      int32                                    `json:"days"`
-	Locations []adminOpenShiftCoverageLocationResponse `json:"locations"`
+type getLeaveAbsenceTrendsRequest struct {
+	View string `form:"view" binding:"omitempty,oneof=yearly last_6_months"`
+	Year *int32 `form:"year"`
 }
 
-type adminOpenShiftCoverageLocationResponse struct {
-	LocationID          uuid.UUID                             `json:"location_id"`
-	LocationName        string                                `json:"location_name"`
-	Street              string                                `json:"street"`
-	HouseNumber         string                                `json:"house_number"`
-	HouseNumberAddition *string                               `json:"house_number_addition,omitempty"`
-	PostalCode          string                                `json:"postal_code"`
-	City                string                                `json:"city"`
-	OpenSlots           int64                                 `json:"open_slots"`
-	OpenDays            int                                   `json:"open_days"`
-	Shifts              []adminOpenShiftCoverageShiftResponse `json:"shifts"`
-	openDates           map[string]struct{}
+type leaveAbsenceTrendPointResponse struct {
+	Month        string `json:"month"`
+	EmployeesOut int64  `json:"employees_out"`
 }
 
-type adminOpenShiftCoverageShiftResponse struct {
-	Date      string    `json:"date"`
-	ShiftID   uuid.UUID `json:"shift_id"`
-	ShiftName string    `json:"shift_name"`
-	OpenSlots int64     `json:"open_slots"`
+type leaveAbsenceTrendsResponse struct {
+	View   string                           `json:"view"`
+	Year   *int32                           `json:"year,omitempty"`
+	Points []leaveAbsenceTrendPointResponse `json:"points"`
 }
 
-func toAdminOpenShiftCoverageResponse(
-	days int32,
-	items []domain.OpenShiftCoverageItem,
-) adminOpenShiftCoverageResponse {
-	locations := make([]adminOpenShiftCoverageLocationResponse, 0)
-	locationIndexes := make(map[uuid.UUID]int)
+type getUpcomingDashboardAlertsRequest struct {
+	Days  int32 `form:"days"`
+	Limit int32 `form:"limit"`
+}
 
-	for _, item := range items {
-		idx, ok := locationIndexes[item.LocationID]
-		if !ok {
-			idx = len(locations)
-			locationIndexes[item.LocationID] = idx
-			locations = append(locations, adminOpenShiftCoverageLocationResponse{
-				LocationID:          item.LocationID,
-				LocationName:        item.LocationName,
-				Street:              item.Street,
-				HouseNumber:         item.HouseNumber,
-				HouseNumberAddition: item.HouseNumberAddition,
-				PostalCode:          item.PostalCode,
-				City:                item.City,
-				Shifts:              []adminOpenShiftCoverageShiftResponse{},
-				openDates:           make(map[string]struct{}),
-			})
+type endingContractAlertResponse struct {
+	EmployeeID      uuid.UUID `json:"employee_id"`
+	EmployeeName    string    `json:"employee_name"`
+	ContractID      uuid.UUID `json:"contract_id"`
+	ContractType    string    `json:"contract_type"`
+	ContractEndDate string    `json:"contract_end_date"`
+	DaysRemaining   int32     `json:"days_remaining"`
+	Department      string    `json:"department"`
+	Location        string    `json:"location"`
+}
+
+type expiringCredentialAlertResponse struct {
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	EmployeeName   string    `json:"employee_name"`
+	CredentialID   uuid.UUID `json:"credential_id"`
+	CredentialType string    `json:"credential_type"`
+	Name           string    `json:"name"`
+	ExpiryDate     string    `json:"expiry_date"`
+	DaysRemaining  int32     `json:"days_remaining"`
+}
+
+type returningFromLeaveAlertResponse struct {
+	EmployeeID      uuid.UUID `json:"employee_id"`
+	EmployeeName    string    `json:"employee_name"`
+	LeaveRequestID  uuid.UUID `json:"leave_request_id"`
+	LeaveType       string    `json:"leave_type"`
+	LeaveEndDate    string    `json:"leave_end_date"`
+	ReturnDate      string    `json:"return_date"`
+	DaysUntilReturn int32     `json:"days_until_return"`
+}
+
+type upcomingDashboardAlertsResponse struct {
+	EndingContracts     []endingContractAlertResponse     `json:"ending_contracts"`
+	ExpiringCredentials []expiringCredentialAlertResponse `json:"expiring_credentials"`
+	ReturningFromLeave  []returningFromLeaveAlertResponse `json:"returning_from_leave"`
+}
+
+func toFullTimeEmployeeBreakdownsResponse(b *domain.FullTimeEmployeeBreakdowns) fullTimeEmployeeBreakdownsResponse {
+	deptItems := make([]fullTimeEmployeeDeptBreakdownItemResponse, len(b.ByDepartment))
+	for i, item := range b.ByDepartment {
+		deptItems[i] = fullTimeEmployeeDeptBreakdownItemResponse{
+			DepartmentID:   item.DepartmentID,
+			DepartmentName: item.DepartmentName,
+			TotalEmployees: item.TotalEmployees,
 		}
-
-		date := formatAdminDashboardDate(item.ShiftDate)
-		locations[idx].OpenSlots += item.OpenSlots
-		locations[idx].openDates[date] = struct{}{}
-		locations[idx].Shifts = append(locations[idx].Shifts, adminOpenShiftCoverageShiftResponse{
-			Date:      date,
-			ShiftID:   item.ShiftID,
-			ShiftName: item.ShiftName,
-			OpenSlots: item.OpenSlots,
-		})
 	}
 
-	for i := range locations {
-		locations[i].OpenDays = len(locations[i].openDates)
-		locations[i].openDates = nil
+	locItems := make([]fullTimeEmployeeLocBreakdownItemResponse, len(b.ByLocation))
+	for i, item := range b.ByLocation {
+		locItems[i] = fullTimeEmployeeLocBreakdownItemResponse{
+			LocationID:     item.LocationID,
+			LocationName:   item.LocationName,
+			TotalEmployees: item.TotalEmployees,
+		}
 	}
 
-	return adminOpenShiftCoverageResponse{
-		Days:      days,
-		Locations: locations,
+	return fullTimeEmployeeBreakdownsResponse{
+		ByDepartment: deptItems,
+		ByLocation:   locItems,
 	}
 }
 
-type adminCriticalActionStatsResponse struct {
-	PendingLeaveRequests int64 `json:"pending_leave_requests"`
-	PendingShiftSwaps    int64 `json:"pending_shift_swaps"`
-	PendingExpenseClaims int64 `json:"pending_expense_claims"`
-	PendingOvertimeEntries   int64 `json:"pending_overtime_entries"`
-	Total                int64 `json:"total"`
-}
+func toLeaveAbsenceTrendsResponse(trends *domain.LeaveAbsenceTrends) leaveAbsenceTrendsResponse {
+	points := make([]leaveAbsenceTrendPointResponse, len(trends.Points))
+	for i, point := range trends.Points {
+		points[i] = leaveAbsenceTrendPointResponse{
+			Month:        point.Month.Format("2006-01"),
+			EmployeesOut: point.EmployeesOut,
+		}
+	}
 
-func toAdminCriticalActionStatsResponse(
-	stats *domain.CriticalActionStats,
-) adminCriticalActionStatsResponse {
-	return adminCriticalActionStatsResponse{
-		PendingLeaveRequests: stats.PendingLeaveRequests,
-		PendingShiftSwaps:    stats.PendingShiftSwaps,
-		PendingExpenseClaims: stats.PendingExpenseClaims,
-		PendingOvertimeEntries:   stats.PendingOvertimeEntries,
-		Total: stats.PendingLeaveRequests +
-			stats.PendingShiftSwaps +
-			stats.PendingExpenseClaims +
-			stats.PendingOvertimeEntries,
+	return leaveAbsenceTrendsResponse{
+		View:   trends.View,
+		Year:   trends.Year,
+		Points: points,
 	}
 }
 
-type adminPayrollTotalStatsResponse struct {
-	Month       string  `json:"month"`
-	SalaryTotal float64 `json:"salary_total"`
-	ZZPTotal    float64 `json:"zzp_total"`
-	ORTTotal    float64 `json:"ort_total"`
-	GrossTotal  float64 `json:"gross_total"`
-}
+func toUpcomingDashboardAlertsResponse(alerts *domain.UpcomingDashboardAlerts) upcomingDashboardAlertsResponse {
+	endingContracts := make([]endingContractAlertResponse, len(alerts.EndingContracts))
+	for i, item := range alerts.EndingContracts {
+		endingContracts[i] = endingContractAlertResponse{
+			EmployeeID:      item.EmployeeID,
+			EmployeeName:    item.EmployeeName,
+			ContractID:      item.ContractID,
+			ContractType:    item.ContractType,
+			ContractEndDate: item.ContractEndDate.Format("2006-01-02"),
+			DaysRemaining:   item.DaysRemaining,
+			Department:      item.Department,
+			Location:        item.Location,
+		}
+	}
 
-func toAdminPayrollTotalStatsResponse(
-	stats *domain.PayrollTotalStats,
-) adminPayrollTotalStatsResponse {
-	return adminPayrollTotalStatsResponse{
-		Month:       stats.MonthStart.Format("2006-01"),
-		SalaryTotal: stats.SalaryTotal,
-		ZZPTotal:    stats.ZZPTotal,
-		ORTTotal:    stats.ORTTotal,
-		GrossTotal:  stats.SalaryTotal + stats.ZZPTotal + stats.ORTTotal,
+	expiringCredentials := make([]expiringCredentialAlertResponse, len(alerts.ExpiringCredentials))
+	for i, item := range alerts.ExpiringCredentials {
+		expiringCredentials[i] = expiringCredentialAlertResponse{
+			EmployeeID:     item.EmployeeID,
+			EmployeeName:   item.EmployeeName,
+			CredentialID:   item.CredentialID,
+			CredentialType: item.CredentialType,
+			Name:           item.Name,
+			ExpiryDate:     item.ExpiryDate.Format("2006-01-02"),
+			DaysRemaining:  item.DaysRemaining,
+		}
+	}
+
+	returningFromLeave := make([]returningFromLeaveAlertResponse, len(alerts.ReturningFromLeave))
+	for i, item := range alerts.ReturningFromLeave {
+		returningFromLeave[i] = returningFromLeaveAlertResponse{
+			EmployeeID:      item.EmployeeID,
+			EmployeeName:    item.EmployeeName,
+			LeaveRequestID:  item.LeaveRequestID,
+			LeaveType:       item.LeaveType,
+			LeaveEndDate:    item.LeaveEndDate.Format("2006-01-02"),
+			ReturnDate:      item.ReturnDate.Format("2006-01-02"),
+			DaysUntilReturn: item.DaysUntilReturn,
+		}
+	}
+
+	return upcomingDashboardAlertsResponse{
+		EndingContracts:     endingContracts,
+		ExpiringCredentials: expiringCredentials,
+		ReturningFromLeave:  returningFromLeave,
 	}
 }
 
-type adminRiskRadarStatsResponse struct {
-	Month                    string `json:"month"`
-	ContractsEndingThisMonth int64  `json:"contracts_ending_this_month"`
-	OverdueTraining          int64  `json:"overdue_training"`
-	LateArrivalsThisMonth    int64  `json:"late_arrivals_this_month"`
-	Total                    int64  `json:"total"`
+type adminDashboardKPIsResponse struct {
+	TotalEmployees   int64 `json:"total_employees"`
+	EmployeesPresent int64 `json:"employees_present"`
+	TotalDocuments   int64 `json:"total_documents"`
+	ProcessingDocs   int64 `json:"processing_docs"`
 }
 
-func toAdminRiskRadarStatsResponse(
-	stats *domain.RiskRadarStats,
-) adminRiskRadarStatsResponse {
-	return adminRiskRadarStatsResponse{
-		Month:                    stats.MonthStart.Format("2006-01"),
-		ContractsEndingThisMonth: stats.ContractsEndingThisMonth,
-		OverdueTraining:          stats.OverdueTraining,
-		LateArrivalsThisMonth:    stats.LateArrivalsThisMonth,
-		Total: stats.ContractsEndingThisMonth +
-			stats.OverdueTraining +
-			stats.LateArrivalsThisMonth,
+func toAdminDashboardKPIsResponse(kpi *domain.AdminDashboardKPI) adminDashboardKPIsResponse {
+	return adminDashboardKPIsResponse{
+		TotalEmployees:   kpi.TotalEmployees,
+		EmployeesPresent: kpi.EmployeesPresent,
+		TotalDocuments:   kpi.TotalDocuments,
+		ProcessingDocs:   kpi.ProcessingDocs,
 	}
 }
 
-type adminTeamHealthByDepartmentResponse struct {
-	Departments []adminTeamHealthDepartmentResponse `json:"departments"`
+type listRecentEmployeesRequest struct {
+	httpapi.PageRequest
 }
 
-type adminTeamHealthDepartmentResponse struct {
-	DepartmentID    uuid.UUID `json:"department_id"`
-	DepartmentName  string    `json:"department_name"`
-	StaffingPercent float64   `json:"staffing_percent"`
-	AbsencePercent  float64   `json:"absence_percent"`
-	TrainingPercent float64   `json:"training_percent"`
-	Score           float64   `json:"score"`
-	Risk            string    `json:"risk"`
+type recentEmployeeItemResponse struct {
+	ID                 uuid.UUID `json:"id"`
+	Name               string    `json:"name"`
+	OrganizationalRole *string   `json:"organizational_role"`
+	Department         *string   `json:"department"`
+	Location           *string   `json:"location"`
+	CreatedAt          string    `json:"created_at"`
 }
 
-func toAdminTeamHealthByDepartmentResponse(
-	items []domain.TeamHealthByDepartmentItem,
-) adminTeamHealthByDepartmentResponse {
-	departments := make([]adminTeamHealthDepartmentResponse, 0, len(items))
-	for _, item := range items {
-		departments = append(departments, adminTeamHealthDepartmentResponse{
-			DepartmentID:    item.DepartmentID,
-			DepartmentName:  item.DepartmentName,
-			StaffingPercent: item.StaffingPercent,
-			AbsencePercent:  item.AbsencePercent,
-			TrainingPercent: item.TrainingPercent,
-			Score:           item.Score,
-			Risk:            item.Risk,
-		})
+func toRecentEmployeeItemResponse(emp domain.RecentDashboardEmployee) recentEmployeeItemResponse {
+	return recentEmployeeItemResponse{
+		ID:                 emp.ID,
+		Name:               emp.FirstName + " " + emp.LastName,
+		OrganizationalRole: emp.OrganizationalRole,
+		Department:         emp.DepartmentName,
+		Location:           emp.LocationName,
+		CreatedAt:          emp.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
-
-	return adminTeamHealthByDepartmentResponse{Departments: departments}
-}
-
-func formatAdminDashboardDate(value time.Time) string {
-	if value.IsZero() {
-		return ""
-	}
-	return value.Format(adminDashboardDateLayout)
 }

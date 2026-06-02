@@ -732,4 +732,121 @@ func (f *fakeLeaveTxRepository) ComputeLegalLeaveUsedForYear(_ context.Context, 
 	return f.legalUsedMinutes, nil
 }
 
+func TestAllocateLeaveUsageToContractAccrualsNoUsage(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 800},
+		{ContractID: uuid.New(), GainedMinutes: 1200},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, 0)
+
+	if accruals[0].DeductedMinutes != 0 || accruals[0].RemainingMinutes != 800 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+	if accruals[1].DeductedMinutes != 0 || accruals[1].RemainingMinutes != 1200 {
+		t.Fatalf("unexpected second accrual: %#v", accruals[1])
+	}
+}
+
+func TestAllocateLeaveUsageToContractAccrualsWithinFirstSegment(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 800},
+		{ContractID: uuid.New(), GainedMinutes: 1200},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, 200)
+
+	if accruals[0].DeductedMinutes != 200 || accruals[0].RemainingMinutes != 600 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+	if accruals[1].DeductedMinutes != 0 || accruals[1].RemainingMinutes != 1200 {
+		t.Fatalf("unexpected second accrual: %#v", accruals[1])
+	}
+}
+
+func TestAllocateLeaveUsageToContractAccrualsExhaustsFirstSegment(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 800},
+		{ContractID: uuid.New(), GainedMinutes: 1200},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, 800)
+
+	if accruals[0].DeductedMinutes != 800 || accruals[0].RemainingMinutes != 0 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+	if accruals[1].DeductedMinutes != 0 || accruals[1].RemainingMinutes != 1200 {
+		t.Fatalf("unexpected second accrual: %#v", accruals[1])
+	}
+}
+
+func TestAllocateLeaveUsageToContractAccrualsSpansMultipleSegments(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 800},
+		{ContractID: uuid.New(), GainedMinutes: 1200},
+		{ContractID: uuid.New(), GainedMinutes: 600},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, 1000)
+
+	if accruals[0].DeductedMinutes != 800 || accruals[0].RemainingMinutes != 0 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+	if accruals[1].DeductedMinutes != 200 || accruals[1].RemainingMinutes != 1000 {
+		t.Fatalf("unexpected second accrual: %#v", accruals[1])
+	}
+	if accruals[2].DeductedMinutes != 0 || accruals[2].RemainingMinutes != 600 {
+		t.Fatalf("unexpected third accrual: %#v", accruals[2])
+	}
+}
+
+func TestAllocateLeaveUsageToContractAccrualsExceedsTotalGained(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 800},
+		{ContractID: uuid.New(), GainedMinutes: 1200},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, 3000)
+
+	if accruals[0].DeductedMinutes != 800 || accruals[0].RemainingMinutes != 0 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+	if accruals[1].DeductedMinutes != 1200 || accruals[1].RemainingMinutes != 0 {
+		t.Fatalf("unexpected second accrual: %#v", accruals[1])
+	}
+}
+
+func TestAllocateLeaveUsageToContractAccrualsZeroGainedSegment(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 0},
+		{ContractID: uuid.New(), GainedMinutes: 1000},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, 500)
+
+	if accruals[0].DeductedMinutes != 0 || accruals[0].RemainingMinutes != 0 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+	if accruals[1].DeductedMinutes != 500 || accruals[1].RemainingMinutes != 500 {
+		t.Fatalf("unexpected second accrual: %#v", accruals[1])
+	}
+}
+
+func TestAllocateLeaveUsageToContractAccrualsEmptySlice(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{}
+	allocateLeaveUsageToContractAccruals(accruals, 100)
+}
+
+func TestAllocateLeaveUsageToContractAccrualsNegativeUsageClampedToZero(t *testing.T) {
+	accruals := []domain.LeaveContractAccrual{
+		{ContractID: uuid.New(), GainedMinutes: 800},
+	}
+
+	allocateLeaveUsageToContractAccruals(accruals, -50)
+
+	if accruals[0].DeductedMinutes != 0 || accruals[0].RemainingMinutes != 800 {
+		t.Fatalf("unexpected first accrual: %#v", accruals[0])
+	}
+}
+
 var _ domain.LeaveTxRepository = (*fakeLeaveTxRepository)(nil)

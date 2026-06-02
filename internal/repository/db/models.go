@@ -318,6 +318,49 @@ func (ns NullEmployeeJobTitleEnum) Value() (driver.Value, error) {
 	return string(ns.EmployeeJobTitleEnum), nil
 }
 
+type EmployeeSignatureTypeEnum string
+
+const (
+	EmployeeSignatureTypeEnumTyped    EmployeeSignatureTypeEnum = "typed"
+	EmployeeSignatureTypeEnumDrawn    EmployeeSignatureTypeEnum = "drawn"
+	EmployeeSignatureTypeEnumUploaded EmployeeSignatureTypeEnum = "uploaded"
+)
+
+func (e *EmployeeSignatureTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EmployeeSignatureTypeEnum(s)
+	case string:
+		*e = EmployeeSignatureTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EmployeeSignatureTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullEmployeeSignatureTypeEnum struct {
+	EmployeeSignatureTypeEnum EmployeeSignatureTypeEnum `json:"employee_signature_type_enum"`
+	Valid                     bool                      `json:"valid"` // Valid is true if EmployeeSignatureTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEmployeeSignatureTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.EmployeeSignatureTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EmployeeSignatureTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEmployeeSignatureTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EmployeeSignatureTypeEnum), nil
+}
+
 type ExpenseRequestCategoryEnum string
 
 const (
@@ -1374,6 +1417,190 @@ func (ns NullShiftSwapStatusEnum) Value() (driver.Value, error) {
 	return string(ns.ShiftSwapStatusEnum), nil
 }
 
+type SignDocumentEventEnum string
+
+const (
+	SignDocumentEventEnumCreated   SignDocumentEventEnum = "created"
+	SignDocumentEventEnumSent      SignDocumentEventEnum = "sent"
+	SignDocumentEventEnumViewed    SignDocumentEventEnum = "viewed"
+	SignDocumentEventEnumSigned    SignDocumentEventEnum = "signed"
+	SignDocumentEventEnumDeclined  SignDocumentEventEnum = "declined"
+	SignDocumentEventEnumCompleted SignDocumentEventEnum = "completed"
+	SignDocumentEventEnumCancelled SignDocumentEventEnum = "cancelled"
+	SignDocumentEventEnumExpired   SignDocumentEventEnum = "expired"
+)
+
+func (e *SignDocumentEventEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SignDocumentEventEnum(s)
+	case string:
+		*e = SignDocumentEventEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SignDocumentEventEnum: %T", src)
+	}
+	return nil
+}
+
+type NullSignDocumentEventEnum struct {
+	SignDocumentEventEnum SignDocumentEventEnum `json:"sign_document_event_enum"`
+	Valid                 bool                  `json:"valid"` // Valid is true if SignDocumentEventEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSignDocumentEventEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.SignDocumentEventEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SignDocumentEventEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSignDocumentEventEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SignDocumentEventEnum), nil
+}
+
+type SignDocumentFieldTypeEnum string
+
+const (
+	SignDocumentFieldTypeEnumSignature SignDocumentFieldTypeEnum = "signature"
+	SignDocumentFieldTypeEnumInitials  SignDocumentFieldTypeEnum = "initials"
+	SignDocumentFieldTypeEnumDate      SignDocumentFieldTypeEnum = "date"
+	SignDocumentFieldTypeEnumText      SignDocumentFieldTypeEnum = "text"
+	SignDocumentFieldTypeEnumCheckbox  SignDocumentFieldTypeEnum = "checkbox"
+)
+
+func (e *SignDocumentFieldTypeEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SignDocumentFieldTypeEnum(s)
+	case string:
+		*e = SignDocumentFieldTypeEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SignDocumentFieldTypeEnum: %T", src)
+	}
+	return nil
+}
+
+type NullSignDocumentFieldTypeEnum struct {
+	SignDocumentFieldTypeEnum SignDocumentFieldTypeEnum `json:"sign_document_field_type_enum"`
+	Valid                     bool                      `json:"valid"` // Valid is true if SignDocumentFieldTypeEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSignDocumentFieldTypeEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.SignDocumentFieldTypeEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SignDocumentFieldTypeEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSignDocumentFieldTypeEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SignDocumentFieldTypeEnum), nil
+}
+
+type SignDocumentRecipientStatusEnum string
+
+const (
+	SignDocumentRecipientStatusEnumPending  SignDocumentRecipientStatusEnum = "pending"
+	SignDocumentRecipientStatusEnumViewed   SignDocumentRecipientStatusEnum = "viewed"
+	SignDocumentRecipientStatusEnumSigned   SignDocumentRecipientStatusEnum = "signed"
+	SignDocumentRecipientStatusEnumDeclined SignDocumentRecipientStatusEnum = "declined"
+	SignDocumentRecipientStatusEnumExpired  SignDocumentRecipientStatusEnum = "expired"
+)
+
+func (e *SignDocumentRecipientStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SignDocumentRecipientStatusEnum(s)
+	case string:
+		*e = SignDocumentRecipientStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SignDocumentRecipientStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullSignDocumentRecipientStatusEnum struct {
+	SignDocumentRecipientStatusEnum SignDocumentRecipientStatusEnum `json:"sign_document_recipient_status_enum"`
+	Valid                           bool                            `json:"valid"` // Valid is true if SignDocumentRecipientStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSignDocumentRecipientStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.SignDocumentRecipientStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SignDocumentRecipientStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSignDocumentRecipientStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SignDocumentRecipientStatusEnum), nil
+}
+
+type SignDocumentStatusEnum string
+
+const (
+	SignDocumentStatusEnumDraft           SignDocumentStatusEnum = "draft"
+	SignDocumentStatusEnumSent            SignDocumentStatusEnum = "sent"
+	SignDocumentStatusEnumPartiallySigned SignDocumentStatusEnum = "partially_signed"
+	SignDocumentStatusEnumCompleted       SignDocumentStatusEnum = "completed"
+	SignDocumentStatusEnumCancelled       SignDocumentStatusEnum = "cancelled"
+	SignDocumentStatusEnumExpired         SignDocumentStatusEnum = "expired"
+)
+
+func (e *SignDocumentStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SignDocumentStatusEnum(s)
+	case string:
+		*e = SignDocumentStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SignDocumentStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullSignDocumentStatusEnum struct {
+	SignDocumentStatusEnum SignDocumentStatusEnum `json:"sign_document_status_enum"`
+	Valid                  bool                   `json:"valid"` // Valid is true if SignDocumentStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSignDocumentStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.SignDocumentStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SignDocumentStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSignDocumentStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SignDocumentStatusEnum), nil
+}
+
 type TrainingAssignmentStatusEnum string
 
 const (
@@ -1788,6 +2015,17 @@ type EmployeeSalaryAssignment struct {
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
+type EmployeeSignatureProfile struct {
+	ID           uuid.UUID                 `json:"id"`
+	EmployeeID   uuid.UUID                 `json:"employee_id"`
+	Type         EmployeeSignatureTypeEnum `json:"type"`
+	TypedName    *string                   `json:"typed_name"`
+	ImageFileKey *string                   `json:"image_file_key"`
+	IsDefault    bool                      `json:"is_default"`
+	CreatedAt    pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz        `json:"updated_at"`
+}
+
 type EmployeeTrainingAssignment struct {
 	ID                   uuid.UUID                    `json:"id"`
 	EmployeeID           uuid.UUID                    `json:"employee_id"`
@@ -1888,12 +2126,12 @@ type LeavePayoutRequest struct {
 	DecisionNote        *string                 `json:"decision_note"`
 	DecidedByEmployeeID *uuid.UUID              `json:"decided_by_employee_id"`
 	PaidByEmployeeID    *uuid.UUID              `json:"paid_by_employee_id"`
+	PaidPeriodID        *uuid.UUID              `json:"paid_period_id"`
 	RequestedAt         pgtype.Timestamptz      `json:"requested_at"`
 	DecidedAt           pgtype.Timestamptz      `json:"decided_at"`
 	PaidAt              pgtype.Timestamptz      `json:"paid_at"`
 	CreatedAt           pgtype.Timestamptz      `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `json:"updated_at"`
-	PaidPeriodID        *uuid.UUID              `json:"paid_period_id"`
 }
 
 type LeavePolicy struct {
@@ -2198,6 +2436,84 @@ type ShiftSwapRequest struct {
 	ExpiresAt             pgtype.Timestamptz  `json:"expires_at"`
 	CreatedAt             pgtype.Timestamptz  `json:"created_at"`
 	UpdatedAt             pgtype.Timestamptz  `json:"updated_at"`
+}
+
+type SignDocument struct {
+	ID                  uuid.UUID              `json:"id"`
+	Title               string                 `json:"title"`
+	SourceAttachmentID  uuid.UUID              `json:"source_attachment_id"`
+	SourceFileKey       string                 `json:"source_file_key"`
+	SignedFileKey       *string                `json:"signed_file_key"`
+	Status              SignDocumentStatusEnum `json:"status"`
+	CreatedByEmployeeID uuid.UUID              `json:"created_by_employee_id"`
+	RelatedEntityType   *string                `json:"related_entity_type"`
+	RelatedEntityID     *uuid.UUID             `json:"related_entity_id"`
+	ExpiresAt           pgtype.Timestamptz     `json:"expires_at"`
+	SentAt              pgtype.Timestamptz     `json:"sent_at"`
+	CompletedAt         pgtype.Timestamptz     `json:"completed_at"`
+	CancelledAt         pgtype.Timestamptz     `json:"cancelled_at"`
+	CreatedAt           pgtype.Timestamptz     `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz     `json:"updated_at"`
+}
+
+type SignDocumentEvent struct {
+	ID              uuid.UUID             `json:"id"`
+	DocumentID      uuid.UUID             `json:"document_id"`
+	RecipientID     *uuid.UUID            `json:"recipient_id"`
+	ActorEmployeeID *uuid.UUID            `json:"actor_employee_id"`
+	Event           SignDocumentEventEnum `json:"event"`
+	IpAddress       *string               `json:"ip_address"`
+	UserAgent       *string               `json:"user_agent"`
+	Metadata        []byte                `json:"metadata"`
+	CreatedAt       pgtype.Timestamptz    `json:"created_at"`
+}
+
+type SignDocumentField struct {
+	ID          uuid.UUID                 `json:"id"`
+	DocumentID  uuid.UUID                 `json:"document_id"`
+	RecipientID uuid.UUID                 `json:"recipient_id"`
+	Type        SignDocumentFieldTypeEnum `json:"type"`
+	PageNumber  int32                     `json:"page_number"`
+	X           float64                   `json:"x"`
+	Y           float64                   `json:"y"`
+	Width       float64                   `json:"width"`
+	Height      float64                   `json:"height"`
+	Required    bool                      `json:"required"`
+	Label       *string                   `json:"label"`
+	Value       *string                   `json:"value"`
+	CreatedAt   pgtype.Timestamptz        `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz        `json:"updated_at"`
+}
+
+type SignDocumentRecipient struct {
+	ID            uuid.UUID                       `json:"id"`
+	DocumentID    uuid.UUID                       `json:"document_id"`
+	EmployeeID    uuid.UUID                       `json:"employee_id"`
+	Name          string                          `json:"name"`
+	Email         *string                         `json:"email"`
+	SigningOrder  int32                           `json:"signing_order"`
+	Status        SignDocumentRecipientStatusEnum `json:"status"`
+	ViewedAt      pgtype.Timestamptz              `json:"viewed_at"`
+	SignedAt      pgtype.Timestamptz              `json:"signed_at"`
+	DeclinedAt    pgtype.Timestamptz              `json:"declined_at"`
+	DeclineReason *string                         `json:"decline_reason"`
+	CreatedAt     pgtype.Timestamptz              `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz              `json:"updated_at"`
+}
+
+type SignDocumentSignature struct {
+	ID                    uuid.UUID          `json:"id"`
+	DocumentID            uuid.UUID          `json:"document_id"`
+	RecipientID           uuid.UUID          `json:"recipient_id"`
+	EmployeeID            uuid.UUID          `json:"employee_id"`
+	SignatureProfileID    *uuid.UUID         `json:"signature_profile_id"`
+	SignatureText         *string            `json:"signature_text"`
+	SignatureImageFileKey *string            `json:"signature_image_file_key"`
+	ConsentText           string             `json:"consent_text"`
+	IpAddress             *string            `json:"ip_address"`
+	UserAgent             *string            `json:"user_agent"`
+	SignatureHash         string             `json:"signature_hash"`
+	SignedAt              pgtype.Timestamptz `json:"signed_at"`
 }
 
 type TemporaryFile struct {

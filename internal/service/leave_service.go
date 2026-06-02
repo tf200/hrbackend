@@ -414,7 +414,51 @@ func (s *LeaveService) GetLeaveBalanceDetails(
 	if params.Year < 2000 || params.Year > 2100 {
 		return nil, domain.ErrLeaveRequestInvalidRequest
 	}
-	return s.repository.GetLeaveBalanceDetails(ctx, params)
+	details, err := s.repository.GetLeaveBalanceDetails(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	if details != nil {
+		allocateLeaveUsageToContractAccruals(
+			details.ContractAccruals,
+			details.Balance.LegalUsedMinutes,
+		)
+	}
+	return details, nil
+}
+
+// allocateLeaveUsageToContractAccruals splits the employee's annual used
+// leave across contract segments, prioritising the oldest segment first.
+//
+// The slice is expected to be ordered from oldest to newest segment. The
+// function mutates the slice in place, setting DeductedMinutes and
+// RemainingMinutes on each entry. The total of deducted minutes never
+// exceeds legalUsedMinutes, and per segment it never exceeds GainedMinutes.
+func allocateLeaveUsageToContractAccruals(
+	accruals []domain.LeaveContractAccrual,
+	legalUsedMinutes int32,
+) {
+	if len(accruals) == 0 {
+		return
+	}
+	remaining := legalUsedMinutes
+	if remaining < 0 {
+		remaining = 0
+	}
+	for i := range accruals {
+		if remaining <= 0 {
+			accruals[i].DeductedMinutes = 0
+			accruals[i].RemainingMinutes = accruals[i].GainedMinutes
+			continue
+		}
+		deducted := accruals[i].GainedMinutes
+		if remaining < deducted {
+			deducted = remaining
+		}
+		accruals[i].DeductedMinutes = deducted
+		accruals[i].RemainingMinutes = accruals[i].GainedMinutes - deducted
+		remaining -= deducted
+	}
 }
 
 type normalizedUpdateParams struct {

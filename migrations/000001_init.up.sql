@@ -222,6 +222,14 @@ WITH seeded(name, sort_order) AS (
         ('OVERTIME.VIEW_ALL', 550),
         ('SETTINGS.VIEW', 555),
         ('SETTINGS.UPDATE', 560),
+        ('SIGN_DOCUMENT.CANCEL', 570),
+        ('SIGN_DOCUMENT.CREATE', 580),
+        ('SIGN_DOCUMENT.SELF.SIGN', 590),
+        ('SIGN_DOCUMENT.SELF.VIEW', 600),
+        ('SIGN_DOCUMENT.SEND', 610),
+        ('SIGN_DOCUMENT.UPDATE', 620),
+        ('SIGN_DOCUMENT.VIEW', 630),
+        ('SIGN_DOCUMENT.VIEW_ALL', 640),
         ('PORTAL.ADMIN.ACCESS', 700),
         ('PORTAL.EMPLOYEE.ACCESS', 710)
     )
@@ -352,6 +360,14 @@ WHERE p.name IN (
     'OVERTIME.VIEW_ALL',
     'SETTINGS.VIEW',
     'SETTINGS.UPDATE',
+    'SIGN_DOCUMENT.CANCEL',
+    'SIGN_DOCUMENT.CREATE',
+    'SIGN_DOCUMENT.SELF.SIGN',
+    'SIGN_DOCUMENT.SELF.VIEW',
+    'SIGN_DOCUMENT.SEND',
+    'SIGN_DOCUMENT.UPDATE',
+    'SIGN_DOCUMENT.VIEW',
+    'SIGN_DOCUMENT.VIEW_ALL',
     'PORTAL.EMPLOYEE.ACCESS'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
@@ -385,7 +401,9 @@ WHERE p.name IN (
     'SHIFT.VIEW',
     'TRAINING.CATALOG.VIEW',
     'TRAINING.ASSIGNMENTS.VIEW',
-    'PERFORMANCE.ASSESSMENT.VIEW'
+    'PERFORMANCE.ASSESSMENT.VIEW',
+    'SIGN_DOCUMENT.SELF.SIGN',
+    'SIGN_DOCUMENT.SELF.VIEW'
 )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -513,19 +531,6 @@ CREATE TABLE organizational_roles (
 
 CREATE INDEX idx_organizational_roles_is_active ON organizational_roles(is_active);
 
--- Departments (used for employee assignment and handbook templates)
-CREATE TABLE departments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT NULL,
-    department_head_employee_id UUID NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX departments_name_idx ON departments(name);
-CREATE INDEX departments_department_head_employee_id_idx ON departments(department_head_employee_id);
-
 -- Employee profile (linked to custom_user)
 CREATE TABLE employee_profile (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -562,6 +567,19 @@ CREATE INDEX idx_employee_profile_manager_employee_id ON employee_profile(manage
 CREATE INDEX employee_profile_id_desc_idx ON employee_profile(id DESC);
 CREATE INDEX idx_employee_profile_is_archived ON employee_profile(is_archived);
 CREATE INDEX idx_employee_profile_out_of_service ON employee_profile(out_of_service);
+
+-- Departments (used for employee assignment and handbook templates)
+CREATE TABLE departments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT NULL,
+    department_head_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX departments_name_idx ON departments(name);
+CREATE INDEX departments_department_head_employee_id_idx ON departments(department_head_employee_id);
 
 CREATE TABLE employee_contracts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -681,10 +699,6 @@ CREATE TABLE national_holidays (
 
 CREATE INDEX idx_national_holidays_country_date
 ON national_holidays(country_code, holiday_date);
-
-ALTER TABLE departments
-    ADD CONSTRAINT departments_department_head_employee_id_fkey
-    FOREIGN KEY (department_head_employee_id) REFERENCES employee_profile(id) ON DELETE SET NULL;
 
 -- Employee education records
 CREATE TABLE employee_education (
@@ -949,7 +963,156 @@ CREATE TABLE employee_handbook_step_progress (
 CREATE INDEX idx_employee_handbook_step_progress_handbook_id
     ON employee_handbook_step_progress(employee_handbook_id);
 
+-- ==========================================
+-- DOCUMENT SIGNING
+-- ==========================================
 
+CREATE TYPE sign_document_status_enum AS ENUM ('draft', 'sent', 'partially_signed', 'completed', 'cancelled', 'expired');
+CREATE TYPE sign_document_recipient_status_enum AS ENUM ('pending', 'viewed', 'signed', 'declined', 'expired');
+CREATE TYPE sign_document_field_type_enum AS ENUM ('signature', 'initials', 'date', 'text', 'checkbox');
+CREATE TYPE sign_document_event_enum AS ENUM ('created', 'sent', 'viewed', 'signed', 'declined', 'completed', 'cancelled', 'expired');
+CREATE TYPE employee_signature_type_enum AS ENUM ('typed', 'drawn', 'uploaded');
+
+CREATE TABLE sign_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    source_attachment_id UUID NOT NULL REFERENCES attachment_file("uuid") ON DELETE RESTRICT,
+    source_file_key TEXT NOT NULL,
+    signed_file_key TEXT NULL,
+    status sign_document_status_enum NOT NULL DEFAULT 'draft',
+    created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    related_entity_type TEXT NULL,
+    related_entity_id UUID NULL,
+    expires_at TIMESTAMPTZ NULL,
+    sent_at TIMESTAMPTZ NULL,
+    completed_at TIMESTAMPTZ NULL,
+    cancelled_at TIMESTAMPTZ NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sign_documents_created_by_created_at ON sign_documents(created_by_employee_id, created_at DESC);
+CREATE INDEX idx_sign_documents_status_created_at ON sign_documents(status, created_at DESC);
+
+CREATE TABLE sign_document_recipients (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES sign_documents(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    name TEXT NOT NULL,
+    email TEXT NULL,
+    signing_order INT NOT NULL DEFAULT 1 CHECK (signing_order > 0),
+    status sign_document_recipient_status_enum NOT NULL DEFAULT 'pending',
+    viewed_at TIMESTAMPTZ NULL,
+    signed_at TIMESTAMPTZ NULL,
+    declined_at TIMESTAMPTZ NULL,
+    decline_reason TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (document_id, employee_id)
+);
+
+CREATE INDEX idx_sign_document_recipients_employee_status ON sign_document_recipients(employee_id, status);
+CREATE INDEX idx_sign_document_recipients_document_order ON sign_document_recipients(document_id, signing_order, created_at);
+
+CREATE TABLE sign_document_fields (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES sign_documents(id) ON DELETE CASCADE,
+    recipient_id UUID NOT NULL REFERENCES sign_document_recipients(id) ON DELETE CASCADE,
+    type sign_document_field_type_enum NOT NULL,
+    page_number INT NOT NULL CHECK (page_number > 0),
+    x NUMERIC NOT NULL CHECK (x >= 0 AND x <= 1),
+    y NUMERIC NOT NULL CHECK (y >= 0 AND y <= 1),
+    width NUMERIC NOT NULL CHECK (width > 0 AND width <= 1),
+    height NUMERIC NOT NULL CHECK (height > 0 AND height <= 1),
+    required BOOLEAN NOT NULL DEFAULT TRUE,
+    label TEXT NULL,
+    value TEXT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sign_document_fields_document_id ON sign_document_fields(document_id);
+CREATE INDEX idx_sign_document_fields_recipient_id ON sign_document_fields(recipient_id);
+
+CREATE TABLE employee_signature_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    type employee_signature_type_enum NOT NULL,
+    typed_name TEXT NULL,
+    image_file_key TEXT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX employee_signature_profiles_one_default ON employee_signature_profiles(employee_id) WHERE is_default;
+CREATE INDEX idx_employee_signature_profiles_employee_id ON employee_signature_profiles(employee_id, created_at DESC);
+
+CREATE TABLE sign_document_signatures (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES sign_documents(id) ON DELETE CASCADE,
+    recipient_id UUID NOT NULL REFERENCES sign_document_recipients(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE RESTRICT,
+    signature_profile_id UUID NULL REFERENCES employee_signature_profiles(id) ON DELETE SET NULL,
+    signature_text TEXT NULL,
+    signature_image_file_key TEXT NULL,
+    consent_text TEXT NOT NULL,
+    ip_address TEXT NULL,
+    user_agent TEXT NULL,
+    signature_hash TEXT NOT NULL,
+    signed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (recipient_id)
+);
+
+CREATE INDEX idx_sign_document_signatures_document_id ON sign_document_signatures(document_id);
+
+CREATE TABLE sign_document_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES sign_documents(id) ON DELETE CASCADE,
+    recipient_id UUID NULL REFERENCES sign_document_recipients(id) ON DELETE SET NULL,
+    actor_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    event sign_document_event_enum NOT NULL,
+    ip_address TEXT NULL,
+    user_agent TEXT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sign_document_events_document_created_at ON sign_document_events(document_id, created_at DESC);
+
+CREATE TYPE pay_period_status_enum AS ENUM ('draft', 'paid');
+
+CREATE TABLE pay_periods (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    payroll_group TEXT NOT NULL DEFAULT 'fixed',
+    cutoff_at TIMESTAMPTZ NULL,
+    status pay_period_status_enum NOT NULL DEFAULT 'draft',
+    base_gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    irregular_gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    paid_at TIMESTAMPTZ NULL,
+    created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pay_periods_period_order CHECK (period_end >= period_start),
+    CONSTRAINT pay_periods_base_gross_non_negative CHECK (base_gross_amount >= 0),
+    CONSTRAINT pay_periods_irregular_gross_non_negative CHECK (irregular_gross_amount >= 0),
+    CONSTRAINT pay_periods_gross_non_negative CHECK (gross_amount >= 0),
+    CONSTRAINT pay_periods_payroll_group_valid CHECK (payroll_group IN ('fixed', 'on_call')),
+    CONSTRAINT pay_periods_unique_employee_group_period UNIQUE (employee_id, payroll_group, period_start, period_end)
+);
+
+CREATE INDEX idx_pay_periods_employee_period
+ON pay_periods(employee_id, period_start DESC, period_end DESC);
+
+CREATE INDEX idx_pay_periods_group_period
+ON pay_periods(payroll_group, period_start DESC, period_end DESC);
+
+CREATE INDEX idx_pay_periods_status_period
+ON pay_periods(status, period_start DESC, period_end DESC);
 
 -- ==========================================
 -- SCHEDULING & APPOINTMENTS
@@ -967,7 +1130,7 @@ CREATE TABLE schedules (
     is_custom BOOLEAN NOT NULL DEFAULT FALSE,
     start_datetime TIMESTAMPTZ NOT NULL,
     end_datetime TIMESTAMPTZ NOT NULL,
-    paid_period_id UUID NULL,
+    paid_period_id UUID NULL REFERENCES pay_periods(id) ON DELETE SET NULL,
     created_by_employee_id UUID NOT NULL REFERENCES employee_profile(id),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -1290,6 +1453,7 @@ CREATE TABLE leave_payout_requests (
     decision_note TEXT NULL,
     decided_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
     paid_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
+    paid_period_id UUID NULL REFERENCES pay_periods(id) ON DELETE SET NULL,
     requested_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     decided_at TIMESTAMPTZ NULL,
     paid_at TIMESTAMPTZ NULL,
@@ -1310,6 +1474,9 @@ CREATE INDEX idx_leave_payout_requests_status_requested_at_desc
 ON leave_payout_requests(status, requested_at DESC);
 CREATE INDEX idx_leave_payout_requests_balance_year
 ON leave_payout_requests(balance_year);
+
+CREATE INDEX idx_leave_payout_requests_paid_period_id
+ON leave_payout_requests(paid_period_id);
 
 CREATE TABLE expense_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1373,49 +1540,7 @@ ON expense_requests(category);
 CREATE INDEX idx_expense_requests_expense_date_desc
 ON expense_requests(expense_date DESC);
 
-CREATE TYPE pay_period_status_enum AS ENUM ('draft', 'paid');
 
-CREATE TABLE pay_periods (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id UUID NOT NULL REFERENCES employee_profile(id) ON DELETE CASCADE,
-    period_start DATE NOT NULL,
-    period_end DATE NOT NULL,
-    payroll_group TEXT NOT NULL DEFAULT 'fixed',
-    cutoff_at TIMESTAMPTZ NULL,
-    status pay_period_status_enum NOT NULL DEFAULT 'draft',
-    base_gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    irregular_gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    gross_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
-    paid_at TIMESTAMPTZ NULL,
-    created_by_employee_id UUID NULL REFERENCES employee_profile(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT pay_periods_period_order CHECK (period_end >= period_start),
-    CONSTRAINT pay_periods_base_gross_non_negative CHECK (base_gross_amount >= 0),
-    CONSTRAINT pay_periods_irregular_gross_non_negative CHECK (irregular_gross_amount >= 0),
-    CONSTRAINT pay_periods_gross_non_negative CHECK (gross_amount >= 0),
-    CONSTRAINT pay_periods_payroll_group_valid CHECK (payroll_group IN ('fixed', 'on_call')),
-    CONSTRAINT pay_periods_unique_employee_group_period UNIQUE (employee_id, payroll_group, period_start, period_end)
-);
-
-ALTER TABLE schedules
-ADD CONSTRAINT schedules_paid_period_id_fkey
-FOREIGN KEY (paid_period_id) REFERENCES pay_periods(id) ON DELETE SET NULL;
-
-CREATE INDEX idx_pay_periods_employee_period
-ON pay_periods(employee_id, period_start DESC, period_end DESC);
-
-CREATE INDEX idx_pay_periods_group_period
-ON pay_periods(payroll_group, period_start DESC, period_end DESC);
-
-CREATE INDEX idx_pay_periods_status_period
-ON pay_periods(status, period_start DESC, period_end DESC);
-
-ALTER TABLE leave_payout_requests
-ADD COLUMN paid_period_id UUID NULL REFERENCES pay_periods(id) ON DELETE SET NULL;
-
-CREATE INDEX idx_leave_payout_requests_paid_period_id
-ON leave_payout_requests(paid_period_id);
 
 -- ==========================================
 -- OVERTIME ENTRIES

@@ -33,6 +33,7 @@ type Querier interface {
 	AssignSchedulesToPayPeriod(ctx context.Context, arg AssignSchedulesToPayPeriodParams) error
 	AssignTrainingToEmployee(ctx context.Context, arg AssignTrainingToEmployeeParams) (EmployeeTrainingAssignment, error)
 	CancelExpenseRequest(ctx context.Context, id uuid.UUID) (ExpenseRequest, error)
+	CancelSignDocument(ctx context.Context, id uuid.UUID) (SignDocument, error)
 	CancelTrainingAssignment(ctx context.Context, arg CancelTrainingAssignmentParams) (EmployeeTrainingAssignment, error)
 	CheckAllShiftsExist(ctx context.Context, arg CheckAllShiftsExistParams) (bool, error)
 	// ---------- 6. CHECK UTILITIES ----------
@@ -47,9 +48,12 @@ type Querier interface {
 	CountEmployeeProfile(ctx context.Context, arg CountEmployeeProfileParams) (int64, error)
 	CountHandbookStepsByTemplateID(ctx context.Context, templateID uuid.UUID) (int32, error)
 	CountNotificationsByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountRecentDashboardEmployees(ctx context.Context) (int64, error)
 	CountRemainingRequiredHandbookSteps(ctx context.Context, employeeHandbookID uuid.UUID) (int32, error)
 	CountScheduleOverlapsForEmployee(ctx context.Context, arg CountScheduleOverlapsForEmployeeParams) (int64, error)
 	CountUnreadNotificationsByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountUnsignedPriorSignDocumentRecipients(ctx context.Context, id uuid.UUID) (int32, error)
+	CountUnsignedSignDocumentRecipients(ctx context.Context, documentID uuid.UUID) (int32, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AttachmentFile, error)
 	CreateAuthorization(ctx context.Context, arg CreateAuthorizationParams) (Authorization, error)
 	CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (Department, error)
@@ -58,6 +62,7 @@ type Querier interface {
 	CreateEmployeeHandbookFromTemplate(ctx context.Context, arg CreateEmployeeHandbookFromTemplateParams) (CreateEmployeeHandbookFromTemplateRow, error)
 	CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeProfileParams) (EmployeeProfile, error)
 	CreateEmployeeSalaryAssignment(ctx context.Context, arg CreateEmployeeSalaryAssignmentParams) (EmployeeSalaryAssignment, error)
+	CreateEmployeeSignatureProfile(ctx context.Context, arg CreateEmployeeSignatureProfileParams) (EmployeeSignatureProfile, error)
 	CreateExpenseRequest(ctx context.Context, arg CreateExpenseRequestParams) (ExpenseRequest, error)
 	CreateHandbookStep(ctx context.Context, arg CreateHandbookStepParams) (HandbookStep, error)
 	CreateHandbookTemplateForDepartment(ctx context.Context, arg CreateHandbookTemplateForDepartmentParams) (HandbookTemplate, error)
@@ -80,6 +85,11 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateShift(ctx context.Context, arg CreateShiftParams) (LocationShift, error)
 	CreateShiftSwapRequest(ctx context.Context, arg CreateShiftSwapRequestParams) (ShiftSwapRequest, error)
+	CreateSignDocument(ctx context.Context, arg CreateSignDocumentParams) (SignDocument, error)
+	CreateSignDocumentEvent(ctx context.Context, arg CreateSignDocumentEventParams) (SignDocumentEvent, error)
+	CreateSignDocumentField(ctx context.Context, arg CreateSignDocumentFieldParams) (SignDocumentField, error)
+	CreateSignDocumentRecipient(ctx context.Context, arg CreateSignDocumentRecipientParams) (SignDocumentRecipient, error)
+	CreateSignDocumentSignature(ctx context.Context, arg CreateSignDocumentSignatureParams) (SignDocumentSignature, error)
 	CreateTemp2FaSecret(ctx context.Context, arg CreateTemp2FaSecretParams) (int64, error)
 	CreateTrainingCatalogItem(ctx context.Context, arg CreateTrainingCatalogItemParams) (TrainingCatalogItem, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CustomUser, error)
@@ -96,6 +106,7 @@ type Querier interface {
 	DeleteSchedule(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteShift(ctx context.Context, id uuid.UUID) error
+	DeleteSignDocumentFields(ctx context.Context, documentID uuid.UUID) error
 	// Removes all explicit overrides for the given user.
 	DeleteUserPermissionOverrides(ctx context.Context, userID uuid.UUID) error
 	Enable2Fa(ctx context.Context, arg Enable2FaParams) (int64, error)
@@ -108,12 +119,14 @@ type Querier interface {
 	GetActiveHandbookTemplateByDepartment(ctx context.Context, departmentID uuid.UUID) (HandbookTemplate, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType LeaveRequestTypeEnum) (LeavePolicy, error)
 	GetActivePerformanceQuestion(ctx context.Context, code string) (GetActivePerformanceQuestionRow, error)
+	GetAdminDashboardKPIs(ctx context.Context) (GetAdminDashboardKPIsRow, error)
 	// Returns the ID of the admin role.
 	GetAdminRoleId(ctx context.Context) (uuid.UUID, error)
 	GetAllAdminUsers(ctx context.Context) ([]CustomUser, error)
 	GetAppOrganizationProfile(ctx context.Context) (GetAppOrganizationProfileRow, error)
 	GetAttachment(ctx context.Context, argUuid uuid.UUID) (AttachmentFile, error)
 	GetCurrentMonthOvertimeStats(ctx context.Context) (GetCurrentMonthOvertimeStatsRow, error)
+	GetDefaultEmployeeSignatureProfile(ctx context.Context, employeeID uuid.UUID) (EmployeeSignatureProfile, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEmployeeContractAtDate(ctx context.Context, arg GetEmployeeContractAtDateParams) (EmployeeContract, error)
 	GetEmployeeContractByID(ctx context.Context, id uuid.UUID) (EmployeeContract, error)
@@ -162,6 +175,8 @@ type Querier interface {
 	GetShiftSwapRequestByID(ctx context.Context, id uuid.UUID) (ShiftSwapRequest, error)
 	GetShiftSwapRequestDetailsByID(ctx context.Context, id uuid.UUID) (GetShiftSwapRequestDetailsByIDRow, error)
 	GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]LocationShift, error)
+	GetSignDocumentByID(ctx context.Context, id uuid.UUID) (SignDocument, error)
+	GetSignDocumentRecipientForEmployee(ctx context.Context, arg GetSignDocumentRecipientForEmployeeParams) (SignDocumentRecipient, error)
 	GetTemp2FaSecret(ctx context.Context, id uuid.UUID) (*string, error)
 	GetTrainingAssignmentByID(ctx context.Context, id uuid.UUID) (EmployeeTrainingAssignment, error)
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
@@ -201,15 +216,20 @@ type Querier interface {
 	ListEmployeeWeekShiftCounts(ctx context.Context, arg ListEmployeeWeekShiftCountsParams) ([]ListEmployeeWeekShiftCountsRow, error)
 	ListEmployeesEligibleForDepartmentHandbookSeed(ctx context.Context, arg ListEmployeesEligibleForDepartmentHandbookSeedParams) ([]uuid.UUID, error)
 	ListEmployeesWithContractHours(ctx context.Context, dollar_1 []uuid.UUID) ([]ListEmployeesWithContractHoursRow, error)
+	ListEndingContractAlerts(ctx context.Context, arg ListEndingContractAlertsParams) ([]ListEndingContractAlertsRow, error)
 	ListExpenseRequestsPaginated(ctx context.Context, arg ListExpenseRequestsPaginatedParams) ([]ListExpenseRequestsPaginatedRow, error)
+	ListExpiringCredentialAlerts(ctx context.Context, arg ListExpiringCredentialAlertsParams) ([]ListExpiringCredentialAlertsRow, error)
 	ListFixedPayrollContractSegments(ctx context.Context, arg ListFixedPayrollContractSegmentsParams) ([]ListFixedPayrollContractSegmentsRow, error)
 	ListFixedPayrollMonthEmployeesPaginated(ctx context.Context, arg ListFixedPayrollMonthEmployeesPaginatedParams) ([]ListFixedPayrollMonthEmployeesPaginatedRow, error)
+	ListFullTimeEmployeesByDepartment(ctx context.Context) ([]ListFullTimeEmployeesByDepartmentRow, error)
+	ListFullTimeEmployeesByLocation(ctx context.Context) ([]ListFullTimeEmployeesByLocationRow, error)
 	ListHandbookStepsByTemplate(ctx context.Context, templateID uuid.UUID) ([]HandbookStep, error)
 	ListHandbookTemplatesByDepartment(ctx context.Context, departmentID uuid.UUID) ([]HandbookTemplate, error)
 	// ---------- 5. USER-PERMISSION OVERRIDES ----------
 	// Returns permissions inherited from the user's assigned role.
 	ListInheritedUserPermissions(ctx context.Context, userID uuid.UUID) ([]ListInheritedUserPermissionsRow, error)
 	ListLateArrivalsPaginated(ctx context.Context, arg ListLateArrivalsPaginatedParams) ([]ListLateArrivalsPaginatedRow, error)
+	ListLeaveAbsenceTrendPoints(ctx context.Context, arg ListLeaveAbsenceTrendPointsParams) ([]ListLeaveAbsenceTrendPointsRow, error)
 	ListLeaveBalancesPaginated(ctx context.Context, arg ListLeaveBalancesPaginatedParams) ([]ListLeaveBalancesPaginatedRow, error)
 	ListLeaveCalendarRows(ctx context.Context, arg ListLeaveCalendarRowsParams) ([]ListLeaveCalendarRowsRow, error)
 	ListLeaveContractAccrualsForYear(ctx context.Context, arg ListLeaveContractAccrualsForYearParams) ([]ListLeaveContractAccrualsForYearRow, error)
@@ -250,6 +270,8 @@ type Querier interface {
 	ListPerformanceUpcoming(ctx context.Context, dollar_1 int32) ([]ListPerformanceUpcomingRow, error)
 	ListPerformanceWorkAssignments(ctx context.Context, arg ListPerformanceWorkAssignmentsParams) ([]ListPerformanceWorkAssignmentsRow, error)
 	ListQualificationTypes(ctx context.Context) ([]Qualification, error)
+	ListRecentDashboardEmployees(ctx context.Context, arg ListRecentDashboardEmployeesParams) ([]ListRecentDashboardEmployeesRow, error)
+	ListReturningFromLeaveAlerts(ctx context.Context, arg ListReturningFromLeaveAlertsParams) ([]ListReturningFromLeaveAlertsRow, error)
 	// ---------- 3. ROLE-PERMISSION MAPPING ----------
 	// Returns all permissions attached to a single role.
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]ListRolePermissionsRow, error)
@@ -258,6 +280,13 @@ type Querier interface {
 	ListSalaryScaleSteps(ctx context.Context, activeOnly *bool) ([]ListSalaryScaleStepsRow, error)
 	ListShiftColleaguesByScheduleIDs(ctx context.Context, arg ListShiftColleaguesByScheduleIDsParams) ([]ListShiftColleaguesByScheduleIDsRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)
+	ListSignDocumentEvents(ctx context.Context, documentID uuid.UUID) ([]SignDocumentEvent, error)
+	ListSignDocumentFields(ctx context.Context, documentID uuid.UUID) ([]SignDocumentField, error)
+	ListSignDocumentFieldsForRecipient(ctx context.Context, arg ListSignDocumentFieldsForRecipientParams) ([]SignDocumentField, error)
+	ListSignDocumentRecipients(ctx context.Context, documentID uuid.UUID) ([]SignDocumentRecipient, error)
+	ListSignDocumentSignatures(ctx context.Context, documentID uuid.UUID) ([]SignDocumentSignature, error)
+	ListSignDocumentsByCreator(ctx context.Context, arg ListSignDocumentsByCreatorParams) ([]SignDocument, error)
+	ListSignDocumentsForEmployee(ctx context.Context, arg ListSignDocumentsForEmployeeParams) ([]SignDocument, error)
 	ListTrainingAssignmentsPaginated(ctx context.Context, arg ListTrainingAssignmentsPaginatedParams) ([]ListTrainingAssignmentsPaginatedRow, error)
 	ListTrainingCatalogItemsPaginated(ctx context.Context, arg ListTrainingCatalogItemsPaginatedParams) ([]ListTrainingCatalogItemsPaginatedRow, error)
 	ListUserIDsByEmployeeIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]uuid.UUID, error)
@@ -282,6 +311,10 @@ type Querier interface {
 	MarkPayPeriodPaid(ctx context.Context, id uuid.UUID) (PayPeriod, error)
 	MarkPayoutRequestPaid(ctx context.Context, arg MarkPayoutRequestPaidParams) (LeavePayoutRequest, error)
 	MarkShiftSwapConfirmed(ctx context.Context, arg MarkShiftSwapConfirmedParams) (ShiftSwapRequest, error)
+	MarkSignDocumentCompleted(ctx context.Context, arg MarkSignDocumentCompletedParams) (SignDocument, error)
+	MarkSignDocumentPartiallySigned(ctx context.Context, id uuid.UUID) (SignDocument, error)
+	MarkSignDocumentRecipientSigned(ctx context.Context, id uuid.UUID) (SignDocumentRecipient, error)
+	MarkSignDocumentRecipientViewed(ctx context.Context, id uuid.UUID) (SignDocumentRecipient, error)
 	PublishHandbookTemplate(ctx context.Context, arg PublishHandbookTemplateParams) (HandbookTemplate, error)
 	RejectExpenseRequest(ctx context.Context, arg RejectExpenseRequestParams) (ExpenseRequest, error)
 	RejectOvertimeEntry(ctx context.Context, arg RejectOvertimeEntryParams) (RejectOvertimeEntryRow, error)
@@ -289,6 +322,7 @@ type Querier interface {
 	// Removes *all* permissions from the given role.
 	RemovePermissionsFromRole(ctx context.Context, roleID uuid.UUID) error
 	SearchEmployeesByNameOrEmail(ctx context.Context, search *string) ([]SearchEmployeesByNameOrEmailRow, error)
+	SendSignDocument(ctx context.Context, id uuid.UUID) (SignDocument, error)
 	SetEmployeeProfilePicture(ctx context.Context, arg SetEmployeeProfilePictureParams) (CustomUser, error)
 	UpdateAppOrganizationProfile(ctx context.Context, arg UpdateAppOrganizationProfileParams) (UpdateAppOrganizationProfileRow, error)
 	UpdateAttachmentUsed(ctx context.Context, arg UpdateAttachmentUsedParams) (AttachmentFile, error)
@@ -318,6 +352,7 @@ type Querier interface {
 	UpdateShift(ctx context.Context, arg UpdateShiftParams) (LocationShift, error)
 	UpdateShiftSwapAdminDecision(ctx context.Context, arg UpdateShiftSwapAdminDecisionParams) (ShiftSwapRequest, error)
 	UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, arg UpdateShiftSwapStatusAfterRecipientResponseParams) (ShiftSwapRequest, error)
+	UpdateSignDocumentFieldValue(ctx context.Context, arg UpdateSignDocumentFieldValueParams) (SignDocumentField, error)
 	WaiveActiveEmployeeHandbooksByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 	WaiveEmployeeHandbookByID(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 }

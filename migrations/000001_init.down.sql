@@ -65,17 +65,23 @@ DROP TABLE IF EXISTS shift_swap_requests;
 -- Late arrivals table
 DROP TABLE IF EXISTS late_arrivals;
 
+-- Schedule tables (must be before pay_periods due to paid_period_id FK)
+DROP TABLE IF EXISTS schedules;
+DROP TABLE IF EXISTS national_holidays;
+
 DROP TABLE IF EXISTS pay_periods;
 
 -- Expense management tables
 DROP TABLE IF EXISTS expense_requests;
 
--- Schedule tables
-DROP TABLE IF EXISTS schedules;
-DROP TABLE IF EXISTS national_holidays;
-
 -- Handbook tables (onboarding)
 DROP TABLE IF EXISTS employee_handbook_step_progress;
+DROP TABLE IF EXISTS sign_document_events;
+DROP TABLE IF EXISTS sign_document_signatures;
+DROP TABLE IF EXISTS employee_signature_profiles;
+DROP TABLE IF EXISTS sign_document_fields;
+DROP TABLE IF EXISTS sign_document_recipients;
+DROP TABLE IF EXISTS sign_documents;
 DROP TABLE IF EXISTS employee_handbook_assignment_history;
 DROP TABLE IF EXISTS employee_handbooks;
 DROP TABLE IF EXISTS handbook_steps;
@@ -145,6 +151,11 @@ DROP TYPE IF EXISTS leave_request_status_enum;
 DROP TYPE IF EXISTS leave_request_type_enum;
 DROP TYPE IF EXISTS pay_period_status_enum;
 DROP TYPE IF EXISTS shift_swap_status_enum;
+DROP TYPE IF EXISTS employee_signature_type_enum;
+DROP TYPE IF EXISTS sign_document_event_enum;
+DROP TYPE IF EXISTS sign_document_field_type_enum;
+DROP TYPE IF EXISTS sign_document_recipient_status_enum;
+DROP TYPE IF EXISTS sign_document_status_enum;
 DROP TYPE IF EXISTS handbook_assignment_event_enum;
 DROP TYPE IF EXISTS handbook_step_status_enum;
 DROP TYPE IF EXISTS handbook_assignment_status_enum;

@@ -12,40 +12,12 @@ func RegisterAdminDashboardRoutes(
 	auth gin.HandlerFunc,
 	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
-	rg.GET(
-		"/admin/dashboard/availability",
-		auth,
-		requirePermission(permission.Employee.View),
-		handler.GetAvailabilityStats,
-	)
-	rg.GET(
-		"/admin/dashboard/open-shift-coverage",
-		auth,
-		requirePermission(permission.Schedule.View),
-		handler.ListOpenShiftCoverage,
-	)
-	rg.GET(
-		"/admin/dashboard/critical-actions",
-		auth,
-		requirePermission(permission.Employee.View),
-		handler.GetCriticalActionStats,
-	)
-	rg.GET(
-		"/admin/dashboard/payroll-totals",
-		auth,
-		requirePermission(permission.PayPeriod.MonthSummaryView),
-		handler.GetPayrollTotalStats,
-	)
-	rg.GET(
-		"/admin/dashboard/risk-radar",
-		auth,
-		requirePermission(permission.Employee.View),
-		handler.GetRiskRadarStats,
-	)
-	rg.GET(
-		"/admin/dashboard/team-health",
-		auth,
-		requirePermission(permission.Employee.View),
-		handler.ListTeamHealthByDepartment,
-	)
+	dashboard := rg.Group("/admin/dashboard", auth)
+	{
+		dashboard.GET("/kpis", requirePermission(permission.Employee.View), handler.GetKPIs)
+		dashboard.GET("/recent-employees", requirePermission(permission.Employee.View), handler.ListRecentEmployees)
+		dashboard.GET("/full-time-employee-breakdowns", requirePermission(permission.Employee.View), handler.GetFullTimeEmployeeBreakdowns)
+		dashboard.GET("/leave-absence-trends", requirePermission(permission.Employee.View), handler.GetLeaveAbsenceTrends)
+		dashboard.GET("/upcoming-alerts", requirePermission(permission.Employee.View), handler.GetUpcomingDashboardAlerts)
+	}
 }

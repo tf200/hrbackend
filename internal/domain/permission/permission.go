@@ -73,6 +73,33 @@ var Handbook = struct {
 	},
 }
 
+var SignDocument = struct {
+	Cancel  Permission
+	Create  Permission
+	Send    Permission
+	Update  Permission
+	View    Permission
+	ViewAll Permission
+	Self    struct {
+		Sign Permission
+		View Permission
+	}
+}{
+	Cancel:  "SIGN_DOCUMENT.CANCEL",
+	Create:  "SIGN_DOCUMENT.CREATE",
+	Send:    "SIGN_DOCUMENT.SEND",
+	Update:  "SIGN_DOCUMENT.UPDATE",
+	View:    "SIGN_DOCUMENT.VIEW",
+	ViewAll: "SIGN_DOCUMENT.VIEW_ALL",
+	Self: struct {
+		Sign Permission
+		View Permission
+	}{
+		Sign: "SIGN_DOCUMENT.SELF.SIGN",
+		View: "SIGN_DOCUMENT.SELF.VIEW",
+	},
+}
+
 var LateArrival = struct {
 	Create    Permission
 	CreateAll Permission

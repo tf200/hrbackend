@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"hrbackend/internal/domain"
@@ -17,129 +18,116 @@ func NewAdminDashboardHandler(service domain.AdminDashboardService) *AdminDashbo
 	return &AdminDashboardHandler{service: service}
 }
 
-const defaultOpenShiftCoverageDays int32 = 7
-
-func (h *AdminDashboardHandler) GetAvailabilityStats(ctx *gin.Context) {
-	stats, err := h.service.GetAvailabilityStats(ctx.Request.Context())
+func (h *AdminDashboardHandler) GetKPIs(ctx *gin.Context) {
+	kpis, err := h.service.GetKPIs(ctx.Request.Context())
 	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to get availability stats", ""),
-		)
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get dashboard KPIs", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(
-			toAdminAvailabilityStatsResponse(stats),
-			"Availability stats retrieved successfully",
-		),
+		httpapi.OK(toAdminDashboardKPIsResponse(kpis), "Dashboard KPIs retrieved successfully"),
 	)
 }
 
-func (h *AdminDashboardHandler) GetCriticalActionStats(ctx *gin.Context) {
-	stats, err := h.service.GetCriticalActionStats(ctx.Request.Context())
+func (h *AdminDashboardHandler) GetFullTimeEmployeeBreakdowns(ctx *gin.Context) {
+	breakdowns, err := h.service.GetFullTimeEmployeeBreakdowns(ctx.Request.Context())
 	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to get critical action stats", ""),
-		)
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get full-time employee breakdowns", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(
-			toAdminCriticalActionStatsResponse(stats),
-			"Critical action stats retrieved successfully",
-		),
+		httpapi.OK(toFullTimeEmployeeBreakdownsResponse(breakdowns), "Full-time employee breakdowns retrieved successfully"),
 	)
 }
 
-func (h *AdminDashboardHandler) GetPayrollTotalStats(ctx *gin.Context) {
-	stats, err := h.service.GetPayrollTotalStats(ctx.Request.Context())
-	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to get payroll total stats", ""),
-		)
-		return
-	}
-
-	ctx.JSON(
-		http.StatusOK,
-		httpapi.OK(
-			toAdminPayrollTotalStatsResponse(stats),
-			"Payroll total stats retrieved successfully",
-		),
-	)
-}
-
-func (h *AdminDashboardHandler) GetRiskRadarStats(ctx *gin.Context) {
-	stats, err := h.service.GetRiskRadarStats(ctx.Request.Context())
-	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to get risk radar stats", ""),
-		)
-		return
-	}
-
-	ctx.JSON(
-		http.StatusOK,
-		httpapi.OK(
-			toAdminRiskRadarStatsResponse(stats),
-			"Risk radar stats retrieved successfully",
-		),
-	)
-}
-
-func (h *AdminDashboardHandler) ListTeamHealthByDepartment(ctx *gin.Context) {
-	items, err := h.service.ListTeamHealthByDepartment(ctx.Request.Context())
-	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to get team health by department", ""),
-		)
-		return
-	}
-
-	ctx.JSON(
-		http.StatusOK,
-		httpapi.OK(
-			toAdminTeamHealthByDepartmentResponse(items),
-			"Team health by department retrieved successfully",
-		),
-	)
-}
-
-func (h *AdminDashboardHandler) ListOpenShiftCoverage(ctx *gin.Context) {
-	var req listOpenShiftCoverageRequest
+func (h *AdminDashboardHandler) GetLeaveAbsenceTrends(ctx *gin.Context) {
+	var req getLeaveAbsenceTrendsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid query parameters", err.Error()))
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	days := defaultOpenShiftCoverageDays
-	if req.Days != nil {
-		days = *req.Days
-	}
-
-	items, err := h.service.ListOpenShiftCoverage(ctx.Request.Context(), days)
+	trends, err := h.service.GetLeaveAbsenceTrends(ctx.Request.Context(), domain.GetLeaveAbsenceTrendsParams{
+		View: req.View,
+		Year: req.Year,
+	})
 	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to get open shift coverage", ""),
-		)
+		if errors.Is(err, domain.ErrAdminDashboardInvalidRequest) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get leave absence trends", ""))
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
+		httpapi.OK(toLeaveAbsenceTrendsResponse(trends), "Leave and absence trends retrieved successfully"),
+	)
+}
+
+func (h *AdminDashboardHandler) GetUpcomingDashboardAlerts(ctx *gin.Context) {
+	var req getUpcomingDashboardAlertsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	alerts, err := h.service.GetUpcomingDashboardAlerts(ctx.Request.Context(), domain.GetUpcomingDashboardAlertsParams{
+		Days:  req.Days,
+		Limit: req.Limit,
+	})
+	if err != nil {
+		if errors.Is(err, domain.ErrAdminDashboardInvalidRequest) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get upcoming dashboard alerts", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toUpcomingDashboardAlertsResponse(alerts), "Upcoming dashboard alerts retrieved successfully"),
+	)
+}
+
+func (h *AdminDashboardHandler) ListRecentEmployees(ctx *gin.Context) {
+	var req listRecentEmployeesRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	limit := int32(req.PageSize)
+	if limit <= 0 || limit > 6 {
+		limit = 6
+	}
+	offset := int32((req.Page - 1) * req.PageSize)
+
+	page, err := h.service.ListRecentEmployees(ctx.Request.Context(), domain.ListRecentEmployeesParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list recent employees", ""))
+		return
+	}
+
+	results := make([]recentEmployeeItemResponse, len(page.Items))
+	for i, item := range page.Items {
+		results[i] = toRecentEmployeeItemResponse(item)
+	}
+
+	ctx.JSON(
+		http.StatusOK,
 		httpapi.OK(
-			toAdminOpenShiftCoverageResponse(days, items),
-			"Open shift coverage retrieved successfully",
+			httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount),
+			"Recent employees retrieved successfully",
 		),
 	)
 }

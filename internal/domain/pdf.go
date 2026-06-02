@@ -139,3 +139,14 @@ type PDFService interface {
 		incidentData IncidentReportPDF,
 	) (string, error)
 }
+
+type SignDocumentPDFStamper interface {
+	StampSignDocumentPDF(ctx context.Context, input SignDocumentPDFStampInput) ([]byte, error)
+}
+
+type SignDocumentPDFStampInput struct {
+	SourcePDF  []byte
+	Recipients []SignDocumentRecipient
+	Fields     []SignDocumentField
+	Signatures []SignDocumentSignature
+}
