@@ -25,6 +25,11 @@ UPDATE custom_user
 SET password = $2
 WHERE id = $1;
 
+-- name: UpdateUserEmail :exec
+UPDATE custom_user
+SET email = COALESCE(sqlc.narg('email'), email)
+WHERE id = sqlc.arg('id');
+
 
 -- name: CreateTemp2FaSecret :execrows
 UPDATE custom_user

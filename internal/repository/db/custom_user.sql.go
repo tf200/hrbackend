@@ -243,3 +243,19 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 	_, err := q.db.Exec(ctx, updatePassword, arg.ID, arg.Password)
 	return err
 }
+
+const updateUserEmail = `-- name: UpdateUserEmail :exec
+UPDATE custom_user
+SET email = COALESCE($1, email)
+WHERE id = $2
+`
+
+type UpdateUserEmailParams struct {
+	Email *string   `json:"email"`
+	ID    uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error {
+	_, err := q.db.Exec(ctx, updateUserEmail, arg.Email, arg.ID)
+	return err
+}

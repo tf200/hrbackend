@@ -22,11 +22,7 @@ SELECT COUNT(*)
 FROM employee_profile ep
 LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 WHERE
-    (CASE
-        WHEN $1::boolean IS NULL THEN true
-        WHEN $1::boolean = false THEN NOT ep.is_archived
-        ELSE true
-    END) AND
+    ($1::boolean IS NULL OR ep.is_archived = $1::boolean) AND
     (CASE
         WHEN $2::boolean IS NULL THEN true
         WHEN $2::boolean = false THEN NOT COALESCE(ep.out_of_service, false)
@@ -382,11 +378,7 @@ LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 LEFT JOIN location l ON l.id = ec.location_id
 LEFT JOIN departments d ON d.id = ec.department_id
 WHERE
-    (CASE
-        WHEN $3::boolean IS NULL THEN true
-        WHEN $3::boolean = false THEN NOT ep.is_archived
-        ELSE true
-    END) AND
+    ($3::boolean IS NULL OR ep.is_archived = $3::boolean) AND
     (CASE
         WHEN $4::boolean IS NULL THEN true
         WHEN $4::boolean = false THEN NOT COALESCE(ep.out_of_service, false)
@@ -468,25 +460,37 @@ UPDATE employee_profile
 SET
     first_name = COALESCE($1, first_name),
     last_name = COALESCE($2, last_name),
-    manager_employee_id = COALESCE($3, manager_employee_id),
-    employee_number = COALESCE($4, employee_number),
-    employment_number = COALESCE($5, employment_number),
-    private_email_address = COALESCE($6, private_email_address),
-    work_email_address = COALESCE($7, work_email_address),
-    private_phone_number = COALESCE($8, private_phone_number),
-    work_phone_number = COALESCE($9, work_phone_number),
-    date_of_birth = COALESCE($10, date_of_birth),
-    home_telephone_number = COALESCE($11, home_telephone_number),
-    gender = COALESCE($12, gender),
-    out_of_service = COALESCE($13, out_of_service),
-    is_archived = COALESCE($14, is_archived)
-WHERE id = $15
+    bsn = COALESCE($3, bsn),
+    street = COALESCE($4, street),
+    house_number = COALESCE($5, house_number),
+    house_number_addition = COALESCE($6, house_number_addition),
+    postal_code = COALESCE($7, postal_code),
+    city = COALESCE($8, city),
+    manager_employee_id = COALESCE($9, manager_employee_id),
+    employee_number = COALESCE($10, employee_number),
+    employment_number = COALESCE($11, employment_number),
+    private_email_address = COALESCE($12, private_email_address),
+    work_email_address = COALESCE($13, work_email_address),
+    private_phone_number = COALESCE($14, private_phone_number),
+    work_phone_number = COALESCE($15, work_phone_number),
+    date_of_birth = COALESCE($16, date_of_birth),
+    home_telephone_number = COALESCE($17, home_telephone_number),
+    gender = COALESCE($18, gender),
+    out_of_service = COALESCE($19, out_of_service),
+    is_archived = COALESCE($20, is_archived)
+WHERE id = $21
 RETURNING id, user_id, first_name, last_name, name_in_use, marital_status, bsn, street, house_number, house_number_addition, postal_code, city, employee_number, employment_number, private_email_address, work_email_address, private_phone_number, work_phone_number, date_of_birth, home_telephone_number, created_at, gender, manager_employee_id, out_of_service, is_archived
 `
 
 type UpdateEmployeeProfileParams struct {
 	FirstName           *string     `json:"first_name"`
 	LastName            *string     `json:"last_name"`
+	Bsn                 *string     `json:"bsn"`
+	Street              *string     `json:"street"`
+	HouseNumber         *string     `json:"house_number"`
+	HouseNumberAddition *string     `json:"house_number_addition"`
+	PostalCode          *string     `json:"postal_code"`
+	City                *string     `json:"city"`
 	ManagerEmployeeID   *uuid.UUID  `json:"manager_employee_id"`
 	EmployeeNumber      *string     `json:"employee_number"`
 	EmploymentNumber    *string     `json:"employment_number"`
@@ -506,6 +510,12 @@ func (q *Queries) UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeP
 	row := q.db.QueryRow(ctx, updateEmployeeProfile,
 		arg.FirstName,
 		arg.LastName,
+		arg.Bsn,
+		arg.Street,
+		arg.HouseNumber,
+		arg.HouseNumberAddition,
+		arg.PostalCode,
+		arg.City,
 		arg.ManagerEmployeeID,
 		arg.EmployeeNumber,
 		arg.EmploymentNumber,

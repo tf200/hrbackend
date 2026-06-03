@@ -218,6 +218,15 @@ func (s *EmployeeService) UpdateEmployee(
 	id uuid.UUID,
 	params domain.UpdateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
+	if params.SalaryAssignment != nil {
+		if params.SalaryAssignment.EffectiveFrom == nil {
+			return nil, fmt.Errorf("%w: salary effective_from is required", domain.ErrContractChangeInvalid)
+		}
+		if params.SalaryAssignment.EffectiveTo != nil && !params.SalaryAssignment.EffectiveTo.After(*params.SalaryAssignment.EffectiveFrom) {
+			return nil, fmt.Errorf("%w: salary effective_to must be after effective_from", domain.ErrContractChangeInvalid)
+		}
+	}
+
 	emp, err := s.repo.UpdateEmployee(ctx, id, params)
 	if err != nil {
 		s.logError(ctx, "UpdateEmployee", err, zap.String("employee_id", id.String()))

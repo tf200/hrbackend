@@ -375,15 +375,24 @@ type CreateEmployeeParams struct {
 type UpdateEmployeeParams struct {
 	FirstName           *string
 	LastName            *string
+	Bsn                 *string
+	Street              *string
+	HouseNumber         *string
+	HouseNumberAddition *string
+	PostalCode          *string
+	City                *string
 	ManagerEmployeeID   *uuid.UUID
 	EmployeeNumber      *string
 	EmploymentNumber    *string
 	PrivateEmailAddress *string
+	WorkEmailAddress    *string
 	PrivatePhoneNumber  *string
 	WorkPhoneNumber     *string
 	DateOfBirth         *time.Time
 	HomeTelephoneNumber *string
 	Gender              *string
+	RoleID              *uuid.UUID
+	SalaryAssignment    *CreateEmployeeSalaryAssignmentParams
 	OutOfService        *bool
 	IsArchived          *bool
 }

@@ -375,31 +375,91 @@ func (r *EmployeeRepository) UpdateEmployee(
 	id uuid.UUID,
 	params domain.UpdateEmployeeParams,
 ) (*domain.EmployeeDetail, error) {
-	row, err := r.store.UpdateEmployeeProfile(ctx, db.UpdateEmployeeProfileParams{
-		FirstName:           params.FirstName,
-		LastName:            params.LastName,
-		ManagerEmployeeID:   params.ManagerEmployeeID,
-		EmployeeNumber:      params.EmployeeNumber,
-		EmploymentNumber:    params.EmploymentNumber,
-		PrivateEmailAddress: params.PrivateEmailAddress,
-		WorkEmailAddress:    nil,
-		PrivatePhoneNumber:  params.PrivatePhoneNumber,
-		WorkPhoneNumber:     params.WorkPhoneNumber,
-		DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
-		HomeTelephoneNumber: params.HomeTelephoneNumber,
-		Gender:              genderEnumPtrFromStringPtr(params.Gender),
-		OutOfService:        params.OutOfService,
-		IsArchived:          params.IsArchived,
-		ID:                  id,
+	var emp *domain.EmployeeDetail
+	err := r.store.ExecTx(ctx, func(q *db.Queries) error {
+		row, err := q.UpdateEmployeeProfile(ctx, db.UpdateEmployeeProfileParams{
+			FirstName:           params.FirstName,
+			LastName:            params.LastName,
+			Bsn:                 params.Bsn,
+			Street:              params.Street,
+			HouseNumber:         params.HouseNumber,
+			HouseNumberAddition: params.HouseNumberAddition,
+			PostalCode:          params.PostalCode,
+			City:                params.City,
+			ManagerEmployeeID:   params.ManagerEmployeeID,
+			EmployeeNumber:      params.EmployeeNumber,
+			EmploymentNumber:    params.EmploymentNumber,
+			PrivateEmailAddress: params.PrivateEmailAddress,
+			WorkEmailAddress:    params.WorkEmailAddress,
+			PrivatePhoneNumber:  params.PrivatePhoneNumber,
+			WorkPhoneNumber:     params.WorkPhoneNumber,
+			DateOfBirth:         pgDateFromPtr(params.DateOfBirth),
+			HomeTelephoneNumber: params.HomeTelephoneNumber,
+			Gender:              genderEnumPtrFromStringPtr(params.Gender),
+			OutOfService:        params.OutOfService,
+			IsArchived:          params.IsArchived,
+			ID:                  id,
+		})
+		if err != nil {
+			if isDBNotFound(err) {
+				return domain.ErrEmployeeNotFound
+			}
+			return err
+		}
+
+		if params.WorkEmailAddress != nil {
+			if err := q.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
+				ID:    row.UserID,
+				Email: params.WorkEmailAddress,
+			}); err != nil {
+				return err
+			}
+		}
+
+		if params.RoleID != nil {
+			if err := q.AssignRoleToUser(ctx, db.AssignRoleToUserParams{
+				UserID: row.UserID,
+				RoleID: *params.RoleID,
+			}); err != nil {
+				return err
+			}
+		}
+
+		if params.SalaryAssignment != nil {
+			var contractID *uuid.UUID
+			if params.SalaryAssignment.EffectiveFrom != nil {
+				contract, err := q.GetEmployeeContractAtDate(ctx, db.GetEmployeeContractAtDateParams{
+					EmployeeID: id,
+					TargetDate: pgDateFromPtr(params.SalaryAssignment.EffectiveFrom),
+				})
+				if err != nil && !isDBNotFound(err) {
+					return err
+				}
+				if err == nil {
+					contractID = &contract.ID
+				}
+			}
+
+			if _, err := q.CreateEmployeeSalaryAssignment(ctx, db.CreateEmployeeSalaryAssignmentParams{
+				EmployeeID:          id,
+				ContractID:          contractID,
+				SalaryScaleStepID:   params.SalaryAssignment.SalaryScaleStepID,
+				EffectiveFrom:       pgDateFromPtr(params.SalaryAssignment.EffectiveFrom),
+				EffectiveTo:         pgDateFromPtr(params.SalaryAssignment.EffectiveTo),
+				CreatedByEmployeeID: nil,
+			}); err != nil {
+				return err
+			}
+		}
+
+		emp, err = (&employeeTxRepo{queries: q}).GetEmployeeByID(ctx, id)
+		return err
 	})
 	if err != nil {
-		if isDBNotFound(err) {
-			return nil, domain.ErrEmployeeNotFound
-		}
 		return nil, err
 	}
 
-	return toDomainEmployeeDetailFromEmployeeProfile(row), nil
+	return emp, nil
 }
 
 func (r *EmployeeRepository) GetEmployeeCounts(

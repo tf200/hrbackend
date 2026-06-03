@@ -353,6 +353,7 @@ type Querier interface {
 	UpdateShiftSwapAdminDecision(ctx context.Context, arg UpdateShiftSwapAdminDecisionParams) (ShiftSwapRequest, error)
 	UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, arg UpdateShiftSwapStatusAfterRecipientResponseParams) (ShiftSwapRequest, error)
 	UpdateSignDocumentFieldValue(ctx context.Context, arg UpdateSignDocumentFieldValueParams) (SignDocumentField, error)
+	UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error
 	WaiveActiveEmployeeHandbooksByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 	WaiveEmployeeHandbookByID(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 }

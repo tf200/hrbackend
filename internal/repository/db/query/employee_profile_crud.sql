@@ -64,11 +64,7 @@ LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 LEFT JOIN location l ON l.id = ec.location_id
 LEFT JOIN departments d ON d.id = ec.department_id
 WHERE
-    (CASE
-        WHEN sqlc.narg('include_archived')::boolean IS NULL THEN true
-        WHEN sqlc.narg('include_archived')::boolean = false THEN NOT ep.is_archived
-        ELSE true
-    END) AND
+    (sqlc.narg('include_archived')::boolean IS NULL OR ep.is_archived = sqlc.narg('include_archived')::boolean) AND
     (CASE
         WHEN sqlc.narg('include_out_of_service')::boolean IS NULL THEN true
         WHEN sqlc.narg('include_out_of_service')::boolean = false THEN NOT COALESCE(ep.out_of_service, false)
@@ -94,11 +90,7 @@ SELECT COUNT(*)
 FROM employee_profile ep
 LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 WHERE
-    (CASE
-        WHEN sqlc.narg('include_archived')::boolean IS NULL THEN true
-        WHEN sqlc.narg('include_archived')::boolean = false THEN NOT ep.is_archived
-        ELSE true
-    END) AND
+    (sqlc.narg('include_archived')::boolean IS NULL OR ep.is_archived = sqlc.narg('include_archived')::boolean) AND
     (CASE
         WHEN sqlc.narg('include_out_of_service')::boolean IS NULL THEN true
         WHEN sqlc.narg('include_out_of_service')::boolean = false THEN NOT COALESCE(ep.out_of_service, false)
@@ -191,6 +183,12 @@ UPDATE employee_profile
 SET
     first_name = COALESCE(sqlc.narg('first_name'), first_name),
     last_name = COALESCE(sqlc.narg('last_name'), last_name),
+    bsn = COALESCE(sqlc.narg('bsn'), bsn),
+    street = COALESCE(sqlc.narg('street'), street),
+    house_number = COALESCE(sqlc.narg('house_number'), house_number),
+    house_number_addition = COALESCE(sqlc.narg('house_number_addition'), house_number_addition),
+    postal_code = COALESCE(sqlc.narg('postal_code'), postal_code),
+    city = COALESCE(sqlc.narg('city'), city),
     manager_employee_id = COALESCE(sqlc.narg('manager_employee_id'), manager_employee_id),
     employee_number = COALESCE(sqlc.narg('employee_number'), employee_number),
     employment_number = COALESCE(sqlc.narg('employment_number'), employment_number),

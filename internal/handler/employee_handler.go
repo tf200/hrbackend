@@ -134,6 +134,16 @@ func (h *EmployeeHandler) UpdateEmployee(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
+	if req.SalaryAssignment != nil {
+		if _, err := parseDate(req.SalaryAssignment.EffectiveFrom); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		if _, err := parseDatePtr(req.SalaryAssignment.EffectiveTo); err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+	}
 
 	employee, err := h.service.UpdateEmployee(
 		ctx.Request.Context(),
@@ -951,4 +961,3 @@ func (h *EmployeeHandler) DeleteEmployeeAuthorization(ctx *gin.Context) {
 		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization deleted successfully"),
 	)
 }
-

@@ -69,6 +69,12 @@ type createEmployeeSalaryAssignmentRequest struct {
 	EffectiveTo       *string   `json:"effective_to" binding:"omitempty,datetime=2006-01-02"`
 }
 
+type updateEmployeeSalaryAssignmentRequest struct {
+	SalaryScaleStepID uuid.UUID `json:"salary_scale_step_id" binding:"required"`
+	EffectiveFrom     string    `json:"effective_from" binding:"required,datetime=2006-01-02"`
+	EffectiveTo       *string   `json:"effective_to" binding:"omitempty,datetime=2006-01-02"`
+}
+
 type createEmployeeRequest struct {
 	EmployeeNumber      *string                                `json:"employee_number"`
 	EmploymentNumber    *string                                `json:"employment_number"`
@@ -97,19 +103,28 @@ type createEmployeeRequest struct {
 }
 
 type updateEmployeeRequest struct {
-	FirstName           *string    `json:"first_name"`
-	LastName            *string    `json:"last_name"`
-	ManagerEmployeeID   *uuid.UUID `json:"manager_employee_id"`
-	EmployeeNumber      *string    `json:"employee_number"`
-	EmploymentNumber    *string    `json:"employment_number"`
-	PrivateEmailAddress *string    `json:"private_email_address"`
-	PrivatePhoneNumber  *string    `json:"private_phone_number"`
-	WorkPhoneNumber     *string    `json:"work_phone_number"`
-	DateOfBirth         *string    `json:"date_of_birth"`
-	HomeTelephoneNumber *string    `json:"home_telephone_number"`
-	Gender              *string    `json:"gender"`
-	OutOfService        *bool      `json:"out_of_service"`
-	IsArchived          *bool      `json:"is_archived"`
+	FirstName           *string                                `json:"first_name"`
+	LastName            *string                                `json:"last_name"`
+	Bsn                 *string                                `json:"bsn"`
+	Street              *string                                `json:"street"`
+	HouseNumber         *string                                `json:"house_number"`
+	HouseNumberAddition *string                                `json:"house_number_addition"`
+	PostalCode          *string                                `json:"postal_code"`
+	City                *string                                `json:"city"`
+	ManagerEmployeeID   *uuid.UUID                             `json:"manager_employee_id"`
+	EmployeeNumber      *string                                `json:"employee_number"`
+	EmploymentNumber    *string                                `json:"employment_number"`
+	PrivateEmailAddress *string                                `json:"private_email_address"`
+	WorkEmailAddress    *string                                `json:"work_email_address" binding:"omitempty,email"`
+	PrivatePhoneNumber  *string                                `json:"private_phone_number"`
+	WorkPhoneNumber     *string                                `json:"work_phone_number"`
+	DateOfBirth         *string                                `json:"date_of_birth"`
+	HomeTelephoneNumber *string                                `json:"home_telephone_number"`
+	Gender              *string                                `json:"gender" binding:"omitempty,oneof=male female not_specified"`
+	RoleID              *uuid.UUID                             `json:"role_id"`
+	SalaryAssignment    *updateEmployeeSalaryAssignmentRequest `json:"salary_assignment,omitempty"`
+	OutOfService        *bool                                  `json:"out_of_service"`
+	IsArchived          *bool                                  `json:"is_archived"`
 }
 
 type listEmployeesRequest struct {
@@ -544,18 +559,38 @@ func toCreateContractAmendmentParams(req createContractAmendmentRequest) domain.
 func toUpdateEmployeeParams(req updateEmployeeRequest) domain.UpdateEmployeeParams {
 	dateOfBirth, _ := parseDatePtr(req.DateOfBirth)
 
+	var salaryAssignment *domain.CreateEmployeeSalaryAssignmentParams
+	if req.SalaryAssignment != nil {
+		effectiveFrom, _ := parseDate(req.SalaryAssignment.EffectiveFrom)
+		effectiveTo, _ := parseDatePtr(req.SalaryAssignment.EffectiveTo)
+		salaryAssignment = &domain.CreateEmployeeSalaryAssignmentParams{
+			SalaryScaleStepID: req.SalaryAssignment.SalaryScaleStepID,
+			EffectiveFrom:     &effectiveFrom,
+			EffectiveTo:       effectiveTo,
+		}
+	}
+
 	return domain.UpdateEmployeeParams{
 		FirstName:           req.FirstName,
 		LastName:            req.LastName,
+		Bsn:                 req.Bsn,
+		Street:              req.Street,
+		HouseNumber:         req.HouseNumber,
+		HouseNumberAddition: req.HouseNumberAddition,
+		PostalCode:          req.PostalCode,
+		City:                req.City,
 		ManagerEmployeeID:   req.ManagerEmployeeID,
 		EmployeeNumber:      req.EmployeeNumber,
 		EmploymentNumber:    req.EmploymentNumber,
 		PrivateEmailAddress: req.PrivateEmailAddress,
+		WorkEmailAddress:    req.WorkEmailAddress,
 		PrivatePhoneNumber:  req.PrivatePhoneNumber,
 		WorkPhoneNumber:     req.WorkPhoneNumber,
 		DateOfBirth:         dateOfBirth,
 		HomeTelephoneNumber: req.HomeTelephoneNumber,
 		Gender:              req.Gender,
+		RoleID:              req.RoleID,
+		SalaryAssignment:    salaryAssignment,
 		OutOfService:        req.OutOfService,
 		IsArchived:          req.IsArchived,
 	}
