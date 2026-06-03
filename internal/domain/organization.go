@@ -147,10 +147,8 @@ type OrganizationLocationPage struct {
 }
 
 type OrganizationCounts struct {
-	OrganizationID   uuid.UUID
-	OrganizationName string
-	LocationCount    int64
-	EmployeeCount    int64
+	LocationCount int64
+	EmployeeCount int64
 }
 
 type GlobalOrganizationCounts struct {

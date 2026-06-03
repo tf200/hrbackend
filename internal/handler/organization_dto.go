@@ -137,10 +137,8 @@ type getOrganizationResponse struct {
 }
 
 type getOrganizationCountsResponse struct {
-	OrganizationID   uuid.UUID `json:"organization_id"`
-	OrganizationName string    `json:"organization_name"`
-	LocationCount    int64     `json:"location_count"`
-	EmployeeCount    int64     `json:"employee_count"`
+	LocationCount int64 `json:"location_count"`
+	EmployeeCount int64 `json:"employee_count"`
 }
 
 type getGlobalOrganizationCountsResponse struct {
@@ -365,10 +363,8 @@ func toGetOrganizationCountsResponse(
 	counts *domain.OrganizationCounts,
 ) getOrganizationCountsResponse {
 	return getOrganizationCountsResponse{
-		OrganizationID:   counts.OrganizationID,
-		OrganizationName: counts.OrganizationName,
-		LocationCount:    counts.LocationCount,
-		EmployeeCount:    counts.EmployeeCount,
+		LocationCount: counts.LocationCount,
+		EmployeeCount: counts.EmployeeCount,
 	}
 }
 

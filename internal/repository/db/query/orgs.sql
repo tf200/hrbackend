@@ -45,19 +45,22 @@ WHERE o.id = $1
 GROUP BY o.id;
 
 -- name: GetOrganisationCounts :one
-SELECT 
-    o.id AS organisation_id,
-    o.name AS organisation_name,
+WITH latest_contract AS (
+    SELECT DISTINCT ON (employee_id)
+        employee_id,
+        location_id
+    FROM employee_contracts
+    ORDER BY employee_id, start_date DESC, created_at DESC
+)
+SELECT
     COALESCE(COUNT(DISTINCT l.id), 0)::BIGINT AS location_count,
-    COALESCE(COUNT(DISTINCT e.id), 0)::BIGINT AS employee_count
-FROM 
+    COALESCE(COUNT(DISTINCT lc.employee_id), 0)::BIGINT AS employee_count
+FROM
     organisations o
     LEFT JOIN location l ON o.id = l.organisation_id
-    LEFT JOIN employee_profile e ON l.id = e.location_id
-WHERE 
-    o.id = $1
-GROUP BY 
-    o.id, o.name;
+    LEFT JOIN latest_contract lc ON l.id = lc.location_id
+WHERE
+    o.id = $1;
 
 -- name: GetGlobalOrganisationCounts :one
 SELECT

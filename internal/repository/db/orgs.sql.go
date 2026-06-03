@@ -271,37 +271,33 @@ func (q *Queries) GetOrganisation(ctx context.Context, id uuid.UUID) (GetOrganis
 }
 
 const getOrganisationCounts = `-- name: GetOrganisationCounts :one
-SELECT 
-    o.id AS organisation_id,
-    o.name AS organisation_name,
+WITH latest_contract AS (
+    SELECT DISTINCT ON (employee_id)
+        employee_id,
+        location_id
+    FROM employee_contracts
+    ORDER BY employee_id, start_date DESC, created_at DESC
+)
+SELECT
     COALESCE(COUNT(DISTINCT l.id), 0)::BIGINT AS location_count,
-    COALESCE(COUNT(DISTINCT e.id), 0)::BIGINT AS employee_count
-FROM 
+    COALESCE(COUNT(DISTINCT lc.employee_id), 0)::BIGINT AS employee_count
+FROM
     organisations o
     LEFT JOIN location l ON o.id = l.organisation_id
-    LEFT JOIN employee_profile e ON l.id = e.location_id
-WHERE 
+    LEFT JOIN latest_contract lc ON l.id = lc.location_id
+WHERE
     o.id = $1
-GROUP BY 
-    o.id, o.name
 `
 
 type GetOrganisationCountsRow struct {
-	OrganisationID   uuid.UUID `json:"organisation_id"`
-	OrganisationName string    `json:"organisation_name"`
-	LocationCount    int64     `json:"location_count"`
-	EmployeeCount    int64     `json:"employee_count"`
+	LocationCount int64 `json:"location_count"`
+	EmployeeCount int64 `json:"employee_count"`
 }
 
 func (q *Queries) GetOrganisationCounts(ctx context.Context, id uuid.UUID) (GetOrganisationCountsRow, error) {
 	row := q.db.QueryRow(ctx, getOrganisationCounts, id)
 	var i GetOrganisationCountsRow
-	err := row.Scan(
-		&i.OrganisationID,
-		&i.OrganisationName,
-		&i.LocationCount,
-		&i.EmployeeCount,
-	)
+	err := row.Scan(&i.LocationCount, &i.EmployeeCount)
 	return i, err
 }
 

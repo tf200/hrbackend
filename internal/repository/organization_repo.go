@@ -248,10 +248,8 @@ func (r *OrganizationRepository) GetOrganizationCounts(
 	}
 
 	return &domain.OrganizationCounts{
-		OrganizationID:   counts.OrganisationID,
-		OrganizationName: counts.OrganisationName,
-		LocationCount:    counts.LocationCount,
-		EmployeeCount:    counts.EmployeeCount,
+		LocationCount: counts.LocationCount,
+		EmployeeCount: counts.EmployeeCount,
 	}, nil
 }
 
