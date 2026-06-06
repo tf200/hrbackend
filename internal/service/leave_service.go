@@ -355,6 +355,51 @@ func (s *LeaveService) DecideLeaveRequestByAdmin(
 	if err != nil {
 		return nil, err
 	}
+
+	// Trigger notification to the employee who made the request
+	if s.notificationService != nil && updated.EmployeeID != uuid.Nil {
+		decidedByName := "An administrator"
+		if s.employeeRepo != nil {
+			emp, err := s.employeeRepo.GetEmployeeByID(ctx, adminEmployeeID)
+			if err == nil && emp != nil {
+				decidedByName = strings.TrimSpace(emp.FirstName + " " + emp.LastName)
+			}
+		}
+
+		decisionNote := ""
+		if updated.DecisionNote != nil {
+			reason := strings.TrimSpace(*updated.DecisionNote)
+			if reason != "" {
+				decisionNote = reason
+			}
+		}
+
+		var message string
+		if decisionNote != "" {
+			message = fmt.Sprintf("Your leave request for %s has been %s by %s. Note: %s", updated.LeaveType, updated.Status, decidedByName, decisionNote)
+		} else {
+			message = fmt.Sprintf("Your leave request for %s has been %s by %s.", updated.LeaveType, updated.Status, decidedByName)
+		}
+
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				EmployeeIDs: []uuid.UUID{updated.EmployeeID},
+			},
+			Message: message,
+			Data: domain.LeaveRequestDecidedNotificationData{
+				LeaveRequestID:      updated.ID,
+				EmployeeID:          updated.EmployeeID,
+				Status:              updated.Status,
+				LeaveType:           updated.LeaveType,
+				StartDate:           updated.StartDate,
+				EndDate:             updated.EndDate,
+				DecidedByEmployeeID: adminEmployeeID,
+				DecidedByName:       decidedByName,
+				DecisionNote:        decisionNote,
+			},
+		})
+	}
+
 	return updated, nil
 }
 

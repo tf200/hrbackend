@@ -16,6 +16,7 @@ const (
 	TypeSignDocumentRequested   = "sign_document_requested"
 	TypeSignDocumentSigned      = "sign_document_signed"
 	TypeLeaveRequestCreated     = "leave_request_created"
+	TypeLeaveRequestDecided     = "leave_request_decided"
 )
 
 type SignDocumentRequestedNotificationData struct {
@@ -54,6 +55,22 @@ type LeaveRequestCreatedNotificationData struct {
 
 func (LeaveRequestCreatedNotificationData) NotificationType() string {
 	return TypeLeaveRequestCreated
+}
+
+type LeaveRequestDecidedNotificationData struct {
+	LeaveRequestID      uuid.UUID `json:"leave_request_id"`
+	EmployeeID          uuid.UUID `json:"employee_id"`
+	Status              string    `json:"status"`
+	LeaveType           string    `json:"leave_type"`
+	StartDate           time.Time `json:"start_date"`
+	EndDate             time.Time `json:"end_date"`
+	DecidedByEmployeeID uuid.UUID `json:"decided_by_employee_id"`
+	DecidedByName       string    `json:"decided_by_name"`
+	DecisionNote        string    `json:"decision_note"`
+}
+
+func (LeaveRequestDecidedNotificationData) NotificationType() string {
+	return TypeLeaveRequestDecided
 }
 
 type Notification struct {
