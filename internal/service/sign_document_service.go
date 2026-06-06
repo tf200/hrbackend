@@ -20,15 +20,33 @@ import (
 const signDocumentConsentText = "I agree to electronically sign this document."
 
 type SignDocumentService struct {
-	repo           domain.SignDocumentRepository
-	attachmentRepo domain.AttachmentRepository
-	storage        domain.Storage
-	pdfStamper     domain.SignDocumentPDFStamper
-	logger         domain.Logger
+	repo                domain.SignDocumentRepository
+	attachmentRepo      domain.AttachmentRepository
+	employeeRepo        domain.EmployeeRepository
+	notificationService domain.NotificationService
+	storage             domain.Storage
+	pdfStamper          domain.SignDocumentPDFStamper
+	logger              domain.Logger
 }
 
-func NewSignDocumentService(repo domain.SignDocumentRepository, attachmentRepo domain.AttachmentRepository, storage domain.Storage, pdfStamper domain.SignDocumentPDFStamper, logger domain.Logger) domain.SignDocumentService {
-	return &SignDocumentService{repo: repo, attachmentRepo: attachmentRepo, storage: storage, pdfStamper: pdfStamper, logger: logger}
+func NewSignDocumentService(
+	repo domain.SignDocumentRepository,
+	attachmentRepo domain.AttachmentRepository,
+	employeeRepo domain.EmployeeRepository,
+	notificationService domain.NotificationService,
+	storage domain.Storage,
+	pdfStamper domain.SignDocumentPDFStamper,
+	logger domain.Logger,
+) domain.SignDocumentService {
+	return &SignDocumentService{
+		repo:                repo,
+		attachmentRepo:      attachmentRepo,
+		employeeRepo:        employeeRepo,
+		notificationService: notificationService,
+		storage:             storage,
+		pdfStamper:          pdfStamper,
+		logger:              logger,
+	}
 }
 
 func (s *SignDocumentService) CreateDocument(ctx context.Context, actorEmployeeID uuid.UUID, params domain.CreateSignDocumentParams) (*domain.SignDocument, error) {
@@ -133,7 +151,44 @@ func (s *SignDocumentService) SendDocument(ctx context.Context, actorEmployeeID,
 	if err != nil {
 		return nil, err
 	}
-	return s.hydrate(ctx, sent)
+
+	hydrated, err := s.hydrate(ctx, sent)
+	if err != nil {
+		return nil, err
+	}
+
+	// Trigger notifications to recipients
+	var recipientEmployeeIDs []uuid.UUID
+	for _, r := range hydrated.Recipients {
+		if r.EmployeeID != uuid.Nil && r.EmployeeID != actorEmployeeID {
+			recipientEmployeeIDs = append(recipientEmployeeIDs, r.EmployeeID)
+		}
+	}
+
+	if s.notificationService != nil && len(recipientEmployeeIDs) > 0 {
+		requesterName := "Someone"
+		if s.employeeRepo != nil {
+			emp, err := s.employeeRepo.GetEmployeeByID(ctx, actorEmployeeID)
+			if err == nil && emp != nil {
+				requesterName = strings.TrimSpace(emp.FirstName + " " + emp.LastName)
+			}
+		}
+
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				EmployeeIDs: recipientEmployeeIDs,
+			},
+			Message: fmt.Sprintf("%s requested your signature on a document: %s", requesterName, hydrated.Title),
+			Data: domain.SignDocumentRequestedNotificationData{
+				DocumentID:          hydrated.ID,
+				DocumentTitle:       hydrated.Title,
+				RequesterEmployeeID: actorEmployeeID,
+				RequesterName:       requesterName,
+			},
+		})
+	}
+
+	return hydrated, nil
 }
 
 func (s *SignDocumentService) GetDocument(ctx context.Context, actorEmployeeID, documentID uuid.UUID) (*domain.SignDocument, error) {

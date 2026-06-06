@@ -13,7 +13,19 @@ const (
 	TypeNewScheduleNotification = "new_schedule_notification"
 	TypeSystemReminder          = "system_reminder"
 	TypeShiftSwapRequested      = "shift_swap_requested"
+	TypeSignDocumentRequested   = "sign_document_requested"
 )
+
+type SignDocumentRequestedNotificationData struct {
+	DocumentID          uuid.UUID `json:"document_id"`
+	DocumentTitle       string    `json:"document_title"`
+	RequesterEmployeeID uuid.UUID `json:"requester_employee_id"`
+	RequesterName       string    `json:"requester_name"`
+}
+
+func (SignDocumentRequestedNotificationData) NotificationType() string {
+	return TypeSignDocumentRequested
+}
 
 type Notification struct {
 	ID        uuid.UUID       `json:"id"`

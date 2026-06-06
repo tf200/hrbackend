@@ -297,7 +297,7 @@ func buildRouter(
 	attachmentRepo := repository.NewAttachmentRepository(store)
 	attachmentService := service.NewAttachmentService(attachmentRepo, storageClient, logger)
 	signDocumentRepo := repository.NewSignDocumentRepository(store)
-	signDocumentService := service.NewSignDocumentService(signDocumentRepo, attachmentRepo, storageClient, pkgpdf.NewSignDocumentStamper(), logger)
+	signDocumentService := service.NewSignDocumentService(signDocumentRepo, attachmentRepo, employeeRepo, notificationService, storageClient, pkgpdf.NewSignDocumentStamper(), logger)
 
 	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
 	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
