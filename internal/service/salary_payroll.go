@@ -227,7 +227,11 @@ func (s *SalaryService) ClosePayPeriod(
 
 		fixedBaseLineItems := []domain.PayrollPreviewLineItem{}
 		if normalized.PayrollGroup == domain.PayrollGroupFixed {
-			fixedBaseLineItems, err = s.buildFixedBasePreviewLineItems(ctx, normalized.EmployeeID, normalized.PeriodStart, normalized.PeriodEnd)
+			if isPayrollPeriodRange(normalized.PeriodStart, normalized.PeriodEnd) {
+				fixedBaseLineItems, err = s.buildFixedPeriodBasePreviewLineItems(ctx, normalized.EmployeeID, normalized.PeriodStart, normalized.PeriodEnd)
+			} else {
+				fixedBaseLineItems, err = s.buildFixedBasePreviewLineItems(ctx, normalized.EmployeeID, normalized.PeriodStart, normalized.PeriodEnd)
+			}
 			if err != nil {
 				return err
 			}
@@ -485,6 +489,172 @@ func (s *SalaryService) ClosePayrollMonthByAdmin(
 	return result, nil
 }
 
+func (s *SalaryService) PreviewPayrollPeriodClose(
+	ctx context.Context,
+	params domain.ClosePayrollPeriodParams,
+) (*domain.PayrollPeriodCloseResult, error) {
+	normalized, periodStart, periodEnd, err := normalizeClosePayrollPeriodParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &domain.PayrollPeriodCloseResult{
+		PeriodStart:  periodStart,
+		PeriodEnd:    periodEnd,
+		PayrollGroup: normalized.PayrollGroup,
+		CutoffAt:     normalized.CutoffAt,
+	}
+	selected := uuidSet(normalized.EmployeeIDs)
+
+	if normalized.PayrollGroup == domain.PayrollGroupOnCall {
+		page, err := s.GetOnCallPayrollPeriodSummary(ctx, domain.PayrollPeriodSummaryParams{PeriodStart: periodStart, PeriodEnd: periodEnd, Limit: 100000})
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range page.Items {
+			if len(selected) > 0 && !selected[row.EmployeeID] {
+				continue
+			}
+			item, err := s.previewPayrollPeriodCloseEmployee(ctx, row.EmployeeID, row.EmployeeName, normalized)
+			if err != nil {
+				return nil, err
+			}
+			item.PendingEntries = row.PendingEntryCount
+			appendPeriodClosePreviewItem(result, item)
+		}
+		return result, nil
+	}
+
+	page, err := s.GetFixedPayrollPeriodSummary(ctx, domain.PayrollPeriodSummaryParams{PeriodStart: periodStart, PeriodEnd: periodEnd, Limit: 100000})
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range page.Items {
+		if len(selected) > 0 && !selected[row.EmployeeID] {
+			continue
+		}
+		item, err := s.previewPayrollPeriodCloseEmployee(ctx, row.EmployeeID, row.EmployeeName, normalized)
+		if err != nil {
+			return nil, err
+		}
+		item.PendingEntries = row.PendingEntryCount
+		appendPeriodClosePreviewItem(result, item)
+	}
+	return result, nil
+}
+
+func (s *SalaryService) previewPayrollPeriodCloseEmployee(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	employeeName string,
+	params domain.ClosePayrollPeriodParams,
+) (domain.PayrollMonthCloseEmployeeResult, error) {
+	employee, err := s.repo.GetPayrollPreviewEmployee(ctx, employeeID)
+	if err != nil {
+		return domain.PayrollMonthCloseEmployeeResult{}, err
+	}
+	workItems, err := s.repo.ListPayrollMonthApprovedWorkItems(ctx, []uuid.UUID{employeeID}, params.PeriodStart, params.CutoffAt)
+	if err != nil {
+		return domain.PayrollMonthCloseEmployeeResult{}, err
+	}
+	workItems = filterPayrollWorkItemsByPayrollGroup(workItems, params.PayrollGroup)
+	fixedBaseLineItems := []domain.PayrollPreviewLineItem{}
+	if params.PayrollGroup == domain.PayrollGroupFixed {
+		fixedBaseLineItems, err = s.buildFixedPeriodBasePreviewLineItems(ctx, employeeID, params.PeriodStart, params.PeriodEnd)
+		if err != nil {
+			return domain.PayrollMonthCloseEmployeeResult{}, err
+		}
+	}
+	if len(workItems) == 0 && len(fixedBaseLineItems) == 0 {
+		return domain.PayrollMonthCloseEmployeeResult{
+			EmployeeID:   employeeID,
+			EmployeeName: employeeName,
+			Status:       "skipped",
+			Reason:       domain.ErrPayPeriodNoEntries.Error(),
+		}, nil
+	}
+	preview, err := s.buildPayrollPreview(ctx, employee, domain.PayrollPreviewParams{
+		EmployeeID:  employeeID,
+		PeriodStart: params.PeriodStart,
+		PeriodEnd:   params.CutoffAt,
+	}, workItems)
+	if err != nil {
+		return domain.PayrollMonthCloseEmployeeResult{}, err
+	}
+	applyFixedBaseLineItems(preview, fixedBaseLineItems)
+	return domain.PayrollMonthCloseEmployeeResult{
+		EmployeeID:   employeeID,
+		EmployeeName: employeeName,
+		Status:       "ready",
+		GrossAmount:  preview.GrossAmount,
+	}, nil
+}
+
+func (s *SalaryService) ClosePayrollPeriodByAdmin(
+	ctx context.Context,
+	adminEmployeeID uuid.UUID,
+	params domain.ClosePayrollPeriodParams,
+) (*domain.PayrollPeriodCloseResult, error) {
+	if adminEmployeeID == uuid.Nil {
+		return nil, domain.ErrSalaryInvalidRequest
+	}
+	preview, err := s.PreviewPayrollPeriodClose(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &domain.PayrollPeriodCloseResult{
+		PeriodStart:  preview.PeriodStart,
+		PeriodEnd:    preview.PeriodEnd,
+		PayrollGroup: preview.PayrollGroup,
+		CutoffAt:     preview.CutoffAt,
+		Items:        make([]domain.PayrollMonthCloseEmployeeResult, 0, len(preview.Items)),
+	}
+
+	for _, item := range preview.Items {
+		if item.Status != "ready" {
+			result.Items = append(result.Items, item)
+			result.SkippedCount++
+			continue
+		}
+		period, err := s.ClosePayPeriod(ctx, adminEmployeeID, domain.ClosePayPeriodParams{
+			EmployeeID:   item.EmployeeID,
+			PeriodStart:  preview.PeriodStart,
+			PeriodEnd:    preview.PeriodEnd,
+			PayrollGroup: preview.PayrollGroup,
+			CutoffAt:     preview.CutoffAt,
+		})
+		if err != nil {
+			status := "failed"
+			if errors.Is(err, domain.ErrPayPeriodAlreadyExists) || errors.Is(err, domain.ErrPayPeriodNoEntries) {
+				status = "skipped"
+			}
+			result.Items = append(result.Items, domain.PayrollMonthCloseEmployeeResult{
+				EmployeeID:   item.EmployeeID,
+				EmployeeName: item.EmployeeName,
+				Status:       status,
+				Reason:       err.Error(),
+			})
+			if status == "skipped" {
+				result.SkippedCount++
+			} else {
+				result.FailedCount++
+			}
+			continue
+		}
+		result.Items = append(result.Items, domain.PayrollMonthCloseEmployeeResult{
+			EmployeeID:   item.EmployeeID,
+			EmployeeName: item.EmployeeName,
+			Status:       "closed",
+			PayPeriodID:  &period.ID,
+			GrossAmount:  period.GrossAmount,
+		})
+		result.ClosedCount++
+	}
+
+	return result, nil
+}
+
 func (s *SalaryService) loadPayPeriodWithLineItems(
 	ctx context.Context,
 	payPeriodID uuid.UUID,
@@ -610,6 +780,110 @@ func (s *SalaryService) GetFixedPayrollMonthSummary(
 	}, nil
 }
 
+func (s *SalaryService) GetFixedPayrollPeriodSummary(
+	ctx context.Context,
+	params domain.PayrollPeriodSummaryParams,
+) (*domain.FixedPayrollMonthSummaryPage, error) {
+	normalized, periodStart, periodEnd, isCurrentPeriod, err := normalizePayrollPeriodSummaryParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	listParams := domain.PayrollMonthSummaryParams{
+		Limit:          normalized.Limit,
+		Offset:         normalized.Offset,
+		EmployeeSearch: normalized.EmployeeSearch,
+		ContractType:   normalized.ContractType,
+	}
+	employees, totalCount, err := s.repo.ListFixedPayrollMonthEmployees(ctx, listParams, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetFixedPayrollPeriodSummary", "failed to list fixed payroll employees", err)
+		return nil, fmt.Errorf("failed to list fixed payroll employees: %w", err)
+	}
+	if len(employees) == 0 {
+		return &domain.FixedPayrollMonthSummaryPage{
+			Items:      []domain.FixedPayrollMonthSummaryRow{},
+			TotalCount: totalCount,
+		}, nil
+	}
+
+	employeeIDs := make([]uuid.UUID, 0, len(employees))
+	for _, employee := range employees {
+		employeeIDs = append(employeeIDs, employee.EmployeeID)
+	}
+
+	contractSources, err := s.repo.ListFixedPayrollContractSegments(ctx, employeeIDs, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetFixedPayrollPeriodSummary", "failed to list fixed payroll contract segments", err)
+		return nil, fmt.Errorf("failed to list fixed payroll contract segments: %w", err)
+	}
+	contractSegmentsByEmployee := buildFixedPayrollPeriodContractSegmentsByEmployee(contractSources, periodStart, periodEnd)
+
+	approvedWorkItems, err := s.repo.ListPayrollMonthApprovedWorkItems(ctx, employeeIDs, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetFixedPayrollPeriodSummary", "failed to list fixed payroll work items", err)
+		return nil, fmt.Errorf("failed to list fixed payroll work items: %w", err)
+	}
+	loondienst := "loondienst"
+	fixedWorkItems := filterPayrollWorkItemsByContractType(approvedWorkItems, &loondienst)
+
+	pendingEntries, err := s.repo.ListPayrollMonthPendingEntries(ctx, employeeIDs, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetFixedPayrollPeriodSummary", "failed to list fixed payroll pending entries", err)
+		return nil, fmt.Errorf("failed to list fixed payroll pending entries: %w", err)
+	}
+	pendingByEmployee := buildPendingSummaryMap(pendingEntries, &loondienst)
+
+	holidaySet, err := s.loadHolidaySet(ctx, periodStart, periodEnd)
+	if err != nil {
+		return nil, err
+	}
+	adjustmentsByEmployee, err := buildFixedPayrollAdjustments(fixedWorkItems, holidaySet, fixedPayrollAsOf(periodStart, periodEnd, isCurrentPeriod))
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.FixedPayrollMonthSummaryRow, 0, len(employees))
+	for _, employee := range employees {
+		row := domain.FixedPayrollMonthSummaryRow{
+			EmployeeID:       employee.EmployeeID,
+			EmployeeName:     employee.EmployeeName,
+			Month:            periodStart,
+			IsCurrentMonth:   isCurrentPeriod,
+			CalculationMode:  "fixed_contract_four_week",
+			DataSource:       "live",
+			ContractSegments: contractSegmentsByEmployee[employee.EmployeeID],
+		}
+
+		for _, segment := range row.ContractSegments {
+			row.ContractBaseAmount = roundCurrency(row.ContractBaseAmount + segment.BaseAmount)
+			row.ContractPaidMinutes = roundCurrency(row.ContractPaidMinutes + contractSegmentPeriodPaidMinutes(segment, periodStart, periodEnd))
+		}
+
+		if adjustment, ok := adjustmentsByEmployee[employee.EmployeeID]; ok {
+			applyFixedPayrollAdjustmentSummary(&row, adjustment)
+		}
+		if pending, ok := pendingByEmployee[employee.EmployeeID]; ok {
+			row.PendingEntryCount = pending.PendingEntryCount
+			row.PendingWorkedMinutes = pending.PendingWorkedMinutes
+		}
+
+		row.PayableGrossAmount = roundCurrency(
+			row.ContractBaseAmount +
+				row.ActualORTAmount +
+				row.ApprovedOvertimeAmount +
+				row.LeavePayoutAmount,
+		)
+		row.ProjectedGrossAmount = roundCurrency(row.PayableGrossAmount + row.ForecastORTAmount)
+		items = append(items, row)
+	}
+
+	return &domain.FixedPayrollMonthSummaryPage{
+		Items:      items,
+		TotalCount: totalCount,
+	}, nil
+}
+
 func (s *SalaryService) GetOnCallPayrollMonthSummary(
 	ctx context.Context,
 	params domain.PayrollMonthSummaryParams,
@@ -694,6 +968,97 @@ func (s *SalaryService) GetOnCallPayrollMonthSummary(
 	}, nil
 }
 
+func (s *SalaryService) GetOnCallPayrollPeriodSummary(
+	ctx context.Context,
+	params domain.PayrollPeriodSummaryParams,
+) (*domain.OnCallPayrollMonthSummaryPage, error) {
+	normalized, periodStart, periodEnd, isCurrentPeriod, err := normalizePayrollPeriodSummaryParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	listParams := domain.PayrollMonthSummaryParams{
+		Limit:          normalized.Limit,
+		Offset:         normalized.Offset,
+		EmployeeSearch: normalized.EmployeeSearch,
+		ContractType:   normalized.ContractType,
+	}
+	employees, totalCount, err := s.repo.ListOnCallPayrollMonthEmployees(ctx, listParams, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetOnCallPayrollPeriodSummary", "failed to list on-call payroll employees", err)
+		return nil, fmt.Errorf("failed to list on-call payroll employees: %w", err)
+	}
+	if len(employees) == 0 {
+		return &domain.OnCallPayrollMonthSummaryPage{
+			Items:      []domain.OnCallPayrollMonthSummaryRow{},
+			TotalCount: totalCount,
+		}, nil
+	}
+
+	employeeIDs := make([]uuid.UUID, 0, len(employees))
+	for _, employee := range employees {
+		employeeIDs = append(employeeIDs, employee.EmployeeID)
+	}
+
+	approvedWorkItems, err := s.repo.ListPayrollMonthApprovedWorkItems(ctx, employeeIDs, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetOnCallPayrollPeriodSummary", "failed to list on-call payroll work items", err)
+		return nil, fmt.Errorf("failed to list on-call payroll work items: %w", err)
+	}
+	onCall := "on_call"
+	onCallWorkItems := filterPayrollWorkItemsByContractType(approvedWorkItems, &onCall)
+
+	pendingEntries, err := s.repo.ListPayrollMonthPendingEntries(ctx, employeeIDs, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetOnCallPayrollPeriodSummary", "failed to list on-call payroll pending entries", err)
+		return nil, fmt.Errorf("failed to list on-call payroll pending entries: %w", err)
+	}
+	pendingByEmployee := buildPendingSummaryMap(pendingEntries, &onCall)
+
+	holidaySet, err := s.loadHolidaySet(ctx, periodStart, periodEnd)
+	if err != nil {
+		return nil, err
+	}
+	summariesByEmployee, err := buildOnCallPayrollSummaries(onCallWorkItems, holidaySet)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.OnCallPayrollMonthSummaryRow, 0, len(employees))
+	for _, employee := range employees {
+		row := domain.OnCallPayrollMonthSummaryRow{
+			EmployeeID:      employee.EmployeeID,
+			EmployeeName:    employee.EmployeeName,
+			Month:           periodStart,
+			IsCurrentMonth:  isCurrentPeriod,
+			CalculationMode: "on_call_four_week",
+			DataSource:      "live",
+		}
+
+		if summary, ok := summariesByEmployee[employee.EmployeeID]; ok {
+			applyOnCallPayrollSummary(&row, summary)
+		}
+		if pending, ok := pendingByEmployee[employee.EmployeeID]; ok {
+			row.PendingEntryCount = pending.PendingEntryCount
+			row.PendingWorkedMinutes = pending.PendingWorkedMinutes
+		}
+		row.PayableGrossAmount = roundCurrency(
+			row.WorkedHoursAmount +
+				row.ApprovedOvertimeAmount +
+				row.LeavePayoutAmount,
+		)
+		if !shouldIncludeOnCallPayrollRow(row) {
+			continue
+		}
+		items = append(items, row)
+	}
+
+	return &domain.OnCallPayrollMonthSummaryPage{
+		Items:      items,
+		TotalCount: totalCount,
+	}, nil
+}
+
 func (s *SalaryService) GetFixedPayrollMonthStats(
 	ctx context.Context,
 	params domain.PayrollMonthSummaryParams,
@@ -707,6 +1072,31 @@ func (s *SalaryService) GetFixedPayrollMonthStats(
 	}
 
 	stats := &domain.PayrollMonthStats{Month: params.Month}
+	for _, item := range page.Items {
+		stats.TotalBaseContractPay = roundCurrency(stats.TotalBaseContractPay + item.ContractBaseAmount)
+		stats.TotalORTPay = roundCurrency(stats.TotalORTPay + item.ActualORTAmount)
+		stats.TotalOvertimePay = roundCurrency(stats.TotalOvertimePay + item.ApprovedOvertimeAmount)
+		stats.TotalRequestedLeaveHoursPay = roundCurrency(stats.TotalRequestedLeaveHoursPay + item.LeavePayoutAmount)
+		stats.TotalRequestedLeaveHours = roundCurrency(stats.TotalRequestedLeaveHours + float64(item.LeavePayoutMinutes)/60)
+		stats.TotalGrossPayable = roundCurrency(stats.TotalGrossPayable + item.PayableGrossAmount)
+	}
+
+	return stats, nil
+}
+
+func (s *SalaryService) GetFixedPayrollPeriodStats(
+	ctx context.Context,
+	params domain.PayrollPeriodSummaryParams,
+) (*domain.PayrollMonthStats, error) {
+	params.Limit = 100000
+	params.Offset = 0
+
+	page, err := s.GetFixedPayrollPeriodSummary(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.PayrollMonthStats{Month: params.PeriodStart}
 	for _, item := range page.Items {
 		stats.TotalBaseContractPay = roundCurrency(stats.TotalBaseContractPay + item.ContractBaseAmount)
 		stats.TotalORTPay = roundCurrency(stats.TotalORTPay + item.ActualORTAmount)
@@ -741,6 +1131,34 @@ func (s *SalaryService) GetOnCallPayrollMonthStats(
 	}
 
 	return stats, nil
+}
+
+func (s *SalaryService) GetOnCallPayrollPeriodStats(
+	ctx context.Context,
+	params domain.PayrollPeriodSummaryParams,
+) (*domain.PayrollMonthStats, error) {
+	params.Limit = 100000
+	params.Offset = 0
+
+	page, err := s.GetOnCallPayrollPeriodSummary(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.PayrollMonthStats{Month: params.PeriodStart}
+	for _, item := range page.Items {
+		stats.TotalBaseContractPay = roundCurrency(stats.TotalBaseContractPay + item.WorkedHoursAmount)
+		stats.TotalOvertimePay = roundCurrency(stats.TotalOvertimePay + item.ApprovedOvertimeAmount)
+		stats.TotalRequestedLeaveHoursPay = roundCurrency(stats.TotalRequestedLeaveHoursPay + item.LeavePayoutAmount)
+		stats.TotalRequestedLeaveHours = roundCurrency(stats.TotalRequestedLeaveHours + float64(item.LeavePayoutMinutes)/60)
+		stats.TotalGrossPayable = roundCurrency(stats.TotalGrossPayable + item.PayableGrossAmount)
+	}
+
+	return stats, nil
+}
+
+func (s *SalaryService) GetPayrollPeriodOptions(_ context.Context) ([]domain.PayrollPeriodOption, error) {
+	return domain.PayrollPeriodOptionsThrough(time.Now().UTC()), nil
 }
 
 func (s *SalaryService) GetPayrollMonthORTOverview(
@@ -1230,6 +1648,32 @@ func (s *SalaryService) buildFixedBasePreviewLineItems(
 	return lineItems, nil
 }
 
+func (s *SalaryService) buildFixedPeriodBasePreviewLineItems(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	periodStart, periodEnd time.Time,
+) ([]domain.PayrollPreviewLineItem, error) {
+	segments, err := s.repo.ListFixedPayrollContractSegments(ctx, []uuid.UUID{employeeID}, periodStart, periodEnd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list fixed payroll contract segments: %w", err)
+	}
+	byEmployee := buildFixedPayrollPeriodContractSegmentsByEmployee(segments, periodStart, periodEnd)
+	contractSegments := byEmployee[employeeID]
+	lineItems := make([]domain.PayrollPreviewLineItem, 0, len(contractSegments))
+	for _, segment := range contractSegments {
+		lineItems = append(lineItems, domain.PayrollPreviewLineItem{
+			SourceType:            "fixed_base",
+			Label:                 "Fixed 4-week base salary",
+			ContractType:          segment.ContractType,
+			WorkDate:              segment.ActiveFrom,
+			IrregularHoursProfile: "none",
+			BaseAmount:            segment.BaseAmount,
+			PaidMinutes:           contractSegmentPeriodPaidMinutes(segment, periodStart, periodEnd),
+		})
+	}
+	return lineItems, nil
+}
+
 func applyFixedBaseLineItems(preview *domain.PayrollPreview, lineItems []domain.PayrollPreviewLineItem) {
 	for _, item := range lineItems {
 		preview.BaseGrossAmount = roundCurrency(preview.BaseGrossAmount + item.BaseAmount)
@@ -1425,6 +1869,52 @@ func normalizePayrollMonthSummaryParams(
 	return params, month, monthEnd, currentMonth, nil
 }
 
+func normalizePayrollPeriodSummaryParams(
+	params domain.PayrollPeriodSummaryParams,
+) (domain.PayrollPeriodSummaryParams, time.Time, time.Time, bool, error) {
+	if params.PeriodStart.IsZero() || params.PeriodEnd.IsZero() {
+		return domain.PayrollPeriodSummaryParams{}, time.Time{}, time.Time{}, false, domain.ErrSalaryInvalidRequest
+	}
+
+	normalizedContractType, err := normalizePayrollContractType(params.ContractType)
+	if err != nil {
+		return domain.PayrollPeriodSummaryParams{}, time.Time{}, time.Time{}, false, err
+	}
+	params.ContractType = normalizedContractType
+
+	periodStart := time.Date(
+		params.PeriodStart.UTC().Year(),
+		params.PeriodStart.UTC().Month(),
+		params.PeriodStart.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	periodEnd := time.Date(
+		params.PeriodEnd.UTC().Year(),
+		params.PeriodEnd.UTC().Month(),
+		params.PeriodEnd.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	if !isPayrollPeriodRange(periodStart, periodEnd) {
+		return domain.PayrollPeriodSummaryParams{}, time.Time{}, time.Time{}, false, domain.ErrSalaryInvalidRequest
+	}
+
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	currentPeriod := !today.Before(periodStart) && !today.After(periodEnd)
+
+	params.PeriodStart = periodStart
+	params.PeriodEnd = periodEnd
+	return params, periodStart, periodEnd, currentPeriod, nil
+}
+
 func normalizeClosePayrollMonthParams(
 	params domain.ClosePayrollMonthParams,
 ) (domain.ClosePayrollMonthParams, time.Time, time.Time, error) {
@@ -1446,8 +1936,56 @@ func normalizeClosePayrollMonthParams(
 	}, monthStart, monthEnd, nil
 }
 
+func normalizeClosePayrollPeriodParams(
+	params domain.ClosePayrollPeriodParams,
+) (domain.ClosePayrollPeriodParams, time.Time, time.Time, error) {
+	if params.PeriodStart.IsZero() || params.PeriodEnd.IsZero() {
+		return domain.ClosePayrollPeriodParams{}, time.Time{}, time.Time{}, domain.ErrSalaryInvalidRequest
+	}
+	periodStart := time.Date(params.PeriodStart.UTC().Year(), params.PeriodStart.UTC().Month(), params.PeriodStart.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	periodEnd := time.Date(params.PeriodEnd.UTC().Year(), params.PeriodEnd.UTC().Month(), params.PeriodEnd.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	if !isPayrollPeriodRange(periodStart, periodEnd) {
+		return domain.ClosePayrollPeriodParams{}, time.Time{}, time.Time{}, domain.ErrSalaryInvalidRequest
+	}
+	payrollGroup := normalizePayrollGroupOrDefault(params.PayrollGroup)
+	cutoffAt := normalizePayPeriodCutoff(params.CutoffAt, periodEnd)
+	if cutoffAt.Before(periodStart) || cutoffAt.After(periodEnd.AddDate(0, 0, 1)) {
+		return domain.ClosePayrollPeriodParams{}, time.Time{}, time.Time{}, domain.ErrSalaryInvalidRequest
+	}
+	return domain.ClosePayrollPeriodParams{
+		PayrollGroup: payrollGroup,
+		PeriodStart:  periodStart,
+		PeriodEnd:    periodEnd,
+		EmployeeIDs:  params.EmployeeIDs,
+		CutoffAt:     cutoffAt,
+	}, periodStart, periodEnd, nil
+}
+
+func isPayrollPeriodRange(periodStart, periodEnd time.Time) bool {
+	return !periodEnd.Before(periodStart) &&
+		inclusiveDateDays(periodStart, periodEnd) == 28 &&
+		domain.IsPayrollPeriodStart(periodStart)
+}
+
 func appendMonthClosePreviewItem(
 	result *domain.PayrollMonthCloseResult,
+	item domain.PayrollMonthCloseEmployeeResult,
+) {
+	if item.Status == "" {
+		item.Status = "ready"
+	}
+	if item.GrossAmount <= 0 {
+		item.Status = "skipped"
+		item.Reason = domain.ErrPayPeriodNoEntries.Error()
+		result.SkippedCount++
+	} else {
+		result.ClosedCount++
+	}
+	result.Items = append(result.Items, item)
+}
+
+func appendPeriodClosePreviewItem(
+	result *domain.PayrollPeriodCloseResult,
 	item domain.PayrollMonthCloseEmployeeResult,
 ) {
 	if item.Status == "" {
@@ -1872,6 +2410,40 @@ func buildFixedPayrollContractSegmentsByEmployee(
 	return segmentsByEmployee
 }
 
+func buildFixedPayrollPeriodContractSegmentsByEmployee(
+	sources []domain.FixedPayrollContractSegmentSource,
+	periodStart, periodEnd time.Time,
+) map[uuid.UUID][]domain.FixedPayrollContractSegment {
+	segmentsByEmployee := make(map[uuid.UUID][]domain.FixedPayrollContractSegment)
+	periodDays := float64(inclusiveDateDays(periodStart, periodEnd))
+
+	for _, source := range sources {
+		activeDays := inclusiveDateDays(source.ActiveFrom, source.ActiveUntil)
+		if activeDays <= 0 || periodDays <= 0 || source.HourlyRate <= 0 || source.HoursPerWeek <= 0 {
+			continue
+		}
+
+		prorationRatio := float64(activeDays) / periodDays
+		baseAmount := roundCurrency(source.HourlyRate * source.HoursPerWeek * 4 * prorationRatio)
+
+		segment := domain.FixedPayrollContractSegment{
+			ContractID:           source.ContractID,
+			ContractType:         source.ContractType,
+			ActiveFrom:           source.ActiveFrom,
+			ActiveUntil:          source.ActiveUntil,
+			HoursPerWeek:         source.HoursPerWeek,
+			FullTimeHoursPerWeek: source.FullTimeHoursPerWeek,
+			MonthlySalary:        source.MonthlySalary,
+			HourlyRate:           source.HourlyRate,
+			ProrationRatio:       roundRatio(prorationRatio),
+			BaseAmount:           baseAmount,
+		}
+		segmentsByEmployee[source.EmployeeID] = append(segmentsByEmployee[source.EmployeeID], segment)
+	}
+
+	return segmentsByEmployee
+}
+
 func buildFixedPayrollAdjustments(
 	workItems []domain.PayrollWorkItem,
 	holidaySet map[string]struct{},
@@ -2106,6 +2678,15 @@ func contractSegmentPaidMinutes(segment domain.FixedPayrollContractSegment, mont
 		return 0
 	}
 	return roundCurrency(segment.HoursPerWeek * 52 / 12 * float64(activeDays) / float64(monthDays) * 60)
+}
+
+func contractSegmentPeriodPaidMinutes(segment domain.FixedPayrollContractSegment, periodStart, periodEnd time.Time) float64 {
+	activeDays := inclusiveDateDays(segment.ActiveFrom, segment.ActiveUntil)
+	periodDays := inclusiveDateDays(periodStart, periodEnd)
+	if activeDays <= 0 || periodDays <= 0 {
+		return 0
+	}
+	return roundCurrency(segment.HoursPerWeek * 4 * float64(activeDays) / float64(periodDays) * 60)
 }
 
 func inclusiveDateDays(start, end time.Time) int {

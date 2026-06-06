@@ -110,6 +110,60 @@ func RegisterSalaryRoutes(
 		handler.GetPayrollMonthORTOverview,
 	)
 	rg.GET(
+		"/payroll-period-summary/periods",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetPayrollPeriodOptions,
+	)
+	rg.GET(
+		"/payroll-period-summary/fixed",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetFixedPayrollPeriodSummary,
+	)
+	rg.GET(
+		"/payroll-period-summary/fixed/stats",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetFixedPayrollPeriodStats,
+	)
+	rg.POST(
+		"/payroll-period-summary/fixed/close-preview",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.PreviewFixedPayrollPeriodClose,
+	)
+	rg.POST(
+		"/payroll-period-summary/fixed/close",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.CloseFixedPayrollPeriod,
+	)
+	rg.GET(
+		"/payroll-period-summary/on-call",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetOnCallPayrollPeriodSummary,
+	)
+	rg.GET(
+		"/payroll-period-summary/on-call/stats",
+		auth,
+		requirePermission(permission.PayPeriod.MonthSummaryView),
+		handler.GetOnCallPayrollPeriodStats,
+	)
+	rg.POST(
+		"/payroll-period-summary/on-call/close-preview",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.PreviewOnCallPayrollPeriodClose,
+	)
+	rg.POST(
+		"/payroll-period-summary/on-call/close",
+		auth,
+		requirePermission(permission.PayPeriod.Close),
+		handler.CloseOnCallPayrollPeriod,
+	)
+	rg.GET(
 		"/payroll-month-summary/details",
 		auth,
 		requirePermission(permission.PayPeriod.MonthSummaryView),

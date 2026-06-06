@@ -341,6 +341,30 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 	}
 }
 
+func TestResolvePayrollPeriodRequestRejectsBothFilters(t *testing.T) {
+	periodStart := "2025-12-29"
+	date := "2026-01-10"
+
+	_, _, err := resolvePayrollPeriodRequest(&periodStart, &date)
+	if err == nil {
+		t.Fatal("expected error when both period_start and date are sent")
+	}
+}
+
+func TestResolvePayrollPeriodRequestDefaultsToCurrentPeriod(t *testing.T) {
+	periodStart, periodEnd, err := resolvePayrollPeriodRequest(nil, nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	wantStart, wantEnd := domain.ResolvePayrollPeriod(time.Now().UTC())
+	if !periodStart.Equal(wantStart) {
+		t.Fatalf("period start = %s, want %s", periodStart, wantStart)
+	}
+	if !periodEnd.Equal(wantEnd) {
+		t.Fatalf("period end = %s, want %s", periodEnd, wantEnd)
+	}
+}
+
 type fakeSalaryService struct {
 	ortOverviewPage   *domain.PayrollMonthORTOverviewPage
 	ortOverviewParams domain.PayrollMonthORTOverviewParams
@@ -396,6 +420,19 @@ func (f *fakeSalaryService) ClosePayrollMonthByAdmin(
 ) (*domain.PayrollMonthCloseResult, error) {
 	panic("unexpected call")
 }
+func (f *fakeSalaryService) PreviewPayrollPeriodClose(
+	_ context.Context,
+	_ domain.ClosePayrollPeriodParams,
+) (*domain.PayrollPeriodCloseResult, error) {
+	panic("unexpected call")
+}
+func (f *fakeSalaryService) ClosePayrollPeriodByAdmin(
+	_ context.Context,
+	_ uuid.UUID,
+	_ domain.ClosePayrollPeriodParams,
+) (*domain.PayrollPeriodCloseResult, error) {
+	panic("unexpected call")
+}
 func (f *fakeSalaryService) GetPayPeriodByID(
 	_ context.Context,
 	_ uuid.UUID,
@@ -426,6 +463,18 @@ func (f *fakeSalaryService) GetOnCallPayrollMonthSummary(
 ) (*domain.OnCallPayrollMonthSummaryPage, error) {
 	panic("unexpected call")
 }
+func (f *fakeSalaryService) GetFixedPayrollPeriodSummary(
+	_ context.Context,
+	_ domain.PayrollPeriodSummaryParams,
+) (*domain.FixedPayrollMonthSummaryPage, error) {
+	panic("unexpected call")
+}
+func (f *fakeSalaryService) GetOnCallPayrollPeriodSummary(
+	_ context.Context,
+	_ domain.PayrollPeriodSummaryParams,
+) (*domain.OnCallPayrollMonthSummaryPage, error) {
+	panic("unexpected call")
+}
 func (f *fakeSalaryService) GetFixedPayrollMonthStats(
 	_ context.Context,
 	params domain.PayrollMonthSummaryParams,
@@ -445,6 +494,23 @@ func (f *fakeSalaryService) GetOnCallPayrollMonthStats(
 		return nil, f.onCallStatsErr
 	}
 	return f.onCallStats, nil
+}
+func (f *fakeSalaryService) GetFixedPayrollPeriodStats(
+	_ context.Context,
+	_ domain.PayrollPeriodSummaryParams,
+) (*domain.PayrollMonthStats, error) {
+	panic("unexpected call")
+}
+func (f *fakeSalaryService) GetOnCallPayrollPeriodStats(
+	_ context.Context,
+	_ domain.PayrollPeriodSummaryParams,
+) (*domain.PayrollMonthStats, error) {
+	panic("unexpected call")
+}
+func (f *fakeSalaryService) GetPayrollPeriodOptions(
+	_ context.Context,
+) ([]domain.PayrollPeriodOption, error) {
+	panic("unexpected call")
 }
 func (f *fakeSalaryService) GetPayrollMonthORTOverview(
 	_ context.Context,

@@ -174,6 +174,15 @@ type PayrollMonthSummaryParams struct {
 	ContractType   *string
 }
 
+type PayrollPeriodSummaryParams struct {
+	PeriodStart    time.Time
+	PeriodEnd      time.Time
+	Limit          int32
+	Offset         int32
+	EmployeeSearch *string
+	ContractType   *string
+}
+
 type PayrollMonthORTOverviewParams struct {
 	Month          time.Time
 	Limit          int32
@@ -489,6 +498,14 @@ type ClosePayrollMonthParams struct {
 	CutoffAt     time.Time
 }
 
+type ClosePayrollPeriodParams struct {
+	PayrollGroup string
+	PeriodStart  time.Time
+	PeriodEnd    time.Time
+	EmployeeIDs  []uuid.UUID
+	CutoffAt     time.Time
+}
+
 type PayrollMonthCloseEmployeeResult struct {
 	EmployeeID     uuid.UUID
 	EmployeeName   string
@@ -507,6 +524,66 @@ type PayrollMonthCloseResult struct {
 	SkippedCount int32
 	FailedCount  int32
 	Items        []PayrollMonthCloseEmployeeResult
+}
+
+type PayrollPeriodCloseResult struct {
+	PeriodStart  time.Time
+	PeriodEnd    time.Time
+	PayrollGroup string
+	CutoffAt     time.Time
+	ClosedCount  int32
+	SkippedCount int32
+	FailedCount  int32
+	Items        []PayrollMonthCloseEmployeeResult
+}
+
+type PayrollPeriodOption struct {
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+	IsCurrent   bool
+}
+
+var PayrollPeriodAnchorStart = time.Date(2025, time.December, 29, 0, 0, 0, 0, time.UTC)
+
+func ResolvePayrollPeriod(date time.Time) (time.Time, time.Time) {
+	day := time.Date(date.UTC().Year(), date.UTC().Month(), date.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	daysSinceAnchor := int(day.Sub(PayrollPeriodAnchorStart).Hours() / 24)
+	periodIndex := floorDiv(daysSinceAnchor, 28)
+	periodStart := PayrollPeriodAnchorStart.AddDate(0, 0, periodIndex*28)
+	return periodStart, periodStart.AddDate(0, 0, 27)
+}
+
+func PayrollPeriodOptionsThrough(date time.Time) []PayrollPeriodOption {
+	currentStart, currentEnd := ResolvePayrollPeriod(date)
+	if currentStart.Before(PayrollPeriodAnchorStart) {
+		return []PayrollPeriodOption{}
+	}
+
+	options := []PayrollPeriodOption{}
+	for periodStart := PayrollPeriodAnchorStart; !periodStart.After(currentStart); periodStart = periodStart.AddDate(0, 0, 28) {
+		periodEnd := periodStart.AddDate(0, 0, 27)
+		options = append(options, PayrollPeriodOption{
+			PeriodStart: periodStart,
+			PeriodEnd:   periodEnd,
+			IsCurrent:   periodStart.Equal(currentStart) && periodEnd.Equal(currentEnd),
+		})
+	}
+	return options
+}
+
+func IsPayrollPeriodStart(date time.Time) bool {
+	periodStart, _ := ResolvePayrollPeriod(date)
+	day := time.Date(date.UTC().Year(), date.UTC().Month(), date.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	return day.Equal(periodStart)
+}
+
+func floorDiv(a, b int) int {
+	q := a / b
+	r := a % b
+	if r != 0 && ((r < 0) != (b < 0)) {
+		q--
+	}
+	return q
 }
 
 type ListPayPeriodsParams struct {
@@ -664,6 +741,15 @@ type SalaryService interface {
 		adminEmployeeID uuid.UUID,
 		params ClosePayrollMonthParams,
 	) (*PayrollMonthCloseResult, error)
+	PreviewPayrollPeriodClose(
+		ctx context.Context,
+		params ClosePayrollPeriodParams,
+	) (*PayrollPeriodCloseResult, error)
+	ClosePayrollPeriodByAdmin(
+		ctx context.Context,
+		adminEmployeeID uuid.UUID,
+		params ClosePayrollPeriodParams,
+	) (*PayrollPeriodCloseResult, error)
 	GetPayPeriodByID(ctx context.Context, payPeriodID uuid.UUID) (*PayPeriod, error)
 	ListPayPeriods(ctx context.Context, params ListPayPeriodsParams) (*PayPeriodPage, error)
 	MarkPayPeriodPaidByAdmin(
@@ -678,6 +764,14 @@ type SalaryService interface {
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
 	) (*OnCallPayrollMonthSummaryPage, error)
+	GetFixedPayrollPeriodSummary(
+		ctx context.Context,
+		params PayrollPeriodSummaryParams,
+	) (*FixedPayrollMonthSummaryPage, error)
+	GetOnCallPayrollPeriodSummary(
+		ctx context.Context,
+		params PayrollPeriodSummaryParams,
+	) (*OnCallPayrollMonthSummaryPage, error)
 	GetFixedPayrollMonthStats(
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
@@ -686,6 +780,15 @@ type SalaryService interface {
 		ctx context.Context,
 		params PayrollMonthSummaryParams,
 	) (*PayrollMonthStats, error)
+	GetFixedPayrollPeriodStats(
+		ctx context.Context,
+		params PayrollPeriodSummaryParams,
+	) (*PayrollMonthStats, error)
+	GetOnCallPayrollPeriodStats(
+		ctx context.Context,
+		params PayrollPeriodSummaryParams,
+	) (*PayrollMonthStats, error)
+	GetPayrollPeriodOptions(ctx context.Context) ([]PayrollPeriodOption, error)
 	GetPayrollMonthORTOverview(
 		ctx context.Context,
 		params PayrollMonthORTOverviewParams,

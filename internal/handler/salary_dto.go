@@ -104,6 +104,12 @@ type closePayrollMonthRequest struct {
 	EmployeeIDs []uuid.UUID `json:"employee_ids" binding:"omitempty"`
 	CutoffAt    *time.Time  `json:"cutoff_at"    binding:"omitempty"`
 }
+type closePayrollPeriodRequest struct {
+	PeriodStart *string     `json:"period_start" binding:"omitempty"`
+	Date        *string     `json:"date"         binding:"omitempty"`
+	EmployeeIDs []uuid.UUID `json:"employee_ids" binding:"omitempty"`
+	CutoffAt    *time.Time  `json:"cutoff_at"    binding:"omitempty"`
+}
 type listPayPeriodsRequest struct {
 	httpapi.PageRequest
 	Status         *string `form:"status"          binding:"omitempty,oneof=draft paid"`
@@ -114,8 +120,19 @@ type payrollMonthSummaryRequest struct {
 	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
+type payrollPeriodSummaryRequest struct {
+	httpapi.PageRequest
+	PeriodStart    *string `form:"period_start"    binding:"omitempty"`
+	Date           *string `form:"date"            binding:"omitempty"`
+	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
+}
 type payrollMonthStatsRequest struct {
 	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
+	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
+}
+type payrollPeriodStatsRequest struct {
+	PeriodStart    *string `form:"period_start"    binding:"omitempty"`
+	Date           *string `form:"date"            binding:"omitempty"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
 type payrollMonthDetailRequest struct {
@@ -183,6 +200,22 @@ type payrollMonthCloseResultResponse struct {
 	SkippedCount int32                                     `json:"skipped_count"`
 	FailedCount  int32                                     `json:"failed_count"`
 	Items        []payrollMonthCloseEmployeeResultResponse `json:"items"`
+}
+type payrollPeriodCloseResultResponse struct {
+	PeriodStart  string                                    `json:"period_start"`
+	PeriodEnd    string                                    `json:"period_end"`
+	PayrollGroup string                                    `json:"payroll_group"`
+	CutoffAt     time.Time                                 `json:"cutoff_at"`
+	ClosedCount  int32                                     `json:"closed_count"`
+	SkippedCount int32                                     `json:"skipped_count"`
+	FailedCount  int32                                     `json:"failed_count"`
+	Items        []payrollMonthCloseEmployeeResultResponse `json:"items"`
+}
+type payrollPeriodOptionResponse struct {
+	PeriodStart string `json:"period_start"`
+	PeriodEnd   string `json:"period_end"`
+	Label       string `json:"label"`
+	IsCurrent   bool   `json:"is_current"`
 }
 type payrollMonthCloseEmployeeResultResponse struct {
 	EmployeeID     uuid.UUID  `json:"employee_id"`
@@ -256,6 +289,11 @@ type fixedPayrollMonthSummaryResponse struct {
 	OvertimeBreakdown       []fixedPayrollOvertimeBreakdownItem `json:"overtime_breakdown"`
 	LeavePayoutBreakdown    []fixedPayrollLeavePayoutItem       `json:"leave_payout_breakdown"`
 }
+type fixedPayrollPeriodSummaryResponse struct {
+	fixedPayrollMonthSummaryResponse
+	PeriodStart string `json:"period_start"`
+	PeriodEnd   string `json:"period_end"`
+}
 type fixedPayrollContractSegmentItem struct {
 	ContractID           uuid.UUID `json:"contract_id"`
 	ContractType         string    `json:"contract_type"`
@@ -314,8 +352,23 @@ type onCallPayrollMonthSummaryResponse struct {
 	OvertimeBreakdown       []onCallPayrollOvertimeBreakdownItem `json:"overtime_breakdown"`
 	LeavePayoutBreakdown    []onCallPayrollLeavePayoutItem       `json:"leave_payout_breakdown"`
 }
+type onCallPayrollPeriodSummaryResponse struct {
+	onCallPayrollMonthSummaryResponse
+	PeriodStart string `json:"period_start"`
+	PeriodEnd   string `json:"period_end"`
+}
 type payrollMonthStatsResponse struct {
 	Month                       string  `json:"month"`
+	TotalBaseContractPay        float64 `json:"total_base_contract_pay"`
+	TotalORTPay                 float64 `json:"total_ort_pay"`
+	TotalOvertimePay            float64 `json:"total_overtime_pay"`
+	TotalRequestedLeaveHoursPay float64 `json:"total_requested_leave_hours_pay"`
+	TotalRequestedLeaveHours    float64 `json:"total_requested_leave_hours"`
+	TotalGrossPayable           float64 `json:"total_gross_payable"`
+}
+type payrollPeriodStatsResponse struct {
+	PeriodStart                 string  `json:"period_start"`
+	PeriodEnd                   string  `json:"period_end"`
 	TotalBaseContractPay        float64 `json:"total_base_contract_pay"`
 	TotalORTPay                 float64 `json:"total_ort_pay"`
 	TotalOvertimePay            float64 `json:"total_overtime_pay"`
@@ -436,6 +489,20 @@ func toClosePayrollMonthParams(req closePayrollMonthRequest, payrollGroup string
 	}, nil
 }
 
+func toClosePayrollPeriodParams(req closePayrollPeriodRequest, payrollGroup string) (domain.ClosePayrollPeriodParams, error) {
+	periodStart, periodEnd, err := resolvePayrollPeriodRequest(req.PeriodStart, req.Date)
+	if err != nil {
+		return domain.ClosePayrollPeriodParams{}, err
+	}
+	return domain.ClosePayrollPeriodParams{
+		PayrollGroup: payrollGroup,
+		PeriodStart:  periodStart,
+		PeriodEnd:    periodEnd,
+		EmployeeIDs:  req.EmployeeIDs,
+		CutoffAt:     timePtrValue(req.CutoffAt),
+	}, nil
+}
+
 func timePtrValue(value *time.Time) time.Time {
 	if value == nil {
 		return time.Time{}
@@ -465,6 +532,23 @@ func toPayrollMonthSummaryParams(
 		ContractType:   nil,
 	}, nil
 }
+
+func toPayrollPeriodSummaryParams(
+	req payrollPeriodSummaryRequest,
+) (domain.PayrollPeriodSummaryParams, error) {
+	periodStart, periodEnd, err := resolvePayrollPeriodRequest(req.PeriodStart, req.Date)
+	if err != nil {
+		return domain.PayrollPeriodSummaryParams{}, err
+	}
+	return domain.PayrollPeriodSummaryParams{
+		PeriodStart:    periodStart,
+		PeriodEnd:      periodEnd,
+		Limit:          req.PageSize,
+		Offset:         (req.Page - 1) * req.PageSize,
+		EmployeeSearch: req.EmployeeSearch,
+		ContractType:   nil,
+	}, nil
+}
 func toPayrollMonthStatsParams(
 	req payrollMonthStatsRequest,
 ) (domain.PayrollMonthSummaryParams, error) {
@@ -476,6 +560,63 @@ func toPayrollMonthStatsParams(
 		Month:          month.UTC(),
 		EmployeeSearch: req.EmployeeSearch,
 	}, nil
+}
+
+func toPayrollPeriodStatsParams(
+	req payrollPeriodStatsRequest,
+) (domain.PayrollPeriodSummaryParams, error) {
+	periodStart, periodEnd, err := resolvePayrollPeriodRequest(req.PeriodStart, req.Date)
+	if err != nil {
+		return domain.PayrollPeriodSummaryParams{}, err
+	}
+	return domain.PayrollPeriodSummaryParams{
+		PeriodStart:    periodStart,
+		PeriodEnd:      periodEnd,
+		EmployeeSearch: req.EmployeeSearch,
+	}, nil
+}
+
+func resolvePayrollPeriodRequest(periodStartValue, dateValue *string) (time.Time, time.Time, error) {
+	periodStartProvided := periodStartValue != nil && strings.TrimSpace(*periodStartValue) != ""
+	dateProvided := dateValue != nil && strings.TrimSpace(*dateValue) != ""
+	if periodStartProvided && dateProvided {
+		return time.Time{}, time.Time{}, fmt.Errorf("send either period_start or date, not both")
+	}
+	if periodStartProvided {
+		periodStart, err := time.Parse(timeEntryDateLayout, strings.TrimSpace(*periodStartValue))
+		if err != nil {
+			return time.Time{}, time.Time{}, err
+		}
+		if !domain.IsPayrollPeriodStart(periodStart) {
+			return time.Time{}, time.Time{}, fmt.Errorf("period_start must be the first day of a payroll period")
+		}
+		return periodStart.UTC(), periodStart.UTC().AddDate(0, 0, 27), nil
+	}
+	if dateProvided {
+		date, err := time.Parse(timeEntryDateLayout, strings.TrimSpace(*dateValue))
+		if err != nil {
+			return time.Time{}, time.Time{}, err
+		}
+		periodStart, periodEnd := domain.ResolvePayrollPeriod(date)
+		return periodStart, periodEnd, nil
+	}
+	periodStart, periodEnd := domain.ResolvePayrollPeriod(time.Now().UTC())
+	return periodStart, periodEnd, nil
+}
+
+func toPayrollPeriodOptionResponses(items []domain.PayrollPeriodOption) []payrollPeriodOptionResponse {
+	results := make([]payrollPeriodOptionResponse, len(items))
+	for i, item := range items {
+		periodStart := item.PeriodStart.UTC().Format(timeEntryDateLayout)
+		periodEnd := item.PeriodEnd.UTC().Format(timeEntryDateLayout)
+		results[i] = payrollPeriodOptionResponse{
+			PeriodStart: periodStart,
+			PeriodEnd:   periodEnd,
+			Label:       periodStart + " to " + periodEnd,
+			IsCurrent:   item.IsCurrent,
+		}
+	}
+	return results
 }
 func toPayrollMonthORTOverviewParams(
 	req payrollMonthSummaryRequest,
@@ -601,6 +742,30 @@ func toPayrollMonthCloseResultResponse(result *domain.PayrollMonthCloseResult) p
 	}
 	return payrollMonthCloseResultResponse{
 		Month:        result.Month.UTC().Format(payoutMonthLayout),
+		PayrollGroup: result.PayrollGroup,
+		CutoffAt:     result.CutoffAt,
+		ClosedCount:  result.ClosedCount,
+		SkippedCount: result.SkippedCount,
+		FailedCount:  result.FailedCount,
+		Items:        items,
+	}
+}
+func toPayrollPeriodCloseResultResponse(result *domain.PayrollPeriodCloseResult) payrollPeriodCloseResultResponse {
+	items := make([]payrollMonthCloseEmployeeResultResponse, len(result.Items))
+	for i, item := range result.Items {
+		items[i] = payrollMonthCloseEmployeeResultResponse{
+			EmployeeID:     item.EmployeeID,
+			EmployeeName:   item.EmployeeName,
+			Status:         item.Status,
+			Reason:         item.Reason,
+			PayPeriodID:    item.PayPeriodID,
+			GrossAmount:    item.GrossAmount,
+			PendingEntries: item.PendingEntries,
+		}
+	}
+	return payrollPeriodCloseResultResponse{
+		PeriodStart:  result.PeriodStart.UTC().Format(timeEntryDateLayout),
+		PeriodEnd:    result.PeriodEnd.UTC().Format(timeEntryDateLayout),
 		PayrollGroup: result.PayrollGroup,
 		CutoffAt:     result.CutoffAt,
 		ClosedCount:  result.ClosedCount,
@@ -747,6 +912,26 @@ func toFixedPayrollMonthSummaryResponses(
 	}
 	return results
 }
+func toFixedPayrollPeriodSummaryResponse(
+	item domain.FixedPayrollMonthSummaryRow,
+	periodStart, periodEnd time.Time,
+) fixedPayrollPeriodSummaryResponse {
+	return fixedPayrollPeriodSummaryResponse{
+		fixedPayrollMonthSummaryResponse: toFixedPayrollMonthSummaryResponse(item),
+		PeriodStart:                      periodStart.UTC().Format(timeEntryDateLayout),
+		PeriodEnd:                        periodEnd.UTC().Format(timeEntryDateLayout),
+	}
+}
+func toFixedPayrollPeriodSummaryResponses(
+	items []domain.FixedPayrollMonthSummaryRow,
+	periodStart, periodEnd time.Time,
+) []fixedPayrollPeriodSummaryResponse {
+	results := make([]fixedPayrollPeriodSummaryResponse, len(items))
+	for i, item := range items {
+		results[i] = toFixedPayrollPeriodSummaryResponse(item, periodStart, periodEnd)
+	}
+	return results
+}
 func toOnCallPayrollMonthSummaryResponse(
 	item domain.OnCallPayrollMonthSummaryRow,
 ) onCallPayrollMonthSummaryResponse {
@@ -815,9 +1000,41 @@ func toOnCallPayrollMonthSummaryResponses(
 	}
 	return results
 }
+func toOnCallPayrollPeriodSummaryResponse(
+	item domain.OnCallPayrollMonthSummaryRow,
+	periodStart, periodEnd time.Time,
+) onCallPayrollPeriodSummaryResponse {
+	return onCallPayrollPeriodSummaryResponse{
+		onCallPayrollMonthSummaryResponse: toOnCallPayrollMonthSummaryResponse(item),
+		PeriodStart:                       periodStart.UTC().Format(timeEntryDateLayout),
+		PeriodEnd:                         periodEnd.UTC().Format(timeEntryDateLayout),
+	}
+}
+func toOnCallPayrollPeriodSummaryResponses(
+	items []domain.OnCallPayrollMonthSummaryRow,
+	periodStart, periodEnd time.Time,
+) []onCallPayrollPeriodSummaryResponse {
+	results := make([]onCallPayrollPeriodSummaryResponse, len(items))
+	for i, item := range items {
+		results[i] = toOnCallPayrollPeriodSummaryResponse(item, periodStart, periodEnd)
+	}
+	return results
+}
 func toPayrollMonthStatsResponse(stats *domain.PayrollMonthStats) payrollMonthStatsResponse {
 	return payrollMonthStatsResponse{
 		Month:                       stats.Month.UTC().Format(payoutMonthLayout),
+		TotalBaseContractPay:        stats.TotalBaseContractPay,
+		TotalORTPay:                 stats.TotalORTPay,
+		TotalOvertimePay:            stats.TotalOvertimePay,
+		TotalRequestedLeaveHoursPay: stats.TotalRequestedLeaveHoursPay,
+		TotalRequestedLeaveHours:    stats.TotalRequestedLeaveHours,
+		TotalGrossPayable:           stats.TotalGrossPayable,
+	}
+}
+func toPayrollPeriodStatsResponse(stats *domain.PayrollMonthStats, periodStart, periodEnd time.Time) payrollPeriodStatsResponse {
+	return payrollPeriodStatsResponse{
+		PeriodStart:                 periodStart.UTC().Format(timeEntryDateLayout),
+		PeriodEnd:                   periodEnd.UTC().Format(timeEntryDateLayout),
 		TotalBaseContractPay:        stats.TotalBaseContractPay,
 		TotalORTPay:                 stats.TotalORTPay,
 		TotalOvertimePay:            stats.TotalOvertimePay,
