@@ -17,14 +17,23 @@ const (
 )
 
 type LeaveService struct {
-	repository domain.LeaveRepository
-	logger     domain.Logger
+	repository          domain.LeaveRepository
+	employeeRepo        domain.EmployeeRepository
+	notificationService domain.NotificationService
+	logger              domain.Logger
 }
 
-func NewLeaveService(repository domain.LeaveRepository, logger domain.Logger) domain.LeaveService {
+func NewLeaveService(
+	repository domain.LeaveRepository,
+	employeeRepo domain.EmployeeRepository,
+	notificationService domain.NotificationService,
+	logger domain.Logger,
+) domain.LeaveService {
 	return &LeaveService{
-		repository: repository,
-		logger:     logger,
+		repository:          repository,
+		employeeRepo:        employeeRepo,
+		notificationService: notificationService,
+		logger:              logger,
 	}
 }
 
@@ -38,7 +47,45 @@ func (s *LeaveService) CreateLeaveRequest(
 	}
 	params.EmployeeID = actorEmployeeID
 	params.CreatedByEmployeeID = actorEmployeeID
-	return s.createLeaveRequest(ctx, params)
+	req, err := s.createLeaveRequest(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Trigger notification to administrators
+	if s.notificationService != nil {
+		employeeName := "An employee"
+		if s.employeeRepo != nil {
+			emp, err := s.employeeRepo.GetEmployeeByID(ctx, actorEmployeeID)
+			if err == nil && emp != nil {
+				employeeName = strings.TrimSpace(emp.FirstName + " " + emp.LastName)
+			}
+		}
+
+		reason := ""
+		if req.Reason != nil {
+			reason = *req.Reason
+		}
+
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				Roles: []string{"admin"},
+			},
+			Message: fmt.Sprintf("%s has requested leave (%s) from %s to %s.", employeeName, req.LeaveType, req.StartDate.Format("2006-01-02"), req.EndDate.Format("2006-01-02")),
+			Data: domain.LeaveRequestCreatedNotificationData{
+				LeaveRequestID:   req.ID,
+				EmployeeID:       req.EmployeeID,
+				EmployeeName:     employeeName,
+				LeaveType:        req.LeaveType,
+				StartDate:        req.StartDate,
+				EndDate:          req.EndDate,
+				RequestedMinutes: req.RequestedMinutes,
+				Reason:           reason,
+			},
+		})
+	}
+
+	return req, nil
 }
 
 func (s *LeaveService) CreateLeaveRequestByAdmin(

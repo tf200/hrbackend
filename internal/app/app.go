@@ -271,7 +271,7 @@ func buildRouter(
 	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, notificationService, logger)
 
 	leaveRepo := repository.NewLeaveRepository(store)
-	leaveService := service.NewLeaveService(leaveRepo, logger)
+	leaveService := service.NewLeaveService(leaveRepo, employeeRepo, notificationService, logger)
 
 	payoutRepo := repository.NewPayoutRepository(store)
 	payoutService := service.NewPayoutService(payoutRepo, logger)

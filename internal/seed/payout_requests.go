@@ -52,7 +52,7 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 
 	store := dbrepo.NewStoreWithTx(tx)
 	leaveRepo := repository.NewLeaveRepository(store)
-	leaveService := service.NewLeaveService(leaveRepo, nil)
+	leaveService := service.NewLeaveService(leaveRepo, nil, nil, nil)
 	payoutRepo := repository.NewPayoutRepository(store)
 	payoutService := service.NewPayoutService(payoutRepo, nil)
 

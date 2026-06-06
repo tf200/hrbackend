@@ -15,6 +15,7 @@ const (
 	TypeShiftSwapRequested      = "shift_swap_requested"
 	TypeSignDocumentRequested   = "sign_document_requested"
 	TypeSignDocumentSigned      = "sign_document_signed"
+	TypeLeaveRequestCreated     = "leave_request_created"
 )
 
 type SignDocumentRequestedNotificationData struct {
@@ -38,6 +39,21 @@ type SignDocumentSignedNotificationData struct {
 
 func (SignDocumentSignedNotificationData) NotificationType() string {
 	return TypeSignDocumentSigned
+}
+
+type LeaveRequestCreatedNotificationData struct {
+	LeaveRequestID   uuid.UUID `json:"leave_request_id"`
+	EmployeeID       uuid.UUID `json:"employee_id"`
+	EmployeeName     string    `json:"employee_name"`
+	LeaveType        string    `json:"leave_type"`
+	StartDate        time.Time `json:"start_date"`
+	EndDate          time.Time `json:"end_date"`
+	RequestedMinutes int32     `json:"requested_minutes"`
+	Reason           string    `json:"reason"`
+}
+
+func (LeaveRequestCreatedNotificationData) NotificationType() string {
+	return TypeLeaveRequestCreated
 }
 
 type Notification struct {

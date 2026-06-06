@@ -52,7 +52,7 @@ func (s LeaveRequestsSeeder) Seed(ctx context.Context, env Env) error {
 
 	store := dbrepo.NewStoreWithTx(tx)
 	leaveRepo := repository.NewLeaveRepository(store)
-	leaveService := service.NewLeaveService(leaveRepo, nil)
+	leaveService := service.NewLeaveService(leaveRepo, nil, nil, nil)
 
 	requestsByEmployee := make(map[string][]LeaveRequestSeed)
 	for _, item := range s.Requests {
