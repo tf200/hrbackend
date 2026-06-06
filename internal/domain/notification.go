@@ -14,6 +14,7 @@ const (
 	TypeSystemReminder          = "system_reminder"
 	TypeShiftSwapRequested      = "shift_swap_requested"
 	TypeSignDocumentRequested   = "sign_document_requested"
+	TypeSignDocumentSigned      = "sign_document_signed"
 )
 
 type SignDocumentRequestedNotificationData struct {
@@ -25,6 +26,18 @@ type SignDocumentRequestedNotificationData struct {
 
 func (SignDocumentRequestedNotificationData) NotificationType() string {
 	return TypeSignDocumentRequested
+}
+
+type SignDocumentSignedNotificationData struct {
+	DocumentID       uuid.UUID `json:"document_id"`
+	DocumentTitle    string    `json:"document_title"`
+	SignerEmployeeID uuid.UUID `json:"signer_employee_id"`
+	SignerName       string    `json:"signer_name"`
+	IsCompleted      bool      `json:"is_completed"`
+}
+
+func (SignDocumentSignedNotificationData) NotificationType() string {
+	return TypeSignDocumentSigned
 }
 
 type Notification struct {

@@ -322,7 +322,46 @@ func (s *SignDocumentService) Sign(ctx context.Context, employeeID uuid.UUID, pa
 	if err != nil {
 		return nil, err
 	}
-	return s.hydrate(ctx, signedDoc)
+
+	hydrated, err := s.hydrate(ctx, signedDoc)
+	if err != nil {
+		return nil, err
+	}
+
+	// Trigger notification to document creator
+	if s.notificationService != nil && doc.CreatedByEmployeeID != uuid.Nil && doc.CreatedByEmployeeID != employeeID {
+		signerName := "Someone"
+		if s.employeeRepo != nil {
+			emp, err := s.employeeRepo.GetEmployeeByID(ctx, employeeID)
+			if err == nil && emp != nil {
+				signerName = strings.TrimSpace(emp.FirstName + " " + emp.LastName)
+			}
+		}
+
+		isCompleted := (hydrated.Status == "completed")
+		var message string
+		if isCompleted {
+			message = fmt.Sprintf("%s has signed the document: %s. The document is now fully signed and completed.", signerName, hydrated.Title)
+		} else {
+			message = fmt.Sprintf("%s has signed the document: %s.", signerName, hydrated.Title)
+		}
+
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				EmployeeIDs: []uuid.UUID{doc.CreatedByEmployeeID},
+			},
+			Message: message,
+			Data: domain.SignDocumentSignedNotificationData{
+				DocumentID:       hydrated.ID,
+				DocumentTitle:    hydrated.Title,
+				SignerEmployeeID: employeeID,
+				SignerName:       signerName,
+				IsCompleted:      isCompleted,
+			},
+		})
+	}
+
+	return hydrated, nil
 }
 
 func (s *SignDocumentService) CancelDocument(ctx context.Context, actorEmployeeID, documentID uuid.UUID) (*domain.SignDocument, error) {
