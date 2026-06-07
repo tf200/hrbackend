@@ -77,6 +77,9 @@ ENV LD_LIBRARY_PATH=/opt/ortools/lib
 
 COPY migrations /app/migrations
 
+ARG ENV_FILE=.env
+COPY ${ENV_FILE} /app/app.env
+
 # Expose the desired port
 EXPOSE 8080
 
