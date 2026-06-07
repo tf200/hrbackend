@@ -280,6 +280,51 @@ func (q *Queries) GetShiftSwapRequestDetailsByID(ctx context.Context, id uuid.UU
 	return i, err
 }
 
+const getShiftSwapStats = `-- name: GetShiftSwapStats :one
+SELECT
+    COUNT(CASE WHEN (
+        CASE
+        WHEN status IN ('pending_recipient', 'pending_admin')
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()
+        THEN 'expired'::shift_swap_status_enum
+        ELSE status
+        END
+    ) = 'pending_recipient'::shift_swap_status_enum THEN 1 END)::bigint AS pending_recipient_count,
+    COUNT(CASE WHEN (
+        CASE
+        WHEN status IN ('pending_recipient', 'pending_admin')
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()
+        THEN 'expired'::shift_swap_status_enum
+        ELSE status
+        END
+    ) = 'pending_admin'::shift_swap_status_enum THEN 1 END)::bigint AS pending_admin_count,
+    COUNT(CASE WHEN (
+        CASE
+        WHEN status IN ('pending_recipient', 'pending_admin')
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()
+        THEN 'expired'::shift_swap_status_enum
+        ELSE status
+        END
+    ) IN ('recipient_rejected'::shift_swap_status_enum, 'admin_rejected'::shift_swap_status_enum, 'confirmed'::shift_swap_status_enum, 'cancelled'::shift_swap_status_enum, 'expired'::shift_swap_status_enum) THEN 1 END)::bigint AS handled_count
+FROM shift_swap_requests
+`
+
+type GetShiftSwapStatsRow struct {
+	PendingRecipientCount int64 `json:"pending_recipient_count"`
+	PendingAdminCount     int64 `json:"pending_admin_count"`
+	HandledCount          int64 `json:"handled_count"`
+}
+
+func (q *Queries) GetShiftSwapStats(ctx context.Context) (GetShiftSwapStatsRow, error) {
+	row := q.db.QueryRow(ctx, getShiftSwapStats)
+	var i GetShiftSwapStatsRow
+	err := row.Scan(&i.PendingRecipientCount, &i.PendingAdminCount, &i.HandledCount)
+	return i, err
+}
+
 const listMyShiftSwapRequests = `-- name: ListMyShiftSwapRequests :many
 SELECT
     ssr.id,

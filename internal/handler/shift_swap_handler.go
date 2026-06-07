@@ -44,6 +44,12 @@ func RegisterShiftSwapRoutes(
 		handler.AdminDecisionShiftSwapRequest,
 	)
 	rg.GET(
+		"/shift-swaps/stats",
+		auth,
+		requirePermission(permission.ScheduleSwap.Approve),
+		handler.GetShiftSwapStats,
+	)
+	rg.GET(
 		"/shift-swaps",
 		auth,
 		requirePermission(permission.ScheduleSwap.Approve),
@@ -262,6 +268,19 @@ func (h *ShiftSwapHandler) ListShiftSwapRequests(ctx *gin.Context) {
 	response := httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount)
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Shift swap requests retrieved successfully"))
 }
+
+func (h *ShiftSwapHandler) GetShiftSwapStats(ctx *gin.Context) {
+	stats, err := h.service.GetShiftSwapStats(ctx.Request.Context())
+	if err != nil {
+		ctx.JSON(mapShiftSwapErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toShiftSwapStatsResponse(stats), "Shift swap stats retrieved successfully"),
+	)
+}
+
 
 func mapShiftSwapErrorStatus(err error) int {
 	switch {

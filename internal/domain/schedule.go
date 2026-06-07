@@ -469,6 +469,13 @@ type ShiftSwapPage struct {
 	TotalCount int64
 }
 
+type ShiftSwapStats struct {
+	WaitingResponseCount int64
+	WaitingApprovalCount int64
+	HandledCount         int64
+}
+
+
 type ShiftSwapRequestRecord struct {
 	ID                    uuid.UUID
 	RequesterEmployeeID   uuid.UUID
@@ -631,7 +638,9 @@ type ScheduleRepository interface {
 		conflictStart, conflictEnd time.Time,
 	) (int64, error)
 	UpdateScheduleEmployeeAssignment(ctx context.Context, scheduleID, employeeID uuid.UUID) error
+	GetShiftSwapStats(ctx context.Context) (*ShiftSwapStats, error)
 }
+
 
 type ScheduleService interface {
 	CreateSchedule(
@@ -707,4 +716,6 @@ type ScheduleService interface {
 		ctx context.Context,
 		params ListShiftSwapRequestsParams,
 	) (*ShiftSwapPage, error)
+	GetShiftSwapStats(ctx context.Context) (*ShiftSwapStats, error)
 }
+

@@ -666,7 +666,20 @@ func (r *ScheduleRepository) ListShiftSwapRequests(
 	return page, nil
 }
 
+func (r *ScheduleRepository) GetShiftSwapStats(ctx context.Context) (*domain.ShiftSwapStats, error) {
+	row, err := r.store.GetShiftSwapStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &domain.ShiftSwapStats{
+		WaitingResponseCount: row.PendingRecipientCount,
+		WaitingApprovalCount: row.PendingAdminCount,
+		HandledCount:         row.HandledCount,
+	}, nil
+}
+
 func (r *ScheduleRepository) LockSchedulesByIDsForSwap(
+
 	ctx context.Context,
 	ids []uuid.UUID,
 ) ([]domain.ScheduleSwapValidation, error) {

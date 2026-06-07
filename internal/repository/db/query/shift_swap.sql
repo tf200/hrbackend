@@ -311,3 +311,35 @@ WHERE (
   )
 ORDER BY ssr.requested_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: GetShiftSwapStats :one
+SELECT
+    COUNT(CASE WHEN (
+        CASE
+        WHEN status IN ('pending_recipient', 'pending_admin')
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()
+        THEN 'expired'::shift_swap_status_enum
+        ELSE status
+        END
+    ) = 'pending_recipient'::shift_swap_status_enum THEN 1 END)::bigint AS pending_recipient_count,
+    COUNT(CASE WHEN (
+        CASE
+        WHEN status IN ('pending_recipient', 'pending_admin')
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()
+        THEN 'expired'::shift_swap_status_enum
+        ELSE status
+        END
+    ) = 'pending_admin'::shift_swap_status_enum THEN 1 END)::bigint AS pending_admin_count,
+    COUNT(CASE WHEN (
+        CASE
+        WHEN status IN ('pending_recipient', 'pending_admin')
+         AND expires_at IS NOT NULL
+         AND expires_at <= NOW()
+        THEN 'expired'::shift_swap_status_enum
+        ELSE status
+        END
+    ) IN ('recipient_rejected'::shift_swap_status_enum, 'admin_rejected'::shift_swap_status_enum, 'confirmed'::shift_swap_status_enum, 'cancelled'::shift_swap_status_enum, 'expired'::shift_swap_status_enum) THEN 1 END)::bigint AS handled_count
+FROM shift_swap_requests;
+

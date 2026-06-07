@@ -180,3 +180,18 @@ func toShiftSwapResponse(item domain.ShiftSwapResponse) shiftSwapResponse {
 		Direction:             item.Direction,
 	}
 }
+
+type shiftSwapStatsResponse struct {
+	WaitingResponseCount int64 `json:"waiting_response_count"`
+	WaitingApprovalCount int64 `json:"waiting_approval_count"`
+	HandledCount         int64 `json:"handled_count"`
+}
+
+func toShiftSwapStatsResponse(stats *domain.ShiftSwapStats) shiftSwapStatsResponse {
+	return shiftSwapStatsResponse{
+		WaitingResponseCount: stats.WaitingResponseCount,
+		WaitingApprovalCount: stats.WaitingApprovalCount,
+		HandledCount:         stats.HandledCount,
+	}
+}
+

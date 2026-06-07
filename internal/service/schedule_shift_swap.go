@@ -481,6 +481,10 @@ func (s *ScheduleService) ListShiftSwapRequests(
 	return s.repository.ListShiftSwapRequests(ctx, params)
 }
 
+func (s *ScheduleService) GetShiftSwapStats(ctx context.Context) (*domain.ShiftSwapStats, error) {
+	return s.repository.GetShiftSwapStats(ctx)
+}
+
 func isValidShiftSwapStatus(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "pending_recipient",
