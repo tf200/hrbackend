@@ -18,6 +18,7 @@ var (
 	ErrInvalidLocationTZ               = errors.New("invalid location timezone")
 	ErrShiftSwapNotFound               = errors.New("shift swap request not found")
 	ErrShiftSwapInvalidRequest         = errors.New("invalid shift swap request")
+	ErrShiftSwapScheduleInPast         = errors.New("cannot swap schedules that start in the past")
 	ErrShiftSwapStateInvalid           = errors.New("shift swap request is not in a valid state")
 	ErrShiftSwapExpired                = errors.New("shift swap request has expired")
 	ErrShiftSwapConflict               = errors.New("swap would create schedule overlap conflict")

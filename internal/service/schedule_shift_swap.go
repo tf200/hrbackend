@@ -53,7 +53,7 @@ func (s *ScheduleService) CreateShiftSwapRequest(
 
 	now := time.Now().UTC()
 	if requesterSchedule.StartDatetime.Before(now) || recipientSchedule.StartDatetime.Before(now) {
-		return nil, domain.ErrShiftSwapInvalidRequest
+		return nil, domain.ErrShiftSwapScheduleInPast
 	}
 	if requesterSchedule.EmployeeID != requesterEmployeeID ||
 		recipientSchedule.EmployeeID != req.RecipientEmployeeID {
@@ -156,7 +156,7 @@ func (s *ScheduleService) CreateAdminShiftSwapRequest(
 			return domain.ErrShiftSwapScheduleOwnership
 		}
 		if requesterSchedule.StartDatetime.Before(now) || recipientSchedule.StartDatetime.Before(now) {
-			return domain.ErrShiftSwapInvalidRequest
+			return domain.ErrShiftSwapScheduleInPast
 		}
 
 		excludeIDs := []uuid.UUID{requesterSchedule.ID, recipientSchedule.ID}
@@ -350,7 +350,7 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 			now := time.Now().UTC()
 			if requesterSchedule.StartDatetime.Before(now) ||
 				recipientSchedule.StartDatetime.Before(now) {
-				return domain.ErrShiftSwapInvalidRequest
+				return domain.ErrShiftSwapScheduleInPast
 			}
 
 			excludeIDs := []uuid.UUID{requesterSchedule.ID, recipientSchedule.ID}

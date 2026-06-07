@@ -284,7 +284,8 @@ func (h *ShiftSwapHandler) GetShiftSwapStats(ctx *gin.Context) {
 
 func mapShiftSwapErrorStatus(err error) int {
 	switch {
-	case errors.Is(err, domain.ErrShiftSwapInvalidRequest):
+	case errors.Is(err, domain.ErrShiftSwapInvalidRequest),
+		errors.Is(err, domain.ErrShiftSwapScheduleInPast):
 		return http.StatusBadRequest
 	case errors.Is(err, domain.ErrScheduleNotFound),
 		errors.Is(err, domain.ErrShiftSwapNotFound):
