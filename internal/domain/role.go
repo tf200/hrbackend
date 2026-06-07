@@ -56,10 +56,12 @@ type RoleRepository interface {
 	ListRoles(ctx context.Context) ([]RoleSummary, error)
 	ListAllPermissions(ctx context.Context) ([]PermissionCatalogItem, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]RolePermission, error)
+	UpdateRolePermissions(ctx context.Context, roleID uuid.UUID, permissionIDs []uuid.UUID) error
 }
 
 type RoleService interface {
 	ListRoles(ctx context.Context) ([]RoleSummary, error)
 	ListAllPermissions(ctx context.Context) ([]PermissionCatalogGroup, error)
 	ListRolePermissions(ctx context.Context, roleID uuid.UUID) ([]RolePermission, error)
+	UpdateRolePermissions(ctx context.Context, roleID uuid.UUID, permissionIDs []uuid.UUID) error
 }

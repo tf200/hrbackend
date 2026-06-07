@@ -123,6 +123,39 @@ func (s *RoleService) ListRolePermissions(
 	return items, nil
 }
 
+func (s *RoleService) UpdateRolePermissions(
+	ctx context.Context,
+	roleID uuid.UUID,
+	permissionIDs []uuid.UUID,
+) error {
+	err := s.repository.UpdateRolePermissions(ctx, roleID, permissionIDs)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.LogError(
+				ctx,
+				"RoleService.UpdateRolePermissions",
+				"failed to update role permissions",
+				err,
+				zap.String("role_id", roleID.String()),
+				zap.Int("permission_count", len(permissionIDs)),
+			)
+		}
+		return err
+	}
+
+	if s.logger != nil {
+		s.logger.LogInfo(
+			ctx,
+			"RoleService.UpdateRolePermissions",
+			"successfully updated role permissions",
+			zap.String("role_id", roleID.String()),
+			zap.Int("permission_count", len(permissionIDs)),
+		)
+	}
+
+	return nil
+}
+
 func humanizePermissionKey(key string) string {
 	normalized := strings.TrimSpace(strings.ToLower(key))
 	if normalized == "" {

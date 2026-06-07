@@ -226,9 +226,11 @@ var PayPeriod = struct {
 }
 
 var Role = struct {
-	View Permission
+	View   Permission
+	Update Permission
 }{
-	View: "ROLE.VIEW",
+	View:   "ROLE.VIEW",
+	Update: "ROLE.UPDATE",
 }
 
 var Performance = struct {

@@ -17,6 +17,8 @@ const (
 	TypeSignDocumentSigned      = "sign_document_signed"
 	TypeLeaveRequestCreated     = "leave_request_created"
 	TypeLeaveRequestDecided     = "leave_request_decided"
+	TypeOvertimeRequestCreated  = "overtime_request_created"
+	TypeOvertimeRequestDecided  = "overtime_request_decided"
 )
 
 type SignDocumentRequestedNotificationData struct {
@@ -122,6 +124,36 @@ type NewScheduleNotificationData struct {
 }
 
 func (NewScheduleNotificationData) NotificationType() string { return TypeNewScheduleNotification }
+
+type OvertimeRequestCreatedNotificationData struct {
+	OvertimeEntryID uuid.UUID `json:"overtime_entry_id"`
+	EmployeeID      uuid.UUID `json:"employee_id"`
+	EmployeeName    string    `json:"employee_name"`
+	Minutes         int32     `json:"minutes"`
+	EntryDate       time.Time `json:"entry_date"`
+	Reason          string    `json:"reason"`
+}
+
+func (OvertimeRequestCreatedNotificationData) NotificationType() string {
+	return TypeOvertimeRequestCreated
+}
+
+type OvertimeRequestDecidedNotificationData struct {
+	OvertimeEntryID     uuid.UUID `json:"overtime_entry_id"`
+	EmployeeID          uuid.UUID `json:"employee_id"`
+	Status              string    `json:"status"`
+	Minutes             int32     `json:"minutes"`
+	EntryDate           time.Time `json:"entry_date"`
+	DecidedByEmployeeID uuid.UUID `json:"decided_by_employee_id"`
+	DecidedByName       string    `json:"decided_by_name"`
+	RejectionReason     string    `json:"rejection_reason,omitempty"`
+}
+
+func (OvertimeRequestDecidedNotificationData) NotificationType() string {
+	return TypeOvertimeRequestDecided
+}
+
+
 
 type CreateNotificationsParams struct {
 	UserIDs   []uuid.UUID

@@ -119,3 +119,7 @@ func toRolePermissionResponses(items []domain.RolePermission) []rolePermissionRe
 
 	return results
 }
+
+type UpdateRolePermissionsRequest struct {
+	PermissionIDs []string `json:"permission_ids" binding:"required"`
+}

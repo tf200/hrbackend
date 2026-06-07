@@ -182,12 +182,13 @@ func TestHumanizePermissionKey(t *testing.T) {
 }
 
 type fakeRoleRepository struct {
-	roles              []domain.RoleSummary
-	rolesErr           error
-	permissions        []domain.PermissionCatalogItem
-	permissionsErr     error
-	rolePermissions    []domain.RolePermission
-	rolePermissionsErr error
+	roles                    []domain.RoleSummary
+	rolesErr                 error
+	permissions              []domain.PermissionCatalogItem
+	permissionsErr           error
+	rolePermissions          []domain.RolePermission
+	rolePermissionsErr       error
+	updateRolePermissionsErr error
 }
 
 func (f *fakeRoleRepository) ListRoles(_ context.Context) ([]domain.RoleSummary, error) {
@@ -217,4 +218,12 @@ func (f *fakeRoleRepository) ListRolePermissions(
 	}
 
 	return f.rolePermissions, nil
+}
+
+func (f *fakeRoleRepository) UpdateRolePermissions(
+	_ context.Context,
+	_ uuid.UUID,
+	_ []uuid.UUID,
+) error {
+	return f.updateRolePermissionsErr
 }

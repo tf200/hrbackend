@@ -10,15 +10,15 @@ import (
 )
 
 type RoleRepository struct {
-	queries db.Querier
+	store *db.Store
 }
 
-func NewRoleRepository(queries db.Querier) domain.RoleRepository {
-	return &RoleRepository{queries: queries}
+func NewRoleRepository(store *db.Store) domain.RoleRepository {
+	return &RoleRepository{store: store}
 }
 
 func (r *RoleRepository) ListRoles(ctx context.Context) ([]domain.RoleSummary, error) {
-	rows, err := r.queries.ListRoles(ctx)
+	rows, err := r.store.ListRoles(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (r *RoleRepository) ListRoles(ctx context.Context) ([]domain.RoleSummary, e
 }
 
 func (r *RoleRepository) ListAllPermissions(ctx context.Context) ([]domain.PermissionCatalogItem, error) {
-	rows, err := r.queries.ListAllPermissions(ctx)
+	rows, err := r.store.ListAllPermissions(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +64,14 @@ func (r *RoleRepository) ListRolePermissions(
 	ctx context.Context,
 	roleID uuid.UUID,
 ) ([]domain.RolePermission, error) {
-	if _, err := r.queries.GetRoleByID(ctx, roleID); err != nil {
+	if _, err := r.store.GetRoleByID(ctx, roleID); err != nil {
 		if isDBNotFound(err) {
 			return nil, domain.ErrRoleNotFound
 		}
 		return nil, err
 	}
 
-	rows, err := r.queries.ListRolePermissions(ctx, roleID)
+	rows, err := r.store.ListRolePermissions(ctx, roleID)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +92,41 @@ func (r *RoleRepository) ListRolePermissions(
 	}
 
 	return items, nil
+}
+
+func (r *RoleRepository) UpdateRolePermissions(
+	ctx context.Context,
+	roleID uuid.UUID,
+	permissionIDs []uuid.UUID,
+) error {
+	// First check if role exists
+	if _, err := r.store.GetRoleByID(ctx, roleID); err != nil {
+		if isDBNotFound(err) {
+			return domain.ErrRoleNotFound
+		}
+		return err
+	}
+
+	return r.store.ExecTx(ctx, func(q *db.Queries) error {
+		// 1. Delete all old permissions for this role (Bulk Delete)
+		err := q.RemovePermissionsFromRole(ctx, roleID)
+		if err != nil {
+			return err
+		}
+
+		// 2. Insert new permissions if any (Bulk Insert)
+		if len(permissionIDs) > 0 {
+			err = q.AddPermissionsToRole(ctx, db.AddPermissionsToRoleParams{
+				RoleID:        roleID,
+				PermissionIds: permissionIDs,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 var _ domain.RoleRepository = (*RoleRepository)(nil)

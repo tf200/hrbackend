@@ -74,3 +74,43 @@ func (h *RoleHandler) ListRolePermissions(ctx *gin.Context) {
 		),
 	)
 }
+
+func (h *RoleHandler) UpdateRolePermissions(ctx *gin.Context) {
+	roleID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid role ID", ""))
+		return
+	}
+
+	var req UpdateRolePermissionsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request payload", ""))
+		return
+	}
+
+	parsedPermissionIDs := make([]uuid.UUID, len(req.PermissionIDs))
+	for i, idStr := range req.PermissionIDs {
+		parsedID, err := uuid.Parse(idStr)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid permission ID: "+idStr, ""))
+			return
+		}
+		parsedPermissionIDs[i] = parsedID
+	}
+
+	err = h.service.UpdateRolePermissions(ctx.Request.Context(), roleID, parsedPermissionIDs)
+	if err != nil {
+		if errors.Is(err, domain.ErrRoleNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail("role not found", ""))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update role permissions", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(struct{}{}, "Role permissions updated successfully"),
+	)
+}

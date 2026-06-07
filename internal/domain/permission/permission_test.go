@@ -17,7 +17,7 @@ func TestPermissionValues_NonEmpty(t *testing.T) {
 		Payout.Request.Create, Payout.Request.Decide, Payout.Request.MarkPaid, Payout.Request.View, Payout.Request.ViewAll,
 		Expense.Request.Create, Expense.Request.Decide, Expense.Request.MarkReimbursed, Expense.Request.Update, Expense.Request.View, Expense.Request.ViewAll,
 		PayPeriod.Close, PayPeriod.MarkPaid, PayPeriod.MonthSummaryView, PayPeriod.ViewAll,
-		Role.View,
+		Role.View, Role.Update,
 		Performance.Assessment.Create, Performance.Assessment.Delete, Performance.Assessment.View, Performance.Assessment.ViewAll,
 		Performance.Stats,
 		Performance.Upcoming.Invite,
@@ -28,6 +28,9 @@ func TestPermissionValues_NonEmpty(t *testing.T) {
 		Settings.View, Settings.Update,
 		ScheduleSwap.Approve, ScheduleSwap.Request, ScheduleSwap.Respond, ScheduleSwap.View,
 		Shift.Create, Shift.Delete, Shift.Update, Shift.View,
+		Overtime.Create, Overtime.CreateAll, Overtime.Decide, Overtime.Update, Overtime.UpdateAll, Overtime.View, Overtime.ViewAll,
+		SignDocument.Cancel, SignDocument.Create, SignDocument.Send, SignDocument.Update, SignDocument.View, SignDocument.ViewAll,
+		SignDocument.Self.Sign, SignDocument.Self.View,
 	}
 
 	seen := make(map[Permission]struct{}, len(all))

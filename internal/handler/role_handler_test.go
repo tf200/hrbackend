@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"hrbackend/internal/domain"
@@ -141,12 +142,13 @@ func TestRoleHandlerListRolePermissionsEmptyResults(t *testing.T) {
 }
 
 type fakeRoleService struct {
-	roles              []domain.RoleSummary
-	rolesErr           error
-	allPermissions     []domain.PermissionCatalogGroup
-	allPermissionsErr  error
-	rolePermissions    []domain.RolePermission
-	rolePermissionsErr error
+	roles                    []domain.RoleSummary
+	rolesErr                 error
+	allPermissions           []domain.PermissionCatalogGroup
+	allPermissionsErr        error
+	rolePermissions          []domain.RolePermission
+	rolePermissionsErr       error
+	updateRolePermissionsErr error
 }
 
 func (f *fakeRoleService) ListRoles(_ context.Context) ([]domain.RoleSummary, error) {
@@ -175,4 +177,89 @@ func (f *fakeRoleService) ListRolePermissions(
 	return f.rolePermissions, nil
 }
 
+func (f *fakeRoleService) UpdateRolePermissions(
+	_ context.Context,
+	_ uuid.UUID,
+	_ []uuid.UUID,
+) error {
+	return f.updateRolePermissionsErr
+}
+
 var _ domain.RoleService = (*fakeRoleService)(nil)
+
+func TestRoleHandlerUpdateRolePermissionsInvalidID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	handler := NewRoleHandler(&fakeRoleService{})
+	router.POST("/roles/:id/permissions", handler.UpdateRolePermissions)
+
+	req := httptest.NewRequest(http.MethodPost, "/roles/not-a-uuid/permissions", strings.NewReader(`{"permission_ids":["`+uuid.New().String()+`"]}`))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, recorder.Code)
+	}
+}
+
+func TestRoleHandlerUpdateRolePermissionsRoleNotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	handler := NewRoleHandler(&fakeRoleService{updateRolePermissionsErr: domain.ErrRoleNotFound})
+	router.POST("/roles/:id/permissions", handler.UpdateRolePermissions)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/roles/"+uuid.New().String()+"/permissions",
+		strings.NewReader(`{"permission_ids":["`+uuid.New().String()+`"]}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, recorder.Code)
+	}
+}
+
+func TestRoleHandlerUpdateRolePermissionsSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	handler := NewRoleHandler(&fakeRoleService{})
+	router.POST("/roles/:id/permissions", handler.UpdateRolePermissions)
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/roles/"+uuid.New().String()+"/permissions",
+		strings.NewReader(`{"permission_ids":["`+uuid.New().String()+`"]}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+	}
+
+	var response struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+
+	if !response.Success {
+		t.Fatalf("expected success response")
+	}
+	if response.Message != "Role permissions updated successfully" {
+		t.Fatalf("unexpected message: %s", response.Message)
+	}
+}

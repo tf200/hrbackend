@@ -13,17 +13,23 @@ import (
 )
 
 type OvertimeService struct {
-	repository domain.OvertimeRepository
-	logger     domain.Logger
+	repository          domain.OvertimeRepository
+	employeeRepo        domain.EmployeeRepository
+	notificationService domain.NotificationService
+	logger              domain.Logger
 }
 
 func NewOvertimeService(
 	repository domain.OvertimeRepository,
+	employeeRepo domain.EmployeeRepository,
+	notificationService domain.NotificationService,
 	logger domain.Logger,
 ) domain.OvertimeService {
 	return &OvertimeService{
-		repository: repository,
-		logger:     logger,
+		repository:          repository,
+		employeeRepo:        employeeRepo,
+		notificationService: notificationService,
+		logger:              logger,
 	}
 }
 
@@ -37,7 +43,30 @@ func (s *OvertimeService) CreateOvertimeEntry(
 	}
 
 	params.EmployeeID = actorEmployeeID
-	return s.createOvertimeEntry(ctx, params, "OvertimeService.CreateOvertimeEntry")
+	entry, err := s.createOvertimeEntry(ctx, params, "OvertimeService.CreateOvertimeEntry")
+	if err != nil {
+		return nil, err
+	}
+
+	// Trigger notification to administrators
+	if s.notificationService != nil {
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				Roles: []string{"admin"},
+			},
+			Message: fmt.Sprintf("%s has requested %d minutes of overtime for the shift on %s.", entry.EmployeeName, entry.Minutes, entry.EntryDate.Format("2006-01-02")),
+			Data: domain.OvertimeRequestCreatedNotificationData{
+				OvertimeEntryID: entry.ID,
+				EmployeeID:      entry.EmployeeID,
+				EmployeeName:    entry.EmployeeName,
+				Minutes:         entry.Minutes,
+				EntryDate:       entry.EntryDate,
+				Reason:          entry.Reason,
+			},
+		})
+	}
+
+	return entry, nil
 }
 
 func (s *OvertimeService) CreateOvertimeEntryByAdmin(
@@ -94,6 +123,50 @@ func (s *OvertimeService) DecideOvertimeEntryByAdmin(
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// Trigger notification to the employee who made the request
+	if s.notificationService != nil && updated.EmployeeID != uuid.Nil {
+		decidedByName := "An administrator"
+		if s.employeeRepo != nil {
+			emp, err := s.employeeRepo.GetEmployeeByID(ctx, adminEmployeeID)
+			if err == nil && emp != nil {
+				decidedByName = strings.TrimSpace(emp.FirstName + " " + emp.LastName)
+			}
+		}
+
+		rejectionReasonStr := ""
+		if updated.RejectionReason != nil {
+			rejectionReasonStr = *updated.RejectionReason
+		}
+
+		var message string
+		if updated.Status == "approved" {
+			message = fmt.Sprintf("Your overtime request for %d minutes on %s has been approved by %s.", updated.Minutes, updated.EntryDate.Format("2006-01-02"), decidedByName)
+		} else if updated.Status == "rejected" {
+			if rejectionReasonStr != "" {
+				message = fmt.Sprintf("Your overtime request for %d minutes on %s has been rejected by %s. Reason: %s", updated.Minutes, updated.EntryDate.Format("2006-01-02"), decidedByName, rejectionReasonStr)
+			} else {
+				message = fmt.Sprintf("Your overtime request for %d minutes on %s has been rejected by %s.", updated.Minutes, updated.EntryDate.Format("2006-01-02"), decidedByName)
+			}
+		}
+
+		s.notificationService.Notify(ctx, domain.NotificationRequest{
+			Recipients: domain.NotificationRecipients{
+				EmployeeIDs: []uuid.UUID{updated.EmployeeID},
+			},
+			Message: message,
+			Data: domain.OvertimeRequestDecidedNotificationData{
+				OvertimeEntryID:     updated.ID,
+				EmployeeID:          updated.EmployeeID,
+				Status:              updated.Status,
+				Minutes:             updated.Minutes,
+				EntryDate:           updated.EntryDate,
+				DecidedByEmployeeID: adminEmployeeID,
+				DecidedByName:       decidedByName,
+				RejectionReason:     rejectionReasonStr,
+			},
+		})
 	}
 
 	return updated, nil

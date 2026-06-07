@@ -280,7 +280,7 @@ func buildRouter(
 	expenseService := service.NewExpenseService(expenseRepo, logger)
 
 	overtimeRepo := repository.NewOvertimeRepository(store)
-	overtimeService := service.NewOvertimeService(overtimeRepo, logger)
+	overtimeService := service.NewOvertimeService(overtimeRepo, employeeRepo, notificationService, logger)
 
 	salaryRepo := repository.NewSalaryRepository(store)
 	salaryService := service.NewSalaryService(salaryRepo, logger)
