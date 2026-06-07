@@ -75,6 +75,14 @@ type LeaveRequestStats struct {
 	SicknessAbsence  int64
 }
 
+type DeductedLeaveSummary struct {
+	ID              uuid.UUID
+	LeaveType       string
+	StartDate       time.Time
+	EndDate         time.Time
+	DurationMinutes int32
+}
+
 type LeaveBalance struct {
 	EmployeeID            uuid.UUID
 	EmployeeName          string
@@ -88,6 +96,7 @@ type LeaveBalance struct {
 	ContractStartDate     *time.Time
 	ContractEndDate       *time.Time
 	EffectiveEndDate      *time.Time
+	DeductedLeaves        []DeductedLeaveSummary
 }
 
 type LeaveBalancePage struct {
@@ -181,13 +190,6 @@ type ListLeaveBalancesParams struct {
 	Year           *int32
 }
 
-type ListMyLeaveBalancesParams struct {
-	EmployeeID uuid.UUID
-	Limit      int32
-	Offset     int32
-	Year       *int32
-}
-
 type GetLeaveBalanceDetailsParams struct {
 	EmployeeID uuid.UUID
 	Year       int32
@@ -243,10 +245,7 @@ type LeaveRepository interface {
 		ctx context.Context,
 		params ListLeaveBalancesParams,
 	) (*LeaveBalancePage, error)
-	ListMyLeaveBalances(
-		ctx context.Context,
-		params ListMyLeaveBalancesParams,
-	) (*LeaveBalancePage, error)
+
 	GetLeaveBalanceDetails(
 		ctx context.Context,
 		params GetLeaveBalanceDetailsParams,
@@ -298,10 +297,7 @@ type LeaveService interface {
 		ctx context.Context,
 		params ListLeaveBalancesParams,
 	) (*LeaveBalancePage, error)
-	ListMyLeaveBalances(
-		ctx context.Context,
-		params ListMyLeaveBalancesParams,
-	) (*LeaveBalancePage, error)
+
 	GetLeaveBalanceDetails(
 		ctx context.Context,
 		params GetLeaveBalanceDetailsParams,

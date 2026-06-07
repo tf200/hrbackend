@@ -483,16 +483,6 @@ func (s *LeaveService) ListLeaveBalances(
 	return s.repository.ListLeaveBalances(ctx, params)
 }
 
-func (s *LeaveService) ListMyLeaveBalances(
-	ctx context.Context,
-	params domain.ListMyLeaveBalancesParams,
-) (*domain.LeaveBalancePage, error) {
-	if params.EmployeeID == uuid.Nil {
-		return nil, domain.ErrLeaveRequestInvalidRequest
-	}
-	return s.repository.ListMyLeaveBalances(ctx, params)
-}
-
 func (s *LeaveService) GetLeaveBalanceDetails(
 	ctx context.Context,
 	params domain.GetLeaveBalanceDetailsParams,

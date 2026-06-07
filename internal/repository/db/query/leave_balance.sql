@@ -295,3 +295,20 @@ LEFT JOIN LATERAL (
 ) worked ON segments.contract_type = 'on_call'
 WHERE segments.segment_end_date >= segments.segment_start_date
 ORDER BY segments.segment_start_date ASC, segments.contract_start_date ASC;
+
+-- name: GetDeductedLeavesForEmployeeAndYear :many
+SELECT
+    lr.id,
+    lr.leave_type,
+    lr.start_date,
+    lr.end_date,
+    lr.requested_minutes
+FROM leave_requests lr
+JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+WHERE lr.employee_id = sqlc.arg('employee_id')
+  AND lr.status = 'approved'::leave_request_status_enum
+  AND lp.deducts_balance = TRUE
+  AND lr.start_date >= make_date(sqlc.arg('year')::int, 1, 1)
+  AND lr.start_date < make_date(sqlc.arg('year')::int + 1, 1, 1)
+ORDER BY lr.start_date DESC;
+

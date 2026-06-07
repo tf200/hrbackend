@@ -56,6 +56,62 @@ func (q *Queries) ComputeLegalLeaveUsedForYear(ctx context.Context, arg ComputeL
 	return legal_used_minutes, err
 }
 
+const getDeductedLeavesForEmployeeAndYear = `-- name: GetDeductedLeavesForEmployeeAndYear :many
+SELECT
+    lr.id,
+    lr.leave_type,
+    lr.start_date,
+    lr.end_date,
+    lr.requested_minutes
+FROM leave_requests lr
+JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+WHERE lr.employee_id = $1
+  AND lr.status = 'approved'::leave_request_status_enum
+  AND lp.deducts_balance = TRUE
+  AND lr.start_date >= make_date($2::int, 1, 1)
+  AND lr.start_date < make_date($2::int + 1, 1, 1)
+ORDER BY lr.start_date DESC
+`
+
+type GetDeductedLeavesForEmployeeAndYearParams struct {
+	EmployeeID uuid.UUID `json:"employee_id"`
+	Year       int32     `json:"year"`
+}
+
+type GetDeductedLeavesForEmployeeAndYearRow struct {
+	ID               uuid.UUID            `json:"id"`
+	LeaveType        LeaveRequestTypeEnum `json:"leave_type"`
+	StartDate        pgtype.Date          `json:"start_date"`
+	EndDate          pgtype.Date          `json:"end_date"`
+	RequestedMinutes int32                `json:"requested_minutes"`
+}
+
+func (q *Queries) GetDeductedLeavesForEmployeeAndYear(ctx context.Context, arg GetDeductedLeavesForEmployeeAndYearParams) ([]GetDeductedLeavesForEmployeeAndYearRow, error) {
+	rows, err := q.db.Query(ctx, getDeductedLeavesForEmployeeAndYear, arg.EmployeeID, arg.Year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetDeductedLeavesForEmployeeAndYearRow{}
+	for rows.Next() {
+		var i GetDeductedLeavesForEmployeeAndYearRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.LeaveType,
+			&i.StartDate,
+			&i.EndDate,
+			&i.RequestedMinutes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEmployeeContractForLeave = `-- name: GetEmployeeContractForLeave :one
 SELECT
     hours_per_week AS contract_hours,

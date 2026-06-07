@@ -9,20 +9,20 @@ import (
 )
 
 type qualificationTypeResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Code      string    `json:"code"`
-	Name      string    `json:"name"`
+	ID         uuid.UUID `json:"id"`
+	Code       string    `json:"code"`
+	Name       string    `json:"name"`
 	AppContext *string   `json:"app_context"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func toQualificationTypeResponse(qt *domain.QualificationType) qualificationTypeResponse {
 	return qualificationTypeResponse{
-		ID:        qt.ID,
-		Code:      qt.Code,
-		Name:      qt.Name,
+		ID:         qt.ID,
+		Code:       qt.Code,
+		Name:       qt.Name,
 		AppContext: qt.AppContext,
-		CreatedAt: qt.CreatedAt,
+		CreatedAt:  qt.CreatedAt,
 	}
 }
 

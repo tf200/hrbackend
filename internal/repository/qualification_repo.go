@@ -75,12 +75,12 @@ func (r *QualificationRepository) UpdateQualificationType(
 
 func toDomainQualificationType(row db.Qualification) domain.QualificationType {
 	return domain.QualificationType{
-		ID:        row.ID,
-		Code:      row.Code,
-		Name:      row.Name,
+		ID:         row.ID,
+		Code:       row.Code,
+		Name:       row.Name,
 		AppContext: row.AppContext,
-		IsActive:  row.IsActive,
-		CreatedAt: conv.TimeFromPgTimestamptz(row.CreatedAt),
-		UpdatedAt: conv.TimeFromPgTimestamptz(row.UpdatedAt),
+		IsActive:   row.IsActive,
+		CreatedAt:  conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:  conv.TimeFromPgTimestamptz(row.UpdatedAt),
 	}
 }

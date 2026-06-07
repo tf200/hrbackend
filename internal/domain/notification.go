@@ -97,7 +97,7 @@ type NotificationRequest struct {
 	Recipients NotificationRecipients
 	Message    string
 	Data       NotificationData
-	CreatedAt *time.Time
+	CreatedAt  *time.Time
 }
 
 type NotificationData interface {
@@ -152,8 +152,6 @@ type OvertimeRequestDecidedNotificationData struct {
 func (OvertimeRequestDecidedNotificationData) NotificationType() string {
 	return TypeOvertimeRequestDecided
 }
-
-
 
 type CreateNotificationsParams struct {
 	UserIDs   []uuid.UUID

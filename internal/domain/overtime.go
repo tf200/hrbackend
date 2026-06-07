@@ -74,9 +74,9 @@ type CreateOvertimeEntryParams struct {
 }
 
 type ListOvertimeEntriesParams struct {
-	Limit          int32
-	Offset         int32
-	Status         *string
+	Limit  int32
+	Offset int32
+	Status *string
 }
 
 type ListMyOvertimeEntriesParams struct {

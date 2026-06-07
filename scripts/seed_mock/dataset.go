@@ -393,8 +393,6 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 		),
 	)
 
-
-
 	result.PayPeriods = append(result.PayPeriods,
 		seed.PayPeriodSeed{
 			Alias:                  "finance_head_july_paid",

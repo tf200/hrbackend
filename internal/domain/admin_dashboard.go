@@ -11,20 +11,20 @@ import (
 var ErrAdminDashboardInvalidRequest = errors.New("invalid admin dashboard request")
 
 type AdminDashboardKPI struct {
-	TotalEmployees    int64
-	EmployeesPresent  int64
-	TotalDocuments    int64
-	ProcessingDocs    int64
+	TotalEmployees   int64
+	EmployeesPresent int64
+	TotalDocuments   int64
+	ProcessingDocs   int64
 }
 
 type RecentDashboardEmployee struct {
-	ID                uuid.UUID
-	FirstName         string
-	LastName          string
+	ID                 uuid.UUID
+	FirstName          string
+	LastName           string
 	OrganizationalRole *string
-	DepartmentName    *string
-	LocationName      *string
-	CreatedAt         time.Time
+	DepartmentName     *string
+	LocationName       *string
+	CreatedAt          time.Time
 }
 
 type RecentDashboardEmployeePage struct {
@@ -44,8 +44,8 @@ type FullTimeEmployeeDeptBreakdownItem struct {
 }
 
 type FullTimeEmployeeLocBreakdownItem struct {
-	LocationID   uuid.UUID
-	LocationName string
+	LocationID     uuid.UUID
+	LocationName   string
 	TotalEmployees int64
 }
 
@@ -103,13 +103,13 @@ type ExpiringCredentialAlert struct {
 }
 
 type ReturningFromLeaveAlert struct {
-	EmployeeID       uuid.UUID
-	EmployeeName     string
-	LeaveRequestID   uuid.UUID
-	LeaveType        string
-	LeaveEndDate     time.Time
-	ReturnDate       time.Time
-	DaysUntilReturn  int32
+	EmployeeID      uuid.UUID
+	EmployeeName    string
+	LeaveRequestID  uuid.UUID
+	LeaveType       string
+	LeaveEndDate    time.Time
+	ReturnDate      time.Time
+	DaysUntilReturn int32
 }
 
 type GetUpcomingDashboardAlertsParams struct {

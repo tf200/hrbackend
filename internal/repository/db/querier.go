@@ -126,6 +126,7 @@ type Querier interface {
 	GetAppOrganizationProfile(ctx context.Context) (GetAppOrganizationProfileRow, error)
 	GetAttachment(ctx context.Context, argUuid uuid.UUID) (AttachmentFile, error)
 	GetCurrentMonthOvertimeStats(ctx context.Context) (GetCurrentMonthOvertimeStatsRow, error)
+	GetDeductedLeavesForEmployeeAndYear(ctx context.Context, arg GetDeductedLeavesForEmployeeAndYearParams) ([]GetDeductedLeavesForEmployeeAndYearRow, error)
 	GetDefaultEmployeeSignatureProfile(ctx context.Context, employeeID uuid.UUID) (EmployeeSignatureProfile, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEmployeeContractAtDate(ctx context.Context, arg GetEmployeeContractAtDateParams) (EmployeeContract, error)

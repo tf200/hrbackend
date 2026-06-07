@@ -90,7 +90,7 @@ func RegisterLeaveRoutes(
 		"/leave-balances/my",
 		auth,
 		requirePermission(permission.Leave.Balance.View),
-		handler.ListMyLeaveBalances,
+		handler.GetMyLeaveBalance,
 	)
 	rg.GET(
 		"/employees/:id/leave-balance",
@@ -425,8 +425,8 @@ func (h *LeaveHandler) ListLeaveBalances(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Leave balances retrieved successfully"))
 }
 
-func (h *LeaveHandler) ListMyLeaveBalances(ctx *gin.Context) {
-	var req listMyLeaveBalancesRequest
+func (h *LeaveHandler) GetMyLeaveBalance(ctx *gin.Context) {
+	var req getLeaveBalanceDetailsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -438,22 +438,25 @@ func (h *LeaveHandler) ListMyLeaveBalances(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListMyLeaveBalances(
+	details, err := h.service.GetLeaveBalanceDetails(
 		ctx.Request.Context(),
-		toListMyLeaveBalancesParams(employeeID, req),
+		domain.GetLeaveBalanceDetailsParams{
+			EmployeeID: employeeID,
+			Year:       req.Year,
+		},
 	)
 	if err != nil {
 		ctx.JSON(mapLeaveErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	results := make([]leaveBalanceResponse, len(page.Items))
-	for i, item := range page.Items {
-		results[i] = toLeaveBalanceResponse(item)
-	}
-
-	response := httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Leave balances retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toLeaveBalanceResponse(details.Balance),
+			"Leave balance retrieved successfully",
+		),
+	)
 }
 
 func (h *LeaveHandler) GetEmployeeLeaveBalanceDetails(ctx *gin.Context) {

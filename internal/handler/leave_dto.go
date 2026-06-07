@@ -86,11 +86,6 @@ type listLeaveBalancesRequest struct {
 	Year           *int32  `form:"year"            binding:"omitempty,min=2000,max=2100"`
 }
 
-type listMyLeaveBalancesRequest struct {
-	httpapi.PageRequest
-	Year *int32 `form:"year" binding:"omitempty,min=2000,max=2100"`
-}
-
 type getLeaveBalanceDetailsRequest struct {
 	Year int32 `form:"year" binding:"omitempty,min=2000,max=2100"`
 }
@@ -147,14 +142,23 @@ type leaveRequestStatsResponse struct {
 	SicknessAbsence  int64 `json:"sickness_absence"`
 }
 
+type deductedLeaveResponse struct {
+	ID              uuid.UUID `json:"id"`
+	LeaveType       string    `json:"leave_type"`
+	StartDate       string    `json:"start_date"`
+	EndDate         string    `json:"end_date"`
+	DurationMinutes int32     `json:"duration_minutes"`
+}
+
 type leaveBalanceResponse struct {
-	EmployeeID            uuid.UUID `json:"employee_id"`
-	EmployeeName          string    `json:"employee_name"`
-	Year                  int32     `json:"year"`
-	LegalTotalMinutes     int32     `json:"legal_total_minutes"`
-	LegalUsedMinutes      int32     `json:"legal_used_minutes"`
-	LegalRemainingMinutes int32     `json:"legal_remaining_minutes"`
-	TotalRemainingMinutes int32     `json:"total_remaining_minutes"`
+	EmployeeID            uuid.UUID               `json:"employee_id"`
+	EmployeeName          string                  `json:"employee_name"`
+	Year                  int32                   `json:"year"`
+	LegalTotalMinutes     int32                   `json:"legal_total_minutes"`
+	LegalUsedMinutes      int32                   `json:"legal_used_minutes"`
+	LegalRemainingMinutes int32                   `json:"legal_remaining_minutes"`
+	TotalRemainingMinutes int32                   `json:"total_remaining_minutes"`
+	DeductedLeaves        []deductedLeaveResponse `json:"deducted_leaves"`
 }
 
 type leaveBudgetTypeResponse struct {
@@ -372,18 +376,6 @@ func toListLeaveBalancesParams(req listLeaveBalancesRequest) domain.ListLeaveBal
 	}
 }
 
-func toListMyLeaveBalancesParams(
-	employeeID uuid.UUID,
-	req listMyLeaveBalancesRequest,
-) domain.ListMyLeaveBalancesParams {
-	return domain.ListMyLeaveBalancesParams{
-		EmployeeID: employeeID,
-		Limit:      req.PageSize,
-		Offset:     (req.Page - 1) * req.PageSize,
-		Year:       req.Year,
-	}
-}
-
 func toGetLeaveBalanceDetailsParams(
 	employeeID uuid.UUID,
 	req getLeaveBalanceDetailsRequest,
@@ -460,6 +452,17 @@ func toLeaveRequestStatsResponse(stats *domain.LeaveRequestStats) leaveRequestSt
 }
 
 func toLeaveBalanceResponse(item domain.LeaveBalance) leaveBalanceResponse {
+	deductedLeaves := make([]deductedLeaveResponse, len(item.DeductedLeaves))
+	for i, dl := range item.DeductedLeaves {
+		deductedLeaves[i] = deductedLeaveResponse{
+			ID:              dl.ID,
+			LeaveType:       dl.LeaveType,
+			StartDate:       dl.StartDate.Format("2006-01-02"),
+			EndDate:         dl.EndDate.Format("2006-01-02"),
+			DurationMinutes: dl.DurationMinutes,
+		}
+	}
+
 	return leaveBalanceResponse{
 		EmployeeID:            item.EmployeeID,
 		EmployeeName:          item.EmployeeName,
@@ -468,6 +471,7 @@ func toLeaveBalanceResponse(item domain.LeaveBalance) leaveBalanceResponse {
 		LegalUsedMinutes:      item.LegalUsedMinutes,
 		LegalRemainingMinutes: item.LegalRemainingMinutes,
 		TotalRemainingMinutes: item.TotalRemainingMinutes,
+		DeductedLeaves:        deductedLeaves,
 	}
 }
 

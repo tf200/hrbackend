@@ -146,5 +146,3 @@ func timestamptzPtr(t pgtype.Timestamptz) *time.Time {
 	}
 	return &t.Time
 }
-
-

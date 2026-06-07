@@ -12,10 +12,10 @@ import (
 )
 
 type ScheduleService struct {
-	repository           domain.ScheduleRepository
-	asynqClient          domain.TaskQueue
-	notificationService  domain.NotificationService
-	logger               domain.Logger
+	repository          domain.ScheduleRepository
+	asynqClient         domain.TaskQueue
+	notificationService domain.NotificationService
+	logger              domain.Logger
 }
 
 func NewScheduleService(

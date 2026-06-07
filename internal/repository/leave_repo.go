@@ -298,43 +298,30 @@ func (r *LeaveRepository) ListLeaveBalances(
 	return page, nil
 }
 
-func (r *LeaveRepository) ListMyLeaveBalances(
+func (r *LeaveRepository) getDeductedLeaves(
 	ctx context.Context,
-	params domain.ListMyLeaveBalancesParams,
-) (*domain.LeaveBalancePage, error) {
-	rows, err := r.store.ListMyLeaveBalancesPaginated(ctx, db.ListMyLeaveBalancesPaginatedParams{
-		EmployeeID: params.EmployeeID,
-		Year:       params.Year,
-		Limit:      params.Limit,
-		Offset:     params.Offset,
+	employeeID uuid.UUID,
+	year int32,
+) ([]domain.DeductedLeaveSummary, error) {
+	deductedRows, err := r.store.GetDeductedLeavesForEmployeeAndYear(ctx, db.GetDeductedLeavesForEmployeeAndYearParams{
+		EmployeeID: employeeID,
+		Year:       year,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	page := &domain.LeaveBalancePage{
-		Items: make([]domain.LeaveBalance, 0, len(rows)),
+	deductedLeaves := make([]domain.DeductedLeaveSummary, len(deductedRows))
+	for i, dr := range deductedRows {
+		deductedLeaves[i] = domain.DeductedLeaveSummary{
+			ID:              dr.ID,
+			LeaveType:       string(dr.LeaveType),
+			StartDate:       conv.TimeFromPgDate(dr.StartDate),
+			EndDate:         conv.TimeFromPgDate(dr.EndDate),
+			DurationMinutes: dr.RequestedMinutes,
+		}
 	}
-	if len(rows) > 0 {
-		page.TotalCount = rows[0].TotalCount
-	}
-
-	for _, row := range rows {
-		page.Items = append(page.Items, toDomainLeaveBalance(
-			row.EmployeeID,
-			strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
-			row.Year,
-			row.LegalTotalMinutes,
-			row.LegalUsedMinutes,
-			row.ContractHours,
-			stringPtr(string(row.ContractType)),
-			conv.TimePtrFromPgDate(row.ContractStartDate),
-			conv.TimePtrFromPgDate(row.ContractEndDate),
-			conv.TimePtrFromPgDate(row.EffectiveEndDate),
-		))
-	}
-
-	return page, nil
+	return deductedLeaves, nil
 }
 
 func (r *LeaveRepository) GetLeaveBalanceDetails(
@@ -360,6 +347,11 @@ func (r *LeaveRepository) GetLeaveBalanceDetails(
 		return nil, err
 	}
 
+	deducted, err := r.getDeductedLeaves(ctx, row.EmployeeID, row.Year)
+	if err != nil {
+		return nil, err
+	}
+
 	balance := toDomainLeaveBalance(
 		row.EmployeeID,
 		strings.TrimSpace(row.EmployeeFirstName+" "+row.EmployeeLastName),
@@ -372,6 +364,7 @@ func (r *LeaveRepository) GetLeaveBalanceDetails(
 		conv.TimePtrFromPgDate(row.ContractEndDate),
 		conv.TimePtrFromPgDate(row.EffectiveEndDate),
 	)
+	balance.DeductedLeaves = deducted
 
 	return &domain.LeaveBalanceDetails{
 		Balance:          balance,

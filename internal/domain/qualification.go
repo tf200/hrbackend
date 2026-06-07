@@ -11,13 +11,13 @@ import (
 var ErrQualificationTypeNotFound = errors.New("qualification type not found")
 
 type QualificationType struct {
-	ID        uuid.UUID
-	Code      string
-	Name      string
+	ID         uuid.UUID
+	Code       string
+	Name       string
 	AppContext *string
-	IsActive  bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	IsActive   bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type CreateQualificationTypeParams struct {

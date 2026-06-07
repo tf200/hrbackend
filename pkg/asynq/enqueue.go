@@ -14,10 +14,10 @@ const (
 	QueueDefault  = "default"
 	QueueLow      = "low"
 
-	TypeEmailDelivery                = "email:deliver"
-	TypeIncidentProcess              = "incident:process"
-	TypeIncidentConfirmedEmail       = "incident:confirmed_email"
-	TypeNotificationSend = "notification:send"
+	TypeEmailDelivery          = "email:deliver"
+	TypeIncidentProcess        = "incident:process"
+	TypeIncidentConfirmedEmail = "incident:confirmed_email"
+	TypeNotificationSend       = "notification:send"
 )
 
 func (c *AsynqClient) EnqueueEmailDelivery(
@@ -39,8 +39,3 @@ func (c *AsynqClient) EnqueueEmailDelivery(
 	log.Printf("task enqueued: id=%s queue=%s", info.ID, info.Queue)
 	return nil
 }
-
-
-
-
-
