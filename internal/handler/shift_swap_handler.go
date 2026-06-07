@@ -222,7 +222,13 @@ func (h *ShiftSwapHandler) ListMyShiftSwapRequests(ctx *gin.Context) {
 		return
 	}
 
-	items, err := h.service.ListMyShiftSwapRequests(ctx.Request.Context(), employeeID)
+	var req listMyShiftSwapRequestsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	items, err := h.service.ListMyShiftSwapRequests(ctx.Request.Context(), employeeID, req.Status)
 	if err != nil {
 		ctx.JSON(mapShiftSwapErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return

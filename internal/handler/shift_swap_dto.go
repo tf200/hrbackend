@@ -34,6 +34,10 @@ type adminDecisionShiftSwapRequest struct {
 	Note     *string `json:"note,omitempty"`
 }
 
+type listMyShiftSwapRequestsRequest struct {
+	Status *string `form:"status" binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`
+}
+
 type listShiftSwapRequestsRequest struct {
 	httpapi.PageRequest
 	Status     *string    `form:"status"                                              binding:"omitempty,oneof=pending_recipient recipient_rejected pending_admin admin_rejected confirmed cancelled expired"`

@@ -614,6 +614,7 @@ func (r *ScheduleRepository) GetShiftSwapRequestDetailsByID(
 func (r *ScheduleRepository) ListMyShiftSwapRequests(
 	ctx context.Context,
 	employeeID uuid.UUID,
+	status *string,
 ) ([]domain.ShiftSwapResponse, error) {
 	rows, err := r.store.ListMyShiftSwapRequests(ctx, employeeID)
 	if err != nil {
@@ -621,7 +622,11 @@ func (r *ScheduleRepository) ListMyShiftSwapRequests(
 	}
 	result := make([]domain.ShiftSwapResponse, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, toDomainShiftSwapListRow(row, employeeID))
+		item := toDomainShiftSwapListRow(row, employeeID)
+		if status != nil && !strings.EqualFold(item.Status, *status) {
+			continue
+		}
+		result = append(result, item)
 	}
 	return result, nil
 }

@@ -611,7 +611,7 @@ type ScheduleRepository interface {
 		ctx context.Context,
 		swapID uuid.UUID,
 	) (*ShiftSwapResponse, error)
-	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID) ([]ShiftSwapResponse, error)
+	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID, status *string) ([]ShiftSwapResponse, error)
 	ListShiftSwapRequests(
 		ctx context.Context,
 		params ListShiftSwapRequestsParams,
@@ -702,7 +702,7 @@ type ScheduleService interface {
 		adminEmployeeID, swapID uuid.UUID,
 		req *AdminDecisionShiftSwapRequest,
 	) (*ShiftSwapResponse, error)
-	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID) ([]ShiftSwapResponse, error)
+	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID, status *string) ([]ShiftSwapResponse, error)
 	ListShiftSwapRequests(
 		ctx context.Context,
 		params ListShiftSwapRequestsParams,

@@ -90,7 +90,7 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 			)
 		}
 
-		existing, err := scheduleService.ListMyShiftSwapRequests(ctx, requesterEmployeeID)
+		existing, err := scheduleService.ListMyShiftSwapRequests(ctx, requesterEmployeeID, nil)
 		if err != nil {
 			return fmt.Errorf("seed shift_swap_requests[%s]: list existing requests: %w", requesterAlias, err)
 		}

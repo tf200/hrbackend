@@ -451,11 +451,17 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 func (s *ScheduleService) ListMyShiftSwapRequests(
 	ctx context.Context,
 	employeeID uuid.UUID,
+	status *string,
 ) ([]domain.ShiftSwapResponse, error) {
 	if employeeID == uuid.Nil {
 		return nil, domain.ErrShiftSwapInvalidRequest
 	}
-	return s.repository.ListMyShiftSwapRequests(ctx, employeeID)
+	if status != nil {
+		if !isValidShiftSwapStatus(*status) {
+			return nil, domain.ErrShiftSwapInvalidRequest
+		}
+	}
+	return s.repository.ListMyShiftSwapRequests(ctx, employeeID, status)
 }
 
 func (s *ScheduleService) ListShiftSwapRequests(
