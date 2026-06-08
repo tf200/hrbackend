@@ -158,6 +158,36 @@ func (q *Queries) CreateTrainingCatalogItem(ctx context.Context, arg CreateTrain
 	return i, err
 }
 
+const getMyTrainingAssignmentsCounts = `-- name: GetMyTrainingAssignmentsCounts :one
+SELECT
+    COALESCE(COUNT(*), 0)::bigint AS total,
+    COALESCE(SUM(CASE WHEN eta.status = 'completed' THEN 1 ELSE 0 END), 0)::bigint AS completed,
+    COALESCE(SUM(CASE WHEN eta.status NOT IN ('completed', 'cancelled') AND eta.due_at < NOW() THEN 1 ELSE 0 END), 0)::bigint AS expired,
+    COALESCE(SUM(CASE WHEN eta.status NOT IN ('completed', 'cancelled') AND eta.due_at >= NOW() AND eta.due_at <= NOW() + INTERVAL '30 days' THEN 1 ELSE 0 END), 0)::bigint AS expiring_soon
+FROM employee_training_assignments eta
+WHERE eta.employee_id = $1::uuid
+  AND eta.status <> 'cancelled'
+`
+
+type GetMyTrainingAssignmentsCountsRow struct {
+	Total        int64 `json:"total"`
+	Completed    int64 `json:"completed"`
+	Expired      int64 `json:"expired"`
+	ExpiringSoon int64 `json:"expiring_soon"`
+}
+
+func (q *Queries) GetMyTrainingAssignmentsCounts(ctx context.Context, employeeID uuid.UUID) (GetMyTrainingAssignmentsCountsRow, error) {
+	row := q.db.QueryRow(ctx, getMyTrainingAssignmentsCounts, employeeID)
+	var i GetMyTrainingAssignmentsCountsRow
+	err := row.Scan(
+		&i.Total,
+		&i.Completed,
+		&i.Expired,
+		&i.ExpiringSoon,
+	)
+	return i, err
+}
+
 const getTrainingAssignmentByID = `-- name: GetTrainingAssignmentByID :one
 SELECT id, employee_id, training_id, assigned_by_employee_id, status, assigned_at, due_at, started_at, completed_at, cancelled_at, cancellation_reason, completion_notes, created_at, updated_at
 FROM employee_training_assignments

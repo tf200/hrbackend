@@ -141,6 +141,13 @@ type TrainingAssignmentPage struct {
 	TotalCount int64
 }
 
+type MyTrainingAssignmentsCounts struct {
+	Total        int64
+	Completed    int64
+	Expired      int64
+	ExpiringSoon int64
+}
+
 type TrainingRepository interface {
 	AssignTrainingToEmployee(
 		ctx context.Context,
@@ -158,6 +165,10 @@ type TrainingRepository interface {
 		ctx context.Context,
 		params ListMyTrainingAssignmentsParams,
 	) (*MyTrainingAssignmentPage, error)
+	GetMyTrainingAssignmentsCounts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*MyTrainingAssignmentsCounts, error)
 	CreateTrainingCatalogItem(
 		ctx context.Context,
 		params CreateTrainingCatalogItemParams,
@@ -185,6 +196,10 @@ type TrainingService interface {
 		ctx context.Context,
 		params ListMyTrainingAssignmentsParams,
 	) (*MyTrainingAssignmentPage, error)
+	GetMyTrainingAssignmentsCounts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*MyTrainingAssignmentsCounts, error)
 	CreateTrainingCatalogItem(
 		ctx context.Context,
 		params CreateTrainingCatalogItemParams,

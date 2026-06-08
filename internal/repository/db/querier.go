@@ -155,6 +155,7 @@ type Querier interface {
 	GetLocation(ctx context.Context, id uuid.UUID) (Location, error)
 	GetMyCurrentMonthOvertimeStats(ctx context.Context, employeeID uuid.UUID) (GetMyCurrentMonthOvertimeStatsRow, error)
 	GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UUID) (GetMyLeaveRequestStatsRow, error)
+	GetMyTrainingAssignmentsCounts(ctx context.Context, employeeID uuid.UUID) (GetMyTrainingAssignmentsCountsRow, error)
 	GetOrganisation(ctx context.Context, id uuid.UUID) (GetOrganisationRow, error)
 	GetOrganisationCounts(ctx context.Context, id uuid.UUID) (GetOrganisationCountsRow, error)
 	GetOvertimeEntryByID(ctx context.Context, id uuid.UUID) (GetOvertimeEntryByIDRow, error)

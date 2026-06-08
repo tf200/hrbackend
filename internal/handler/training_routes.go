@@ -30,6 +30,11 @@ func RegisterTrainingRoutes(
 		requirePermission(permission.Portal.EmployeeAccess),
 		handler.ListMyTrainingAssignments,
 	)
+	training.GET(
+		"/assignments/my/counts",
+		requirePermission(permission.Portal.EmployeeAccess),
+		handler.GetMyTrainingAssignmentsCounts,
+	)
 	training.POST(
 		"/assignments",
 		requirePermission(permission.Training.Assign),

@@ -10,6 +10,7 @@ import (
 	"hrbackend/pkg/conv"
 	"hrbackend/pkg/ptr"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -172,6 +173,23 @@ func (r *TrainingRepository) ListMyTrainingAssignments(
 	}
 
 	return page, nil
+}
+
+func (r *TrainingRepository) GetMyTrainingAssignmentsCounts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.MyTrainingAssignmentsCounts, error) {
+	row, err := r.queries.GetMyTrainingAssignmentsCounts(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.MyTrainingAssignmentsCounts{
+		Total:        row.Total,
+		Completed:    row.Completed,
+		Expired:      row.Expired,
+		ExpiringSoon: row.ExpiringSoon,
+	}, nil
 }
 
 func (r *TrainingRepository) CreateTrainingCatalogItem(

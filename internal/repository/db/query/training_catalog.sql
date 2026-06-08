@@ -167,3 +167,13 @@ AND (
 )
 ORDER BY tci.created_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
+-- name: GetMyTrainingAssignmentsCounts :one
+SELECT
+    COALESCE(COUNT(*), 0)::bigint AS total,
+    COALESCE(SUM(CASE WHEN eta.status = 'completed' THEN 1 ELSE 0 END), 0)::bigint AS completed,
+    COALESCE(SUM(CASE WHEN eta.status NOT IN ('completed', 'cancelled') AND eta.due_at < NOW() THEN 1 ELSE 0 END), 0)::bigint AS expired,
+    COALESCE(SUM(CASE WHEN eta.status NOT IN ('completed', 'cancelled') AND eta.due_at >= NOW() AND eta.due_at <= NOW() + INTERVAL '30 days' THEN 1 ELSE 0 END), 0)::bigint AS expiring_soon
+FROM employee_training_assignments eta
+WHERE eta.employee_id = sqlc.arg('employee_id')::uuid
+  AND eta.status <> 'cancelled';

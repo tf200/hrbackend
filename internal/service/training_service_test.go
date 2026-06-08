@@ -129,9 +129,10 @@ func TestTrainingServiceCancelTrainingAssignmentRejectsNilID(t *testing.T) {
 }
 
 type fakeTrainingRepository struct {
-	lastListTrainingAssignmentsParams   domain.ListTrainingAssignmentsParams
-	lastListMyTrainingAssignmentsParams domain.ListMyTrainingAssignmentsParams
-	lastCancelTrainingAssignmentParams  domain.CancelTrainingAssignmentParams
+	lastListTrainingAssignmentsParams            domain.ListTrainingAssignmentsParams
+	lastListMyTrainingAssignmentsParams          domain.ListMyTrainingAssignmentsParams
+	lastCancelTrainingAssignmentParams           domain.CancelTrainingAssignmentParams
+	lastGetMyTrainingAssignmentsCountsEmployeeID uuid.UUID
 }
 
 func (f *fakeTrainingRepository) AssignTrainingToEmployee(
@@ -200,6 +201,19 @@ func (f *fakeTrainingRepository) ListTrainingCatalogItems(
 	return nil, nil
 }
 
+func (f *fakeTrainingRepository) GetMyTrainingAssignmentsCounts(
+	_ context.Context,
+	employeeID uuid.UUID,
+) (*domain.MyTrainingAssignmentsCounts, error) {
+	f.lastGetMyTrainingAssignmentsCountsEmployeeID = employeeID
+	return &domain.MyTrainingAssignmentsCounts{
+		Total:        10,
+		Completed:    5,
+		Expired:      2,
+		ExpiringSoon: 1,
+	}, nil
+}
+
 func TestTrainingServiceListMyTrainingAssignmentsFiltersByEmployeeID(t *testing.T) {
 	repo := &fakeTrainingRepository{}
 	svc := &TrainingService{repository: repo}
@@ -217,6 +231,26 @@ func TestTrainingServiceListMyTrainingAssignmentsFiltersByEmployeeID(t *testing.
 
 	if repo.lastListMyTrainingAssignmentsParams.EmployeeID != employeeID {
 		t.Fatalf("expected employee ID %v, got %v", employeeID, repo.lastListMyTrainingAssignmentsParams.EmployeeID)
+	}
+}
+
+func TestTrainingServiceGetMyTrainingAssignmentsCounts(t *testing.T) {
+	repo := &fakeTrainingRepository{}
+	svc := &TrainingService{repository: repo}
+
+	employeeID := uuid.New()
+
+	counts, err := svc.GetMyTrainingAssignmentsCounts(context.Background(), employeeID)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if repo.lastGetMyTrainingAssignmentsCountsEmployeeID != employeeID {
+		t.Fatalf("expected employee ID %v, got %v", employeeID, repo.lastGetMyTrainingAssignmentsCountsEmployeeID)
+	}
+
+	if counts.Total != 10 || counts.Completed != 5 || counts.Expired != 2 || counts.ExpiringSoon != 1 {
+		t.Fatalf("unexpected counts: %+v", counts)
 	}
 }
 

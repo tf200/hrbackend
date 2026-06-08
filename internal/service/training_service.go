@@ -154,6 +154,31 @@ func (s *TrainingService) ListMyTrainingAssignments(
 	return page, nil
 }
 
+func (s *TrainingService) GetMyTrainingAssignmentsCounts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.MyTrainingAssignmentsCounts, error) {
+	if employeeID == uuid.Nil {
+		return nil, domain.ErrTrainingInvalidRequest
+	}
+
+	counts, err := s.repository.GetMyTrainingAssignmentsCounts(ctx, employeeID)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.LogError(
+				ctx,
+				"TrainingService.GetMyTrainingAssignmentsCounts",
+				"failed to get employee's training counts",
+				err,
+				zap.String("employee_id", employeeID.String()),
+			)
+		}
+		return nil, err
+	}
+
+	return counts, nil
+}
+
 func (s *TrainingService) CreateTrainingCatalogItem(
 	ctx context.Context,
 	params domain.CreateTrainingCatalogItemParams,

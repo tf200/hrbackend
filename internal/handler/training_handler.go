@@ -166,6 +166,24 @@ func (h *TrainingHandler) ListMyTrainingAssignments(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "My training assignments retrieved successfully"))
 }
 
+func (h *TrainingHandler) GetMyTrainingAssignmentsCounts(ctx *gin.Context) {
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	counts, err := h.service.GetMyTrainingAssignmentsCounts(ctx.Request.Context(), employeeID)
+	if err != nil {
+		ctx.JSON(mapTrainingErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toMyTrainingAssignmentsCountsResponse(counts), "My training assignments counts retrieved successfully"),
+	)
+}
 
 func (h *TrainingHandler) ListTrainingCatalogItems(ctx *gin.Context) {
 	var req listTrainingCatalogItemsRequest

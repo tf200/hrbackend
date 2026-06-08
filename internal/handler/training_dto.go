@@ -112,6 +112,13 @@ type myTrainingAssignmentListItemResponse struct {
 	IsOverdue            bool       `json:"is_overdue"`
 }
 
+type myTrainingAssignmentsCountsResponse struct {
+	Total        int64 `json:"total"`
+	Completed    int64 `json:"completed"`
+	Expired      int64 `json:"expired"`
+	ExpiringSoon int64 `json:"expiring_soon"`
+}
+
 func toCreateTrainingCatalogItemParams(
 	req createTrainingCatalogItemRequest,
 	employeeID uuid.UUID,
@@ -280,5 +287,16 @@ func toMyTrainingAssignmentListItemResponse(
 		AssignedByEmployeeID: item.AssignedByEmployeeID,
 		AssignedByName:       item.AssignedByName,
 		IsOverdue:            item.IsOverdue,
+	}
+}
+
+func toMyTrainingAssignmentsCountsResponse(
+	counts *domain.MyTrainingAssignmentsCounts,
+) myTrainingAssignmentsCountsResponse {
+	return myTrainingAssignmentsCountsResponse{
+		Total:        counts.Total,
+		Completed:    counts.Completed,
+		Expired:      counts.Expired,
+		ExpiringSoon: counts.ExpiringSoon,
 	}
 }
