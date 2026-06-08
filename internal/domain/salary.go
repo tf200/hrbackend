@@ -398,6 +398,8 @@ type SalaryPageData struct {
 	EmployeeID   uuid.UUID
 	EmployeeName string
 	Month        time.Time
+	PeriodStart  time.Time
+	PeriodEnd    time.Time
 
 	ContractType          string
 	ContractRate          *float64
@@ -803,7 +805,7 @@ type SalaryService interface {
 	GetMySalaryPage(
 		ctx context.Context,
 		employeeID uuid.UUID,
-		month time.Time,
+		periodStart, periodEnd time.Time,
 	) (*SalaryPageData, error)
 	ExportPayrollMonthPDF(
 		ctx context.Context,

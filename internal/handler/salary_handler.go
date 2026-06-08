@@ -115,13 +115,13 @@ func (h *SalaryHandler) GetMySalaryPage(ctx *gin.Context) {
 		return
 	}
 
-	month, err := time.Parse(payoutMonthLayout, req.Month)
+	periodStart, periodEnd, err := resolvePayrollPeriodRequest(req.PeriodStart, req.Date)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid month format, expected YYYY-MM", ""))
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	data, err := h.service.GetMySalaryPage(ctx.Request.Context(), employeeID, month)
+	data, err := h.service.GetMySalaryPage(ctx.Request.Context(), employeeID, periodStart, periodEnd)
 	if err != nil {
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -146,11 +146,13 @@ func (h *SalaryHandler) ExportMyPayrollMonthPDF(ctx *gin.Context) {
 		return
 	}
 
-	month, err := time.Parse(payoutMonthLayout, req.Month)
+	periodStart, _, err := resolvePayrollPeriodRequest(req.PeriodStart, req.Date)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid month format, expected YYYY-MM", ""))
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
+
+	month := time.Date(periodStart.Year(), periodStart.Month(), 1, 0, 0, 0, 0, time.UTC)
 
 	pdfBytes, filename, err := h.service.ExportPayrollMonthPDF(
 		ctx.Request.Context(),

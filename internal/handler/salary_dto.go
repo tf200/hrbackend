@@ -1196,20 +1196,63 @@ func formatPayoutSalaryMonth(value *time.Time) *string {
 // Salary page DTOs
 // ---------------------------------------------------------------------------
 type salaryPageRequest struct {
-	Month string `form:"month" binding:"required,datetime=2006-01"`
+	PeriodStart *string `form:"period_start" binding:"omitempty"`
+	Date        *string `form:"date"         binding:"omitempty"`
 }
 type salaryPageResponse struct {
-	Employee    salaryPageEmployeeResponse       `json:"employee"`
-	Month       string                           `json:"month"`
-	Period      salaryPagePeriodResponse         `json:"period"`
-	Contract    salaryPageContractResponse       `json:"contract"`
-	Status      salaryPageStatusResponse         `json:"status"`
-	Summary     salaryPageSummaryResponse        `json:"summary"`
-	ORT         salaryPageORTResponse            `json:"ort"`
-	LineItems   []salaryPageLineItemResponse     `json:"line_items"`
-	Pending     []salaryPagePendingEntryResponse `json:"pending_entries"`
-	LeavePayout salaryPageLeavePayoutResponse    `json:"leave_payout"`
-	Actions     salaryPageActionsResponse        `json:"actions"`
+	Employee     salaryPageEmployeeResponse       `json:"employee"`
+	Month        string                           `json:"month"`
+	Period       salaryPagePeriodResponse         `json:"period"`
+	Contract     salaryPageContractResponse       `json:"contract"`
+	Status       salaryPageStatusResponse         `json:"status"`
+	Summary      salaryPageSummaryResponse        `json:"summary"`
+	ORT          salaryPageORTResponse            `json:"ort"`
+	BaseEarnings salaryPageBaseEarningsResponse   `json:"base_earnings"`
+	Shifts       []salaryPageShiftResponse        `json:"shifts"`
+	Overtime     []salaryPageOvertimeResponse     `json:"overtime"`
+	Pending      []salaryPagePendingEntryResponse `json:"pending_entries"`
+	LeavePayout  salaryPageLeavePayoutResponse    `json:"leave_payout"`
+	Actions      salaryPageActionsResponse        `json:"actions"`
+}
+type salaryPageBaseEarningsResponse struct {
+	CalculationMode string   `json:"calculation_mode"`
+	Amount          *float64 `json:"amount,omitempty"`
+	HourlyRate      *float64 `json:"hourly_rate,omitempty"`
+	Label           string   `json:"label"`
+}
+type salaryPageShiftResponse struct {
+	ID                    uuid.UUID `json:"id"`
+	WorkDate              string    `json:"work_date"`
+	DisplayDate           string    `json:"display_date"`
+	Label                 string    `json:"label"`
+	StartTime             string    `json:"start_time"`
+	EndTime               string    `json:"end_time"`
+	BreakMinutes          int32     `json:"break_minutes"`
+	WorkedMinutes         float64   `json:"worked_minutes"`
+	PaidMinutes           float64   `json:"paid_minutes"`
+	PaidHours             float64   `json:"paid_hours"`
+	IrregularHoursProfile string    `json:"irregular_hours_profile"`
+	AppliedRatePercent    float64   `json:"applied_rate_percent"`
+	BaseAmount            *float64  `json:"base_amount,omitempty"`
+	PremiumAmount         float64   `json:"premium_amount"`
+	GrossAmount           float64   `json:"gross_amount"`
+}
+type salaryPageOvertimeResponse struct {
+	ID                    uuid.UUID `json:"id"`
+	WorkDate              string    `json:"work_date"`
+	DisplayDate           string    `json:"display_date"`
+	Label                 string    `json:"label"`
+	StartTime             string    `json:"start_time"`
+	EndTime               string    `json:"end_time"`
+	BreakMinutes          int32     `json:"break_minutes"`
+	WorkedMinutes         float64   `json:"worked_minutes"`
+	PaidMinutes           float64   `json:"paid_minutes"`
+	PaidHours             float64   `json:"paid_hours"`
+	IrregularHoursProfile string    `json:"irregular_hours_profile"`
+	AppliedRatePercent    float64   `json:"applied_rate_percent"`
+	BaseAmount            float64   `json:"base_amount"`
+	PremiumAmount         float64   `json:"premium_amount"`
+	GrossAmount           float64   `json:"gross_amount"`
 }
 type salaryPageEmployeeResponse struct {
 	ID   uuid.UUID `json:"id"`
@@ -1265,24 +1308,25 @@ type salaryPageORTResponse struct {
 	Buckets []salaryPageMultiplierSummaryItem `json:"buckets"`
 }
 type salaryPageLineItemResponse struct {
-	ID                 uuid.UUID  `json:"id"`
-	ScheduleID         *uuid.UUID `json:"schedule_id,omitempty"`
-	OvertimeEntryID    *uuid.UUID `json:"overtime_entry_id,omitempty"`
-	SourceType         string     `json:"source_type"`
-	WorkDate           string     `json:"work_date"`
-	DisplayDate        string     `json:"display_date"`
-	LineType           string     `json:"line_type"`
-	Label              string     `json:"label"`
-	StartTime          string     `json:"start_time"`
-	EndTime            string     `json:"end_time"`
-	BreakMinutes       int32      `json:"break_minutes"`
-	WorkedMinutes      int32      `json:"worked_minutes"`
-	PaidMinutes        float64    `json:"paid_minutes"`
-	PaidHours          float64    `json:"paid_hours"`
-	AppliedRatePercent float64    `json:"applied_rate_percent"`
-	BaseAmount         float64    `json:"base_amount"`
-	PremiumAmount      float64    `json:"premium_amount"`
-	GrossAmount        float64    `json:"gross_amount"`
+	ID                    uuid.UUID  `json:"id"`
+	ScheduleID            *uuid.UUID `json:"schedule_id,omitempty"`
+	OvertimeEntryID       *uuid.UUID `json:"overtime_entry_id,omitempty"`
+	SourceType            string     `json:"source_type"`
+	WorkDate              string     `json:"work_date"`
+	DisplayDate           string     `json:"display_date"`
+	LineType              string     `json:"line_type"`
+	Label                 string     `json:"label"`
+	StartTime             string     `json:"start_time"`
+	EndTime               string     `json:"end_time"`
+	BreakMinutes          int32      `json:"break_minutes"`
+	WorkedMinutes         int32      `json:"worked_minutes"`
+	PaidMinutes           float64    `json:"paid_minutes"`
+	PaidHours             float64    `json:"paid_hours"`
+	AppliedRatePercent    float64    `json:"applied_rate_percent"`
+	BaseAmount            float64    `json:"base_amount"`
+	PremiumAmount         float64    `json:"premium_amount"`
+	GrossAmount           float64    `json:"gross_amount"`
+	IrregularHoursProfile string     `json:"irregular_hours_profile"`
 }
 type salaryPagePendingEntryResponse struct {
 	ID            uuid.UUID `json:"id"`
@@ -1327,9 +1371,8 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 		return nil
 	}
 	monthStr := data.Month.Format(payoutMonthLayout)
-	monthStartStr := data.Month.Format("2006-01-02")
-	monthEnd := data.Month.AddDate(0, 1, -1)
-	monthEndStr := monthEnd.Format("2006-01-02")
+	periodStartStr := data.PeriodStart.Format("2006-01-02")
+	periodEndStr := data.PeriodEnd.Format("2006-01-02")
 	// Contract label
 	contractLabel := contractTypeLabel(data.ContractType)
 	// Status fields
@@ -1359,8 +1402,6 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 	totalGross := roundCurrency(baseGross + irregularGross + leavePayoutGross)
 	// ORT buckets
 	ortBuckets := buildSalaryPageORTBuckets(data)
-	// Line items
-	lineItems := buildSalaryPageLineItems(data)
 	// Pending entries
 	pendingEntries := buildSalaryPagePendingEntries(data.PendingEntries)
 	// Leave payout
@@ -1369,7 +1410,7 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 	hasData := (data.PayPeriod != nil && len(data.PayPeriod.LineItems) > 0) ||
 		(data.Preview != nil && len(data.Preview.LineItems) > 0)
 	canRequest := isLoondienstContractType(data.ContractType) && data.ExtraLeaveRemaining > 0
-	pdfURL := fmt.Sprintf("/api/payouts/detail/pdf?month=%s", monthStr)
+	pdfURL := fmt.Sprintf("/api/payouts/detail/pdf?period_start=%s", periodStartStr)
 	return &salaryPageResponse{
 		Employee: salaryPageEmployeeResponse{
 			ID:   data.EmployeeID,
@@ -1377,8 +1418,8 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 		},
 		Month: monthStr,
 		Period: salaryPagePeriodResponse{
-			Start: monthStartStr,
-			End:   monthEndStr,
+			Start: periodStartStr,
+			End:   periodEndStr,
 		},
 		Contract: salaryPageContractResponse{
 			Type:                  data.ContractType,
@@ -1416,9 +1457,11 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 			Profile: data.IrregularHoursProfile,
 			Buckets: ortBuckets,
 		},
-		LineItems:   lineItems,
-		Pending:     pendingEntries,
-		LeavePayout: leavePayout,
+		BaseEarnings: buildSalaryPageBaseEarnings(data),
+		Shifts:       buildSalaryPageShifts(data),
+		Overtime:     buildSalaryPageOvertime(data),
+		Pending:      pendingEntries,
+		LeavePayout:  leavePayout,
 		Actions: salaryPageActionsResponse{
 			CanDownloadPDF:        hasData,
 			PDFURL:                pdfURL,
@@ -1613,24 +1656,25 @@ func lineItemsFromPreview(items []domain.PayrollPreviewLineItem) []salaryPageLin
 			id = *item.OvertimeEntryID
 		}
 		res = append(res, salaryPageLineItemResponse{
-			ID:                 id,
-			ScheduleID:         item.ScheduleID,
-			OvertimeEntryID:    item.OvertimeEntryID,
-			SourceType:         item.SourceType,
-			WorkDate:           item.WorkDate.Format("2006-01-02"),
-			DisplayDate:        item.WorkDate.Format("Mon 2 Jan"),
-			LineType:           item.SourceType,
-			Label:              item.Label,
-			StartTime:          item.StartTime,
-			EndTime:            item.EndTime,
-			BreakMinutes:       item.BreakMinutes,
-			WorkedMinutes:      item.MinutesWorked,
-			PaidMinutes:        item.PaidMinutes,
-			PaidHours:          roundCurrency(item.PaidMinutes / 60),
-			AppliedRatePercent: item.AppliedRatePercent,
-			BaseAmount:         item.BaseAmount,
-			PremiumAmount:      item.PremiumAmount,
-			GrossAmount:        roundCurrency(item.BaseAmount + item.PremiumAmount),
+			ID:                    id,
+			ScheduleID:            item.ScheduleID,
+			OvertimeEntryID:       item.OvertimeEntryID,
+			SourceType:            item.SourceType,
+			WorkDate:              item.WorkDate.Format("2006-01-02"),
+			DisplayDate:           item.WorkDate.Format("Mon 2 Jan"),
+			LineType:              item.SourceType,
+			Label:                 item.Label,
+			StartTime:             item.StartTime,
+			EndTime:               item.EndTime,
+			BreakMinutes:          item.BreakMinutes,
+			WorkedMinutes:         item.MinutesWorked,
+			PaidMinutes:           item.PaidMinutes,
+			PaidHours:             roundCurrency(item.PaidMinutes / 60),
+			AppliedRatePercent:    item.AppliedRatePercent,
+			BaseAmount:            item.BaseAmount,
+			PremiumAmount:         item.PremiumAmount,
+			GrossAmount:           roundCurrency(item.BaseAmount + item.PremiumAmount),
+			IrregularHoursProfile: item.IrregularHoursProfile,
 		})
 	}
 	return res
@@ -1658,24 +1702,25 @@ func lineItemsFromPayPeriod(items []domain.PayPeriodLineItem) []salaryPageLineIt
 			}
 		}
 		res = append(res, salaryPageLineItemResponse{
-			ID:                 item.ID,
-			ScheduleID:         item.ScheduleID,
-			OvertimeEntryID:    item.OvertimeEntryID,
-			SourceType:         item.LineType,
-			WorkDate:           item.WorkDate.Format("2006-01-02"),
-			DisplayDate:        item.WorkDate.Format("Mon 2 Jan"),
-			LineType:           item.LineType,
-			Label:              "",
-			StartTime:          startTime,
-			EndTime:            endTime,
-			BreakMinutes:       breakMinutes,
-			WorkedMinutes:      int32(item.MinutesWorked),
-			PaidMinutes:        item.MinutesWorked,
-			PaidHours:          roundCurrency(item.MinutesWorked / 60),
-			AppliedRatePercent: item.AppliedRatePercent,
-			BaseAmount:         item.BaseAmount,
-			PremiumAmount:      item.PremiumAmount,
-			GrossAmount:        roundCurrency(item.BaseAmount + item.PremiumAmount),
+			ID:                    item.ID,
+			ScheduleID:            item.ScheduleID,
+			OvertimeEntryID:       item.OvertimeEntryID,
+			SourceType:            item.LineType,
+			WorkDate:              item.WorkDate.Format("2006-01-02"),
+			DisplayDate:           item.WorkDate.Format("Mon 2 Jan"),
+			LineType:              item.LineType,
+			Label:                 "",
+			StartTime:             startTime,
+			EndTime:               endTime,
+			BreakMinutes:          breakMinutes,
+			WorkedMinutes:         int32(item.MinutesWorked),
+			PaidMinutes:           item.MinutesWorked,
+			PaidHours:             roundCurrency(item.MinutesWorked / 60),
+			AppliedRatePercent:    item.AppliedRatePercent,
+			BaseAmount:            item.BaseAmount,
+			PremiumAmount:         item.PremiumAmount,
+			GrossAmount:           roundCurrency(item.BaseAmount + item.PremiumAmount),
+			IrregularHoursProfile: item.IrregularHoursProfile,
 		})
 	}
 	return res
@@ -1735,4 +1780,109 @@ func formatOptionalDate(t *time.Time) *string {
 }
 func roundCurrency(v float64) float64 {
 	return math.Round(v*100) / 100
+}
+
+func buildSalaryPageBaseEarnings(data *domain.SalaryPageData) salaryPageBaseEarningsResponse {
+	isFixed := isLoondienstContractType(data.ContractType)
+	if isFixed {
+		var baseAmount float64
+		if data.PayPeriod != nil {
+			for _, item := range data.PayPeriod.LineItems {
+				if item.LineType == "contract_base" {
+					baseAmount = item.BaseAmount
+					break
+				}
+			}
+			if baseAmount == 0 {
+				baseAmount = data.PayPeriod.BaseGrossAmount
+			}
+		} else if data.Preview != nil {
+			for _, item := range data.Preview.LineItems {
+				if item.SourceType == "contract_base" {
+					baseAmount = item.BaseAmount
+					break
+				}
+			}
+			if baseAmount == 0 {
+				baseAmount = data.Preview.BaseGrossAmount
+			}
+		}
+		return salaryPageBaseEarningsResponse{
+			CalculationMode: "fixed",
+			Amount:          &baseAmount,
+			Label:           "Fixed 4-week base salary",
+		}
+	} else {
+		var rate float64
+		if data.ContractRate != nil {
+			rate = *data.ContractRate
+		}
+		return salaryPageBaseEarningsResponse{
+			CalculationMode: "hourly",
+			HourlyRate:      &rate,
+			Label:           "Hourly rate base salary",
+		}
+	}
+}
+
+func buildSalaryPageShifts(data *domain.SalaryPageData) []salaryPageShiftResponse {
+	isFixed := isLoondienstContractType(data.ContractType)
+	rawItems := buildSalaryPageLineItems(data)
+	res := make([]salaryPageShiftResponse, 0)
+	for _, item := range rawItems {
+		if item.SourceType != "schedule" {
+			continue
+		}
+		var baseAmt *float64
+		if !isFixed {
+			val := item.BaseAmount
+			baseAmt = &val
+		}
+		res = append(res, salaryPageShiftResponse{
+			ID:                    item.ID,
+			WorkDate:              item.WorkDate,
+			DisplayDate:           item.DisplayDate,
+			Label:                 item.Label,
+			StartTime:             item.StartTime,
+			EndTime:               item.EndTime,
+			BreakMinutes:          item.BreakMinutes,
+			WorkedMinutes:         float64(item.WorkedMinutes),
+			PaidMinutes:           item.PaidMinutes,
+			PaidHours:             item.PaidHours,
+			IrregularHoursProfile: item.IrregularHoursProfile,
+			AppliedRatePercent:    item.AppliedRatePercent,
+			BaseAmount:            baseAmt,
+			PremiumAmount:         item.PremiumAmount,
+			GrossAmount:           item.GrossAmount,
+		})
+	}
+	return res
+}
+
+func buildSalaryPageOvertime(data *domain.SalaryPageData) []salaryPageOvertimeResponse {
+	rawItems := buildSalaryPageLineItems(data)
+	res := make([]salaryPageOvertimeResponse, 0)
+	for _, item := range rawItems {
+		if item.SourceType != "overtime" {
+			continue
+		}
+		res = append(res, salaryPageOvertimeResponse{
+			ID:                    item.ID,
+			WorkDate:              item.WorkDate,
+			DisplayDate:           item.DisplayDate,
+			Label:                 item.Label,
+			StartTime:             item.StartTime,
+			EndTime:               item.EndTime,
+			BreakMinutes:          item.BreakMinutes,
+			WorkedMinutes:         float64(item.WorkedMinutes),
+			PaidMinutes:           item.PaidMinutes,
+			PaidHours:             item.PaidHours,
+			IrregularHoursProfile: item.IrregularHoursProfile,
+			AppliedRatePercent:    item.AppliedRatePercent,
+			BaseAmount:            item.BaseAmount,
+			PremiumAmount:         item.PremiumAmount,
+			GrossAmount:           item.GrossAmount,
+		})
+	}
+	return res
 }

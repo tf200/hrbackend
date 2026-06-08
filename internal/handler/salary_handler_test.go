@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"hrbackend/internal/domain"
+	"hrbackend/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -291,7 +292,7 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 		EmployeeID:            employeeID,
 		EmployeeName:          "Jane Doe",
 		Month:                 month,
-		ContractType:          "loondienst",
+		ContractType:          "permanent",
 		ContractRate:          &rate,
 		ContractHours:         &contractHours,
 		IrregularHoursProfile: "roster",
@@ -326,18 +327,24 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 	if response == nil {
 		t.Fatalf("expected response")
 	}
-	if len(response.LineItems) != 1 {
-		t.Fatalf("expected 1 line item, got %d", len(response.LineItems))
+	if len(response.Shifts) != 1 {
+		t.Fatalf("expected 1 shift, got %d", len(response.Shifts))
 	}
-	line := response.LineItems[0]
-	if line.Label != "Evening care route" {
-		t.Fatalf("expected label to be preserved, got %q", line.Label)
+	shift := response.Shifts[0]
+	if shift.Label != "Evening care route" {
+		t.Fatalf("expected label to be preserved, got %q", shift.Label)
 	}
-	if line.BreakMinutes != 0 {
-		t.Fatalf("expected break minutes 0, got %d", line.BreakMinutes)
+	if shift.BreakMinutes != 0 {
+		t.Fatalf("expected break minutes 0, got %d", shift.BreakMinutes)
 	}
-	if line.GrossAmount != 229.69 {
-		t.Fatalf("expected gross amount 229.69, got %.2f", line.GrossAmount)
+	if shift.GrossAmount != 229.69 {
+		t.Fatalf("expected gross amount 229.69, got %.2f", shift.GrossAmount)
+	}
+	if shift.BaseAmount != nil {
+		t.Fatalf("expected shift base amount to be nil for permanent contract, got %.2f", *shift.BaseAmount)
+	}
+	if response.BaseEarnings.Amount == nil || *response.BaseEarnings.Amount != 183.75 {
+		t.Fatalf("expected base earnings amount to be 183.75, got %v", response.BaseEarnings.Amount)
 	}
 }
 
@@ -377,8 +384,11 @@ type fakeSalaryService struct {
 	onCallStats       *domain.PayrollMonthStats
 	onCallStatsParams domain.PayrollMonthSummaryParams
 	onCallStatsErr    error
-	salaryPageData    *domain.SalaryPageData
-	salaryPageErr     error
+	salaryPageData       *domain.SalaryPageData
+	salaryPageErr        error
+	salaryPageEmployeeID uuid.UUID
+	salaryPageStart      time.Time
+	salaryPageEnd        time.Time
 }
 
 func (f *fakeSalaryService) ListSalaryScaleSteps(
@@ -545,10 +555,13 @@ func (f *fakeSalaryService) ExportPayrollMonthPDF(
 	panic("unexpected call")
 }
 func (f *fakeSalaryService) GetMySalaryPage(
-	_ context.Context,
-	_ uuid.UUID,
-	_ time.Time,
+	ctx context.Context,
+	employeeID uuid.UUID,
+	periodStart, periodEnd time.Time,
 ) (*domain.SalaryPageData, error) {
+	f.salaryPageEmployeeID = employeeID
+	f.salaryPageStart = periodStart
+	f.salaryPageEnd = periodEnd
 	if f.salaryPageErr != nil {
 		return nil, f.salaryPageErr
 	}
@@ -559,4 +572,49 @@ var _ domain.SalaryService = (*fakeSalaryService)(nil)
 
 func stringPtr(v string) *string {
 	return &v
+}
+
+func TestSalaryHandlerGetMySalaryPageSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	employeeID := uuid.New()
+	service := &fakeSalaryService{
+		salaryPageData: &domain.SalaryPageData{
+			EmployeeID:   employeeID,
+			EmployeeName: "John Doe",
+			Month:        time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+			PeriodStart:  time.Date(2026, 5, 18, 0, 0, 0, 0, time.UTC),
+			PeriodEnd:    time.Date(2026, 6, 14, 0, 0, 0, 0, time.UTC),
+			ContractType: "loondienst",
+		},
+	}
+
+	router := gin.New()
+	handler := NewSalaryHandler(service)
+	router.GET("/salary-page/mine", func(ctx *gin.Context) {
+		ctx.Request = ctx.Request.WithContext(middleware.WithEmployeeID(ctx.Request.Context(), employeeID))
+		ctx.Next()
+	}, handler.GetMySalaryPage)
+
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/salary-page/mine?period_start=2026-05-18",
+		nil,
+	)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+	}
+
+	if service.salaryPageEmployeeID != employeeID {
+		t.Fatalf("expected employee ID %v, got %v", employeeID, service.salaryPageEmployeeID)
+	}
+
+	expectedStart := time.Date(2026, 5, 18, 0, 0, 0, 0, time.UTC)
+	if !service.salaryPageStart.Equal(expectedStart) {
+		t.Fatalf("expected period start %v, got %v", expectedStart, service.salaryPageStart)
+	}
 }

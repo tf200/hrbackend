@@ -1425,14 +1425,13 @@ func (s *SalaryService) ExportPayrollMonthPDF(
 func (s *SalaryService) GetMySalaryPage(
 	ctx context.Context,
 	employeeID uuid.UUID,
-	month time.Time,
+	periodStart, periodEnd time.Time,
 ) (*domain.SalaryPageData, error) {
-	if employeeID == uuid.Nil || month.IsZero() {
+	if employeeID == uuid.Nil || periodStart.IsZero() || periodEnd.IsZero() {
 		return nil, domain.ErrSalaryInvalidRequest
 	}
 
-	monthStart := time.Date(month.UTC().Year(), month.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
-	monthEnd := monthStart.AddDate(0, 1, -1)
+	monthStart := time.Date(periodStart.UTC().Year(), periodStart.UTC().Month(), 1, 0, 0, 0, 0, time.UTC)
 
 	employee, err := s.repo.GetPayrollPreviewEmployee(ctx, employeeID)
 	if err != nil {
@@ -1440,7 +1439,7 @@ func (s *SalaryService) GetMySalaryPage(
 	}
 
 	payPeriods, err := s.repo.ListPayPeriodsByEmployeesAndRange(
-		ctx, []uuid.UUID{employeeID}, monthStart, monthEnd,
+		ctx, []uuid.UUID{employeeID}, periodStart, periodEnd,
 	)
 	if err != nil {
 		s.logError(ctx, "GetMySalaryPage", "failed to list pay periods", err)
@@ -1452,7 +1451,7 @@ func (s *SalaryService) GetMySalaryPage(
 		if period.EmployeeID != employeeID {
 			continue
 		}
-		if period.PeriodStart.Equal(monthStart) && period.PeriodEnd.Equal(monthEnd) {
+		if period.PeriodStart.Equal(periodStart) && period.PeriodEnd.Equal(periodEnd) {
 			item, loadErr := s.loadPayPeriodWithLineItems(ctx, period.ID)
 			if loadErr != nil {
 				return nil, loadErr
@@ -1469,29 +1468,64 @@ func (s *SalaryService) GetMySalaryPage(
 	if selectedPayPeriod != nil {
 		dataSource = "locked"
 		payPeriod = selectedPayPeriod
+		if isLoondienstContractType(employee.ContractType) {
+			var scheduleBaseSum float64
+			for i, item := range payPeriod.LineItems {
+				if item.LineType == string(domain.PayrollSourceSchedule) {
+					scheduleBaseSum = roundCurrency(scheduleBaseSum + item.BaseAmount)
+					payPeriod.LineItems[i].BaseAmount = 0
+				}
+			}
+			payPeriod.BaseGrossAmount = roundCurrency(payPeriod.BaseGrossAmount - scheduleBaseSum)
+			payPeriod.GrossAmount = roundCurrency(payPeriod.BaseGrossAmount + payPeriod.IrregularGrossAmount)
+		}
 	} else {
 		dataSource = "live"
 		approvedWorkItems, err := s.repo.ListPayrollMonthApprovedWorkItems(
-			ctx, []uuid.UUID{employeeID}, monthStart, monthEnd,
+			ctx, []uuid.UUID{employeeID}, periodStart, periodEnd,
 		)
 		if err != nil {
 			s.logError(ctx, "GetMySalaryPage", "failed to list approved work items", err)
 			return nil, fmt.Errorf("failed to list approved work items: %w", err)
 		}
 
-		if len(approvedWorkItems) > 0 {
-			preview, err = s.buildPayrollPreview(ctx, employee, domain.PayrollPreviewParams{
-				EmployeeID:  employeeID,
-				PeriodStart: monthStart,
-				PeriodEnd:   monthEnd,
-			}, approvedWorkItems)
+		fixedBaseLineItems := []domain.PayrollPreviewLineItem{}
+		if isLoondienstContractType(employee.ContractType) {
+			fixedBaseLineItems, err = s.buildFixedPeriodBasePreviewLineItems(ctx, employeeID, periodStart, periodEnd)
 			if err != nil {
 				return nil, err
 			}
 		}
+
+		if len(approvedWorkItems) > 0 || len(fixedBaseLineItems) > 0 {
+			preview, err = s.buildPayrollPreview(ctx, employee, domain.PayrollPreviewParams{
+				EmployeeID:  employeeID,
+				PeriodStart: periodStart,
+				PeriodEnd:   periodEnd,
+			}, approvedWorkItems)
+			if err != nil {
+				return nil, err
+			}
+
+			if isLoondienstContractType(employee.ContractType) {
+				for i, item := range preview.LineItems {
+					if item.SourceType == domain.PayrollSourceSchedule {
+						preview.LineItems[i].BaseAmount = 0
+					}
+				}
+				var newBaseGross float64
+				for _, item := range preview.LineItems {
+					if item.SourceType != domain.PayrollSourceSchedule {
+						newBaseGross = roundCurrency(newBaseGross + item.BaseAmount)
+					}
+				}
+				preview.BaseGrossAmount = newBaseGross
+				applyFixedBaseLineItems(preview, fixedBaseLineItems)
+			}
+		}
 	}
 
-	pendingEntries, err := s.repo.ListPendingOvertimeEntriesDetail(ctx, employeeID, monthStart, monthEnd)
+	pendingEntries, err := s.repo.ListPendingOvertimeEntriesDetail(ctx, employeeID, periodStart, periodEnd)
 	if err != nil {
 		s.logError(ctx, "GetMySalaryPage", "failed to list pending entries", err)
 		return nil, fmt.Errorf("failed to list pending entries: %w", err)
@@ -1515,6 +1549,8 @@ func (s *SalaryService) GetMySalaryPage(
 		EmployeeID:            employeeID,
 		EmployeeName:          strings.TrimSpace(employee.FirstName + " " + employee.LastName),
 		Month:                 monthStart,
+		PeriodStart:           periodStart,
+		PeriodEnd:             periodEnd,
 		ContractType:          employee.ContractType,
 		ContractRate:          employee.ContractRate,
 		ContractHours:         employee.ContractHours,
