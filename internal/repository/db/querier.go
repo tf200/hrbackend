@@ -246,6 +246,7 @@ type Querier interface {
 	ListMyOvertimeEntriesPaginated(ctx context.Context, arg ListMyOvertimeEntriesPaginatedParams) ([]ListMyOvertimeEntriesPaginatedRow, error)
 	ListMyPayoutRequestsPaginated(ctx context.Context, arg ListMyPayoutRequestsPaginatedParams) ([]ListMyPayoutRequestsPaginatedRow, error)
 	ListMyShiftSwapRequests(ctx context.Context, requesterEmployeeID uuid.UUID) ([]ListMyShiftSwapRequestsRow, error)
+	ListMyTrainingAssignmentsPaginated(ctx context.Context, arg ListMyTrainingAssignmentsPaginatedParams) ([]ListMyTrainingAssignmentsPaginatedRow, error)
 	ListNationalHolidaysInRange(ctx context.Context, arg ListNationalHolidaysInRangeParams) ([]ListNationalHolidaysInRangeRow, error)
 	ListNotificationUserIDsByEmployeeIDs(ctx context.Context, employeeIds []uuid.UUID) ([]uuid.UUID, error)
 	ListNotificationUserIDsByPermissions(ctx context.Context, permissionNames []string) ([]uuid.UUID, error)

@@ -117,6 +117,40 @@ AND (
 ORDER BY eta.assigned_at DESC, eta.id
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+-- name: ListMyTrainingAssignmentsPaginated :many
+SELECT
+    eta.id AS assignment_id,
+    eta.training_id,
+    tci.title AS training_title,
+    tci.category AS training_category,
+    eta.status::text AS status,
+    eta.assigned_at,
+    eta.due_at,
+    eta.started_at,
+    eta.completed_at,
+    eta.assigned_by_employee_id,
+    NULLIF(TRIM(CONCAT_WS(' ', assigner.first_name, assigner.last_name)), '')::text AS assigned_by_name,
+    CASE WHEN (
+        eta.due_at IS NOT NULL
+        AND eta.due_at < NOW()
+        AND eta.status NOT IN ('completed', 'cancelled')
+    ) THEN TRUE ELSE FALSE END AS is_overdue,
+    COUNT(*) OVER() AS total_count
+FROM employee_training_assignments eta
+JOIN training_catalog_items tci ON tci.id = eta.training_id
+LEFT JOIN employee_profile assigner ON assigner.id = eta.assigned_by_employee_id
+WHERE eta.employee_id = sqlc.arg('employee_id')::uuid
+AND (
+    sqlc.narg('training_id')::uuid IS NULL
+    OR eta.training_id = sqlc.narg('training_id')::uuid
+)
+AND (
+    (sqlc.narg('status_filter')::text IS NULL AND eta.status <> 'cancelled')
+    OR eta.status::text = sqlc.narg('status_filter')::text
+)
+ORDER BY eta.assigned_at DESC, eta.id
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
+
 -- name: ListTrainingCatalogItemsPaginated :many
 SELECT tci.*,
        COUNT(*) OVER() AS total_count

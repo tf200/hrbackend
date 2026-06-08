@@ -187,6 +187,105 @@ func (q *Queries) GetTrainingAssignmentByID(ctx context.Context, id uuid.UUID) (
 	return i, err
 }
 
+const listMyTrainingAssignmentsPaginated = `-- name: ListMyTrainingAssignmentsPaginated :many
+SELECT
+    eta.id AS assignment_id,
+    eta.training_id,
+    tci.title AS training_title,
+    tci.category AS training_category,
+    eta.status::text AS status,
+    eta.assigned_at,
+    eta.due_at,
+    eta.started_at,
+    eta.completed_at,
+    eta.assigned_by_employee_id,
+    NULLIF(TRIM(CONCAT_WS(' ', assigner.first_name, assigner.last_name)), '')::text AS assigned_by_name,
+    CASE WHEN (
+        eta.due_at IS NOT NULL
+        AND eta.due_at < NOW()
+        AND eta.status NOT IN ('completed', 'cancelled')
+    ) THEN TRUE ELSE FALSE END AS is_overdue,
+    COUNT(*) OVER() AS total_count
+FROM employee_training_assignments eta
+JOIN training_catalog_items tci ON tci.id = eta.training_id
+LEFT JOIN employee_profile assigner ON assigner.id = eta.assigned_by_employee_id
+WHERE eta.employee_id = $1::uuid
+AND (
+    $2::uuid IS NULL
+    OR eta.training_id = $2::uuid
+)
+AND (
+    ($3::text IS NULL AND eta.status <> 'cancelled')
+    OR eta.status::text = $3::text
+)
+ORDER BY eta.assigned_at DESC, eta.id
+LIMIT $5 OFFSET $4
+`
+
+type ListMyTrainingAssignmentsPaginatedParams struct {
+	EmployeeID   uuid.UUID  `json:"employee_id"`
+	TrainingID   *uuid.UUID `json:"training_id"`
+	StatusFilter *string    `json:"status_filter"`
+	Offset       int32      `json:"offset"`
+	Limit        int32      `json:"limit"`
+}
+
+type ListMyTrainingAssignmentsPaginatedRow struct {
+	AssignmentID         uuid.UUID          `json:"assignment_id"`
+	TrainingID           uuid.UUID          `json:"training_id"`
+	TrainingTitle        string             `json:"training_title"`
+	TrainingCategory     *string            `json:"training_category"`
+	Status               string             `json:"status"`
+	AssignedAt           pgtype.Timestamptz `json:"assigned_at"`
+	DueAt                pgtype.Timestamptz `json:"due_at"`
+	StartedAt            pgtype.Timestamptz `json:"started_at"`
+	CompletedAt          pgtype.Timestamptz `json:"completed_at"`
+	AssignedByEmployeeID *uuid.UUID         `json:"assigned_by_employee_id"`
+	AssignedByName       string             `json:"assigned_by_name"`
+	IsOverdue            bool               `json:"is_overdue"`
+	TotalCount           int64              `json:"total_count"`
+}
+
+func (q *Queries) ListMyTrainingAssignmentsPaginated(ctx context.Context, arg ListMyTrainingAssignmentsPaginatedParams) ([]ListMyTrainingAssignmentsPaginatedRow, error) {
+	rows, err := q.db.Query(ctx, listMyTrainingAssignmentsPaginated,
+		arg.EmployeeID,
+		arg.TrainingID,
+		arg.StatusFilter,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMyTrainingAssignmentsPaginatedRow{}
+	for rows.Next() {
+		var i ListMyTrainingAssignmentsPaginatedRow
+		if err := rows.Scan(
+			&i.AssignmentID,
+			&i.TrainingID,
+			&i.TrainingTitle,
+			&i.TrainingCategory,
+			&i.Status,
+			&i.AssignedAt,
+			&i.DueAt,
+			&i.StartedAt,
+			&i.CompletedAt,
+			&i.AssignedByEmployeeID,
+			&i.AssignedByName,
+			&i.IsOverdue,
+			&i.TotalCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTrainingAssignmentsPaginated = `-- name: ListTrainingAssignmentsPaginated :many
 SELECT
     eta.id AS assignment_id,

@@ -115,6 +115,45 @@ func (s *TrainingService) ListTrainingAssignments(
 	return page, nil
 }
 
+func (s *TrainingService) ListMyTrainingAssignments(
+	ctx context.Context,
+	params domain.ListMyTrainingAssignmentsParams,
+) (*domain.MyTrainingAssignmentPage, error) {
+	if params.EmployeeID == uuid.Nil {
+		return nil, domain.ErrTrainingInvalidRequest
+	}
+
+	if params.Status != nil {
+		normalized := strings.TrimSpace(strings.ToLower(*params.Status))
+		switch normalized {
+		case "":
+			params.Status = nil
+		case "assigned", "in_progress", "completed", "cancelled":
+			params.Status = &normalized
+		default:
+			return nil, domain.ErrTrainingInvalidRequest
+		}
+	}
+
+	page, err := s.repository.ListMyTrainingAssignments(ctx, params)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.LogError(
+				ctx,
+				"TrainingService.ListMyTrainingAssignments",
+				"failed to list employee's own training assignments",
+				err,
+				zap.String("employee_id", params.EmployeeID.String()),
+				zap.Int32("limit", params.Limit),
+				zap.Int32("offset", params.Offset),
+			)
+		}
+		return nil, err
+	}
+
+	return page, nil
+}
+
 func (s *TrainingService) CreateTrainingCatalogItem(
 	ctx context.Context,
 	params domain.CreateTrainingCatalogItemParams,

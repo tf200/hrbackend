@@ -135,6 +135,38 @@ func (h *TrainingHandler) ListTrainingAssignments(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Training assignments retrieved successfully"))
 }
 
+func (h *TrainingHandler) ListMyTrainingAssignments(ctx *gin.Context) {
+	var req listMyTrainingAssignmentsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	page, err := h.service.ListMyTrainingAssignments(
+		ctx.Request.Context(),
+		toListMyTrainingAssignmentsParams(req, employeeID),
+	)
+	if err != nil {
+		ctx.JSON(mapTrainingErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	results := make([]myTrainingAssignmentListItemResponse, len(page.Items))
+	for i, item := range page.Items {
+		results[i] = toMyTrainingAssignmentListItemResponse(item)
+	}
+
+	response := httpapi.NewPageResponse(ctx, req.PageRequest, results, page.TotalCount)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "My training assignments retrieved successfully"))
+}
+
+
 func (h *TrainingHandler) ListTrainingCatalogItems(ctx *gin.Context) {
 	var req listTrainingCatalogItemsRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {

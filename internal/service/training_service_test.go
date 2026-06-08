@@ -129,8 +129,9 @@ func TestTrainingServiceCancelTrainingAssignmentRejectsNilID(t *testing.T) {
 }
 
 type fakeTrainingRepository struct {
-	lastListTrainingAssignmentsParams  domain.ListTrainingAssignmentsParams
-	lastCancelTrainingAssignmentParams domain.CancelTrainingAssignmentParams
+	lastListTrainingAssignmentsParams   domain.ListTrainingAssignmentsParams
+	lastListMyTrainingAssignmentsParams domain.ListMyTrainingAssignmentsParams
+	lastCancelTrainingAssignmentParams  domain.CancelTrainingAssignmentParams
 }
 
 func (f *fakeTrainingRepository) AssignTrainingToEmployee(
@@ -152,6 +153,17 @@ func (f *fakeTrainingRepository) ListTrainingAssignments(
 	f.lastListTrainingAssignmentsParams = params
 	return &domain.TrainingAssignmentPage{
 		Items:      []domain.TrainingAssignmentListItem{},
+		TotalCount: 0,
+	}, nil
+}
+
+func (f *fakeTrainingRepository) ListMyTrainingAssignments(
+	_ context.Context,
+	params domain.ListMyTrainingAssignmentsParams,
+) (*domain.MyTrainingAssignmentPage, error) {
+	f.lastListMyTrainingAssignmentsParams = params
+	return &domain.MyTrainingAssignmentPage{
+		Items:      []domain.MyTrainingAssignmentListItem{},
 		TotalCount: 0,
 	}, nil
 }
@@ -186,6 +198,26 @@ func (f *fakeTrainingRepository) ListTrainingCatalogItems(
 	_ domain.ListTrainingCatalogItemsParams,
 ) (*domain.TrainingCatalogItemPage, error) {
 	return nil, nil
+}
+
+func TestTrainingServiceListMyTrainingAssignmentsFiltersByEmployeeID(t *testing.T) {
+	repo := &fakeTrainingRepository{}
+	svc := &TrainingService{repository: repo}
+
+	employeeID := uuid.New()
+
+	_, err := svc.ListMyTrainingAssignments(context.Background(), domain.ListMyTrainingAssignmentsParams{
+		Limit:      10,
+		Offset:     0,
+		EmployeeID: employeeID,
+	})
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if repo.lastListMyTrainingAssignmentsParams.EmployeeID != employeeID {
+		t.Fatalf("expected employee ID %v, got %v", employeeID, repo.lastListMyTrainingAssignmentsParams.EmployeeID)
+	}
 }
 
 var _ domain.TrainingRepository = (*fakeTrainingRepository)(nil)

@@ -129,6 +129,51 @@ func (r *TrainingRepository) ListTrainingAssignments(
 	return page, nil
 }
 
+func (r *TrainingRepository) ListMyTrainingAssignments(
+	ctx context.Context,
+	params domain.ListMyTrainingAssignmentsParams,
+) (*domain.MyTrainingAssignmentPage, error) {
+	rows, err := r.queries.ListMyTrainingAssignmentsPaginated(
+		ctx,
+		db.ListMyTrainingAssignmentsPaginatedParams{
+			EmployeeID:   params.EmployeeID,
+			TrainingID:   params.TrainingID,
+			StatusFilter: params.Status,
+			Limit:        params.Limit,
+			Offset:       params.Offset,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	page := &domain.MyTrainingAssignmentPage{
+		Items: make([]domain.MyTrainingAssignmentListItem, 0, len(rows)),
+	}
+	if len(rows) > 0 {
+		page.TotalCount = rows[0].TotalCount
+	}
+
+	for _, row := range rows {
+		page.Items = append(page.Items, domain.MyTrainingAssignmentListItem{
+			AssignmentID:         row.AssignmentID,
+			TrainingID:           row.TrainingID,
+			TrainingTitle:        row.TrainingTitle,
+			TrainingCategory:     row.TrainingCategory,
+			Status:               row.Status,
+			AssignedAt:           conv.TimeFromPgTimestamptz(row.AssignedAt),
+			DueAt:                timePtrFromPgTimestamptz(row.DueAt),
+			StartedAt:            timePtrFromPgTimestamptz(row.StartedAt),
+			CompletedAt:          timePtrFromPgTimestamptz(row.CompletedAt),
+			AssignedByEmployeeID: row.AssignedByEmployeeID,
+			AssignedByName:       ptr.TrimString(&row.AssignedByName),
+			IsOverdue:            row.IsOverdue,
+		})
+	}
+
+	return page, nil
+}
+
 func (r *TrainingRepository) CreateTrainingCatalogItem(
 	ctx context.Context,
 	params domain.CreateTrainingCatalogItemParams,

@@ -23,6 +23,12 @@ type listTrainingAssignmentsRequest struct {
 	Status         *string    `form:"status" binding:"omitempty,oneof=assigned in_progress completed cancelled"`
 }
 
+type listMyTrainingAssignmentsRequest struct {
+	httpapi.PageRequest
+	TrainingID *uuid.UUID `form:"training_id,parser=encoding.TextUnmarshaler"`
+	Status     *string    `form:"status" binding:"omitempty,oneof=assigned in_progress completed cancelled"`
+}
+
 type createTrainingCatalogItemRequest struct {
 	Title                    string  `json:"title" binding:"required"`
 	Description              *string `json:"description"`
@@ -78,6 +84,21 @@ type trainingAssignmentListItemResponse struct {
 	LastName             string     `json:"last_name"`
 	DepartmentID         *uuid.UUID `json:"department_id"`
 	DepartmentName       *string    `json:"department_name"`
+	TrainingID           uuid.UUID  `json:"training_id"`
+	TrainingTitle        string     `json:"training_title"`
+	TrainingCategory     *string    `json:"training_category"`
+	Status               string     `json:"status"`
+	AssignedAt           time.Time  `json:"assigned_at"`
+	DueAt                *time.Time `json:"due_at"`
+	StartedAt            *time.Time `json:"started_at"`
+	CompletedAt          *time.Time `json:"completed_at"`
+	AssignedByEmployeeID *uuid.UUID `json:"assigned_by_employee_id"`
+	AssignedByName       *string    `json:"assigned_by_name"`
+	IsOverdue            bool       `json:"is_overdue"`
+}
+
+type myTrainingAssignmentListItemResponse struct {
+	AssignmentID         uuid.UUID  `json:"assignment_id"`
 	TrainingID           uuid.UUID  `json:"training_id"`
 	TrainingTitle        string     `json:"training_title"`
 	TrainingCategory     *string    `json:"training_category"`
@@ -162,6 +183,20 @@ func toListTrainingAssignmentsParams(
 	}
 }
 
+func toListMyTrainingAssignmentsParams(
+	req listMyTrainingAssignmentsRequest,
+	employeeID uuid.UUID,
+) domain.ListMyTrainingAssignmentsParams {
+	params := req.Params()
+	return domain.ListMyTrainingAssignmentsParams{
+		Limit:      params.Limit,
+		Offset:     params.Offset,
+		TrainingID: req.TrainingID,
+		Status:     req.Status,
+		EmployeeID: employeeID,
+	}
+}
+
 func toTrainingCatalogItemResponse(item *domain.TrainingCatalogItem) trainingCatalogItemResponse {
 	return trainingCatalogItemResponse{
 		ID:                       item.ID,
@@ -215,6 +250,25 @@ func toTrainingAssignmentListItemResponse(
 		LastName:             item.LastName,
 		DepartmentID:         item.DepartmentID,
 		DepartmentName:       item.DepartmentName,
+		TrainingID:           item.TrainingID,
+		TrainingTitle:        item.TrainingTitle,
+		TrainingCategory:     item.TrainingCategory,
+		Status:               item.Status,
+		AssignedAt:           item.AssignedAt,
+		DueAt:                item.DueAt,
+		StartedAt:            item.StartedAt,
+		CompletedAt:          item.CompletedAt,
+		AssignedByEmployeeID: item.AssignedByEmployeeID,
+		AssignedByName:       item.AssignedByName,
+		IsOverdue:            item.IsOverdue,
+	}
+}
+
+func toMyTrainingAssignmentListItemResponse(
+	item domain.MyTrainingAssignmentListItem,
+) myTrainingAssignmentListItemResponse {
+	return myTrainingAssignmentListItemResponse{
+		AssignmentID:         item.AssignmentID,
 		TrainingID:           item.TrainingID,
 		TrainingTitle:        item.TrainingTitle,
 		TrainingCategory:     item.TrainingCategory,

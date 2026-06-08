@@ -74,11 +74,39 @@ type ListTrainingAssignmentsParams struct {
 	Status         *string
 }
 
+type ListMyTrainingAssignmentsParams struct {
+	EmployeeID uuid.UUID
+	Limit      int32
+	Offset     int32
+	TrainingID *uuid.UUID
+	Status     *string
+}
+
 type ListTrainingCatalogItemsParams struct {
 	Limit    int32
 	Offset   int32
 	Search   *string
 	IsActive *bool
+}
+
+type MyTrainingAssignmentListItem struct {
+	AssignmentID         uuid.UUID
+	TrainingID           uuid.UUID
+	TrainingTitle        string
+	TrainingCategory     *string
+	Status               string
+	AssignedAt           time.Time
+	DueAt                *time.Time
+	StartedAt            *time.Time
+	CompletedAt          *time.Time
+	AssignedByEmployeeID *uuid.UUID
+	AssignedByName       *string
+	IsOverdue            bool
+}
+
+type MyTrainingAssignmentPage struct {
+	Items      []MyTrainingAssignmentListItem
+	TotalCount int64
 }
 
 type TrainingAssignmentListItem struct {
@@ -126,6 +154,10 @@ type TrainingRepository interface {
 		ctx context.Context,
 		params ListTrainingAssignmentsParams,
 	) (*TrainingAssignmentPage, error)
+	ListMyTrainingAssignments(
+		ctx context.Context,
+		params ListMyTrainingAssignmentsParams,
+	) (*MyTrainingAssignmentPage, error)
 	CreateTrainingCatalogItem(
 		ctx context.Context,
 		params CreateTrainingCatalogItemParams,
@@ -149,6 +181,10 @@ type TrainingService interface {
 		ctx context.Context,
 		params ListTrainingAssignmentsParams,
 	) (*TrainingAssignmentPage, error)
+	ListMyTrainingAssignments(
+		ctx context.Context,
+		params ListMyTrainingAssignmentsParams,
+	) (*MyTrainingAssignmentPage, error)
 	CreateTrainingCatalogItem(
 		ctx context.Context,
 		params CreateTrainingCatalogItemParams,
