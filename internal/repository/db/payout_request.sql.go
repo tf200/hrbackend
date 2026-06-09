@@ -526,3 +526,56 @@ func (q *Queries) RejectPayoutRequest(ctx context.Context, arg RejectPayoutReque
 	)
 	return i, err
 }
+
+const updatePayoutRequest = `-- name: UpdatePayoutRequest :one
+UPDATE leave_payout_requests
+SET
+    requested_hours = $1,
+    balance_year = $2,
+    gross_amount = $3,
+    request_note = $4,
+    updated_at = NOW()
+WHERE id = $5
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, pay_period_start, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
+`
+
+type UpdatePayoutRequestParams struct {
+	RequestedHours int32     `json:"requested_hours"`
+	BalanceYear    int32     `json:"balance_year"`
+	GrossAmount    float64   `json:"gross_amount"`
+	RequestNote    *string   `json:"request_note"`
+	ID             uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdatePayoutRequest(ctx context.Context, arg UpdatePayoutRequestParams) (LeavePayoutRequest, error) {
+	row := q.db.QueryRow(ctx, updatePayoutRequest,
+		arg.RequestedHours,
+		arg.BalanceYear,
+		arg.GrossAmount,
+		arg.RequestNote,
+		arg.ID,
+	)
+	var i LeavePayoutRequest
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.CreatedByEmployeeID,
+		&i.RequestedHours,
+		&i.BalanceYear,
+		&i.HourlyRate,
+		&i.GrossAmount,
+		&i.PayPeriodStart,
+		&i.Status,
+		&i.RequestNote,
+		&i.DecisionNote,
+		&i.DecidedByEmployeeID,
+		&i.PaidByEmployeeID,
+		&i.PaidPeriodID,
+		&i.RequestedAt,
+		&i.DecidedAt,
+		&i.PaidAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

@@ -245,6 +245,28 @@ func (r *payoutTxRepo) MarkPayoutRequestPaid(
 	return &model, nil
 }
 
+func (r *payoutTxRepo) UpdatePayoutRequest(
+	ctx context.Context,
+	payoutRequestID uuid.UUID,
+	params domain.UpdatePayoutRequestTxParams,
+) (*domain.PayoutRequest, error) {
+	row, err := r.queries.UpdatePayoutRequest(ctx, db.UpdatePayoutRequestParams{
+		ID:             payoutRequestID,
+		RequestedHours: params.RequestedHours,
+		BalanceYear:    params.BalanceYear,
+		GrossAmount:    params.GrossAmount,
+		RequestNote:    params.RequestNote,
+	})
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrPayoutRequestNotFound
+		}
+		return nil, err
+	}
+	model := toDomainPayoutRequestFromRow(row)
+	return &model, nil
+}
+
 func toDomainPayoutRequestFromRow(row db.LeavePayoutRequest) domain.PayoutRequest {
 	return toDomainPayoutRequest(
 		row.ID,

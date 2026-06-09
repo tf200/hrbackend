@@ -34,6 +34,52 @@ func (s *PayoutService) CreatePayoutRequest(
 	return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
 }
 
+func (s *PayoutService) UpdatePayoutRequest(
+	ctx context.Context,
+	actorEmployeeID, payoutRequestID uuid.UUID,
+	params domain.UpdatePayoutRequestParams,
+) (*domain.PayoutRequest, error) {
+	if actorEmployeeID == uuid.Nil || payoutRequestID == uuid.Nil {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	var updated *domain.PayoutRequest
+	err := s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
+		current, err := tx.GetPayoutRequestForUpdate(ctx, payoutRequestID)
+		if err != nil {
+			return err
+		}
+
+		if current.EmployeeID != actorEmployeeID {
+			return domain.ErrPayoutRequestForbidden
+		}
+
+		if current.Status == domain.PayoutRequestStatusApproved ||
+			current.Status == domain.PayoutRequestStatusPaid {
+			return domain.ErrPayoutRequestStateInvalid
+		}
+
+		newGrossAmount := float64(params.RequestedHours) * current.HourlyRate
+
+		updated, err = tx.UpdatePayoutRequest(
+			ctx,
+			payoutRequestID,
+			domain.UpdatePayoutRequestTxParams{
+				RequestedHours: params.RequestedHours,
+				BalanceYear:    params.BalanceYear,
+				GrossAmount:    newGrossAmount,
+				RequestNote:    params.RequestNote,
+			},
+		)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
 func (s *PayoutService) CreateApprovedPayoutRequestByAdmin(
 	ctx context.Context,
 	adminEmployeeID uuid.UUID,
@@ -56,7 +102,10 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
 	if decision == "approve" {
-		return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
+		return nil, fmt.Errorf(
+			"%w: leave payout is unavailable",
+			domain.ErrPayoutRequestInvalidRequest,
+		)
 	}
 
 	var updated *domain.PayoutRequest

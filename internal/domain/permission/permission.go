@@ -167,6 +167,7 @@ var Payout = struct {
 		Create   Permission
 		Decide   Permission
 		MarkPaid Permission
+		Update   Permission
 		View     Permission
 		ViewAll  Permission
 	}
@@ -175,12 +176,14 @@ var Payout = struct {
 		Create   Permission
 		Decide   Permission
 		MarkPaid Permission
+		Update   Permission
 		View     Permission
 		ViewAll  Permission
 	}{
 		Create:   "PAYOUT.REQUEST.CREATE",
 		Decide:   "PAYOUT.REQUEST.DECIDE",
 		MarkPaid: "PAYOUT.REQUEST.MARK_PAID",
+		Update:   "PAYOUT.REQUEST.UPDATE",
 		View:     "PAYOUT.REQUEST.VIEW",
 		ViewAll:  "PAYOUT.REQUEST.VIEW_ALL",
 	},

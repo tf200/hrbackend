@@ -63,18 +63,31 @@ type CreatePayoutRequestParams struct {
 }
 
 type DecidePayoutRequestParams struct {
-	Decision     string
-	DecisionNote *string
-	PayPeriodStart  *time.Time
+	Decision       string
+	DecisionNote   *string
+	PayPeriodStart *time.Time
 }
 
 type CreatePayoutRequestByAdminParams struct {
 	EmployeeID     uuid.UUID
 	RequestedHours int32
 	BalanceYear    int32
-	PayPeriodStart    time.Time
+	PayPeriodStart time.Time
 	RequestNote    *string
 	DecisionNote   *string
+}
+
+type UpdatePayoutRequestParams struct {
+	RequestedHours int32
+	BalanceYear    int32
+	RequestNote    *string
+}
+
+type UpdatePayoutRequestTxParams struct {
+	RequestedHours int32
+	BalanceYear    int32
+	GrossAmount    float64
+	RequestNote    *string
 }
 
 type ListMyPayoutRequestsParams struct {
@@ -111,6 +124,11 @@ type PayoutTxRepository interface {
 		ctx context.Context,
 		payoutRequestID uuid.UUID,
 	) (*PayoutRequest, error)
+	UpdatePayoutRequest(
+		ctx context.Context,
+		payoutRequestID uuid.UUID,
+		params UpdatePayoutRequestTxParams,
+	) (*PayoutRequest, error)
 	ApprovePayoutRequest(
 		ctx context.Context,
 		payoutRequestID, decidedByEmployeeID uuid.UUID,
@@ -145,6 +163,11 @@ type PayoutService interface {
 		ctx context.Context,
 		actorEmployeeID uuid.UUID,
 		params CreatePayoutRequestParams,
+	) (*PayoutRequest, error)
+	UpdatePayoutRequest(
+		ctx context.Context,
+		actorEmployeeID, payoutRequestID uuid.UUID,
+		params UpdatePayoutRequestParams,
 	) (*PayoutRequest, error)
 	DecidePayoutRequestByAdmin(
 		ctx context.Context,

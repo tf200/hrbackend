@@ -49,6 +49,42 @@ func (h *PayoutHandler) CreatePayoutRequest(ctx *gin.Context) {
 	)
 }
 
+func (h *PayoutHandler) UpdatePayoutRequest(ctx *gin.Context) {
+	payoutRequestID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid payout request id", ""))
+		return
+	}
+
+	var req updatePayoutRequestRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	item, err := h.service.UpdatePayoutRequest(
+		ctx.Request.Context(),
+		employeeID,
+		payoutRequestID,
+		toUpdatePayoutRequestParams(req),
+	)
+	if err != nil {
+		ctx.JSON(mapPayoutErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPayoutRequestResponse(*item), "Payout request updated successfully"),
+	)
+}
+
 func (h *PayoutHandler) CreatePayoutRequestByAdmin(ctx *gin.Context) {
 	var req createPayoutRequestByAdminRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -80,7 +116,10 @@ func (h *PayoutHandler) CreatePayoutRequestByAdmin(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusCreated,
-		httpapi.OK(toPayoutRequestResponse(*item), "Payout request created and approved successfully"),
+		httpapi.OK(
+			toPayoutRequestResponse(*item),
+			"Payout request created and approved successfully",
+		),
 	)
 }
 

@@ -160,3 +160,14 @@ SET
     updated_at = NOW()
 WHERE id = sqlc.arg('id')
 RETURNING *;
+
+-- name: UpdatePayoutRequest :one
+UPDATE leave_payout_requests
+SET
+    requested_hours = sqlc.arg('requested_hours'),
+    balance_year = sqlc.arg('balance_year'),
+    gross_amount = sqlc.arg('gross_amount'),
+    request_note = sqlc.narg('request_note'),
+    updated_at = NOW()
+WHERE id = sqlc.arg('id')
+RETURNING *;

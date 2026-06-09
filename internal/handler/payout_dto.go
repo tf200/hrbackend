@@ -20,17 +20,23 @@ type createPayoutRequestRequest struct {
 	RequestNote    *string `json:"request_note"`
 }
 
+type updatePayoutRequestRequest struct {
+	RequestedHours int32   `json:"requested_hours" binding:"required,min=1"`
+	BalanceYear    int32   `json:"balance_year"    binding:"required,min=2000,max=2100"`
+	RequestNote    *string `json:"request_note"`
+}
+
 type createPayoutRequestByAdminRequest struct {
-	EmployeeID     uuid.UUID `json:"employee_id"     binding:"required"`
-	RequestedHours int32     `json:"requested_hours" binding:"required,min=1"`
-	BalanceYear    int32     `json:"balance_year"    binding:"required,min=2000,max=2100"`
+	EmployeeID     uuid.UUID `json:"employee_id"      binding:"required"`
+	RequestedHours int32     `json:"requested_hours"  binding:"required,min=1"`
+	BalanceYear    int32     `json:"balance_year"     binding:"required,min=2000,max=2100"`
 	PayPeriodStart string    `json:"pay_period_start" binding:"required,datetime=2006-01-02"`
 	RequestNote    *string   `json:"request_note"`
 	DecisionNote   *string   `json:"decision_note"`
 }
 
 type decidePayoutRequestByAdminRequest struct {
-	Decision       string  `json:"decision"      binding:"required,oneof=approve reject"`
+	Decision       string  `json:"decision"         binding:"required,oneof=approve reject"`
 	DecisionNote   *string `json:"decision_note"`
 	PayPeriodStart *string `json:"pay_period_start" binding:"omitempty,datetime=2006-01-02"`
 }
@@ -68,7 +74,10 @@ type payoutRequestResponse struct {
 	UpdatedAt           time.Time  `json:"updated_at"`
 }
 
-func toCreatePayoutRequestParams(employeeID uuid.UUID, req createPayoutRequestRequest) domain.CreatePayoutRequestParams {
+func toCreatePayoutRequestParams(
+	employeeID uuid.UUID,
+	req createPayoutRequestRequest,
+) domain.CreatePayoutRequestParams {
 	return domain.CreatePayoutRequestParams{
 		EmployeeID:          employeeID,
 		CreatedByEmployeeID: employeeID,
@@ -78,7 +87,17 @@ func toCreatePayoutRequestParams(employeeID uuid.UUID, req createPayoutRequestRe
 	}
 }
 
-func toCreatePayoutRequestByAdminParams(req createPayoutRequestByAdminRequest) (domain.CreatePayoutRequestByAdminParams, error) {
+func toUpdatePayoutRequestParams(req updatePayoutRequestRequest) domain.UpdatePayoutRequestParams {
+	return domain.UpdatePayoutRequestParams{
+		RequestedHours: req.RequestedHours,
+		BalanceYear:    req.BalanceYear,
+		RequestNote:    req.RequestNote,
+	}
+}
+
+func toCreatePayoutRequestByAdminParams(
+	req createPayoutRequestByAdminRequest,
+) (domain.CreatePayoutRequestByAdminParams, error) {
 	payPeriodStart, err := time.Parse(timeEntryDateLayout, req.PayPeriodStart)
 	if err != nil {
 		return domain.CreatePayoutRequestByAdminParams{}, err
@@ -94,7 +113,9 @@ func toCreatePayoutRequestByAdminParams(req createPayoutRequestByAdminRequest) (
 	}, nil
 }
 
-func toDecidePayoutRequestParams(req decidePayoutRequestByAdminRequest) (domain.DecidePayoutRequestParams, error) {
+func toDecidePayoutRequestParams(
+	req decidePayoutRequestByAdminRequest,
+) (domain.DecidePayoutRequestParams, error) {
 	params := domain.DecidePayoutRequestParams{
 		Decision:     req.Decision,
 		DecisionNote: req.DecisionNote,
@@ -109,7 +130,10 @@ func toDecidePayoutRequestParams(req decidePayoutRequestByAdminRequest) (domain.
 	return params, nil
 }
 
-func toListMyPayoutRequestsParams(employeeID uuid.UUID, req listMyPayoutRequestsRequest) domain.ListMyPayoutRequestsParams {
+func toListMyPayoutRequestsParams(
+	employeeID uuid.UUID,
+	req listMyPayoutRequestsRequest,
+) domain.ListMyPayoutRequestsParams {
 	return domain.ListMyPayoutRequestsParams{
 		EmployeeID: employeeID,
 		Limit:      req.PageSize,

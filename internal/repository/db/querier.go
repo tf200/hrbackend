@@ -349,6 +349,7 @@ type Querier interface {
 	UpdateOrganisation(ctx context.Context, arg UpdateOrganisationParams) (Organisation, error)
 	UpdateOvertimeEntryByAdmin(ctx context.Context, arg UpdateOvertimeEntryByAdminParams) (UpdateOvertimeEntryByAdminRow, error)
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
+	UpdatePayoutRequest(ctx context.Context, arg UpdatePayoutRequestParams) (LeavePayoutRequest, error)
 	UpdatePerformanceWorkAssignmentDecision(ctx context.Context, arg UpdatePerformanceWorkAssignmentDecisionParams) error
 	UpdateQualificationType(ctx context.Context, arg UpdateQualificationTypeParams) (Qualification, error)
 	UpdateSchedule(ctx context.Context, arg UpdateScheduleParams) (UpdateScheduleRow, error)
