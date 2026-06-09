@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"hrbackend/internal/domain"
 	"hrbackend/pkg/password"
@@ -620,7 +621,20 @@ func (s *EmployeeService) CreateContractAmendment(
 			return err
 		}
 
-		if _, err := tx.AddEmployeeContractAmendment(ctx, employeeID, contractID, params); err != nil {
+		newContractID, err := tx.AddEmployeeContractAmendment(ctx, employeeID, contractID, params)
+		if err != nil {
+			return err
+		}
+
+		if err := s.createSalaryForContractSegment(
+			ctx,
+			tx,
+			employeeID,
+			&contractID,
+			newContractID,
+			params.StartDate,
+			params.SalaryAssignment,
+		); err != nil {
 			return err
 		}
 
@@ -668,7 +682,20 @@ func (s *EmployeeService) CreateNewContract(
 			previousContractID = &overlapping.ID
 		}
 
-		if _, err := tx.AddNewContract(ctx, employeeID, previousContractID, params); err != nil {
+		newContractID, err := tx.AddNewContract(ctx, employeeID, previousContractID, params)
+		if err != nil {
+			return err
+		}
+
+		if err := s.createSalaryForContractSegment(
+			ctx,
+			tx,
+			employeeID,
+			previousContractID,
+			newContractID,
+			params.StartDate,
+			params.SalaryAssignment,
+		); err != nil {
 			return err
 		}
 
@@ -682,6 +709,55 @@ func (s *EmployeeService) CreateNewContract(
 		return nil, err
 	}
 	return emp, nil
+}
+
+func (s *EmployeeService) createSalaryForContractSegment(
+	ctx context.Context,
+	tx domain.EmployeeTxRepository,
+	employeeID uuid.UUID,
+	previousContractID *uuid.UUID,
+	newContractID uuid.UUID,
+	startDate time.Time,
+	requested *domain.CreateEmployeeSalaryAssignmentParams,
+) error {
+	var previousSalary *domain.EmployeeSalaryAssignmentInfo
+	if previousContractID != nil {
+		salary, err := tx.GetActiveEmployeeSalaryAssignment(
+			ctx,
+			employeeID,
+			previousContractID,
+			startDate,
+		)
+		if err != nil {
+			return err
+		}
+		previousSalary = salary
+	}
+
+	salaryScaleStepID := uuid.Nil
+	if requested != nil {
+		salaryScaleStepID = requested.SalaryScaleStepID
+	} else if previousSalary != nil {
+		salaryScaleStepID = previousSalary.SalaryScaleStepID
+	} else {
+		return fmt.Errorf(
+			"%w: salary assignment is required when no active previous salary exists",
+			domain.ErrContractChangeInvalid,
+		)
+	}
+
+	if previousSalary != nil {
+		if err := tx.EndEmployeeSalaryAssignment(ctx, previousSalary.ID, startDate); err != nil {
+			return err
+		}
+	}
+
+	params := domain.CreateEmployeeSalaryAssignmentParams{
+		SalaryScaleStepID: salaryScaleStepID,
+		EffectiveFrom:     &startDate,
+	}
+	_, err := tx.CreateEmployeeSalaryAssignment(ctx, employeeID, &newContractID, params)
+	return err
 }
 
 func (s *EmployeeService) ListEmployeeContracts(
@@ -711,6 +787,24 @@ func (s *EmployeeService) UpdateEmployeeContract(
 	}
 
 	return contract, nil
+}
+
+func (s *EmployeeService) UpdateEmployeeContractSalary(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	contractID uuid.UUID,
+	params domain.UpdateEmployeeContractSalaryParams,
+) (*domain.EmployeeSalaryAssignmentDetail, error) {
+	salary, err := s.repo.UpdateEmployeeContractSalary(ctx, employeeID, contractID, params)
+	if err != nil {
+		s.logError(ctx, "UpdateEmployeeContractSalary", err,
+			zap.String("contract_id", contractID.String()),
+			zap.String("employee_id", employeeID.String()),
+		)
+		return nil, err
+	}
+
+	return salary, nil
 }
 
 func (s *EmployeeService) logError(

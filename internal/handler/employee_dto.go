@@ -36,31 +36,37 @@ type updateContractRequest struct {
 	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
 }
 
+type updateContractSalaryRequest struct {
+	SalaryScaleStepID uuid.UUID `json:"salary_scale_step_id" binding:"required"`
+}
+
 type createContractRequest struct {
-	JobTitle             string     `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
-	DepartmentID         uuid.UUID  `json:"department_id"          binding:"required"`
-	LocationID           uuid.UUID  `json:"location_id"            binding:"required"`
-	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
-	ContractType         string     `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
-	StartDate            string     `json:"start_date"             binding:"required,datetime=2006-01-02"`
-	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
-	HoursPerWeek         *float64   `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        string     `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
-	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
+	JobTitle             string                                 `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID                              `json:"department_id"          binding:"required"`
+	LocationID           uuid.UUID                              `json:"location_id"            binding:"required"`
+	OrganizationalRoleID *uuid.UUID                             `json:"organizational_role_id"`
+	ContractType         string                                 `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
+	StartDate            string                                 `json:"start_date"             binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string                                `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64                               `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        string                                 `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
+	WageTaxTable         *string                                `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
+	SalaryAssignment     *createEmployeeSalaryAssignmentRequest `json:"salary_assignment,omitempty"`
 }
 
 type createContractAmendmentRequest struct {
-	JobTitle             string     `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
-	DepartmentID         uuid.UUID  `json:"department_id"          binding:"required"`
-	LocationID           uuid.UUID  `json:"location_id"            binding:"required"`
-	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
-	ContractType         string     `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
-	StartDate            string     `json:"start_date"             binding:"required,datetime=2006-01-02"`
-	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
-	HoursPerWeek         *float64   `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        string     `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
-	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
-	ChangeReason         *string    `json:"change_reason"`
+	JobTitle             string                                 `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID                              `json:"department_id"          binding:"required"`
+	LocationID           uuid.UUID                              `json:"location_id"            binding:"required"`
+	OrganizationalRoleID *uuid.UUID                             `json:"organizational_role_id"`
+	ContractType         string                                 `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
+	StartDate            string                                 `json:"start_date"             binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string                                `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64                               `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        string                                 `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
+	WageTaxTable         *string                                `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
+	ChangeReason         *string                                `json:"change_reason"`
+	SalaryAssignment     *createEmployeeSalaryAssignmentRequest `json:"salary_assignment,omitempty"`
 }
 
 type createEmployeeSalaryAssignmentRequest struct {
@@ -522,6 +528,7 @@ func toUpdateEmployeeContractParams(req updateContractRequest) domain.UpdateEmpl
 func toCreateNewContractParams(req createContractRequest) domain.CreateNewContractParams {
 	startDate, _ := parseDate(req.StartDate)
 	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
+	salaryAssignment := toOptionalContractSalaryAssignment(req.SalaryAssignment)
 
 	return domain.CreateNewContractParams{
 		JobTitle:             req.JobTitle,
@@ -534,6 +541,7 @@ func toCreateNewContractParams(req createContractRequest) domain.CreateNewContra
 		HoursPerWeek:         req.HoursPerWeek,
 		RosterFreeDay:        req.RosterFreeDay,
 		WageTaxTable:         req.WageTaxTable,
+		SalaryAssignment:     salaryAssignment,
 	}
 }
 
@@ -542,6 +550,7 @@ func toCreateContractAmendmentParams(
 ) domain.CreateContractAmendmentParams {
 	startDate, _ := parseDate(req.StartDate)
 	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
+	salaryAssignment := toOptionalContractSalaryAssignment(req.SalaryAssignment)
 
 	return domain.CreateContractAmendmentParams{
 		JobTitle:             req.JobTitle,
@@ -555,6 +564,18 @@ func toCreateContractAmendmentParams(
 		RosterFreeDay:        req.RosterFreeDay,
 		WageTaxTable:         req.WageTaxTable,
 		ChangeReason:         req.ChangeReason,
+		SalaryAssignment:     salaryAssignment,
+	}
+}
+
+func toOptionalContractSalaryAssignment(
+	req *createEmployeeSalaryAssignmentRequest,
+) *domain.CreateEmployeeSalaryAssignmentParams {
+	if req == nil {
+		return nil
+	}
+	return &domain.CreateEmployeeSalaryAssignmentParams{
+		SalaryScaleStepID: req.SalaryScaleStepID,
 	}
 }
 

@@ -625,8 +625,28 @@ SELECT
 FROM employee_salary_assignments esa
 JOIN cao_salary_scale_steps css ON css.id = esa.salary_scale_step_id
 JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+LEFT JOIN LATERAL (
+    SELECT ec.id
+    FROM employee_contracts ec
+    WHERE ec.employee_id = esa.employee_id
+      AND ec.start_date <= CURRENT_DATE
+      AND (ec.effective_end_date IS NULL OR ec.effective_end_date >= CURRENT_DATE)
+      AND (ec.contract_end_date IS NULL OR ec.contract_end_date >= CURRENT_DATE)
+    ORDER BY ec.start_date DESC, ec.created_at DESC
+    LIMIT 1
+) current_contract ON TRUE
 WHERE esa.employee_id = $1
-ORDER BY esa.effective_from DESC, esa.created_at DESC
+  AND esa.effective_from <= CURRENT_DATE
+  AND (esa.effective_to IS NULL OR esa.effective_to > CURRENT_DATE)
+  AND (
+      current_contract.id IS NULL
+      OR esa.contract_id IS NULL
+      OR esa.contract_id = current_contract.id
+  )
+ORDER BY
+    (esa.contract_id = current_contract.id) DESC,
+    esa.effective_from DESC,
+    esa.created_at DESC
 LIMIT 1
 `
 

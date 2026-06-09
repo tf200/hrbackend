@@ -63,3 +63,195 @@ func (q *Queries) CreateEmployeeSalaryAssignment(ctx context.Context, arg Create
 	)
 	return i, err
 }
+
+const endEmployeeSalaryAssignment = `-- name: EndEmployeeSalaryAssignment :exec
+UPDATE employee_salary_assignments
+SET
+    effective_to = $1::date,
+    updated_at = NOW()
+WHERE id = $2
+  AND (effective_to IS NULL OR effective_to > $1::date)
+`
+
+type EndEmployeeSalaryAssignmentParams struct {
+	EffectiveTo pgtype.Date `json:"effective_to"`
+	ID          uuid.UUID   `json:"id"`
+}
+
+func (q *Queries) EndEmployeeSalaryAssignment(ctx context.Context, arg EndEmployeeSalaryAssignmentParams) error {
+	_, err := q.db.Exec(ctx, endEmployeeSalaryAssignment, arg.EffectiveTo, arg.ID)
+	return err
+}
+
+const getActiveEmployeeSalaryAssignment = `-- name: GetActiveEmployeeSalaryAssignment :one
+SELECT
+    id,
+    contract_id,
+    salary_scale_step_id,
+    effective_from,
+    effective_to
+FROM employee_salary_assignments
+WHERE employee_id = $1
+  AND (
+      $2::uuid IS NULL
+      OR contract_id IS NULL
+      OR contract_id = $2::uuid
+  )
+  AND effective_from <= $3::date
+  AND (effective_to IS NULL OR effective_to > $3::date)
+ORDER BY
+    (contract_id = $2::uuid) DESC,
+    effective_from DESC,
+    created_at DESC
+LIMIT 1
+`
+
+type GetActiveEmployeeSalaryAssignmentParams struct {
+	EmployeeID uuid.UUID   `json:"employee_id"`
+	ContractID *uuid.UUID  `json:"contract_id"`
+	TargetDate pgtype.Date `json:"target_date"`
+}
+
+type GetActiveEmployeeSalaryAssignmentRow struct {
+	ID                uuid.UUID   `json:"id"`
+	ContractID        *uuid.UUID  `json:"contract_id"`
+	SalaryScaleStepID uuid.UUID   `json:"salary_scale_step_id"`
+	EffectiveFrom     pgtype.Date `json:"effective_from"`
+	EffectiveTo       pgtype.Date `json:"effective_to"`
+}
+
+func (q *Queries) GetActiveEmployeeSalaryAssignment(ctx context.Context, arg GetActiveEmployeeSalaryAssignmentParams) (GetActiveEmployeeSalaryAssignmentRow, error) {
+	row := q.db.QueryRow(ctx, getActiveEmployeeSalaryAssignment, arg.EmployeeID, arg.ContractID, arg.TargetDate)
+	var i GetActiveEmployeeSalaryAssignmentRow
+	err := row.Scan(
+		&i.ID,
+		&i.ContractID,
+		&i.SalaryScaleStepID,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+	)
+	return i, err
+}
+
+const getEmployeeSalaryAssignmentByContract = `-- name: GetEmployeeSalaryAssignmentByContract :one
+SELECT id, employee_id, contract_id, salary_scale_step_id, effective_from, effective_to, created_by_employee_id, created_at, updated_at
+FROM employee_salary_assignments
+WHERE employee_id = $1
+  AND contract_id = $2
+ORDER BY effective_from DESC, created_at DESC
+LIMIT 1
+`
+
+type GetEmployeeSalaryAssignmentByContractParams struct {
+	EmployeeID uuid.UUID  `json:"employee_id"`
+	ContractID *uuid.UUID `json:"contract_id"`
+}
+
+func (q *Queries) GetEmployeeSalaryAssignmentByContract(ctx context.Context, arg GetEmployeeSalaryAssignmentByContractParams) (EmployeeSalaryAssignment, error) {
+	row := q.db.QueryRow(ctx, getEmployeeSalaryAssignmentByContract, arg.EmployeeID, arg.ContractID)
+	var i EmployeeSalaryAssignment
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ContractID,
+		&i.SalaryScaleStepID,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+		&i.CreatedByEmployeeID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getEmployeeSalaryAssignmentDetailByID = `-- name: GetEmployeeSalaryAssignmentDetailByID :one
+SELECT
+    esa.id,
+    esa.contract_id,
+    esa.salary_scale_step_id,
+    cst.cao_code,
+    cst.name AS salary_table_name,
+    css.scale,
+    css.step,
+    css.ip_number,
+    css.monthly_salary,
+    css.hourly_rate,
+    esa.effective_from,
+    esa.effective_to,
+    esa.created_at,
+    esa.updated_at
+FROM employee_salary_assignments esa
+JOIN cao_salary_scale_steps css ON css.id = esa.salary_scale_step_id
+JOIN cao_salary_tables cst ON cst.id = css.salary_table_id
+WHERE esa.id = $1
+`
+
+type GetEmployeeSalaryAssignmentDetailByIDRow struct {
+	ID                uuid.UUID          `json:"id"`
+	ContractID        *uuid.UUID         `json:"contract_id"`
+	SalaryScaleStepID uuid.UUID          `json:"salary_scale_step_id"`
+	CaoCode           string             `json:"cao_code"`
+	SalaryTableName   string             `json:"salary_table_name"`
+	Scale             int32              `json:"scale"`
+	Step              string             `json:"step"`
+	IpNumber          *int32             `json:"ip_number"`
+	MonthlySalary     float64            `json:"monthly_salary"`
+	HourlyRate        float64            `json:"hourly_rate"`
+	EffectiveFrom     pgtype.Date        `json:"effective_from"`
+	EffectiveTo       pgtype.Date        `json:"effective_to"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetEmployeeSalaryAssignmentDetailByID(ctx context.Context, id uuid.UUID) (GetEmployeeSalaryAssignmentDetailByIDRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeeSalaryAssignmentDetailByID, id)
+	var i GetEmployeeSalaryAssignmentDetailByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.ContractID,
+		&i.SalaryScaleStepID,
+		&i.CaoCode,
+		&i.SalaryTableName,
+		&i.Scale,
+		&i.Step,
+		&i.IpNumber,
+		&i.MonthlySalary,
+		&i.HourlyRate,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateEmployeeSalaryAssignmentScaleStep = `-- name: UpdateEmployeeSalaryAssignmentScaleStep :one
+UPDATE employee_salary_assignments
+SET
+    salary_scale_step_id = $1,
+    updated_at = NOW()
+WHERE id = $2
+RETURNING id, employee_id, contract_id, salary_scale_step_id, effective_from, effective_to, created_by_employee_id, created_at, updated_at
+`
+
+type UpdateEmployeeSalaryAssignmentScaleStepParams struct {
+	SalaryScaleStepID uuid.UUID `json:"salary_scale_step_id"`
+	ID                uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateEmployeeSalaryAssignmentScaleStep(ctx context.Context, arg UpdateEmployeeSalaryAssignmentScaleStepParams) (EmployeeSalaryAssignment, error) {
+	row := q.db.QueryRow(ctx, updateEmployeeSalaryAssignmentScaleStep, arg.SalaryScaleStepID, arg.ID)
+	var i EmployeeSalaryAssignment
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.ContractID,
+		&i.SalaryScaleStepID,
+		&i.EffectiveFrom,
+		&i.EffectiveTo,
+		&i.CreatedByEmployeeID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

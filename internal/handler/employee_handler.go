@@ -280,6 +280,55 @@ func (h *EmployeeHandler) UpdateContract(ctx *gin.Context) {
 	)
 }
 
+func (h *EmployeeHandler) UpdateContractSalary(ctx *gin.Context) {
+	employeeID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid employee ID", ""))
+		return
+	}
+
+	contractID, err := uuid.Parse(ctx.Param("contract_id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid contract ID", ""))
+		return
+	}
+
+	var req updateContractSalaryRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	salary, err := h.service.UpdateEmployeeContractSalary(
+		ctx.Request.Context(),
+		employeeID,
+		contractID,
+		domain.UpdateEmployeeContractSalaryParams{
+			SalaryScaleStepID: req.SalaryScaleStepID,
+		},
+	)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		if errors.Is(err, domain.ErrContractChangeInvalid) {
+			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update contract salary", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toEmployeeSalaryAssignmentDetailResponse(salary),
+			"Contract salary updated successfully",
+		),
+	)
+}
+
 func (h *EmployeeHandler) CreateContractAmendment(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

@@ -111,11 +111,13 @@ type Querier interface {
 	DeleteUserPermissionOverrides(ctx context.Context, userID uuid.UUID) error
 	Enable2Fa(ctx context.Context, arg Enable2FaParams) (int64, error)
 	EndEmployeeContractSegment(ctx context.Context, arg EndEmployeeContractSegmentParams) (EmployeeContract, error)
+	EndEmployeeSalaryAssignment(ctx context.Context, arg EndEmployeeSalaryAssignmentParams) error
 	ExpirePendingShiftSwapRequests(ctx context.Context) error
 	GetActiveEmployeeContract(ctx context.Context, employeeID uuid.UUID) (EmployeeContract, error)
 	GetActiveEmployeeContractDetail(ctx context.Context, employeeID uuid.UUID) (GetActiveEmployeeContractDetailRow, error)
 	GetActiveEmployeeHandbookByEmployeeID(ctx context.Context, employeeID uuid.UUID) (GetActiveEmployeeHandbookByEmployeeIDRow, error)
 	GetActiveEmployeeNameForPerformance(ctx context.Context, id uuid.UUID) (GetActiveEmployeeNameForPerformanceRow, error)
+	GetActiveEmployeeSalaryAssignment(ctx context.Context, arg GetActiveEmployeeSalaryAssignmentParams) (GetActiveEmployeeSalaryAssignmentRow, error)
 	GetActiveHandbookTemplateByDepartment(ctx context.Context, departmentID uuid.UUID) (HandbookTemplate, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType LeaveRequestTypeEnum) (LeavePolicy, error)
 	GetActivePerformanceQuestion(ctx context.Context, code string) (GetActivePerformanceQuestionRow, error)
@@ -140,6 +142,8 @@ type Querier interface {
 	GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (GetEmployeePayoutContractRow, error)
 	GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByIDRow, error)
 	GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByUserIDRow, error)
+	GetEmployeeSalaryAssignmentByContract(ctx context.Context, arg GetEmployeeSalaryAssignmentByContractParams) (EmployeeSalaryAssignment, error)
+	GetEmployeeSalaryAssignmentDetailByID(ctx context.Context, id uuid.UUID) (GetEmployeeSalaryAssignmentDetailByIDRow, error)
 	GetEmployeeScheduleManager(ctx context.Context, employeeID uuid.UUID) (GetEmployeeScheduleManagerRow, error)
 	GetEmployeeSchedules(ctx context.Context, arg GetEmployeeSchedulesParams) ([]GetEmployeeSchedulesRow, error)
 	GetEmployeeSchedulesByDay(ctx context.Context, arg GetEmployeeSchedulesByDayParams) ([]GetEmployeeSchedulesByDayRow, error)
@@ -339,6 +343,7 @@ type Querier interface {
 	UpdateEmployeeExperience(ctx context.Context, arg UpdateEmployeeExperienceParams) (EmployeeExperience, error)
 	UpdateEmployeeProfile(ctx context.Context, arg UpdateEmployeeProfileParams) (EmployeeProfile, error)
 	UpdateEmployeeQualification(ctx context.Context, arg UpdateEmployeeQualificationParams) (EmployeeQualification, error)
+	UpdateEmployeeSalaryAssignmentScaleStep(ctx context.Context, arg UpdateEmployeeSalaryAssignmentScaleStepParams) (EmployeeSalaryAssignment, error)
 	UpdateExpenseRequestEditableFields(ctx context.Context, arg UpdateExpenseRequestEditableFieldsParams) (ExpenseRequest, error)
 	UpdateHandbookStepByID(ctx context.Context, arg UpdateHandbookStepByIDParams) (HandbookStep, error)
 	UpdateHandbookStepSortOrder(ctx context.Context, arg UpdateHandbookStepSortOrderParams) error

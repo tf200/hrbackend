@@ -152,6 +152,12 @@ func RegisterEmployeeRoutes(
 		requirePermission(permission.Employee.Update),
 		handler.UpdateContract,
 	)
+	rg.PUT(
+		"/employees/:id/contracts/:contract_id/salary",
+		auth,
+		requirePermission(permission.Employee.Update),
+		handler.UpdateContractSalary,
+	)
 	rg.POST(
 		"/employees/:id/contracts/:contract_id/amendments",
 		auth,

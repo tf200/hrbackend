@@ -156,6 +156,14 @@ type EmployeeSalaryAssignmentDetail struct {
 	UpdatedAt         time.Time
 }
 
+type EmployeeSalaryAssignmentInfo struct {
+	ID                uuid.UUID
+	ContractID        *uuid.UUID
+	SalaryScaleStepID uuid.UUID
+	EffectiveFrom     time.Time
+	EffectiveTo       *time.Time
+}
+
 // Portal access types for frontend routing.
 const (
 	PortalAccessAdmin    = "admin"
@@ -307,6 +315,7 @@ type CreateNewContractParams struct {
 	HoursPerWeek         *float64
 	RosterFreeDay        string
 	WageTaxTable         *string
+	SalaryAssignment     *CreateEmployeeSalaryAssignmentParams
 }
 
 type UpdateEmployeeContractParams struct {
@@ -322,6 +331,10 @@ type UpdateEmployeeContractParams struct {
 	WageTaxTable         *string    `json:"wage_tax_table"`
 }
 
+type UpdateEmployeeContractSalaryParams struct {
+	SalaryScaleStepID uuid.UUID
+}
+
 type CreateContractAmendmentParams struct {
 	JobTitle             string
 	DepartmentID         uuid.UUID
@@ -334,6 +347,7 @@ type CreateContractAmendmentParams struct {
 	RosterFreeDay        string
 	WageTaxTable         *string
 	ChangeReason         *string
+	SalaryAssignment     *CreateEmployeeSalaryAssignmentParams
 }
 
 type CreateEmployeeSalaryAssignmentParams struct {
@@ -489,6 +503,17 @@ type EmployeeTxRepository interface {
 		contractID *uuid.UUID,
 		params CreateEmployeeSalaryAssignmentParams,
 	) (uuid.UUID, error)
+	GetActiveEmployeeSalaryAssignment(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		contractID *uuid.UUID,
+		targetDate time.Time,
+	) (*EmployeeSalaryAssignmentInfo, error)
+	EndEmployeeSalaryAssignment(
+		ctx context.Context,
+		assignmentID uuid.UUID,
+		effectiveTo time.Time,
+	) error
 	GetEmployeeByID(ctx context.Context, id uuid.UUID) (*EmployeeDetail, error)
 	LinkEmployeeAttachments(
 		ctx context.Context,
@@ -638,6 +663,11 @@ type EmployeeRepository interface {
 		employeeID, contractID uuid.UUID,
 		params UpdateEmployeeContractParams,
 	) (*EmployeeContractDetail, error)
+	UpdateEmployeeContractSalary(
+		ctx context.Context,
+		employeeID, contractID uuid.UUID,
+		params UpdateEmployeeContractSalaryParams,
+	) (*EmployeeSalaryAssignmentDetail, error)
 }
 
 type EmployeeService interface {
@@ -744,4 +774,10 @@ type EmployeeService interface {
 		contractID uuid.UUID,
 		params UpdateEmployeeContractParams,
 	) (*EmployeeContractDetail, error)
+	UpdateEmployeeContractSalary(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		contractID uuid.UUID,
+		params UpdateEmployeeContractSalaryParams,
+	) (*EmployeeSalaryAssignmentDetail, error)
 }

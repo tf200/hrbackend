@@ -139,6 +139,50 @@ func (tx *employeeTxRepo) CreateEmployeeSalaryAssignment(
 	return salary.ID, nil
 }
 
+func (tx *employeeTxRepo) GetActiveEmployeeSalaryAssignment(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	contractID *uuid.UUID,
+	targetDate time.Time,
+) (*domain.EmployeeSalaryAssignmentInfo, error) {
+	row, err := tx.queries.GetActiveEmployeeSalaryAssignment(
+		ctx,
+		db.GetActiveEmployeeSalaryAssignmentParams{
+			EmployeeID: employeeID,
+			ContractID: contractID,
+			TargetDate: conv.PgDateFromTime(targetDate),
+		},
+	)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &domain.EmployeeSalaryAssignmentInfo{
+		ID:                row.ID,
+		ContractID:        row.ContractID,
+		SalaryScaleStepID: row.SalaryScaleStepID,
+		EffectiveFrom:     row.EffectiveFrom.Time,
+		EffectiveTo:       conv.TimePtrFromPgDate(row.EffectiveTo),
+	}, nil
+}
+
+func (tx *employeeTxRepo) EndEmployeeSalaryAssignment(
+	ctx context.Context,
+	assignmentID uuid.UUID,
+	effectiveTo time.Time,
+) error {
+	return tx.queries.EndEmployeeSalaryAssignment(
+		ctx,
+		db.EndEmployeeSalaryAssignmentParams{
+			ID:          assignmentID,
+			EffectiveTo: conv.PgDateFromTime(effectiveTo),
+		},
+	)
+}
+
 func (tx *employeeTxRepo) GetEmployeeByID(
 	ctx context.Context,
 	id uuid.UUID,
@@ -1023,6 +1067,27 @@ func applyEmployeeSalaryAssignmentDetail(
 	}
 }
 
+func toDomainSalaryAssignmentDetail(
+	row db.GetEmployeeSalaryAssignmentDetailByIDRow,
+) *domain.EmployeeSalaryAssignmentDetail {
+	return &domain.EmployeeSalaryAssignmentDetail{
+		ID:                row.ID,
+		ContractID:        row.ContractID,
+		SalaryScaleStepID: row.SalaryScaleStepID,
+		CAOCode:           row.CaoCode,
+		SalaryTableName:   row.SalaryTableName,
+		Scale:             row.Scale,
+		Step:              row.Step,
+		IPNumber:          row.IpNumber,
+		MonthlySalary:     row.MonthlySalary,
+		HourlyRate:        row.HourlyRate,
+		EffectiveFrom:     conv.TimeFromPgDate(row.EffectiveFrom),
+		EffectiveTo:       conv.TimePtrFromPgDate(row.EffectiveTo),
+		CreatedAt:         conv.TimeFromPgTimestamptz(row.CreatedAt),
+		UpdatedAt:         conv.TimeFromPgTimestamptz(row.UpdatedAt),
+	}
+}
+
 func applyEmployeeDetailStats(
 	employee *domain.EmployeeDetail,
 	stats db.GetEmployeeDetailStatsRow,
@@ -1476,6 +1541,75 @@ func (r *EmployeeRepository) UpdateEmployeeContract(
 	}
 	detail := toDomainContractDetailFromRow(row)
 	return &detail, nil
+}
+
+func (r *EmployeeRepository) UpdateEmployeeContractSalary(
+	ctx context.Context,
+	employeeID, contractID uuid.UUID,
+	params domain.UpdateEmployeeContractSalaryParams,
+) (*domain.EmployeeSalaryAssignmentDetail, error) {
+	var salaryID uuid.UUID
+	err := r.store.ExecTx(ctx, func(q *db.Queries) error {
+		contract, err := q.GetEmployeeContractByID(ctx, contractID)
+		if err != nil {
+			if isDBNotFound(err) {
+				return domain.ErrEmployeeNotFound
+			}
+			return err
+		}
+		if contract.EmployeeID != employeeID {
+			return domain.ErrContractChangeInvalid
+		}
+
+		salary, err := q.GetEmployeeSalaryAssignmentByContract(
+			ctx,
+			db.GetEmployeeSalaryAssignmentByContractParams{
+				EmployeeID: employeeID,
+				ContractID: &contractID,
+			},
+		)
+		if err != nil {
+			if !isDBNotFound(err) {
+				return err
+			}
+			salary, err = q.CreateEmployeeSalaryAssignment(
+				ctx,
+				db.CreateEmployeeSalaryAssignmentParams{
+					EmployeeID:        employeeID,
+					ContractID:        &contractID,
+					SalaryScaleStepID: params.SalaryScaleStepID,
+					EffectiveFrom:     contract.StartDate,
+				},
+			)
+			if err != nil {
+				return err
+			}
+			salaryID = salary.ID
+			return nil
+		}
+
+		salary, err = q.UpdateEmployeeSalaryAssignmentScaleStep(
+			ctx,
+			db.UpdateEmployeeSalaryAssignmentScaleStepParams{
+				ID:                salary.ID,
+				SalaryScaleStepID: params.SalaryScaleStepID,
+			},
+		)
+		if err != nil {
+			return err
+		}
+		salaryID = salary.ID
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := r.store.GetEmployeeSalaryAssignmentDetailByID(ctx, salaryID)
+	if err != nil {
+		return nil, err
+	}
+	return toDomainSalaryAssignmentDetail(row), nil
 }
 
 func (tx *employeeTxRepo) AddEmployeeContractAmendment(
