@@ -162,11 +162,18 @@ type CreateNotificationsParams struct {
 }
 
 type NotificationRepository interface {
-	CreateNotifications(ctx context.Context, params CreateNotificationsParams) ([]Notification, error)
+	CreateNotifications(
+		ctx context.Context,
+		params CreateNotificationsParams,
+	) ([]Notification, error)
 	ListUserIDsByEmployeeIDs(ctx context.Context, employeeIDs []uuid.UUID) ([]uuid.UUID, error)
 	ListUserIDsByRoles(ctx context.Context, roleNames []string) ([]uuid.UUID, error)
 	ListUserIDsByPermissions(ctx context.Context, permissionNames []string) ([]uuid.UUID, error)
-	ListNotifications(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]Notification, error)
+	ListNotifications(
+		ctx context.Context,
+		userID uuid.UUID,
+		limit, offset int32,
+	) ([]Notification, error)
 	CountNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
 	MarkNotificationRead(ctx context.Context, id, userID uuid.UUID) error
@@ -179,7 +186,11 @@ type RealtimeSender interface {
 
 type NotificationService interface {
 	Notify(ctx context.Context, req NotificationRequest)
-	ListNotifications(ctx context.Context, userID uuid.UUID, page, pageSize int32) ([]Notification, int64, error)
+	ListNotifications(
+		ctx context.Context,
+		userID uuid.UUID,
+		page, pageSize int32,
+	) ([]Notification, int64, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	MarkAsRead(ctx context.Context, id, userID uuid.UUID) error
 	MarkAllAsRead(ctx context.Context, userID uuid.UUID) error

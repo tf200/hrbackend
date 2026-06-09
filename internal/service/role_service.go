@@ -40,7 +40,9 @@ func (s *RoleService) ListRoles(ctx context.Context) ([]domain.RoleSummary, erro
 	return items, nil
 }
 
-func (s *RoleService) ListAllPermissions(ctx context.Context) ([]domain.PermissionCatalogGroup, error) {
+func (s *RoleService) ListAllPermissions(
+	ctx context.Context,
+) ([]domain.PermissionCatalogGroup, error) {
 	permissions, err := s.repository.ListAllPermissions(ctx)
 	if err != nil {
 		if s.logger != nil {

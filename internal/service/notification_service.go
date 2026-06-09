@@ -71,7 +71,12 @@ func (s *NotificationService) worker(ctx context.Context, req domain.Notificatio
 	userIDs, err := s.resolveRecipients(workerCtx, req.Recipients)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(workerCtx, "NotificationService.worker", "failed to resolve recipients", err)
+			s.logger.LogError(
+				workerCtx,
+				"NotificationService.worker",
+				"failed to resolve recipients",
+				err,
+			)
 		}
 		return
 	}
@@ -88,21 +93,34 @@ func (s *NotificationService) worker(ctx context.Context, req domain.Notificatio
 	dataJSON, err := json.Marshal(req.Data)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(workerCtx, "NotificationService.worker", "failed to marshal notification data", err)
+			s.logger.LogError(
+				workerCtx,
+				"NotificationService.worker",
+				"failed to marshal notification data",
+				err,
+			)
 		}
 		return
 	}
 
-	notifications, err := s.repository.CreateNotifications(workerCtx, domain.CreateNotificationsParams{
-		UserIDs:   userIDs,
-		Type:      req.Data.NotificationType(),
-		Message:   req.Message,
-		Data:      dataJSON,
-		CreatedAt: *now,
-	})
+	notifications, err := s.repository.CreateNotifications(
+		workerCtx,
+		domain.CreateNotificationsParams{
+			UserIDs:   userIDs,
+			Type:      req.Data.NotificationType(),
+			Message:   req.Message,
+			Data:      dataJSON,
+			CreatedAt: *now,
+		},
+	)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(workerCtx, "NotificationService.worker", "failed to create notifications", err)
+			s.logger.LogError(
+				workerCtx,
+				"NotificationService.worker",
+				"failed to create notifications",
+				err,
+			)
 		}
 		return
 	}
@@ -116,7 +134,11 @@ func (s *NotificationService) worker(ctx context.Context, req domain.Notificatio
 	wg.Wait()
 }
 
-func (s *NotificationService) deliver(ctx context.Context, n domain.Notification, wg *sync.WaitGroup) {
+func (s *NotificationService) deliver(
+	ctx context.Context,
+	n domain.Notification,
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
 
 	payload, err := ws.MarshalEvent(ws.EventNotificationCreated, n)

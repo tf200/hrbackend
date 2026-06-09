@@ -31,7 +31,9 @@ func (s DepartmentHeadsSeeder) Seed(ctx context.Context, env Env) error {
 		departmentAlias := strings.TrimSpace(item.DepartmentAlias)
 		employeeAlias := strings.TrimSpace(item.EmployeeAlias)
 		if departmentAlias == "" || employeeAlias == "" {
-			return fmt.Errorf("seed department_heads: department alias and employee alias are required")
+			return fmt.Errorf(
+				"seed department_heads: department alias and employee alias are required",
+			)
 		}
 
 		departmentID, ok := env.State.DepartmentID(departmentAlias)

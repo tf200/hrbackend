@@ -100,11 +100,15 @@ func (s HandbooksSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("inspect existing draft templates: %w", err)
 		}
 		if template == nil {
-			template, err = handbookService.CreateTemplateForDepartment(ctx, actorEmployeeID, domain.CreateTemplateForDepartmentParams{
-				DepartmentID: departmentID,
-				Title:        item.Title,
-				Description:  item.Description,
-			})
+			template, err = handbookService.CreateTemplateForDepartment(
+				ctx,
+				actorEmployeeID,
+				domain.CreateTemplateForDepartmentParams{
+					DepartmentID: departmentID,
+					Title:        item.Title,
+					Description:  item.Description,
+				},
+			)
 			if err != nil {
 				return fmt.Errorf("create draft template: %w", err)
 			}
@@ -130,9 +134,13 @@ func (s HandbooksSeeder) Seed(ctx context.Context, env Env) error {
 			}
 		}
 
-		published, err := handbookService.PublishTemplate(ctx, actorEmployeeID, domain.PublishTemplateParams{
-			TemplateID: template.ID,
-		})
+		published, err := handbookService.PublishTemplate(
+			ctx,
+			actorEmployeeID,
+			domain.PublishTemplateParams{
+				TemplateID: template.ID,
+			},
+		)
 		if err != nil {
 			return fmt.Errorf("publish template: %w", err)
 		}
@@ -150,7 +158,10 @@ func resolveOptionalHandbookActor(env Env, item HandbookTemplateSeed) (uuid.UUID
 
 	employeeID, ok := env.State.EmployeeID(strings.TrimSpace(*item.ActorEmployeeAlias))
 	if !ok {
-		return uuid.Nil, fmt.Errorf("missing actor employee alias %q in seed state", strings.TrimSpace(*item.ActorEmployeeAlias))
+		return uuid.Nil, fmt.Errorf(
+			"missing actor employee alias %q in seed state",
+			strings.TrimSpace(*item.ActorEmployeeAlias),
+		)
 	}
 	return employeeID, nil
 }
@@ -166,7 +177,10 @@ func findPublishedTemplate(items []domain.HandbookTemplate, title string) *domai
 	return nil
 }
 
-func findDraftTemplate(items []domain.HandbookTemplate, title string) (*domain.HandbookTemplate, error) {
+func findDraftTemplate(
+	items []domain.HandbookTemplate,
+	title string,
+) (*domain.HandbookTemplate, error) {
 	normalizedTitle := strings.TrimSpace(title)
 	var draftCount int
 	for _, item := range items {

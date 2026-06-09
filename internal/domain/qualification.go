@@ -27,12 +27,26 @@ type CreateQualificationTypeParams struct {
 
 type QualificationTypeRepository interface {
 	ListQualificationTypes(ctx context.Context) ([]QualificationType, error)
-	CreateQualificationType(ctx context.Context, params CreateQualificationTypeParams) (*QualificationType, error)
-	UpdateQualificationType(ctx context.Context, id uuid.UUID, params CreateQualificationTypeParams) (*QualificationType, error)
+	CreateQualificationType(
+		ctx context.Context,
+		params CreateQualificationTypeParams,
+	) (*QualificationType, error)
+	UpdateQualificationType(
+		ctx context.Context,
+		id uuid.UUID,
+		params CreateQualificationTypeParams,
+	) (*QualificationType, error)
 }
 
 type QualificationTypeService interface {
 	ListQualificationTypes(ctx context.Context) ([]QualificationType, error)
-	CreateQualificationType(ctx context.Context, params CreateQualificationTypeParams) (*QualificationType, error)
-	UpdateQualificationType(ctx context.Context, id uuid.UUID, params CreateQualificationTypeParams) (*QualificationType, error)
+	CreateQualificationType(
+		ctx context.Context,
+		params CreateQualificationTypeParams,
+	) (*QualificationType, error)
+	UpdateQualificationType(
+		ctx context.Context,
+		id uuid.UUID,
+		params CreateQualificationTypeParams,
+	) (*QualificationType, error)
 }

@@ -45,8 +45,10 @@ var (
 	ErrSalaryInvalidRequest   = errors.New("invalid salary request")
 	ErrPayPeriodNotFound      = errors.New("pay period not found")
 	ErrPayPeriodStateInvalid  = errors.New("pay period is not in a valid state for this operation")
-	ErrPayPeriodAlreadyExists = errors.New("pay period already exists for this employee and date range")
-	ErrPayPeriodNoEntries     = errors.New("no eligible time entries found for pay period")
+	ErrPayPeriodAlreadyExists = errors.New(
+		"pay period already exists for this employee and date range",
+	)
+	ErrPayPeriodNoEntries = errors.New("no eligible time entries found for pay period")
 )
 
 const (
@@ -718,11 +720,17 @@ type SalaryRepository interface {
 		employeeID uuid.UUID,
 		salaryMonth time.Time,
 	) ([]PayoutRequest, error)
-	ListSalaryScaleSteps(ctx context.Context, params ListSalaryScaleStepsParams) (*SalaryScaleStepsResult, error)
+	ListSalaryScaleSteps(
+		ctx context.Context,
+		params ListSalaryScaleStepsParams,
+	) (*SalaryScaleStepsResult, error)
 }
 
 type SalaryService interface {
-	ListSalaryScaleSteps(ctx context.Context, params ListSalaryScaleStepsParams) (*SalaryScaleStepsResult, error)
+	ListSalaryScaleSteps(
+		ctx context.Context,
+		params ListSalaryScaleStepsParams,
+	) (*SalaryScaleStepsResult, error)
 	PreviewPayroll(ctx context.Context, params PayrollPreviewParams) (*PayrollPreview, error)
 	PreviewMyPayroll(
 		ctx context.Context,

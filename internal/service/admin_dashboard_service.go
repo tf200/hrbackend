@@ -54,10 +54,17 @@ func (s *AdminDashboardService) ListRecentEmployees(
 	return page, nil
 }
 
-func (s *AdminDashboardService) GetFullTimeEmployeeBreakdowns(ctx context.Context) (*domain.FullTimeEmployeeBreakdowns, error) {
+func (s *AdminDashboardService) GetFullTimeEmployeeBreakdowns(
+	ctx context.Context,
+) (*domain.FullTimeEmployeeBreakdowns, error) {
 	breakdowns, err := s.repo.GetFullTimeEmployeeBreakdowns(ctx)
 	if err != nil {
-		s.logger.LogError(ctx, "AdminDashboardService", "failed to get full-time employee breakdowns", err)
+		s.logger.LogError(
+			ctx,
+			"AdminDashboardService",
+			"failed to get full-time employee breakdowns",
+			err,
+		)
 		return nil, err
 	}
 	return breakdowns, nil
@@ -82,7 +89,10 @@ func (s *AdminDashboardService) GetLeaveAbsenceTrends(
 			y = *params.Year
 		}
 		if y < 1 {
-			return nil, fmt.Errorf("%w: year must be greater than 0", domain.ErrAdminDashboardInvalidRequest)
+			return nil, fmt.Errorf(
+				"%w: year must be greater than 0",
+				domain.ErrAdminDashboardInvalidRequest,
+			)
 		}
 		year = &y
 		fromDate = time.Date(int(y), time.January, 1, 0, 0, 0, 0, time.UTC)
@@ -118,7 +128,10 @@ func (s *AdminDashboardService) GetUpcomingDashboardAlerts(
 		params.Days = defaultDashboardAlertDays
 	}
 	if params.Days < 0 {
-		return nil, fmt.Errorf("%w: days must be greater than 0", domain.ErrAdminDashboardInvalidRequest)
+		return nil, fmt.Errorf(
+			"%w: days must be greater than 0",
+			domain.ErrAdminDashboardInvalidRequest,
+		)
 	}
 
 	if params.Limit <= 0 {
@@ -129,7 +142,8 @@ func (s *AdminDashboardService) GetUpcomingDashboardAlerts(
 	}
 
 	now := time.Now()
-	toDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, int(params.Days))
+	toDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).
+		AddDate(0, 0, int(params.Days))
 	listParams := domain.ListUpcomingDashboardAlertsParams{
 		ToDate: toDate,
 		Limit:  params.Limit,
@@ -137,19 +151,34 @@ func (s *AdminDashboardService) GetUpcomingDashboardAlerts(
 
 	endingContracts, err := s.repo.ListEndingContractAlerts(ctx, listParams)
 	if err != nil {
-		s.logger.LogError(ctx, "AdminDashboardService", "failed to list ending contract alerts", err)
+		s.logger.LogError(
+			ctx,
+			"AdminDashboardService",
+			"failed to list ending contract alerts",
+			err,
+		)
 		return nil, err
 	}
 
 	expiringCredentials, err := s.repo.ListExpiringCredentialAlerts(ctx, listParams)
 	if err != nil {
-		s.logger.LogError(ctx, "AdminDashboardService", "failed to list expiring credential alerts", err)
+		s.logger.LogError(
+			ctx,
+			"AdminDashboardService",
+			"failed to list expiring credential alerts",
+			err,
+		)
 		return nil, err
 	}
 
 	returningFromLeave, err := s.repo.ListReturningFromLeaveAlerts(ctx, listParams)
 	if err != nil {
-		s.logger.LogError(ctx, "AdminDashboardService", "failed to list returning from leave alerts", err)
+		s.logger.LogError(
+			ctx,
+			"AdminDashboardService",
+			"failed to list returning from leave alerts",
+			err,
+		)
 		return nil, err
 	}
 

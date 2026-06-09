@@ -187,7 +187,12 @@ func (h *ScheduleHandler) GetMyPastShifts(ctx *gin.Context) {
 	}
 
 	params := req.PageRequest.Params()
-	page, err := h.service.GetMyPastShifts(ctx.Request.Context(), employeeID, params.Limit, params.Offset)
+	page, err := h.service.GetMyPastShifts(
+		ctx.Request.Context(),
+		employeeID,
+		params.Limit,
+		params.Offset,
+	)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

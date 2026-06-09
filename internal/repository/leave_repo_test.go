@@ -25,8 +25,12 @@ func TestToDomainLeaveCalendarGroupsRowsByEmployee(t *testing.T) {
 			LeaveRequestID:    secondLeaveID,
 			LeaveType:         db.LeaveRequestTypeEnumSick,
 			Status:            db.LeaveRequestStatusEnumApproved,
-			StartDate:         conv.PgDateFromTime(time.Date(2026, time.April, 8, 0, 0, 0, 0, time.UTC)),
-			EndDate:           conv.PgDateFromTime(time.Date(2026, time.April, 9, 0, 0, 0, 0, time.UTC)),
+			StartDate: conv.PgDateFromTime(
+				time.Date(2026, time.April, 8, 0, 0, 0, 0, time.UTC),
+			),
+			EndDate: conv.PgDateFromTime(
+				time.Date(2026, time.April, 9, 0, 0, 0, 0, time.UTC),
+			),
 		},
 		{
 			EmployeeID:        employeeID,
@@ -36,8 +40,12 @@ func TestToDomainLeaveCalendarGroupsRowsByEmployee(t *testing.T) {
 			LeaveRequestID:    firstLeaveID,
 			LeaveType:         db.LeaveRequestTypeEnumVacation,
 			Status:            db.LeaveRequestStatusEnumPending,
-			StartDate:         conv.PgDateFromTime(time.Date(2026, time.April, 2, 0, 0, 0, 0, time.UTC)),
-			EndDate:           conv.PgDateFromTime(time.Date(2026, time.April, 3, 0, 0, 0, 0, time.UTC)),
+			StartDate: conv.PgDateFromTime(
+				time.Date(2026, time.April, 2, 0, 0, 0, 0, time.UTC),
+			),
+			EndDate: conv.PgDateFromTime(
+				time.Date(2026, time.April, 3, 0, 0, 0, 0, time.UTC),
+			),
 		},
 	}
 
@@ -58,7 +66,11 @@ func TestToDomainLeaveCalendarGroupsRowsByEmployee(t *testing.T) {
 		t.Fatalf("expected records to preserve query order")
 	}
 	if got[0].LeaveRecords[1].LeaveRequestID != firstLeaveID {
-		t.Fatalf("expected second record id %s, got %s", firstLeaveID, got[0].LeaveRecords[1].LeaveRequestID)
+		t.Fatalf(
+			"expected second record id %s, got %s",
+			firstLeaveID,
+			got[0].LeaveRecords[1].LeaveRequestID,
+		)
 	}
 }
 

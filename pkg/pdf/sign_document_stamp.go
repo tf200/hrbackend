@@ -22,7 +22,10 @@ func NewSignDocumentStamper() *SignDocumentStamper {
 	return &SignDocumentStamper{}
 }
 
-func (s *SignDocumentStamper) StampSignDocumentPDF(ctx context.Context, input domain.SignDocumentPDFStampInput) ([]byte, error) {
+func (s *SignDocumentStamper) StampSignDocumentPDF(
+	ctx context.Context,
+	input domain.SignDocumentPDFStampInput,
+) ([]byte, error) {
 	if len(input.SourcePDF) == 0 {
 		return nil, fmt.Errorf("source PDF is empty")
 	}
@@ -56,7 +59,10 @@ func (s *SignDocumentStamper) StampSignDocumentPDF(ctx context.Context, input do
 	return out.Bytes(), nil
 }
 
-func signDocumentWatermarks(input domain.SignDocumentPDFStampInput, pageDims []types.Dim) (map[int][]*model.Watermark, error) {
+func signDocumentWatermarks(
+	input domain.SignDocumentPDFStampInput,
+	pageDims []types.Dim,
+) (map[int][]*model.Watermark, error) {
 	recipients := make(map[string]domain.SignDocumentRecipient, len(input.Recipients))
 	for _, recipient := range input.Recipients {
 		recipients[recipient.ID.String()] = recipient
@@ -69,13 +75,23 @@ func signDocumentWatermarks(input domain.SignDocumentPDFStampInput, pageDims []t
 	stamps := map[int][]*model.Watermark{}
 	for _, field := range input.Fields {
 		if field.PageNumber <= 0 || int(field.PageNumber) > len(pageDims) {
-			return nil, fmt.Errorf("field %s references invalid page %d", field.ID, field.PageNumber)
+			return nil, fmt.Errorf(
+				"field %s references invalid page %d",
+				field.ID,
+				field.PageNumber,
+			)
 		}
-		if field.X < 0 || field.Y < 0 || field.Width <= 0 || field.Height <= 0 || field.X+field.Width > 1 || field.Y+field.Height > 1 {
+		if field.X < 0 || field.Y < 0 || field.Width <= 0 || field.Height <= 0 ||
+			field.X+field.Width > 1 ||
+			field.Y+field.Height > 1 {
 			return nil, fmt.Errorf("field %s has invalid coordinates", field.ID)
 		}
 
-		text, ok := signDocumentFieldStampText(field, recipients[field.RecipientID.String()], signatures[field.RecipientID.String()])
+		text, ok := signDocumentFieldStampText(
+			field,
+			recipients[field.RecipientID.String()],
+			signatures[field.RecipientID.String()],
+		)
 		if !ok {
 			continue
 		}
@@ -88,7 +104,11 @@ func signDocumentWatermarks(input domain.SignDocumentPDFStampInput, pageDims []t
 	return stamps, nil
 }
 
-func signDocumentFieldStampText(field domain.SignDocumentField, recipient domain.SignDocumentRecipient, signature domain.SignDocumentSignature) (string, bool) {
+func signDocumentFieldStampText(
+	field domain.SignDocumentField,
+	recipient domain.SignDocumentRecipient,
+	signature domain.SignDocumentSignature,
+) (string, bool) {
 	value := ""
 	if field.Value != nil {
 		value = strings.TrimSpace(*field.Value)
@@ -106,7 +126,11 @@ func signDocumentFieldStampText(field domain.SignDocumentField, recipient domain
 		if name == "" {
 			return "", false
 		}
-		return fmt.Sprintf("%s\nSigned electronically on %s", name, signature.SignedAt.Format("2006-01-02 15:04")), true
+		return fmt.Sprintf(
+			"%s\nSigned electronically on %s",
+			name,
+			signature.SignedAt.Format("2006-01-02 15:04"),
+		), true
 	case "initials", "text":
 		return value, value != ""
 	case "date":
@@ -124,7 +148,11 @@ func signDocumentFieldStampText(field domain.SignDocumentField, recipient domain
 	return "", false
 }
 
-func signDocumentTextWatermark(text string, field domain.SignDocumentField, dim types.Dim) (*model.Watermark, error) {
+func signDocumentTextWatermark(
+	text string,
+	field domain.SignDocumentField,
+	dim types.Dim,
+) (*model.Watermark, error) {
 	x := field.X * dim.Width
 	y := field.Y * dim.Height
 	fontSize := int(math.Max(8, math.Min(16, field.Height*dim.Height*0.45)))
@@ -132,7 +160,13 @@ func signDocumentTextWatermark(text string, field domain.SignDocumentField, dim 
 		fontSize = int(math.Max(9, math.Min(18, field.Height*dim.Height*0.32)))
 	}
 
-	desc := fmt.Sprintf("font:%s, points:%d, scale:1 abs, pos:tl, off:%s -%s, fillc:#111111, rot:0", signDocumentFont(field.Type), fontSize, signDocumentFloat(x), signDocumentFloat(y))
+	desc := fmt.Sprintf(
+		"font:%s, points:%d, scale:1 abs, pos:tl, off:%s -%s, fillc:#111111, rot:0",
+		signDocumentFont(field.Type),
+		fontSize,
+		signDocumentFloat(x),
+		signDocumentFloat(y),
+	)
 	return api.TextWatermark(text, desc, true, false, types.POINTS)
 }
 

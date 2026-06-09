@@ -303,10 +303,13 @@ func (r *LeaveRepository) getDeductedLeaves(
 	employeeID uuid.UUID,
 	year int32,
 ) ([]domain.DeductedLeaveSummary, error) {
-	deductedRows, err := r.store.GetDeductedLeavesForEmployeeAndYear(ctx, db.GetDeductedLeavesForEmployeeAndYearParams{
-		EmployeeID: employeeID,
-		Year:       year,
-	})
+	deductedRows, err := r.store.GetDeductedLeavesForEmployeeAndYear(
+		ctx,
+		db.GetDeductedLeavesForEmployeeAndYearParams{
+			EmployeeID: employeeID,
+			Year:       year,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -339,10 +342,13 @@ func (r *LeaveRepository) GetLeaveBalanceDetails(
 		return nil, err
 	}
 
-	accrualRows, err := r.store.ListLeaveContractAccrualsForYear(ctx, db.ListLeaveContractAccrualsForYearParams{
-		EmployeeID: params.EmployeeID,
-		Year:       params.Year,
-	})
+	accrualRows, err := r.store.ListLeaveContractAccrualsForYear(
+		ctx,
+		db.ListLeaveContractAccrualsForYearParams{
+			EmployeeID: params.EmployeeID,
+			Year:       params.Year,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +693,9 @@ func toDomainLeaveBalance(
 	}
 }
 
-func toDomainLeaveContractAccruals(rows []db.ListLeaveContractAccrualsForYearRow) []domain.LeaveContractAccrual {
+func toDomainLeaveContractAccruals(
+	rows []db.ListLeaveContractAccrualsForYearRow,
+) []domain.LeaveContractAccrual {
 	items := make([]domain.LeaveContractAccrual, 0, len(rows))
 	for _, row := range rows {
 		items = append(items, domain.LeaveContractAccrual{
@@ -718,8 +726,10 @@ func toDomainLeaveCalendar(rows []db.ListLeaveCalendarRowsRow) []domain.LeaveCal
 		idx, ok := byEmployee[row.EmployeeID]
 		if !ok {
 			items = append(items, domain.LeaveCalendarEmployee{
-				EmployeeID:     row.EmployeeID,
-				EmployeeName:   strings.TrimSpace(row.EmployeeFirstName + " " + row.EmployeeLastName),
+				EmployeeID: row.EmployeeID,
+				EmployeeName: strings.TrimSpace(
+					row.EmployeeFirstName + " " + row.EmployeeLastName,
+				),
 				DepartmentName: row.DepartmentName,
 				LeaveRecords:   make([]domain.LeaveCalendarRecord, 0, 1),
 			})

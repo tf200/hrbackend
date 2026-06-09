@@ -878,9 +878,9 @@ type SatParameters struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// In some context, like in a portfolio of search, it makes sense to name a
 	// given parameters set for logging purpose.
-	Name                   *string                      `protobuf:"bytes,171,opt,name=name,def=" json:"name,omitempty"`
-	PreferredVariableOrder *SatParameters_VariableOrder `protobuf:"varint,1,opt,name=preferred_variable_order,json=preferredVariableOrder,enum=operations_research.sat.SatParameters_VariableOrder,def=0" json:"preferred_variable_order,omitempty"`
-	InitialPolarity        *SatParameters_Polarity      `protobuf:"varint,2,opt,name=initial_polarity,json=initialPolarity,enum=operations_research.sat.SatParameters_Polarity,def=1" json:"initial_polarity,omitempty"`
+	Name                   *string                      `                   protobuf:"bytes,171,opt,name=name,def="                                                                                                                                 json:"name,omitempty"`
+	PreferredVariableOrder *SatParameters_VariableOrder `                   protobuf:"varint,1,opt,name=preferred_variable_order,json=preferredVariableOrder,enum=operations_research.sat.SatParameters_VariableOrder,def=0"                        json:"preferred_variable_order,omitempty"`
+	InitialPolarity        *SatParameters_Polarity      `                   protobuf:"varint,2,opt,name=initial_polarity,json=initialPolarity,enum=operations_research.sat.SatParameters_Polarity,def=1"                                            json:"initial_polarity,omitempty"`
 	// If this is true, then the polarity of a variable will be the last value it
 	// was assigned to, or its default polarity if it was never assigned since the
 	// call to ResetDecisionHeuristic().
@@ -892,64 +892,64 @@ type SatParameters struct {
 	// Component Caching Scheme for Satisfiability Solvers' K. Pipatsrisawat and
 	// A.Darwiche, In 10th International Conference on Theory and Applications of
 	// Satisfiability Testing, 2007.
-	UsePhaseSaving *bool `protobuf:"varint,44,opt,name=use_phase_saving,json=usePhaseSaving,def=1" json:"use_phase_saving,omitempty"`
+	UsePhaseSaving *bool `                   protobuf:"varint,44,opt,name=use_phase_saving,json=usePhaseSaving,def=1"                                                                                                json:"use_phase_saving,omitempty"`
 	// If non-zero, then we change the polarity heuristic after that many number
 	// of conflicts in an arithmetically increasing fashion. So x the first time,
 	// 2 * x the second time, etc...
-	PolarityRephaseIncrement *int32 `protobuf:"varint,168,opt,name=polarity_rephase_increment,json=polarityRephaseIncrement,def=1000" json:"polarity_rephase_increment,omitempty"`
+	PolarityRephaseIncrement *int32 `                   protobuf:"varint,168,opt,name=polarity_rephase_increment,json=polarityRephaseIncrement,def=1000"                                                                        json:"polarity_rephase_increment,omitempty"`
 	// If true and we have first solution LS workers, tries in some phase to
 	// follow a LS solutions that violates has litle constraints as possible.
-	PolarityExploitLsHints *bool `protobuf:"varint,309,opt,name=polarity_exploit_ls_hints,json=polarityExploitLsHints,def=0" json:"polarity_exploit_ls_hints,omitempty"`
+	PolarityExploitLsHints *bool `                   protobuf:"varint,309,opt,name=polarity_exploit_ls_hints,json=polarityExploitLsHints,def=0"                                                                              json:"polarity_exploit_ls_hints,omitempty"`
 	// The proportion of polarity chosen at random. Note that this take
 	// precedence over the phase saving heuristic. This is different from
 	// initial_polarity:POLARITY_RANDOM because it will select a new random
 	// polarity each time the variable is branched upon instead of selecting one
 	// initially and then always taking this choice.
-	RandomPolarityRatio *float64 `protobuf:"fixed64,45,opt,name=random_polarity_ratio,json=randomPolarityRatio,def=0" json:"random_polarity_ratio,omitempty"`
+	RandomPolarityRatio *float64 `                   protobuf:"fixed64,45,opt,name=random_polarity_ratio,json=randomPolarityRatio,def=0"                                                                                     json:"random_polarity_ratio,omitempty"`
 	// A number between 0 and 1 that indicates the proportion of branching
 	// variables that are selected randomly instead of choosing the first variable
 	// from the given variable_ordering strategy.
-	RandomBranchesRatio *float64 `protobuf:"fixed64,32,opt,name=random_branches_ratio,json=randomBranchesRatio,def=0" json:"random_branches_ratio,omitempty"`
+	RandomBranchesRatio *float64 `                   protobuf:"fixed64,32,opt,name=random_branches_ratio,json=randomBranchesRatio,def=0"                                                                                     json:"random_branches_ratio,omitempty"`
 	// Whether we use the ERWA (Exponential Recency Weighted Average) heuristic as
 	// described in "Learning Rate Based Branching Heuristic for SAT solvers",
 	// J.H.Liang, V. Ganesh, P. Poupart, K.Czarnecki, SAT 2016.
-	UseErwaHeuristic *bool `protobuf:"varint,75,opt,name=use_erwa_heuristic,json=useErwaHeuristic,def=0" json:"use_erwa_heuristic,omitempty"`
+	UseErwaHeuristic *bool `                   protobuf:"varint,75,opt,name=use_erwa_heuristic,json=useErwaHeuristic,def=0"                                                                                            json:"use_erwa_heuristic,omitempty"`
 	// The initial value of the variables activity. A non-zero value only make
 	// sense when use_erwa_heuristic is true. Experiments with a value of 1e-2
 	// together with the ERWA heuristic showed slighthly better result than simply
 	// using zero. The idea is that when the "learning rate" of a variable becomes
 	// lower than this value, then we prefer to branch on never explored before
 	// variables. This is not in the ERWA paper.
-	InitialVariablesActivity *float64 `protobuf:"fixed64,76,opt,name=initial_variables_activity,json=initialVariablesActivity,def=0" json:"initial_variables_activity,omitempty"`
+	InitialVariablesActivity *float64 `                   protobuf:"fixed64,76,opt,name=initial_variables_activity,json=initialVariablesActivity,def=0"                                                                           json:"initial_variables_activity,omitempty"`
 	// When this is true, then the variables that appear in any of the reason of
 	// the variables in a conflict have their activity bumped. This is addition to
 	// the variables in the conflict, and the one that were used during conflict
 	// resolution.
-	AlsoBumpVariablesInConflictReasons *bool                                        `protobuf:"varint,77,opt,name=also_bump_variables_in_conflict_reasons,json=alsoBumpVariablesInConflictReasons,def=0" json:"also_bump_variables_in_conflict_reasons,omitempty"`
-	MinimizationAlgorithm              *SatParameters_ConflictMinimizationAlgorithm `protobuf:"varint,4,opt,name=minimization_algorithm,json=minimizationAlgorithm,enum=operations_research.sat.SatParameters_ConflictMinimizationAlgorithm,def=2" json:"minimization_algorithm,omitempty"`
-	BinaryMinimizationAlgorithm        *SatParameters_BinaryMinizationAlgorithm     `protobuf:"varint,34,opt,name=binary_minimization_algorithm,json=binaryMinimizationAlgorithm,enum=operations_research.sat.SatParameters_BinaryMinizationAlgorithm,def=1" json:"binary_minimization_algorithm,omitempty"`
+	AlsoBumpVariablesInConflictReasons *bool                                        `                   protobuf:"varint,77,opt,name=also_bump_variables_in_conflict_reasons,json=alsoBumpVariablesInConflictReasons,def=0"                                                     json:"also_bump_variables_in_conflict_reasons,omitempty"`
+	MinimizationAlgorithm              *SatParameters_ConflictMinimizationAlgorithm `                   protobuf:"varint,4,opt,name=minimization_algorithm,json=minimizationAlgorithm,enum=operations_research.sat.SatParameters_ConflictMinimizationAlgorithm,def=2"           json:"minimization_algorithm,omitempty"`
+	BinaryMinimizationAlgorithm        *SatParameters_BinaryMinizationAlgorithm     `                   protobuf:"varint,34,opt,name=binary_minimization_algorithm,json=binaryMinimizationAlgorithm,enum=operations_research.sat.SatParameters_BinaryMinizationAlgorithm,def=1" json:"binary_minimization_algorithm,omitempty"`
 	// At a really low cost, during the 1-UIP conflict computation, it is easy to
 	// detect if some of the involved reasons are subsumed by the current
 	// conflict. When this is true, such clauses are detached and later removed
 	// from the problem.
-	SubsumptionDuringConflictAnalysis *bool `protobuf:"varint,56,opt,name=subsumption_during_conflict_analysis,json=subsumptionDuringConflictAnalysis,def=1" json:"subsumption_during_conflict_analysis,omitempty"`
+	SubsumptionDuringConflictAnalysis *bool `                   protobuf:"varint,56,opt,name=subsumption_during_conflict_analysis,json=subsumptionDuringConflictAnalysis,def=1"                                                         json:"subsumption_during_conflict_analysis,omitempty"`
 	// Trigger a cleanup when this number of "deletable" clauses is learned.
-	ClauseCleanupPeriod *int32 `protobuf:"varint,11,opt,name=clause_cleanup_period,json=clauseCleanupPeriod,def=10000" json:"clause_cleanup_period,omitempty"`
+	ClauseCleanupPeriod *int32 `                   protobuf:"varint,11,opt,name=clause_cleanup_period,json=clauseCleanupPeriod,def=10000"                                                                                  json:"clause_cleanup_period,omitempty"`
 	// During a cleanup, we will always keep that number of "deletable" clauses.
 	// Note that this doesn't include the "protected" clauses.
-	ClauseCleanupTarget *int32 `protobuf:"varint,13,opt,name=clause_cleanup_target,json=clauseCleanupTarget,def=0" json:"clause_cleanup_target,omitempty"`
+	ClauseCleanupTarget *int32 `                   protobuf:"varint,13,opt,name=clause_cleanup_target,json=clauseCleanupTarget,def=0"                                                                                      json:"clause_cleanup_target,omitempty"`
 	// During a cleanup, if clause_cleanup_target is 0, we will delete the
 	// clause_cleanup_ratio of "deletable" clauses instead of aiming for a fixed
 	// target of clauses to keep.
-	ClauseCleanupRatio      *float64                        `protobuf:"fixed64,190,opt,name=clause_cleanup_ratio,json=clauseCleanupRatio,def=0.5" json:"clause_cleanup_ratio,omitempty"`
-	ClauseCleanupProtection *SatParameters_ClauseProtection `protobuf:"varint,58,opt,name=clause_cleanup_protection,json=clauseCleanupProtection,enum=operations_research.sat.SatParameters_ClauseProtection,def=0" json:"clause_cleanup_protection,omitempty"`
+	ClauseCleanupRatio      *float64                        `                   protobuf:"fixed64,190,opt,name=clause_cleanup_ratio,json=clauseCleanupRatio,def=0.5"                                                                                    json:"clause_cleanup_ratio,omitempty"`
+	ClauseCleanupProtection *SatParameters_ClauseProtection `                   protobuf:"varint,58,opt,name=clause_cleanup_protection,json=clauseCleanupProtection,enum=operations_research.sat.SatParameters_ClauseProtection,def=0"                  json:"clause_cleanup_protection,omitempty"`
 	// All the clauses with a LBD (literal blocks distance) lower or equal to this
 	// parameters will always be kept.
-	ClauseCleanupLbdBound *int32                        `protobuf:"varint,59,opt,name=clause_cleanup_lbd_bound,json=clauseCleanupLbdBound,def=5" json:"clause_cleanup_lbd_bound,omitempty"`
-	ClauseCleanupOrdering *SatParameters_ClauseOrdering `protobuf:"varint,60,opt,name=clause_cleanup_ordering,json=clauseCleanupOrdering,enum=operations_research.sat.SatParameters_ClauseOrdering,def=0" json:"clause_cleanup_ordering,omitempty"`
+	ClauseCleanupLbdBound *int32                        `                   protobuf:"varint,59,opt,name=clause_cleanup_lbd_bound,json=clauseCleanupLbdBound,def=5"                                                                                 json:"clause_cleanup_lbd_bound,omitempty"`
+	ClauseCleanupOrdering *SatParameters_ClauseOrdering `                   protobuf:"varint,60,opt,name=clause_cleanup_ordering,json=clauseCleanupOrdering,enum=operations_research.sat.SatParameters_ClauseOrdering,def=0"                        json:"clause_cleanup_ordering,omitempty"`
 	// Same as for the clauses, but for the learned pseudo-Boolean constraints.
-	PbCleanupIncrement *int32   `protobuf:"varint,46,opt,name=pb_cleanup_increment,json=pbCleanupIncrement,def=200" json:"pb_cleanup_increment,omitempty"`
-	PbCleanupRatio     *float64 `protobuf:"fixed64,47,opt,name=pb_cleanup_ratio,json=pbCleanupRatio,def=0.5" json:"pb_cleanup_ratio,omitempty"`
+	PbCleanupIncrement *int32   `                   protobuf:"varint,46,opt,name=pb_cleanup_increment,json=pbCleanupIncrement,def=200"                                                                                      json:"pb_cleanup_increment,omitempty"`
+	PbCleanupRatio     *float64 `                   protobuf:"fixed64,47,opt,name=pb_cleanup_ratio,json=pbCleanupRatio,def=0.5"                                                                                             json:"pb_cleanup_ratio,omitempty"`
 	// Each time a conflict is found, the activities of some variables are
 	// increased by one. Then, the activity of all variables are multiplied by
 	// variable_activity_decay.
@@ -958,19 +958,19 @@ type SatParameters struct {
 	// decayed at each conflict. Instead, the activity increment is multiplied by
 	// 1 / decay. When an activity reach max_variable_activity_value, all the
 	// activity are multiplied by 1 / max_variable_activity_value.
-	VariableActivityDecay    *float64 `protobuf:"fixed64,15,opt,name=variable_activity_decay,json=variableActivityDecay,def=0.8" json:"variable_activity_decay,omitempty"`
-	MaxVariableActivityValue *float64 `protobuf:"fixed64,16,opt,name=max_variable_activity_value,json=maxVariableActivityValue,def=1e+100" json:"max_variable_activity_value,omitempty"`
+	VariableActivityDecay    *float64 `                   protobuf:"fixed64,15,opt,name=variable_activity_decay,json=variableActivityDecay,def=0.8"                                                                               json:"variable_activity_decay,omitempty"`
+	MaxVariableActivityValue *float64 `                   protobuf:"fixed64,16,opt,name=max_variable_activity_value,json=maxVariableActivityValue,def=1e+100"                                                                     json:"max_variable_activity_value,omitempty"`
 	// The activity starts at 0.8 and increment by 0.01 every 5000 conflicts until
 	// 0.95. This "hack" seems to work well and comes from:
 	//
 	// Glucose 2.3 in the SAT 2013 Competition - SAT Competition 2013
 	// http://edacc4.informatik.uni-ulm.de/SC13/solver-description-download/136
-	GlucoseMaxDecay             *float64 `protobuf:"fixed64,22,opt,name=glucose_max_decay,json=glucoseMaxDecay,def=0.95" json:"glucose_max_decay,omitempty"`
-	GlucoseDecayIncrement       *float64 `protobuf:"fixed64,23,opt,name=glucose_decay_increment,json=glucoseDecayIncrement,def=0.01" json:"glucose_decay_increment,omitempty"`
-	GlucoseDecayIncrementPeriod *int32   `protobuf:"varint,24,opt,name=glucose_decay_increment_period,json=glucoseDecayIncrementPeriod,def=5000" json:"glucose_decay_increment_period,omitempty"`
+	GlucoseMaxDecay             *float64 `                   protobuf:"fixed64,22,opt,name=glucose_max_decay,json=glucoseMaxDecay,def=0.95"                                                                                          json:"glucose_max_decay,omitempty"`
+	GlucoseDecayIncrement       *float64 `                   protobuf:"fixed64,23,opt,name=glucose_decay_increment,json=glucoseDecayIncrement,def=0.01"                                                                              json:"glucose_decay_increment,omitempty"`
+	GlucoseDecayIncrementPeriod *int32   `                   protobuf:"varint,24,opt,name=glucose_decay_increment_period,json=glucoseDecayIncrementPeriod,def=5000"                                                                  json:"glucose_decay_increment_period,omitempty"`
 	// Clause activity parameters (same effect as the one on the variables).
-	ClauseActivityDecay    *float64 `protobuf:"fixed64,17,opt,name=clause_activity_decay,json=clauseActivityDecay,def=0.999" json:"clause_activity_decay,omitempty"`
-	MaxClauseActivityValue *float64 `protobuf:"fixed64,18,opt,name=max_clause_activity_value,json=maxClauseActivityValue,def=1e+20" json:"max_clause_activity_value,omitempty"`
+	ClauseActivityDecay    *float64 `                   protobuf:"fixed64,17,opt,name=clause_activity_decay,json=clauseActivityDecay,def=0.999"                                                                                 json:"clause_activity_decay,omitempty"`
+	MaxClauseActivityValue *float64 `                   protobuf:"fixed64,18,opt,name=max_clause_activity_value,json=maxClauseActivityValue,def=1e+20"                                                                          json:"max_clause_activity_value,omitempty"`
 	// The restart strategies will change each time the strategy_counter is
 	// increased. The current strategy will simply be the one at index
 	// strategy_counter modulo the number of strategy. Note that if this list
@@ -980,40 +980,40 @@ type SatParameters struct {
 	// The idea of switching of search strategy tailored for SAT/UNSAT comes from
 	// Chanseok Oh with his COMiniSatPS solver, see http://cs.nyu.edu/~chanseok/.
 	// But more generally, it seems REALLY beneficial to try different strategy.
-	RestartAlgorithms        []SatParameters_RestartAlgorithm `protobuf:"varint,61,rep,name=restart_algorithms,json=restartAlgorithms,enum=operations_research.sat.SatParameters_RestartAlgorithm" json:"restart_algorithms,omitempty"`
-	DefaultRestartAlgorithms *string                          `protobuf:"bytes,70,opt,name=default_restart_algorithms,json=defaultRestartAlgorithms,def=LUBY_RESTART,LBD_MOVING_AVERAGE_RESTART,DL_MOVING_AVERAGE_RESTART" json:"default_restart_algorithms,omitempty"`
+	RestartAlgorithms        []SatParameters_RestartAlgorithm `                   protobuf:"varint,61,rep,name=restart_algorithms,json=restartAlgorithms,enum=operations_research.sat.SatParameters_RestartAlgorithm"                                     json:"restart_algorithms,omitempty"`
+	DefaultRestartAlgorithms *string                          `                   protobuf:"bytes,70,opt,name=default_restart_algorithms,json=defaultRestartAlgorithms,def=LUBY_RESTART,LBD_MOVING_AVERAGE_RESTART,DL_MOVING_AVERAGE_RESTART"             json:"default_restart_algorithms,omitempty"`
 	// Restart period for the FIXED_RESTART strategy. This is also the multiplier
 	// used by the LUBY_RESTART strategy.
-	RestartPeriod *int32 `protobuf:"varint,30,opt,name=restart_period,json=restartPeriod,def=50" json:"restart_period,omitempty"`
+	RestartPeriod *int32 `                   protobuf:"varint,30,opt,name=restart_period,json=restartPeriod,def=50"                                                                                                  json:"restart_period,omitempty"`
 	// Size of the window for the moving average restarts.
-	RestartRunningWindowSize *int32 `protobuf:"varint,62,opt,name=restart_running_window_size,json=restartRunningWindowSize,def=50" json:"restart_running_window_size,omitempty"`
+	RestartRunningWindowSize *int32 `                   protobuf:"varint,62,opt,name=restart_running_window_size,json=restartRunningWindowSize,def=50"                                                                          json:"restart_running_window_size,omitempty"`
 	// In the moving average restart algorithms, a restart is triggered if the
 	// window average times this ratio is greater that the global average.
-	RestartDlAverageRatio  *float64 `protobuf:"fixed64,63,opt,name=restart_dl_average_ratio,json=restartDlAverageRatio,def=1" json:"restart_dl_average_ratio,omitempty"`
-	RestartLbdAverageRatio *float64 `protobuf:"fixed64,71,opt,name=restart_lbd_average_ratio,json=restartLbdAverageRatio,def=1" json:"restart_lbd_average_ratio,omitempty"`
+	RestartDlAverageRatio  *float64 `                   protobuf:"fixed64,63,opt,name=restart_dl_average_ratio,json=restartDlAverageRatio,def=1"                                                                                json:"restart_dl_average_ratio,omitempty"`
+	RestartLbdAverageRatio *float64 `                   protobuf:"fixed64,71,opt,name=restart_lbd_average_ratio,json=restartLbdAverageRatio,def=1"                                                                              json:"restart_lbd_average_ratio,omitempty"`
 	// Block a moving restart algorithm if the trail size of the current conflict
 	// is greater than the multiplier times the moving average of the trail size
 	// at the previous conflicts.
-	UseBlockingRestart        *bool    `protobuf:"varint,64,opt,name=use_blocking_restart,json=useBlockingRestart,def=0" json:"use_blocking_restart,omitempty"`
-	BlockingRestartWindowSize *int32   `protobuf:"varint,65,opt,name=blocking_restart_window_size,json=blockingRestartWindowSize,def=5000" json:"blocking_restart_window_size,omitempty"`
-	BlockingRestartMultiplier *float64 `protobuf:"fixed64,66,opt,name=blocking_restart_multiplier,json=blockingRestartMultiplier,def=1.4" json:"blocking_restart_multiplier,omitempty"`
+	UseBlockingRestart        *bool    `                   protobuf:"varint,64,opt,name=use_blocking_restart,json=useBlockingRestart,def=0"                                                                                        json:"use_blocking_restart,omitempty"`
+	BlockingRestartWindowSize *int32   `                   protobuf:"varint,65,opt,name=blocking_restart_window_size,json=blockingRestartWindowSize,def=5000"                                                                      json:"blocking_restart_window_size,omitempty"`
+	BlockingRestartMultiplier *float64 `                   protobuf:"fixed64,66,opt,name=blocking_restart_multiplier,json=blockingRestartMultiplier,def=1.4"                                                                       json:"blocking_restart_multiplier,omitempty"`
 	// After each restart, if the number of conflict since the last strategy
 	// change is greater that this, then we increment a "strategy_counter" that
 	// can be use to change the search strategy used by the following restarts.
-	NumConflictsBeforeStrategyChanges *int32 `protobuf:"varint,68,opt,name=num_conflicts_before_strategy_changes,json=numConflictsBeforeStrategyChanges,def=0" json:"num_conflicts_before_strategy_changes,omitempty"`
+	NumConflictsBeforeStrategyChanges *int32 `                   protobuf:"varint,68,opt,name=num_conflicts_before_strategy_changes,json=numConflictsBeforeStrategyChanges,def=0"                                                        json:"num_conflicts_before_strategy_changes,omitempty"`
 	// The parameter num_conflicts_before_strategy_changes is increased by that
 	// much after each strategy change.
-	StrategyChangeIncreaseRatio *float64 `protobuf:"fixed64,69,opt,name=strategy_change_increase_ratio,json=strategyChangeIncreaseRatio,def=0" json:"strategy_change_increase_ratio,omitempty"`
+	StrategyChangeIncreaseRatio *float64 `                   protobuf:"fixed64,69,opt,name=strategy_change_increase_ratio,json=strategyChangeIncreaseRatio,def=0"                                                                    json:"strategy_change_increase_ratio,omitempty"`
 	// Maximum time allowed in seconds to solve a problem.
 	// The counter will starts at the beginning of the Solve() call.
-	MaxTimeInSeconds *float64 `protobuf:"fixed64,36,opt,name=max_time_in_seconds,json=maxTimeInSeconds,def=inf" json:"max_time_in_seconds,omitempty"`
+	MaxTimeInSeconds *float64 `                   protobuf:"fixed64,36,opt,name=max_time_in_seconds,json=maxTimeInSeconds,def=inf"                                                                                        json:"max_time_in_seconds,omitempty"`
 	// Maximum time allowed in deterministic time to solve a problem.
 	// The deterministic time should be correlated with the real time used by the
 	// solver, the time unit being as close as possible to a second.
-	MaxDeterministicTime *float64 `protobuf:"fixed64,67,opt,name=max_deterministic_time,json=maxDeterministicTime,def=inf" json:"max_deterministic_time,omitempty"`
+	MaxDeterministicTime *float64 `                   protobuf:"fixed64,67,opt,name=max_deterministic_time,json=maxDeterministicTime,def=inf"                                                                                 json:"max_deterministic_time,omitempty"`
 	// Stops after that number of batches has been scheduled. This only make sense
 	// when interleave_search is true.
-	MaxNumDeterministicBatches *int32 `protobuf:"varint,291,opt,name=max_num_deterministic_batches,json=maxNumDeterministicBatches,def=0" json:"max_num_deterministic_batches,omitempty"`
+	MaxNumDeterministicBatches *int32 `                   protobuf:"varint,291,opt,name=max_num_deterministic_batches,json=maxNumDeterministicBatches,def=0"                                                                      json:"max_num_deterministic_batches,omitempty"`
 	// Maximum number of conflicts allowed to solve a problem.
 	//
 	// TODO(user): Maybe change the way the conflict limit is enforced?
@@ -1021,14 +1021,14 @@ type SatParameters struct {
 	// than on the overall number of conflicts across all solves. So in the
 	// context of an optimization problem, this is not really usable directly by a
 	// client.
-	MaxNumberOfConflicts *int64 `protobuf:"varint,37,opt,name=max_number_of_conflicts,json=maxNumberOfConflicts,def=9223372036854775807" json:"max_number_of_conflicts,omitempty"` // kint64max
+	MaxNumberOfConflicts *int64 `                   protobuf:"varint,37,opt,name=max_number_of_conflicts,json=maxNumberOfConflicts,def=9223372036854775807"                                                                 json:"max_number_of_conflicts,omitempty"` // kint64max
 	// Maximum memory allowed for the whole thread containing the solver. The
 	// solver will abort as soon as it detects that this limit is crossed. As a
 	// result, this limit is approximative, but usually the solver will not go too
 	// much over.
 	//
 	// TODO(user): This is only used by the pure SAT solver, generalize to CP-SAT.
-	MaxMemoryInMb *int64 `protobuf:"varint,40,opt,name=max_memory_in_mb,json=maxMemoryInMb,def=10000" json:"max_memory_in_mb,omitempty"`
+	MaxMemoryInMb *int64 `                   protobuf:"varint,40,opt,name=max_memory_in_mb,json=maxMemoryInMb,def=10000"                                                                                             json:"max_memory_in_mb,omitempty"`
 	// Stop the search when the gap between the best feasible objective (O) and
 	// our best objective bound (B) is smaller than a limit.
 	// The exact definition is:
@@ -1047,8 +1047,8 @@ type SatParameters struct {
 	// sense so is is why we use a non-zero default value. At the end of the
 	// search, we will display a warning if OPTIMAL is reported yet the gap is
 	// greater than this absolute gap.
-	AbsoluteGapLimit *float64 `protobuf:"fixed64,159,opt,name=absolute_gap_limit,json=absoluteGapLimit,def=0.0001" json:"absolute_gap_limit,omitempty"`
-	RelativeGapLimit *float64 `protobuf:"fixed64,160,opt,name=relative_gap_limit,json=relativeGapLimit,def=0" json:"relative_gap_limit,omitempty"`
+	AbsoluteGapLimit *float64 `                   protobuf:"fixed64,159,opt,name=absolute_gap_limit,json=absoluteGapLimit,def=0.0001"                                                                                     json:"absolute_gap_limit,omitempty"`
+	RelativeGapLimit *float64 `                   protobuf:"fixed64,160,opt,name=relative_gap_limit,json=relativeGapLimit,def=0"                                                                                          json:"relative_gap_limit,omitempty"`
 	// At the beginning of each solve, the random number generator used in some
 	// part of the solver is reinitialized to this seed. If you change the random
 	// seed, the solver may make different choices during the solving process.
@@ -1056,39 +1056,39 @@ type SatParameters struct {
 	// For some problems, the running time may vary a lot depending on small
 	// change in the solving algorithm. Running the solver with different seeds
 	// enables to have more robust benchmarks when evaluating new features.
-	RandomSeed *int32 `protobuf:"varint,31,opt,name=random_seed,json=randomSeed,def=1" json:"random_seed,omitempty"`
+	RandomSeed *int32 `                   protobuf:"varint,31,opt,name=random_seed,json=randomSeed,def=1"                                                                                                         json:"random_seed,omitempty"`
 	// This is mainly here to test the solver variability. Note that in tests, if
 	// not explicitly set to false, all 3 options will be set to true so that
 	// clients do not rely on the solver returning a specific solution if they are
 	// many equivalent optimal solutions.
-	PermuteVariableRandomly        *bool `protobuf:"varint,178,opt,name=permute_variable_randomly,json=permuteVariableRandomly,def=0" json:"permute_variable_randomly,omitempty"`
-	PermutePresolveConstraintOrder *bool `protobuf:"varint,179,opt,name=permute_presolve_constraint_order,json=permutePresolveConstraintOrder,def=0" json:"permute_presolve_constraint_order,omitempty"`
-	UseAbslRandom                  *bool `protobuf:"varint,180,opt,name=use_absl_random,json=useAbslRandom,def=0" json:"use_absl_random,omitempty"`
+	PermuteVariableRandomly        *bool `                   protobuf:"varint,178,opt,name=permute_variable_randomly,json=permuteVariableRandomly,def=0"                                                                             json:"permute_variable_randomly,omitempty"`
+	PermutePresolveConstraintOrder *bool `                   protobuf:"varint,179,opt,name=permute_presolve_constraint_order,json=permutePresolveConstraintOrder,def=0"                                                              json:"permute_presolve_constraint_order,omitempty"`
+	UseAbslRandom                  *bool `                   protobuf:"varint,180,opt,name=use_absl_random,json=useAbslRandom,def=0"                                                                                                 json:"use_absl_random,omitempty"`
 	// Whether the solver should log the search progress. This is the maing
 	// logging parameter and if this is false, none of the logging (callbacks,
 	// log_to_stdout, log_to_response, ...) will do anything.
-	LogSearchProgress *bool `protobuf:"varint,41,opt,name=log_search_progress,json=logSearchProgress,def=0" json:"log_search_progress,omitempty"`
+	LogSearchProgress *bool `                   protobuf:"varint,41,opt,name=log_search_progress,json=logSearchProgress,def=0"                                                                                          json:"log_search_progress,omitempty"`
 	// Whether the solver should display per sub-solver search statistics.
 	// This is only useful is log_search_progress is set to true, and if the
 	// number of search workers is > 1. Note that in all case we display a bit
 	// of stats with one line per subsolver.
-	LogSubsolverStatistics *bool `protobuf:"varint,189,opt,name=log_subsolver_statistics,json=logSubsolverStatistics,def=0" json:"log_subsolver_statistics,omitempty"`
+	LogSubsolverStatistics *bool `                   protobuf:"varint,189,opt,name=log_subsolver_statistics,json=logSubsolverStatistics,def=0"                                                                               json:"log_subsolver_statistics,omitempty"`
 	// Add a prefix to all logs.
-	LogPrefix *string `protobuf:"bytes,185,opt,name=log_prefix,json=logPrefix,def=" json:"log_prefix,omitempty"`
+	LogPrefix *string `                   protobuf:"bytes,185,opt,name=log_prefix,json=logPrefix,def="                                                                                                            json:"log_prefix,omitempty"`
 	// Log to stdout.
-	LogToStdout *bool `protobuf:"varint,186,opt,name=log_to_stdout,json=logToStdout,def=1" json:"log_to_stdout,omitempty"`
+	LogToStdout *bool `                   protobuf:"varint,186,opt,name=log_to_stdout,json=logToStdout,def=1"                                                                                                     json:"log_to_stdout,omitempty"`
 	// Log to response proto.
-	LogToResponse *bool `protobuf:"varint,187,opt,name=log_to_response,json=logToResponse,def=0" json:"log_to_response,omitempty"`
+	LogToResponse *bool `                   protobuf:"varint,187,opt,name=log_to_response,json=logToResponse,def=0"                                                                                                 json:"log_to_response,omitempty"`
 	// Whether to use pseudo-Boolean resolution to analyze a conflict. Note that
 	// this option only make sense if your problem is modelized using
 	// pseudo-Boolean constraints. If you only have clauses, this shouldn't change
 	// anything (except slow the solver down).
-	UsePbResolution *bool `protobuf:"varint,43,opt,name=use_pb_resolution,json=usePbResolution,def=0" json:"use_pb_resolution,omitempty"`
+	UsePbResolution *bool `                   protobuf:"varint,43,opt,name=use_pb_resolution,json=usePbResolution,def=0"                                                                                              json:"use_pb_resolution,omitempty"`
 	// A different algorithm during PB resolution. It minimizes the number of
 	// calls to ReduceCoefficients() which can be time consuming. However, the
 	// search space will be different and if the coefficients are large, this may
 	// lead to integer overflows that could otherwise be prevented.
-	MinimizeReductionDuringPbResolution *bool `protobuf:"varint,48,opt,name=minimize_reduction_during_pb_resolution,json=minimizeReductionDuringPbResolution,def=0" json:"minimize_reduction_during_pb_resolution,omitempty"`
+	MinimizeReductionDuringPbResolution *bool `                   protobuf:"varint,48,opt,name=minimize_reduction_during_pb_resolution,json=minimizeReductionDuringPbResolution,def=0"                                                    json:"minimize_reduction_during_pb_resolution,omitempty"`
 	// Whether or not the assumption levels are taken into account during the LBD
 	// computation. According to the reference below, not counting them improves
 	// the solver in some situation. Note that this only impact solves under
@@ -1098,64 +1098,64 @@ type SatParameters struct {
 	// Incremental SAT Solving with Assumptions: Application to MUS Extraction"
 	// Theory and Applications of Satisfiability Testing - SAT 2013, Lecture Notes
 	// in Computer Science Volume 7962, 2013, pp 309-317.
-	CountAssumptionLevelsInLbd *bool `protobuf:"varint,49,opt,name=count_assumption_levels_in_lbd,json=countAssumptionLevelsInLbd,def=1" json:"count_assumption_levels_in_lbd,omitempty"`
+	CountAssumptionLevelsInLbd *bool `                   protobuf:"varint,49,opt,name=count_assumption_levels_in_lbd,json=countAssumptionLevelsInLbd,def=1"                                                                      json:"count_assumption_levels_in_lbd,omitempty"`
 	// During presolve, only try to perform the bounded variable elimination (BVE)
 	// of a variable x if the number of occurrences of x times the number of
 	// occurrences of not(x) is not greater than this parameter.
-	PresolveBveThreshold *int32 `protobuf:"varint,54,opt,name=presolve_bve_threshold,json=presolveBveThreshold,def=500" json:"presolve_bve_threshold,omitempty"`
+	PresolveBveThreshold *int32 `                   protobuf:"varint,54,opt,name=presolve_bve_threshold,json=presolveBveThreshold,def=500"                                                                                  json:"presolve_bve_threshold,omitempty"`
 	// During presolve, we apply BVE only if this weight times the number of
 	// clauses plus the number of clause literals is not increased.
-	PresolveBveClauseWeight *int32 `protobuf:"varint,55,opt,name=presolve_bve_clause_weight,json=presolveBveClauseWeight,def=3" json:"presolve_bve_clause_weight,omitempty"`
+	PresolveBveClauseWeight *int32 `                   protobuf:"varint,55,opt,name=presolve_bve_clause_weight,json=presolveBveClauseWeight,def=3"                                                                             json:"presolve_bve_clause_weight,omitempty"`
 	// The maximum "deterministic" time limit to spend in probing. A value of
 	// zero will disable the probing.
 	//
 	// TODO(user): Clean up. The first one is used in CP-SAT, the other in pure
 	// SAT presolve.
-	ProbingDeterministicTimeLimit         *float64 `protobuf:"fixed64,226,opt,name=probing_deterministic_time_limit,json=probingDeterministicTimeLimit,def=1" json:"probing_deterministic_time_limit,omitempty"`
-	PresolveProbingDeterministicTimeLimit *float64 `protobuf:"fixed64,57,opt,name=presolve_probing_deterministic_time_limit,json=presolveProbingDeterministicTimeLimit,def=30" json:"presolve_probing_deterministic_time_limit,omitempty"`
+	ProbingDeterministicTimeLimit         *float64 `                   protobuf:"fixed64,226,opt,name=probing_deterministic_time_limit,json=probingDeterministicTimeLimit,def=1"                                                               json:"probing_deterministic_time_limit,omitempty"`
+	PresolveProbingDeterministicTimeLimit *float64 `                   protobuf:"fixed64,57,opt,name=presolve_probing_deterministic_time_limit,json=presolveProbingDeterministicTimeLimit,def=30"                                              json:"presolve_probing_deterministic_time_limit,omitempty"`
 	// Whether we use an heuristic to detect some basic case of blocked clause
 	// in the SAT presolve.
-	PresolveBlockedClause *bool `protobuf:"varint,88,opt,name=presolve_blocked_clause,json=presolveBlockedClause,def=1" json:"presolve_blocked_clause,omitempty"`
+	PresolveBlockedClause *bool `                   protobuf:"varint,88,opt,name=presolve_blocked_clause,json=presolveBlockedClause,def=1"                                                                                  json:"presolve_blocked_clause,omitempty"`
 	// Whether or not we use Bounded Variable Addition (BVA) in the presolve.
-	PresolveUseBva *bool `protobuf:"varint,72,opt,name=presolve_use_bva,json=presolveUseBva,def=1" json:"presolve_use_bva,omitempty"`
+	PresolveUseBva *bool `                   protobuf:"varint,72,opt,name=presolve_use_bva,json=presolveUseBva,def=1"                                                                                                json:"presolve_use_bva,omitempty"`
 	// Apply Bounded Variable Addition (BVA) if the number of clauses is reduced
 	// by stricly more than this threshold. The algorithm described in the paper
 	// uses 0, but quick experiments showed that 1 is a good value. It may not be
 	// worth it to add a new variable just to remove one clause.
-	PresolveBvaThreshold *int32 `protobuf:"varint,73,opt,name=presolve_bva_threshold,json=presolveBvaThreshold,def=1" json:"presolve_bva_threshold,omitempty"`
+	PresolveBvaThreshold *int32 `                   protobuf:"varint,73,opt,name=presolve_bva_threshold,json=presolveBvaThreshold,def=1"                                                                                    json:"presolve_bva_threshold,omitempty"`
 	// In case of large reduction in a presolve iteration, we perform multiple
 	// presolve iterations. This parameter controls the maximum number of such
 	// presolve iterations.
-	MaxPresolveIterations *int32 `protobuf:"varint,138,opt,name=max_presolve_iterations,json=maxPresolveIterations,def=3" json:"max_presolve_iterations,omitempty"`
+	MaxPresolveIterations *int32 `                   protobuf:"varint,138,opt,name=max_presolve_iterations,json=maxPresolveIterations,def=3"                                                                                 json:"max_presolve_iterations,omitempty"`
 	// Whether we presolve the cp_model before solving it.
-	CpModelPresolve *bool `protobuf:"varint,86,opt,name=cp_model_presolve,json=cpModelPresolve,def=1" json:"cp_model_presolve,omitempty"`
+	CpModelPresolve *bool `                   protobuf:"varint,86,opt,name=cp_model_presolve,json=cpModelPresolve,def=1"                                                                                              json:"cp_model_presolve,omitempty"`
 	// How much effort do we spend on probing. 0 disables it completely.
-	CpModelProbingLevel *int32 `protobuf:"varint,110,opt,name=cp_model_probing_level,json=cpModelProbingLevel,def=2" json:"cp_model_probing_level,omitempty"`
+	CpModelProbingLevel *int32 `                   protobuf:"varint,110,opt,name=cp_model_probing_level,json=cpModelProbingLevel,def=2"                                                                                    json:"cp_model_probing_level,omitempty"`
 	// Whether we also use the sat presolve when cp_model_presolve is true.
-	CpModelUseSatPresolve *bool `protobuf:"varint,93,opt,name=cp_model_use_sat_presolve,json=cpModelUseSatPresolve,def=1" json:"cp_model_use_sat_presolve,omitempty"`
+	CpModelUseSatPresolve *bool `                   protobuf:"varint,93,opt,name=cp_model_use_sat_presolve,json=cpModelUseSatPresolve,def=1"                                                                                json:"cp_model_use_sat_presolve,omitempty"`
 	// If cp_model_presolve is true and there is a large proportion of fixed
 	// variable after the first model copy, remap all the model to a dense set of
 	// variable before the full presolve even starts. This should help for LNS on
 	// large models.
-	RemoveFixedVariablesEarly *bool `protobuf:"varint,310,opt,name=remove_fixed_variables_early,json=removeFixedVariablesEarly,def=1" json:"remove_fixed_variables_early,omitempty"`
+	RemoveFixedVariablesEarly *bool `                   protobuf:"varint,310,opt,name=remove_fixed_variables_early,json=removeFixedVariablesEarly,def=1"                                                                        json:"remove_fixed_variables_early,omitempty"`
 	// If true, we detect variable that are unique to a table constraint and only
 	// there to encode a cost on each tuple. This is usually the case when a WCSP
 	// (weighted constraint program) is encoded into CP-SAT format.
 	//
 	// This can lead to a dramatic speed-up for such problems but is still
 	// experimental at this point.
-	DetectTableWithCost *bool `protobuf:"varint,216,opt,name=detect_table_with_cost,json=detectTableWithCost,def=0" json:"detect_table_with_cost,omitempty"`
+	DetectTableWithCost *bool `                   protobuf:"varint,216,opt,name=detect_table_with_cost,json=detectTableWithCost,def=0"                                                                                    json:"detect_table_with_cost,omitempty"`
 	// How much we try to "compress" a table constraint. Compressing more leads to
 	// less Booleans and faster propagation but can reduced the quality of the lp
 	// relaxation. Values goes from 0 to 3 where we always try to fully compress a
 	// table. At 2, we try to automatically decide if it is worth it.
-	TableCompressionLevel *int32 `protobuf:"varint,217,opt,name=table_compression_level,json=tableCompressionLevel,def=2" json:"table_compression_level,omitempty"`
+	TableCompressionLevel *int32 `                   protobuf:"varint,217,opt,name=table_compression_level,json=tableCompressionLevel,def=2"                                                                                 json:"table_compression_level,omitempty"`
 	// If true, expand all_different constraints that are not permutations.
 	// Permutations (#Variables = #Values) are always expanded.
-	ExpandAlldiffConstraints *bool `protobuf:"varint,170,opt,name=expand_alldiff_constraints,json=expandAlldiffConstraints,def=0" json:"expand_alldiff_constraints,omitempty"`
+	ExpandAlldiffConstraints *bool `                   protobuf:"varint,170,opt,name=expand_alldiff_constraints,json=expandAlldiffConstraints,def=0"                                                                           json:"expand_alldiff_constraints,omitempty"`
 	// If true, expand the reservoir constraints by creating booleans for all
 	// possible precedences between event and encoding the constraint.
-	ExpandReservoirConstraints *bool `protobuf:"varint,182,opt,name=expand_reservoir_constraints,json=expandReservoirConstraints,def=1" json:"expand_reservoir_constraints,omitempty"`
+	ExpandReservoirConstraints *bool `                   protobuf:"varint,182,opt,name=expand_reservoir_constraints,json=expandReservoirConstraints,def=1"                                                                       json:"expand_reservoir_constraints,omitempty"`
 	// Mainly useful for testing.
 	//
 	// If this and expand_reservoir_constraints is true, we use a different
@@ -1170,42 +1170,42 @@ type SatParameters struct {
 	// (in this permuted order). So we cannot have +100 and -100 at the same time
 	// if the level must be between 0 and 10 (as authorized by the reservoir
 	// constraint).
-	ExpandReservoirUsingCircuit *bool `protobuf:"varint,288,opt,name=expand_reservoir_using_circuit,json=expandReservoirUsingCircuit,def=0" json:"expand_reservoir_using_circuit,omitempty"`
+	ExpandReservoirUsingCircuit *bool `                   protobuf:"varint,288,opt,name=expand_reservoir_using_circuit,json=expandReservoirUsingCircuit,def=0"                                                                    json:"expand_reservoir_using_circuit,omitempty"`
 	// Encore cumulative with fixed demands and capacity as a reservoir
 	// constraint. The only reason you might want to do that is to test the
 	// reservoir propagation code!
-	EncodeCumulativeAsReservoir *bool `protobuf:"varint,287,opt,name=encode_cumulative_as_reservoir,json=encodeCumulativeAsReservoir,def=0" json:"encode_cumulative_as_reservoir,omitempty"`
+	EncodeCumulativeAsReservoir *bool `                   protobuf:"varint,287,opt,name=encode_cumulative_as_reservoir,json=encodeCumulativeAsReservoir,def=0"                                                                    json:"encode_cumulative_as_reservoir,omitempty"`
 	// If the number of expressions in the lin_max is less that the max size
 	// parameter, model expansion replaces target = max(xi) by linear constraint
 	// with the introduction of new booleans bi such that bi => target == xi.
 	//
 	// This is mainly for experimenting compared to a custom lin_max propagator.
-	MaxLinMaxSizeForExpansion *int32 `protobuf:"varint,280,opt,name=max_lin_max_size_for_expansion,json=maxLinMaxSizeForExpansion,def=0" json:"max_lin_max_size_for_expansion,omitempty"`
+	MaxLinMaxSizeForExpansion *int32 `                   protobuf:"varint,280,opt,name=max_lin_max_size_for_expansion,json=maxLinMaxSizeForExpansion,def=0"                                                                      json:"max_lin_max_size_for_expansion,omitempty"`
 	// If true, it disable all constraint expansion.
 	// This should only be used to test the presolve of expanded constraints.
-	DisableConstraintExpansion *bool `protobuf:"varint,181,opt,name=disable_constraint_expansion,json=disableConstraintExpansion,def=0" json:"disable_constraint_expansion,omitempty"`
+	DisableConstraintExpansion *bool `                   protobuf:"varint,181,opt,name=disable_constraint_expansion,json=disableConstraintExpansion,def=0"                                                                       json:"disable_constraint_expansion,omitempty"`
 	// Linear constraint with a complex right hand side (more than a single
 	// interval) need to be expanded, there is a couple of way to do that.
-	EncodeComplexLinearConstraintWithInteger *bool `protobuf:"varint,223,opt,name=encode_complex_linear_constraint_with_integer,json=encodeComplexLinearConstraintWithInteger,def=0" json:"encode_complex_linear_constraint_with_integer,omitempty"`
+	EncodeComplexLinearConstraintWithInteger *bool `                   protobuf:"varint,223,opt,name=encode_complex_linear_constraint_with_integer,json=encodeComplexLinearConstraintWithInteger,def=0"                                        json:"encode_complex_linear_constraint_with_integer,omitempty"`
 	// During presolve, we use a maximum clique heuristic to merge together
 	// no-overlap constraints or at most one constraints. This code can be slow,
 	// so we have a limit in place on the number of explored nodes in the
 	// underlying graph. The internal limit is an int64, but we use double here to
 	// simplify manual input.
-	MergeNoOverlapWorkLimit *float64 `protobuf:"fixed64,145,opt,name=merge_no_overlap_work_limit,json=mergeNoOverlapWorkLimit,def=1e+12" json:"merge_no_overlap_work_limit,omitempty"`
-	MergeAtMostOneWorkLimit *float64 `protobuf:"fixed64,146,opt,name=merge_at_most_one_work_limit,json=mergeAtMostOneWorkLimit,def=1e+08" json:"merge_at_most_one_work_limit,omitempty"`
+	MergeNoOverlapWorkLimit *float64 `                   protobuf:"fixed64,145,opt,name=merge_no_overlap_work_limit,json=mergeNoOverlapWorkLimit,def=1e+12"                                                                      json:"merge_no_overlap_work_limit,omitempty"`
+	MergeAtMostOneWorkLimit *float64 `                   protobuf:"fixed64,146,opt,name=merge_at_most_one_work_limit,json=mergeAtMostOneWorkLimit,def=1e+08"                                                                     json:"merge_at_most_one_work_limit,omitempty"`
 	// How much substitution (also called free variable aggregation in MIP
 	// litterature) should we perform at presolve. This currently only concerns
 	// variable appearing only in linear constraints. For now the value 0 turns it
 	// off and any positive value performs substitution.
-	PresolveSubstitutionLevel *int32 `protobuf:"varint,147,opt,name=presolve_substitution_level,json=presolveSubstitutionLevel,def=1" json:"presolve_substitution_level,omitempty"`
+	PresolveSubstitutionLevel *int32 `                   protobuf:"varint,147,opt,name=presolve_substitution_level,json=presolveSubstitutionLevel,def=1"                                                                         json:"presolve_substitution_level,omitempty"`
 	// If true, we will extract from linear constraints, enforcement literals of
 	// the form "integer variable at bound => simplified constraint". This should
 	// always be beneficial except that we don't always handle them as efficiently
 	// as we could for now. This causes problem on manna81.mps (LP relaxation not
 	// as tight it seems) and on neos-3354841-apure.mps.gz (too many literals
 	// created this way).
-	PresolveExtractIntegerEnforcement *bool `protobuf:"varint,174,opt,name=presolve_extract_integer_enforcement,json=presolveExtractIntegerEnforcement,def=0" json:"presolve_extract_integer_enforcement,omitempty"`
+	PresolveExtractIntegerEnforcement *bool `                   protobuf:"varint,174,opt,name=presolve_extract_integer_enforcement,json=presolveExtractIntegerEnforcement,def=0"                                                        json:"presolve_extract_integer_enforcement,omitempty"`
 	// A few presolve operations involve detecting constraints included in other
 	// constraint. Since there can be a quadratic number of such pairs, and
 	// processing them usually involve scanning them, the complexity of these
@@ -1213,9 +1213,9 @@ type SatParameters struct {
 	// number of entries scanned. Default is 1e8.
 	//
 	// A value of zero will disable these presolve rules completely.
-	PresolveInclusionWorkLimit *int64 `protobuf:"varint,201,opt,name=presolve_inclusion_work_limit,json=presolveInclusionWorkLimit,def=100000000" json:"presolve_inclusion_work_limit,omitempty"`
+	PresolveInclusionWorkLimit *int64 `                   protobuf:"varint,201,opt,name=presolve_inclusion_work_limit,json=presolveInclusionWorkLimit,def=100000000"                                                              json:"presolve_inclusion_work_limit,omitempty"`
 	// If true, we don't keep names in our internal copy of the user given model.
-	IgnoreNames *bool `protobuf:"varint,202,opt,name=ignore_names,json=ignoreNames,def=1" json:"ignore_names,omitempty"`
+	IgnoreNames *bool `                   protobuf:"varint,202,opt,name=ignore_names,json=ignoreNames,def=1"                                                                                                      json:"ignore_names,omitempty"`
 	// Run a max-clique code amongst all the x != y we can find and try to infer
 	// set of variables that are all different. This allows to close neos16.mps
 	// for instance. Note that we only run this code if there is no all_diff
@@ -1224,21 +1224,21 @@ type SatParameters struct {
 	//
 	// This will also detect and add no_overlap constraints, if all the relations
 	// x != y have "offsets" between them. I.e. x > y + offset.
-	InferAllDiffs *bool `protobuf:"varint,233,opt,name=infer_all_diffs,json=inferAllDiffs,def=1" json:"infer_all_diffs,omitempty"`
+	InferAllDiffs *bool `                   protobuf:"varint,233,opt,name=infer_all_diffs,json=inferAllDiffs,def=1"                                                                                                 json:"infer_all_diffs,omitempty"`
 	// Try to find large "rectangle" in the linear constraint matrix with
 	// identical lines. If such rectangle is big enough, we can introduce a new
 	// integer variable corresponding to the common expression and greatly reduce
 	// the number of non-zero.
-	FindBigLinearOverlap *bool `protobuf:"varint,234,opt,name=find_big_linear_overlap,json=findBigLinearOverlap,def=1" json:"find_big_linear_overlap,omitempty"`
+	FindBigLinearOverlap *bool `                   protobuf:"varint,234,opt,name=find_big_linear_overlap,json=findBigLinearOverlap,def=1"                                                                                  json:"find_big_linear_overlap,omitempty"`
 	// Enable or disable "inprocessing" which is some SAT presolving done at
 	// each restart to the root level.
-	UseSatInprocessing *bool `protobuf:"varint,163,opt,name=use_sat_inprocessing,json=useSatInprocessing,def=1" json:"use_sat_inprocessing,omitempty"`
+	UseSatInprocessing *bool `                   protobuf:"varint,163,opt,name=use_sat_inprocessing,json=useSatInprocessing,def=1"                                                                                       json:"use_sat_inprocessing,omitempty"`
 	// Proportion of deterministic time we should spend on inprocessing.
 	// At each "restart", if the proportion is below this ratio, we will do some
 	// inprocessing, otherwise, we skip it for this restart.
-	InprocessingDtimeRatio *float64 `protobuf:"fixed64,273,opt,name=inprocessing_dtime_ratio,json=inprocessingDtimeRatio,def=0.2" json:"inprocessing_dtime_ratio,omitempty"`
+	InprocessingDtimeRatio *float64 `                   protobuf:"fixed64,273,opt,name=inprocessing_dtime_ratio,json=inprocessingDtimeRatio,def=0.2"                                                                            json:"inprocessing_dtime_ratio,omitempty"`
 	// The amount of dtime we should spend on probing for each inprocessing round.
-	InprocessingProbingDtime *float64 `protobuf:"fixed64,274,opt,name=inprocessing_probing_dtime,json=inprocessingProbingDtime,def=1" json:"inprocessing_probing_dtime,omitempty"`
+	InprocessingProbingDtime *float64 `                   protobuf:"fixed64,274,opt,name=inprocessing_probing_dtime,json=inprocessingProbingDtime,def=1"                                                                          json:"inprocessing_probing_dtime,omitempty"`
 	// Parameters for an heuristic similar to the one described in "An effective
 	// learnt clause minimization approach for CDCL Sat Solvers",
 	// https://www.ijcai.org/proceedings/2017/0098.pdf
@@ -1249,9 +1249,9 @@ type SatParameters struct {
 	// The minimization technique is the same as the one used to minimize core in
 	// max-sat. We also minimize problem clauses and not just the learned clause
 	// that we keep forever like in the paper.
-	InprocessingMinimizationDtime               *float64 `protobuf:"fixed64,275,opt,name=inprocessing_minimization_dtime,json=inprocessingMinimizationDtime,def=1" json:"inprocessing_minimization_dtime,omitempty"`
-	InprocessingMinimizationUseConflictAnalysis *bool    `protobuf:"varint,297,opt,name=inprocessing_minimization_use_conflict_analysis,json=inprocessingMinimizationUseConflictAnalysis,def=1" json:"inprocessing_minimization_use_conflict_analysis,omitempty"`
-	InprocessingMinimizationUseAllOrderings     *bool    `protobuf:"varint,298,opt,name=inprocessing_minimization_use_all_orderings,json=inprocessingMinimizationUseAllOrderings,def=0" json:"inprocessing_minimization_use_all_orderings,omitempty"`
+	InprocessingMinimizationDtime               *float64 `                   protobuf:"fixed64,275,opt,name=inprocessing_minimization_dtime,json=inprocessingMinimizationDtime,def=1"                                                                json:"inprocessing_minimization_dtime,omitempty"`
+	InprocessingMinimizationUseConflictAnalysis *bool    `                   protobuf:"varint,297,opt,name=inprocessing_minimization_use_conflict_analysis,json=inprocessingMinimizationUseConflictAnalysis,def=1"                                   json:"inprocessing_minimization_use_conflict_analysis,omitempty"`
+	InprocessingMinimizationUseAllOrderings     *bool    `                   protobuf:"varint,298,opt,name=inprocessing_minimization_use_all_orderings,json=inprocessingMinimizationUseAllOrderings,def=0"                                           json:"inprocessing_minimization_use_all_orderings,omitempty"`
 	// Specify the number of parallel workers (i.e. threads) to use during search.
 	// This should usually be lower than your number of available cpus +
 	// hyperthread in your machine.
@@ -1266,14 +1266,14 @@ type SatParameters struct {
 	// programs) this field is overridden with a value of 8, if the field is not
 	// set *explicitly*. Thus, always set this field explicitly or via
 	// MPSolver::SetNumThreads().
-	NumWorkers       *int32 `protobuf:"varint,206,opt,name=num_workers,json=numWorkers,def=0" json:"num_workers,omitempty"`
-	NumSearchWorkers *int32 `protobuf:"varint,100,opt,name=num_search_workers,json=numSearchWorkers,def=0" json:"num_search_workers,omitempty"`
+	NumWorkers       *int32 `                   protobuf:"varint,206,opt,name=num_workers,json=numWorkers,def=0"                                                                                                        json:"num_workers,omitempty"`
+	NumSearchWorkers *int32 `                   protobuf:"varint,100,opt,name=num_search_workers,json=numSearchWorkers,def=0"                                                                                           json:"num_search_workers,omitempty"`
 	// We distinguish subsolvers that consume a full thread, and the ones that are
 	// always interleaved. If left at zero, we will fix this with a default
 	// formula that depends on num_workers. But if you start modifying what runs,
 	// you might want to fix that to a given value depending on the num_workers
 	// you use.
-	NumFullSubsolvers *int32 `protobuf:"varint,294,opt,name=num_full_subsolvers,json=numFullSubsolvers,def=0" json:"num_full_subsolvers,omitempty"`
+	NumFullSubsolvers *int32 `                   protobuf:"varint,294,opt,name=num_full_subsolvers,json=numFullSubsolvers,def=0"                                                                                         json:"num_full_subsolvers,omitempty"`
 	// In multi-thread, the solver can be mainly seen as a portfolio of solvers
 	// with different parameters. This field indicates the names of the parameters
 	// that are used in multithread. This only applies to "full" subsolvers.
@@ -1299,10 +1299,10 @@ type SatParameters struct {
 	//
 	// The order is important, as only the first num_full_subsolvers will be
 	// scheduled. You can see in the log which one are selected for a given run.
-	Subsolvers []string `protobuf:"bytes,207,rep,name=subsolvers" json:"subsolvers,omitempty"`
+	Subsolvers []string `                   protobuf:"bytes,207,rep,name=subsolvers"                                                                                                                                json:"subsolvers,omitempty"`
 	// A convenient way to add more workers types.
 	// These will be added at the beginning of the list.
-	ExtraSubsolvers []string `protobuf:"bytes,219,rep,name=extra_subsolvers,json=extraSubsolvers" json:"extra_subsolvers,omitempty"`
+	ExtraSubsolvers []string `                   protobuf:"bytes,219,rep,name=extra_subsolvers,json=extraSubsolvers"                                                                                                     json:"extra_subsolvers,omitempty"`
 	// Rather than fully specifying subsolvers, it is often convenient to just
 	// remove the ones that are not useful on a given problem or only keep
 	// specific ones for testing. Each string is interpreted as a "glob", so we
@@ -1312,67 +1312,67 @@ type SatParameters struct {
 	// pattern (if non-empty) and do not match an ignore pattern. Note also that
 	// these fields work on LNS or LS names even if these are currently not
 	// specified via the subsolvers field.
-	IgnoreSubsolvers []string `protobuf:"bytes,209,rep,name=ignore_subsolvers,json=ignoreSubsolvers" json:"ignore_subsolvers,omitempty"`
-	FilterSubsolvers []string `protobuf:"bytes,293,rep,name=filter_subsolvers,json=filterSubsolvers" json:"filter_subsolvers,omitempty"`
+	IgnoreSubsolvers []string `                   protobuf:"bytes,209,rep,name=ignore_subsolvers,json=ignoreSubsolvers"                                                                                                   json:"ignore_subsolvers,omitempty"`
+	FilterSubsolvers []string `                   protobuf:"bytes,293,rep,name=filter_subsolvers,json=filterSubsolvers"                                                                                                   json:"filter_subsolvers,omitempty"`
 	// It is possible to specify additional subsolver configuration. These can be
 	// referred by their params.name() in the fields above. Note that only the
 	// specified field will "overwrite" the ones of the base parameter. If a
 	// subsolver_params has the name of an existing subsolver configuration, the
 	// named parameters will be merged into the subsolver configuration.
-	SubsolverParams []*SatParameters `protobuf:"bytes,210,rep,name=subsolver_params,json=subsolverParams" json:"subsolver_params,omitempty"`
+	SubsolverParams []*SatParameters `                   protobuf:"bytes,210,rep,name=subsolver_params,json=subsolverParams"                                                                                                     json:"subsolver_params,omitempty"`
 	// Experimental. If this is true, then we interleave all our major search
 	// strategy and distribute the work amongst num_workers.
 	//
 	// The search is deterministic (independently of num_workers!), and we
 	// schedule and wait for interleave_batch_size task to be completed before
 	// synchronizing and scheduling the next batch of tasks.
-	InterleaveSearch    *bool  `protobuf:"varint,136,opt,name=interleave_search,json=interleaveSearch,def=0" json:"interleave_search,omitempty"`
-	InterleaveBatchSize *int32 `protobuf:"varint,134,opt,name=interleave_batch_size,json=interleaveBatchSize,def=0" json:"interleave_batch_size,omitempty"`
+	InterleaveSearch    *bool  `                   protobuf:"varint,136,opt,name=interleave_search,json=interleaveSearch,def=0"                                                                                            json:"interleave_search,omitempty"`
+	InterleaveBatchSize *int32 `                   protobuf:"varint,134,opt,name=interleave_batch_size,json=interleaveBatchSize,def=0"                                                                                     json:"interleave_batch_size,omitempty"`
 	// Allows objective sharing between workers.
-	ShareObjectiveBounds *bool `protobuf:"varint,113,opt,name=share_objective_bounds,json=shareObjectiveBounds,def=1" json:"share_objective_bounds,omitempty"`
+	ShareObjectiveBounds *bool `                   protobuf:"varint,113,opt,name=share_objective_bounds,json=shareObjectiveBounds,def=1"                                                                                   json:"share_objective_bounds,omitempty"`
 	// Allows sharing of the bounds of modified variables at level 0.
-	ShareLevelZeroBounds *bool `protobuf:"varint,114,opt,name=share_level_zero_bounds,json=shareLevelZeroBounds,def=1" json:"share_level_zero_bounds,omitempty"`
+	ShareLevelZeroBounds *bool `                   protobuf:"varint,114,opt,name=share_level_zero_bounds,json=shareLevelZeroBounds,def=1"                                                                                  json:"share_level_zero_bounds,omitempty"`
 	// Allows sharing of new learned binary clause between workers.
-	ShareBinaryClauses *bool `protobuf:"varint,203,opt,name=share_binary_clauses,json=shareBinaryClauses,def=1" json:"share_binary_clauses,omitempty"`
+	ShareBinaryClauses *bool `                   protobuf:"varint,203,opt,name=share_binary_clauses,json=shareBinaryClauses,def=1"                                                                                       json:"share_binary_clauses,omitempty"`
 	// Allows sharing of short glue clauses between workers.
 	// Implicitly disabled if share_binary_clauses is false.
-	ShareGlueClauses *bool `protobuf:"varint,285,opt,name=share_glue_clauses,json=shareGlueClauses,def=0" json:"share_glue_clauses,omitempty"`
+	ShareGlueClauses *bool `                   protobuf:"varint,285,opt,name=share_glue_clauses,json=shareGlueClauses,def=0"                                                                                           json:"share_glue_clauses,omitempty"`
 	// Minimize and detect subsumption of shared clauses immediately after they
 	// are imported.
-	MinimizeSharedClauses *bool `protobuf:"varint,300,opt,name=minimize_shared_clauses,json=minimizeSharedClauses,def=1" json:"minimize_shared_clauses,omitempty"`
+	MinimizeSharedClauses *bool `                   protobuf:"varint,300,opt,name=minimize_shared_clauses,json=minimizeSharedClauses,def=1"                                                                                 json:"minimize_shared_clauses,omitempty"`
 	// We have two different postsolve code. The default one should be better and
 	// it allows for a more powerful presolve, but it can be useful to postsolve
 	// using the full solver instead.
-	DebugPostsolveWithFullSolver *bool `protobuf:"varint,162,opt,name=debug_postsolve_with_full_solver,json=debugPostsolveWithFullSolver,def=0" json:"debug_postsolve_with_full_solver,omitempty"`
+	DebugPostsolveWithFullSolver *bool `                   protobuf:"varint,162,opt,name=debug_postsolve_with_full_solver,json=debugPostsolveWithFullSolver,def=0"                                                                 json:"debug_postsolve_with_full_solver,omitempty"`
 	// If positive, try to stop just after that many presolve rules have been
 	// applied. This is mainly useful for debugging presolve.
-	DebugMaxNumPresolveOperations *int32 `protobuf:"varint,151,opt,name=debug_max_num_presolve_operations,json=debugMaxNumPresolveOperations,def=0" json:"debug_max_num_presolve_operations,omitempty"`
+	DebugMaxNumPresolveOperations *int32 `                   protobuf:"varint,151,opt,name=debug_max_num_presolve_operations,json=debugMaxNumPresolveOperations,def=0"                                                               json:"debug_max_num_presolve_operations,omitempty"`
 	// Crash if we do not manage to complete the hint into a full solution.
-	DebugCrashOnBadHint *bool `protobuf:"varint,195,opt,name=debug_crash_on_bad_hint,json=debugCrashOnBadHint,def=0" json:"debug_crash_on_bad_hint,omitempty"`
+	DebugCrashOnBadHint *bool `                   protobuf:"varint,195,opt,name=debug_crash_on_bad_hint,json=debugCrashOnBadHint,def=0"                                                                                   json:"debug_crash_on_bad_hint,omitempty"`
 	// Crash if presolve breaks a feasible hint.
-	DebugCrashIfPresolveBreaksHint *bool `protobuf:"varint,306,opt,name=debug_crash_if_presolve_breaks_hint,json=debugCrashIfPresolveBreaksHint,def=0" json:"debug_crash_if_presolve_breaks_hint,omitempty"`
+	DebugCrashIfPresolveBreaksHint *bool `                   protobuf:"varint,306,opt,name=debug_crash_if_presolve_breaks_hint,json=debugCrashIfPresolveBreaksHint,def=0"                                                            json:"debug_crash_if_presolve_breaks_hint,omitempty"`
 	// For an optimization problem, whether we follow some hints in order to find
 	// a better first solution. For a variable with hint, the solver will always
 	// try to follow the hint. It will revert to the variable_branching default
 	// otherwise.
-	UseOptimizationHints *bool `protobuf:"varint,35,opt,name=use_optimization_hints,json=useOptimizationHints,def=1" json:"use_optimization_hints,omitempty"`
+	UseOptimizationHints *bool `                   protobuf:"varint,35,opt,name=use_optimization_hints,json=useOptimizationHints,def=1"                                                                                    json:"use_optimization_hints,omitempty"`
 	// If positive, we spend some effort on each core:
 	//   - At level 1, we use a simple heuristic to try to minimize an UNSAT core.
 	//   - At level 2, we use propagation to minimize the core but also identify
 	//     literal in at most one relationship in this core.
-	CoreMinimizationLevel *int32 `protobuf:"varint,50,opt,name=core_minimization_level,json=coreMinimizationLevel,def=2" json:"core_minimization_level,omitempty"`
+	CoreMinimizationLevel *int32 `                   protobuf:"varint,50,opt,name=core_minimization_level,json=coreMinimizationLevel,def=2"                                                                                  json:"core_minimization_level,omitempty"`
 	// Whether we try to find more independent cores for a given set of
 	// assumptions in the core based max-SAT algorithms.
-	FindMultipleCores *bool `protobuf:"varint,84,opt,name=find_multiple_cores,json=findMultipleCores,def=1" json:"find_multiple_cores,omitempty"`
+	FindMultipleCores *bool `                   protobuf:"varint,84,opt,name=find_multiple_cores,json=findMultipleCores,def=1"                                                                                          json:"find_multiple_cores,omitempty"`
 	// If true, when the max-sat algo find a core, we compute the minimal number
 	// of literals in the core that needs to be true to have a feasible solution.
 	// This is also called core exhaustion in more recent max-SAT papers.
-	CoverOptimization     *bool                                `protobuf:"varint,89,opt,name=cover_optimization,json=coverOptimization,def=1" json:"cover_optimization,omitempty"`
-	MaxSatAssumptionOrder *SatParameters_MaxSatAssumptionOrder `protobuf:"varint,51,opt,name=max_sat_assumption_order,json=maxSatAssumptionOrder,enum=operations_research.sat.SatParameters_MaxSatAssumptionOrder,def=0" json:"max_sat_assumption_order,omitempty"`
+	CoverOptimization     *bool                                `                   protobuf:"varint,89,opt,name=cover_optimization,json=coverOptimization,def=1"                                                                                           json:"cover_optimization,omitempty"`
+	MaxSatAssumptionOrder *SatParameters_MaxSatAssumptionOrder `                   protobuf:"varint,51,opt,name=max_sat_assumption_order,json=maxSatAssumptionOrder,enum=operations_research.sat.SatParameters_MaxSatAssumptionOrder,def=0"                json:"max_sat_assumption_order,omitempty"`
 	// If true, adds the assumption in the reverse order of the one defined by
 	// max_sat_assumption_order.
-	MaxSatReverseAssumptionOrder *bool                                        `protobuf:"varint,52,opt,name=max_sat_reverse_assumption_order,json=maxSatReverseAssumptionOrder,def=0" json:"max_sat_reverse_assumption_order,omitempty"`
-	MaxSatStratification         *SatParameters_MaxSatStratificationAlgorithm `protobuf:"varint,53,opt,name=max_sat_stratification,json=maxSatStratification,enum=operations_research.sat.SatParameters_MaxSatStratificationAlgorithm,def=1" json:"max_sat_stratification,omitempty"`
+	MaxSatReverseAssumptionOrder *bool                                        `                   protobuf:"varint,52,opt,name=max_sat_reverse_assumption_order,json=maxSatReverseAssumptionOrder,def=0"                                                                  json:"max_sat_reverse_assumption_order,omitempty"`
+	MaxSatStratification         *SatParameters_MaxSatStratificationAlgorithm `                   protobuf:"varint,53,opt,name=max_sat_stratification,json=maxSatStratification,enum=operations_research.sat.SatParameters_MaxSatStratificationAlgorithm,def=1"           json:"max_sat_stratification,omitempty"`
 	// Some search decisions might cause a really large number of propagations to
 	// happen when integer variables with large domains are only reduced by 1 at
 	// each step. If we propagate more than the number of variable times this
@@ -1382,7 +1382,7 @@ type SatParameters struct {
 	// TODO(user): Setting this to something like 10 helps in most cases, but the
 	// code is currently buggy and can cause the solve to enter a bad state where
 	// no progress is made.
-	PropagationLoopDetectionFactor *float64 `protobuf:"fixed64,221,opt,name=propagation_loop_detection_factor,json=propagationLoopDetectionFactor,def=10" json:"propagation_loop_detection_factor,omitempty"`
+	PropagationLoopDetectionFactor *float64 `                   protobuf:"fixed64,221,opt,name=propagation_loop_detection_factor,json=propagationLoopDetectionFactor,def=10"                                                            json:"propagation_loop_detection_factor,omitempty"`
 	// When this is true, then a disjunctive constraint will try to use the
 	// precedence relations between time intervals to propagate their bounds
 	// further. For instance if task A and B are both before C and task A and B
@@ -1392,23 +1392,23 @@ type SatParameters struct {
 	//
 	// This always result in better propagation, but it is usually slow, so
 	// depending on the problem, turning this off may lead to a faster solution.
-	UsePrecedencesInDisjunctiveConstraint *bool `protobuf:"varint,74,opt,name=use_precedences_in_disjunctive_constraint,json=usePrecedencesInDisjunctiveConstraint,def=1" json:"use_precedences_in_disjunctive_constraint,omitempty"`
+	UsePrecedencesInDisjunctiveConstraint *bool `                   protobuf:"varint,74,opt,name=use_precedences_in_disjunctive_constraint,json=usePrecedencesInDisjunctiveConstraint,def=1"                                                json:"use_precedences_in_disjunctive_constraint,omitempty"`
 	// Create one literal for each disjunction of two pairs of tasks. This slows
 	// down the solve time, but improves the lower bound of the objective in the
 	// makespan case. This will be triggered if the number of intervals is less or
 	// equal than the parameter and if use_strong_propagation_in_disjunctive is
 	// true.
-	MaxSizeToCreatePrecedenceLiteralsInDisjunctive *int32 `protobuf:"varint,229,opt,name=max_size_to_create_precedence_literals_in_disjunctive,json=maxSizeToCreatePrecedenceLiteralsInDisjunctive,def=60" json:"max_size_to_create_precedence_literals_in_disjunctive,omitempty"`
+	MaxSizeToCreatePrecedenceLiteralsInDisjunctive *int32 `                   protobuf:"varint,229,opt,name=max_size_to_create_precedence_literals_in_disjunctive,json=maxSizeToCreatePrecedenceLiteralsInDisjunctive,def=60"                         json:"max_size_to_create_precedence_literals_in_disjunctive,omitempty"`
 	// Enable stronger and more expensive propagation on no_overlap constraint.
-	UseStrongPropagationInDisjunctive *bool `protobuf:"varint,230,opt,name=use_strong_propagation_in_disjunctive,json=useStrongPropagationInDisjunctive,def=0" json:"use_strong_propagation_in_disjunctive,omitempty"`
+	UseStrongPropagationInDisjunctive *bool `                   protobuf:"varint,230,opt,name=use_strong_propagation_in_disjunctive,json=useStrongPropagationInDisjunctive,def=0"                                                       json:"use_strong_propagation_in_disjunctive,omitempty"`
 	// Whether we try to branch on decision "interval A before interval B" rather
 	// than on intervals bounds. This usually works better, but slow down a bit
 	// the time to find the first solution.
 	//
 	// These parameters are still EXPERIMENTAL, the result should be correct, but
 	// it some corner cases, they can cause some failing CHECK in the solver.
-	UseDynamicPrecedenceInDisjunctive *bool `protobuf:"varint,263,opt,name=use_dynamic_precedence_in_disjunctive,json=useDynamicPrecedenceInDisjunctive,def=0" json:"use_dynamic_precedence_in_disjunctive,omitempty"`
-	UseDynamicPrecedenceInCumulative  *bool `protobuf:"varint,268,opt,name=use_dynamic_precedence_in_cumulative,json=useDynamicPrecedenceInCumulative,def=0" json:"use_dynamic_precedence_in_cumulative,omitempty"`
+	UseDynamicPrecedenceInDisjunctive *bool `                   protobuf:"varint,263,opt,name=use_dynamic_precedence_in_disjunctive,json=useDynamicPrecedenceInDisjunctive,def=0"                                                       json:"use_dynamic_precedence_in_disjunctive,omitempty"`
+	UseDynamicPrecedenceInCumulative  *bool `                   protobuf:"varint,268,opt,name=use_dynamic_precedence_in_cumulative,json=useDynamicPrecedenceInCumulative,def=0"                                                         json:"use_dynamic_precedence_in_cumulative,omitempty"`
 	// When this is true, the cumulative constraint is reinforced with overload
 	// checking, i.e., an additional level of reasoning based on energy. This
 	// additional level supplements the default level of reasoning as well as
@@ -1416,7 +1416,7 @@ type SatParameters struct {
 	//
 	// This always result in better propagation, but it is usually slow, so
 	// depending on the problem, turning this off may lead to a faster solution.
-	UseOverloadCheckerInCumulative *bool `protobuf:"varint,78,opt,name=use_overload_checker_in_cumulative,json=useOverloadCheckerInCumulative,def=0" json:"use_overload_checker_in_cumulative,omitempty"`
+	UseOverloadCheckerInCumulative *bool `                   protobuf:"varint,78,opt,name=use_overload_checker_in_cumulative,json=useOverloadCheckerInCumulative,def=0"                                                              json:"use_overload_checker_in_cumulative,omitempty"`
 	// Enable a heuristic to solve cumulative constraints using a modified energy
 	// constraint. We modify the usual energy definition by applying a
 	// super-additive function (also called "conservative scale" or "dual-feasible
@@ -1424,7 +1424,7 @@ type SatParameters struct {
 	//
 	// This heuristic is fast but for most problems it does not help much to find
 	// a solution.
-	UseConservativeScaleOverloadChecker *bool `protobuf:"varint,286,opt,name=use_conservative_scale_overload_checker,json=useConservativeScaleOverloadChecker,def=0" json:"use_conservative_scale_overload_checker,omitempty"`
+	UseConservativeScaleOverloadChecker *bool `                   protobuf:"varint,286,opt,name=use_conservative_scale_overload_checker,json=useConservativeScaleOverloadChecker,def=0"                                                   json:"use_conservative_scale_overload_checker,omitempty"`
 	// When this is true, the cumulative constraint is reinforced with timetable
 	// edge finding, i.e., an additional level of reasoning based on the
 	// conjunction of energy and mandatory parts. This additional level
@@ -1432,18 +1432,18 @@ type SatParameters struct {
 	//
 	// This always result in better propagation, but it is usually slow, so
 	// depending on the problem, turning this off may lead to a faster solution.
-	UseTimetableEdgeFindingInCumulative *bool `protobuf:"varint,79,opt,name=use_timetable_edge_finding_in_cumulative,json=useTimetableEdgeFindingInCumulative,def=0" json:"use_timetable_edge_finding_in_cumulative,omitempty"`
+	UseTimetableEdgeFindingInCumulative *bool `                   protobuf:"varint,79,opt,name=use_timetable_edge_finding_in_cumulative,json=useTimetableEdgeFindingInCumulative,def=0"                                                   json:"use_timetable_edge_finding_in_cumulative,omitempty"`
 	// Max number of intervals for the timetable_edge_finding algorithm to
 	// propagate. A value of 0 disables the constraint.
-	MaxNumIntervalsForTimetableEdgeFinding *int32 `protobuf:"varint,260,opt,name=max_num_intervals_for_timetable_edge_finding,json=maxNumIntervalsForTimetableEdgeFinding,def=100" json:"max_num_intervals_for_timetable_edge_finding,omitempty"`
+	MaxNumIntervalsForTimetableEdgeFinding *int32 `                   protobuf:"varint,260,opt,name=max_num_intervals_for_timetable_edge_finding,json=maxNumIntervalsForTimetableEdgeFinding,def=100"                                         json:"max_num_intervals_for_timetable_edge_finding,omitempty"`
 	// If true, detect and create constraint for integer variable that are "after"
 	// a set of intervals in the same cumulative constraint.
 	//
 	// Experimental: by default we just use "direct" precedences. If
 	// exploit_all_precedences is true, we explore the full precedence graph. This
 	// assumes we have a DAG otherwise it fails.
-	UseHardPrecedencesInCumulative *bool `protobuf:"varint,215,opt,name=use_hard_precedences_in_cumulative,json=useHardPrecedencesInCumulative,def=0" json:"use_hard_precedences_in_cumulative,omitempty"`
-	ExploitAllPrecedences          *bool `protobuf:"varint,220,opt,name=exploit_all_precedences,json=exploitAllPrecedences,def=0" json:"exploit_all_precedences,omitempty"`
+	UseHardPrecedencesInCumulative *bool `                   protobuf:"varint,215,opt,name=use_hard_precedences_in_cumulative,json=useHardPrecedencesInCumulative,def=0"                                                             json:"use_hard_precedences_in_cumulative,omitempty"`
+	ExploitAllPrecedences          *bool `                   protobuf:"varint,220,opt,name=exploit_all_precedences,json=exploitAllPrecedences,def=0"                                                                                 json:"exploit_all_precedences,omitempty"`
 	// When this is true, the cumulative constraint is reinforced with propagators
 	// from the disjunctive constraint to improve the inference on a set of tasks
 	// that are disjunctive at the root of the problem. This additional level
@@ -1454,26 +1454,26 @@ type SatParameters struct {
 	//
 	// This always result in better propagation, but it is usually slow, so
 	// depending on the problem, turning this off may lead to a faster solution.
-	UseDisjunctiveConstraintInCumulative *bool `protobuf:"varint,80,opt,name=use_disjunctive_constraint_in_cumulative,json=useDisjunctiveConstraintInCumulative,def=1" json:"use_disjunctive_constraint_in_cumulative,omitempty"`
+	UseDisjunctiveConstraintInCumulative *bool `                   protobuf:"varint,80,opt,name=use_disjunctive_constraint_in_cumulative,json=useDisjunctiveConstraintInCumulative,def=1"                                                  json:"use_disjunctive_constraint_in_cumulative,omitempty"`
 	// When this is true, the no_overlap_2d constraint is reinforced with
 	// propagators from the cumulative constraints. It consists of ignoring the
 	// position of rectangles in one position and projecting the no_overlap_2d on
 	// the other dimension to create a cumulative constraint. This is done on both
 	// axis. This additional level supplements the default level of reasoning.
-	UseTimetablingInNoOverlap_2D *bool `protobuf:"varint,200,opt,name=use_timetabling_in_no_overlap_2d,json=useTimetablingInNoOverlap2d,def=0" json:"use_timetabling_in_no_overlap_2d,omitempty"`
+	UseTimetablingInNoOverlap_2D *bool `                   protobuf:"varint,200,opt,name=use_timetabling_in_no_overlap_2d,json=useTimetablingInNoOverlap2d,def=0"                                                                  json:"use_timetabling_in_no_overlap_2d,omitempty"`
 	// When this is true, the no_overlap_2d constraint is reinforced with
 	// energetic reasoning. This additional level supplements the default level of
 	// reasoning.
-	UseEnergeticReasoningInNoOverlap_2D *bool `protobuf:"varint,213,opt,name=use_energetic_reasoning_in_no_overlap_2d,json=useEnergeticReasoningInNoOverlap2d,def=0" json:"use_energetic_reasoning_in_no_overlap_2d,omitempty"`
+	UseEnergeticReasoningInNoOverlap_2D *bool `                   protobuf:"varint,213,opt,name=use_energetic_reasoning_in_no_overlap_2d,json=useEnergeticReasoningInNoOverlap2d,def=0"                                                   json:"use_energetic_reasoning_in_no_overlap_2d,omitempty"`
 	// When this is true, the no_overlap_2d constraint is reinforced with
 	// an energetic reasoning that uses an area-based energy. This can be combined
 	// with the two other overlap heuristics above.
-	UseAreaEnergeticReasoningInNoOverlap_2D *bool `protobuf:"varint,271,opt,name=use_area_energetic_reasoning_in_no_overlap_2d,json=useAreaEnergeticReasoningInNoOverlap2d,def=0" json:"use_area_energetic_reasoning_in_no_overlap_2d,omitempty"`
-	UseTryEdgeReasoningInNoOverlap_2D       *bool `protobuf:"varint,299,opt,name=use_try_edge_reasoning_in_no_overlap_2d,json=useTryEdgeReasoningInNoOverlap2d,def=0" json:"use_try_edge_reasoning_in_no_overlap_2d,omitempty"`
+	UseAreaEnergeticReasoningInNoOverlap_2D *bool `                   protobuf:"varint,271,opt,name=use_area_energetic_reasoning_in_no_overlap_2d,json=useAreaEnergeticReasoningInNoOverlap2d,def=0"                                          json:"use_area_energetic_reasoning_in_no_overlap_2d,omitempty"`
+	UseTryEdgeReasoningInNoOverlap_2D       *bool `                   protobuf:"varint,299,opt,name=use_try_edge_reasoning_in_no_overlap_2d,json=useTryEdgeReasoningInNoOverlap2d,def=0"                                                      json:"use_try_edge_reasoning_in_no_overlap_2d,omitempty"`
 	// If the number of pairs to look is below this threshold, do an extra step of
 	// propagation in the no_overlap_2d constraint by looking at all pairs of
 	// intervals.
-	MaxPairsPairwiseReasoningInNoOverlap_2D *int32 `protobuf:"varint,276,opt,name=max_pairs_pairwise_reasoning_in_no_overlap_2d,json=maxPairsPairwiseReasoningInNoOverlap2d,def=1250" json:"max_pairs_pairwise_reasoning_in_no_overlap_2d,omitempty"`
+	MaxPairsPairwiseReasoningInNoOverlap_2D *int32 `                   protobuf:"varint,276,opt,name=max_pairs_pairwise_reasoning_in_no_overlap_2d,json=maxPairsPairwiseReasoningInNoOverlap2d,def=1250"                                       json:"max_pairs_pairwise_reasoning_in_no_overlap_2d,omitempty"`
 	// Detects when the space where items of a no_overlap_2d constraint can placed
 	// is disjoint (ie., fixed boxes split the domain). When it is the case, we
 	// can introduce a boolean for each pair <item, component> encoding whether
@@ -1484,14 +1484,14 @@ type SatParameters struct {
 	// constraint into a bin packing problem with each connected component being a
 	// bin. This heuristic is only done when the number of regions to split
 	// is less than this parameter and <= 1 disables it.
-	MaximumRegionsToSplitInDisconnectedNoOverlap_2D *int32 `protobuf:"varint,315,opt,name=maximum_regions_to_split_in_disconnected_no_overlap_2d,json=maximumRegionsToSplitInDisconnectedNoOverlap2d,def=0" json:"maximum_regions_to_split_in_disconnected_no_overlap_2d,omitempty"`
+	MaximumRegionsToSplitInDisconnectedNoOverlap_2D *int32 `                   protobuf:"varint,315,opt,name=maximum_regions_to_split_in_disconnected_no_overlap_2d,json=maximumRegionsToSplitInDisconnectedNoOverlap2d,def=0"                         json:"maximum_regions_to_split_in_disconnected_no_overlap_2d,omitempty"`
 	// When set, it activates a few scheduling parameters to improve the lower
 	// bound of scheduling problems. This is only effective with multiple workers
 	// as it modifies the reduced_cost, lb_tree_search, and probing workers.
-	UseDualSchedulingHeuristics *bool `protobuf:"varint,214,opt,name=use_dual_scheduling_heuristics,json=useDualSchedulingHeuristics,def=1" json:"use_dual_scheduling_heuristics,omitempty"`
+	UseDualSchedulingHeuristics *bool `                   protobuf:"varint,214,opt,name=use_dual_scheduling_heuristics,json=useDualSchedulingHeuristics,def=1"                                                                    json:"use_dual_scheduling_heuristics,omitempty"`
 	// Turn on extra propagation for the circuit constraint.
 	// This can be quite slow.
-	UseAllDifferentForCircuit *bool `protobuf:"varint,311,opt,name=use_all_different_for_circuit,json=useAllDifferentForCircuit,def=0" json:"use_all_different_for_circuit,omitempty"`
+	UseAllDifferentForCircuit *bool `                   protobuf:"varint,311,opt,name=use_all_different_for_circuit,json=useAllDifferentForCircuit,def=0"                                                                       json:"use_all_different_for_circuit,omitempty"`
 	// If the size of a subset of nodes of a RoutesConstraint is less than this
 	// value, use linear constraints of size 1 and 2 (such as capacity and time
 	// window constraints) enforced by the arc literals to compute cuts for this
@@ -1500,130 +1500,130 @@ type SatParameters struct {
 	// corresponding algorithm is used instead). The algorithm for these cuts has
 	// a O(n^3) complexity, where n is the subset size. Hence the value of this
 	// parameter should not be too large (e.g. 10 or 20).
-	RoutingCutSubsetSizeForBinaryRelationBound *int32 `protobuf:"varint,312,opt,name=routing_cut_subset_size_for_binary_relation_bound,json=routingCutSubsetSizeForBinaryRelationBound,def=0" json:"routing_cut_subset_size_for_binary_relation_bound,omitempty"`
+	RoutingCutSubsetSizeForBinaryRelationBound *int32 `                   protobuf:"varint,312,opt,name=routing_cut_subset_size_for_binary_relation_bound,json=routingCutSubsetSizeForBinaryRelationBound,def=0"                                  json:"routing_cut_subset_size_for_binary_relation_bound,omitempty"`
 	// Similar to above, but with a different algorithm producing better cuts, at
 	// the price of a higher O(2^n) complexity, where n is the subset size. Hence
 	// the value of this parameter should be small (e.g. less than 10).
-	RoutingCutSubsetSizeForTightBinaryRelationBound *int32 `protobuf:"varint,313,opt,name=routing_cut_subset_size_for_tight_binary_relation_bound,json=routingCutSubsetSizeForTightBinaryRelationBound,def=0" json:"routing_cut_subset_size_for_tight_binary_relation_bound,omitempty"`
+	RoutingCutSubsetSizeForTightBinaryRelationBound *int32 `                   protobuf:"varint,313,opt,name=routing_cut_subset_size_for_tight_binary_relation_bound,json=routingCutSubsetSizeForTightBinaryRelationBound,def=0"                       json:"routing_cut_subset_size_for_tight_binary_relation_bound,omitempty"`
 	// The amount of "effort" to spend in dynamic programming for computing
 	// routing cuts. This is in term of basic operations needed by the algorithm
 	// in the worst case, so a value like 1e8 should take less than a second to
 	// compute.
-	RoutingCutDpEffort *float64                       `protobuf:"fixed64,314,opt,name=routing_cut_dp_effort,json=routingCutDpEffort,def=1e+07" json:"routing_cut_dp_effort,omitempty"`
-	SearchBranching    *SatParameters_SearchBranching `protobuf:"varint,82,opt,name=search_branching,json=searchBranching,enum=operations_research.sat.SatParameters_SearchBranching,def=0" json:"search_branching,omitempty"`
+	RoutingCutDpEffort *float64                       `                   protobuf:"fixed64,314,opt,name=routing_cut_dp_effort,json=routingCutDpEffort,def=1e+07"                                                                                 json:"routing_cut_dp_effort,omitempty"`
+	SearchBranching    *SatParameters_SearchBranching `                   protobuf:"varint,82,opt,name=search_branching,json=searchBranching,enum=operations_research.sat.SatParameters_SearchBranching,def=0"                                    json:"search_branching,omitempty"`
 	// Conflict limit used in the phase that exploit the solution hint.
-	HintConflictLimit *int32 `protobuf:"varint,153,opt,name=hint_conflict_limit,json=hintConflictLimit,def=10" json:"hint_conflict_limit,omitempty"`
+	HintConflictLimit *int32 `                   protobuf:"varint,153,opt,name=hint_conflict_limit,json=hintConflictLimit,def=10"                                                                                        json:"hint_conflict_limit,omitempty"`
 	// If true, the solver tries to repair the solution given in the hint. This
 	// search terminates after the 'hint_conflict_limit' is reached and the solver
 	// switches to regular search. If false, then  we do a FIXED_SEARCH using the
 	// hint until the hint_conflict_limit is reached.
-	RepairHint *bool `protobuf:"varint,167,opt,name=repair_hint,json=repairHint,def=0" json:"repair_hint,omitempty"`
+	RepairHint *bool `                   protobuf:"varint,167,opt,name=repair_hint,json=repairHint,def=0"                                                                                                        json:"repair_hint,omitempty"`
 	// If true, variables appearing in the solution hints will be fixed to their
 	// hinted value.
-	FixVariablesToTheirHintedValue *bool `protobuf:"varint,192,opt,name=fix_variables_to_their_hinted_value,json=fixVariablesToTheirHintedValue,def=0" json:"fix_variables_to_their_hinted_value,omitempty"`
+	FixVariablesToTheirHintedValue *bool `                   protobuf:"varint,192,opt,name=fix_variables_to_their_hinted_value,json=fixVariablesToTheirHintedValue,def=0"                                                            json:"fix_variables_to_their_hinted_value,omitempty"`
 	// If true, search will continuously probe Boolean variables, and integer
 	// variable bounds. This parameter is set to true in parallel on the probing
 	// worker.
-	UseProbingSearch *bool `protobuf:"varint,176,opt,name=use_probing_search,json=useProbingSearch,def=0" json:"use_probing_search,omitempty"`
+	UseProbingSearch *bool `                   protobuf:"varint,176,opt,name=use_probing_search,json=useProbingSearch,def=0"                                                                                           json:"use_probing_search,omitempty"`
 	// Use extended probing (probe bool_or, at_most_one, exactly_one).
-	UseExtendedProbing *bool `protobuf:"varint,269,opt,name=use_extended_probing,json=useExtendedProbing,def=1" json:"use_extended_probing,omitempty"`
+	UseExtendedProbing *bool `                   protobuf:"varint,269,opt,name=use_extended_probing,json=useExtendedProbing,def=1"                                                                                       json:"use_extended_probing,omitempty"`
 	// How many combinations of pairs or triplets of variables we want to scan.
-	ProbingNumCombinationsLimit *int32 `protobuf:"varint,272,opt,name=probing_num_combinations_limit,json=probingNumCombinationsLimit,def=20000" json:"probing_num_combinations_limit,omitempty"`
+	ProbingNumCombinationsLimit *int32 `                   protobuf:"varint,272,opt,name=probing_num_combinations_limit,json=probingNumCombinationsLimit,def=20000"                                                                json:"probing_num_combinations_limit,omitempty"`
 	// Add a shaving phase (where the solver tries to prove that the lower or
 	// upper bound of a variable are infeasible) to the probing search.
-	UseShavingInProbingSearch *bool `protobuf:"varint,204,opt,name=use_shaving_in_probing_search,json=useShavingInProbingSearch,def=1" json:"use_shaving_in_probing_search,omitempty"`
+	UseShavingInProbingSearch *bool `                   protobuf:"varint,204,opt,name=use_shaving_in_probing_search,json=useShavingInProbingSearch,def=1"                                                                       json:"use_shaving_in_probing_search,omitempty"`
 	// Specifies the amount of deterministic time spent of each try at shaving a
 	// bound in the shaving search.
-	ShavingSearchDeterministicTime *float64 `protobuf:"fixed64,205,opt,name=shaving_search_deterministic_time,json=shavingSearchDeterministicTime,def=0.001" json:"shaving_search_deterministic_time,omitempty"`
+	ShavingSearchDeterministicTime *float64 `                   protobuf:"fixed64,205,opt,name=shaving_search_deterministic_time,json=shavingSearchDeterministicTime,def=0.001"                                                         json:"shaving_search_deterministic_time,omitempty"`
 	// Specifies the threshold between two modes in the shaving procedure.
 	// If the range of the variable/objective is less than this threshold, then
 	// the shaving procedure will try to remove values one by one. Otherwise, it
 	// will try to remove one range at a time.
-	ShavingSearchThreshold *int64 `protobuf:"varint,290,opt,name=shaving_search_threshold,json=shavingSearchThreshold,def=64" json:"shaving_search_threshold,omitempty"`
+	ShavingSearchThreshold *int64 `                   protobuf:"varint,290,opt,name=shaving_search_threshold,json=shavingSearchThreshold,def=64"                                                                              json:"shaving_search_threshold,omitempty"`
 	// If true, search will search in ascending max objective value (when
 	// minimizing) starting from the lower bound of the objective.
-	UseObjectiveLbSearch *bool `protobuf:"varint,228,opt,name=use_objective_lb_search,json=useObjectiveLbSearch,def=0" json:"use_objective_lb_search,omitempty"`
+	UseObjectiveLbSearch *bool `                   protobuf:"varint,228,opt,name=use_objective_lb_search,json=useObjectiveLbSearch,def=0"                                                                                  json:"use_objective_lb_search,omitempty"`
 	// This search differs from the previous search as it will not use assumptions
 	// to bound the objective, and it will recreate a full model with the
 	// hardcoded objective value.
-	UseObjectiveShavingSearch *bool `protobuf:"varint,253,opt,name=use_objective_shaving_search,json=useObjectiveShavingSearch,def=0" json:"use_objective_shaving_search,omitempty"`
+	UseObjectiveShavingSearch *bool `                   protobuf:"varint,253,opt,name=use_objective_shaving_search,json=useObjectiveShavingSearch,def=0"                                                                        json:"use_objective_shaving_search,omitempty"`
 	// This search takes all Boolean or integer variables, and maximize or
 	// minimize them in order to reduce their domain.
-	UseVariablesShavingSearch *bool `protobuf:"varint,289,opt,name=use_variables_shaving_search,json=useVariablesShavingSearch,def=0" json:"use_variables_shaving_search,omitempty"`
+	UseVariablesShavingSearch *bool `                   protobuf:"varint,289,opt,name=use_variables_shaving_search,json=useVariablesShavingSearch,def=0"                                                                        json:"use_variables_shaving_search,omitempty"`
 	// The solver ignores the pseudo costs of variables with number of recordings
 	// less than this threshold.
-	PseudoCostReliabilityThreshold *int64 `protobuf:"varint,123,opt,name=pseudo_cost_reliability_threshold,json=pseudoCostReliabilityThreshold,def=100" json:"pseudo_cost_reliability_threshold,omitempty"`
+	PseudoCostReliabilityThreshold *int64 `                   protobuf:"varint,123,opt,name=pseudo_cost_reliability_threshold,json=pseudoCostReliabilityThreshold,def=100"                                                            json:"pseudo_cost_reliability_threshold,omitempty"`
 	// The default optimization method is a simple "linear scan", each time trying
 	// to find a better solution than the previous one. If this is true, then we
 	// use a core-based approach (like in max-SAT) when we try to increase the
 	// lower bound instead.
-	OptimizeWithCore *bool `protobuf:"varint,83,opt,name=optimize_with_core,json=optimizeWithCore,def=0" json:"optimize_with_core,omitempty"`
+	OptimizeWithCore *bool `                   protobuf:"varint,83,opt,name=optimize_with_core,json=optimizeWithCore,def=0"                                                                                            json:"optimize_with_core,omitempty"`
 	// Do a more conventional tree search (by opposition to SAT based one) where
 	// we keep all the explored node in a tree. This is meant to be used in a
 	// portfolio and focus on improving the objective lower bound. Keeping the
 	// whole tree allow us to report a better objective lower bound coming from
 	// the worst open node in the tree.
-	OptimizeWithLbTreeSearch *bool `protobuf:"varint,188,opt,name=optimize_with_lb_tree_search,json=optimizeWithLbTreeSearch,def=0" json:"optimize_with_lb_tree_search,omitempty"`
+	OptimizeWithLbTreeSearch *bool `                   protobuf:"varint,188,opt,name=optimize_with_lb_tree_search,json=optimizeWithLbTreeSearch,def=0"                                                                         json:"optimize_with_lb_tree_search,omitempty"`
 	// Experimental. Save the current LP basis at each node of the search tree so
 	// that when we jump around, we can load it and reduce the number of LP
 	// iterations needed.
 	//
 	// It currently works okay if we do not change the lp with cuts or
 	// simplification... More work is needed to make it robust in all cases.
-	SaveLpBasisInLbTreeSearch *bool `protobuf:"varint,284,opt,name=save_lp_basis_in_lb_tree_search,json=saveLpBasisInLbTreeSearch,def=0" json:"save_lp_basis_in_lb_tree_search,omitempty"`
+	SaveLpBasisInLbTreeSearch *bool `                   protobuf:"varint,284,opt,name=save_lp_basis_in_lb_tree_search,json=saveLpBasisInLbTreeSearch,def=0"                                                                     json:"save_lp_basis_in_lb_tree_search,omitempty"`
 	// If non-negative, perform a binary search on the objective variable in order
 	// to find an [min, max] interval outside of which the solver proved unsat/sat
 	// under this amount of conflict. This can quickly reduce the objective domain
 	// on some problems.
-	BinarySearchNumConflicts *int32 `protobuf:"varint,99,opt,name=binary_search_num_conflicts,json=binarySearchNumConflicts,def=-1" json:"binary_search_num_conflicts,omitempty"`
+	BinarySearchNumConflicts *int32 `                   protobuf:"varint,99,opt,name=binary_search_num_conflicts,json=binarySearchNumConflicts,def=-1"                                                                          json:"binary_search_num_conflicts,omitempty"`
 	// This has no effect if optimize_with_core is false. If true, use a different
 	// core-based algorithm similar to the max-HS algo for max-SAT. This is a
 	// hybrid MIP/CP approach and it uses a MIP solver in addition to the CP/SAT
 	// one. This is also related to the PhD work of tobyodavies@
 	// "Automatic Logic-Based Benders Decomposition with MiniZinc"
 	// http://aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14489
-	OptimizeWithMaxHs *bool `protobuf:"varint,85,opt,name=optimize_with_max_hs,json=optimizeWithMaxHs,def=0" json:"optimize_with_max_hs,omitempty"`
+	OptimizeWithMaxHs *bool `                   protobuf:"varint,85,opt,name=optimize_with_max_hs,json=optimizeWithMaxHs,def=0"                                                                                         json:"optimize_with_max_hs,omitempty"`
 	// Parameters for an heuristic similar to the one described in the paper:
 	// "Feasibility Jump: an LP-free Lagrangian MIP heuristic", Bjørnar
 	// Luteberget, Giorgio Sartor, 2023, Mathematical Programming Computation.
-	UseFeasibilityJump *bool `protobuf:"varint,265,opt,name=use_feasibility_jump,json=useFeasibilityJump,def=1" json:"use_feasibility_jump,omitempty"`
+	UseFeasibilityJump *bool `                   protobuf:"varint,265,opt,name=use_feasibility_jump,json=useFeasibilityJump,def=1"                                                                                       json:"use_feasibility_jump,omitempty"`
 	// Disable every other type of subsolver, setting this turns CP-SAT into a
 	// pure local-search solver.
-	UseLsOnly *bool `protobuf:"varint,240,opt,name=use_ls_only,json=useLsOnly,def=0" json:"use_ls_only,omitempty"`
+	UseLsOnly *bool `                   protobuf:"varint,240,opt,name=use_ls_only,json=useLsOnly,def=0"                                                                                                         json:"use_ls_only,omitempty"`
 	// On each restart, we randomly choose if we use decay (with this parameter)
 	// or no decay.
-	FeasibilityJumpDecay *float64 `protobuf:"fixed64,242,opt,name=feasibility_jump_decay,json=feasibilityJumpDecay,def=0.95" json:"feasibility_jump_decay,omitempty"`
+	FeasibilityJumpDecay *float64 `                   protobuf:"fixed64,242,opt,name=feasibility_jump_decay,json=feasibilityJumpDecay,def=0.95"                                                                               json:"feasibility_jump_decay,omitempty"`
 	// How much do we linearize the problem in the local search code.
-	FeasibilityJumpLinearizationLevel *int32 `protobuf:"varint,257,opt,name=feasibility_jump_linearization_level,json=feasibilityJumpLinearizationLevel,def=2" json:"feasibility_jump_linearization_level,omitempty"`
+	FeasibilityJumpLinearizationLevel *int32 `                   protobuf:"varint,257,opt,name=feasibility_jump_linearization_level,json=feasibilityJumpLinearizationLevel,def=2"                                                        json:"feasibility_jump_linearization_level,omitempty"`
 	// This is a factor that directly influence the work before each restart.
 	// Increasing it leads to longer restart.
-	FeasibilityJumpRestartFactor *int32 `protobuf:"varint,258,opt,name=feasibility_jump_restart_factor,json=feasibilityJumpRestartFactor,def=1" json:"feasibility_jump_restart_factor,omitempty"`
+	FeasibilityJumpRestartFactor *int32 `                   protobuf:"varint,258,opt,name=feasibility_jump_restart_factor,json=feasibilityJumpRestartFactor,def=1"                                                                  json:"feasibility_jump_restart_factor,omitempty"`
 	// How much dtime for each LS batch.
-	FeasibilityJumpBatchDtime *float64 `protobuf:"fixed64,292,opt,name=feasibility_jump_batch_dtime,json=feasibilityJumpBatchDtime,def=0.1" json:"feasibility_jump_batch_dtime,omitempty"`
+	FeasibilityJumpBatchDtime *float64 `                   protobuf:"fixed64,292,opt,name=feasibility_jump_batch_dtime,json=feasibilityJumpBatchDtime,def=0.1"                                                                     json:"feasibility_jump_batch_dtime,omitempty"`
 	// Probability for a variable to have a non default value upon restarts or
 	// perturbations.
-	FeasibilityJumpVarRandomizationProbability *float64 `protobuf:"fixed64,247,opt,name=feasibility_jump_var_randomization_probability,json=feasibilityJumpVarRandomizationProbability,def=0.05" json:"feasibility_jump_var_randomization_probability,omitempty"`
+	FeasibilityJumpVarRandomizationProbability *float64 `                   protobuf:"fixed64,247,opt,name=feasibility_jump_var_randomization_probability,json=feasibilityJumpVarRandomizationProbability,def=0.05"                                 json:"feasibility_jump_var_randomization_probability,omitempty"`
 	// Max distance between the default value and the pertubated value relative to
 	// the range of the domain of the variable.
-	FeasibilityJumpVarPerburbationRangeRatio *float64 `protobuf:"fixed64,248,opt,name=feasibility_jump_var_perburbation_range_ratio,json=feasibilityJumpVarPerburbationRangeRatio,def=0.2" json:"feasibility_jump_var_perburbation_range_ratio,omitempty"`
+	FeasibilityJumpVarPerburbationRangeRatio *float64 `                   protobuf:"fixed64,248,opt,name=feasibility_jump_var_perburbation_range_ratio,json=feasibilityJumpVarPerburbationRangeRatio,def=0.2"                                     json:"feasibility_jump_var_perburbation_range_ratio,omitempty"`
 	// When stagnating, feasibility jump will either restart from a default
 	// solution (with some possible randomization), or randomly pertubate the
 	// current solution. This parameter selects the first option.
-	FeasibilityJumpEnableRestarts *bool `protobuf:"varint,250,opt,name=feasibility_jump_enable_restarts,json=feasibilityJumpEnableRestarts,def=1" json:"feasibility_jump_enable_restarts,omitempty"`
+	FeasibilityJumpEnableRestarts *bool `                   protobuf:"varint,250,opt,name=feasibility_jump_enable_restarts,json=feasibilityJumpEnableRestarts,def=1"                                                                json:"feasibility_jump_enable_restarts,omitempty"`
 	// Maximum size of no_overlap or no_overlap_2d constraint for a quadratic
 	// expansion. This might look a lot, but by expanding such constraint, we get
 	// a linear time evaluation per single variable moves instead of a slow O(n
 	// log n) one.
-	FeasibilityJumpMaxExpandedConstraintSize *int32 `protobuf:"varint,264,opt,name=feasibility_jump_max_expanded_constraint_size,json=feasibilityJumpMaxExpandedConstraintSize,def=500" json:"feasibility_jump_max_expanded_constraint_size,omitempty"`
+	FeasibilityJumpMaxExpandedConstraintSize *int32 `                   protobuf:"varint,264,opt,name=feasibility_jump_max_expanded_constraint_size,json=feasibilityJumpMaxExpandedConstraintSize,def=500"                                      json:"feasibility_jump_max_expanded_constraint_size,omitempty"`
 	// This will create incomplete subsolvers (that are not LNS subsolvers)
 	// that use the feasibility jump code to find improving solution, treating
 	// the objective improvement as a hard constraint.
-	NumViolationLs *int32 `protobuf:"varint,244,opt,name=num_violation_ls,json=numViolationLs,def=0" json:"num_violation_ls,omitempty"`
+	NumViolationLs *int32 `                   protobuf:"varint,244,opt,name=num_violation_ls,json=numViolationLs,def=0"                                                                                               json:"num_violation_ls,omitempty"`
 	// How long violation_ls should wait before perturbating a solution.
-	ViolationLsPerturbationPeriod *int32 `protobuf:"varint,249,opt,name=violation_ls_perturbation_period,json=violationLsPerturbationPeriod,def=100" json:"violation_ls_perturbation_period,omitempty"`
+	ViolationLsPerturbationPeriod *int32 `                   protobuf:"varint,249,opt,name=violation_ls_perturbation_period,json=violationLsPerturbationPeriod,def=100"                                                              json:"violation_ls_perturbation_period,omitempty"`
 	// Probability of using compound move search each restart.
 	// TODO(user): Add reference to paper when published.
-	ViolationLsCompoundMoveProbability *float64 `protobuf:"fixed64,259,opt,name=violation_ls_compound_move_probability,json=violationLsCompoundMoveProbability,def=0.5" json:"violation_ls_compound_move_probability,omitempty"`
+	ViolationLsCompoundMoveProbability *float64 `                   protobuf:"fixed64,259,opt,name=violation_ls_compound_move_probability,json=violationLsCompoundMoveProbability,def=0.5"                                                  json:"violation_ls_compound_move_probability,omitempty"`
 	// Enables shared tree search.
 	// If positive, start this many complete worker threads to explore a shared
 	// search tree. These workers communicate objective bounds and simple decision
@@ -1631,26 +1631,26 @@ type SatParameters struct {
 	// the same subtrees as one another.
 	// Specifying a negative number uses a heuristic to select an appropriate
 	// number of shared tree workeres based on the total number of workers.
-	SharedTreeNumWorkers *int32 `protobuf:"varint,235,opt,name=shared_tree_num_workers,json=sharedTreeNumWorkers,def=0" json:"shared_tree_num_workers,omitempty"`
+	SharedTreeNumWorkers *int32 `                   protobuf:"varint,235,opt,name=shared_tree_num_workers,json=sharedTreeNumWorkers,def=0"                                                                                  json:"shared_tree_num_workers,omitempty"`
 	// Set on shared subtree workers. Users should not set this directly.
-	UseSharedTreeSearch *bool `protobuf:"varint,236,opt,name=use_shared_tree_search,json=useSharedTreeSearch,def=0" json:"use_shared_tree_search,omitempty"`
+	UseSharedTreeSearch *bool `                   protobuf:"varint,236,opt,name=use_shared_tree_search,json=useSharedTreeSearch,def=0"                                                                                    json:"use_shared_tree_search,omitempty"`
 	// Minimum restarts before a worker will replace a subtree
 	// that looks "bad" based on the average LBD of learned clauses.
-	SharedTreeWorkerMinRestartsPerSubtree *int32 `protobuf:"varint,282,opt,name=shared_tree_worker_min_restarts_per_subtree,json=sharedTreeWorkerMinRestartsPerSubtree,def=1" json:"shared_tree_worker_min_restarts_per_subtree,omitempty"`
+	SharedTreeWorkerMinRestartsPerSubtree *int32 `                   protobuf:"varint,282,opt,name=shared_tree_worker_min_restarts_per_subtree,json=sharedTreeWorkerMinRestartsPerSubtree,def=1"                                             json:"shared_tree_worker_min_restarts_per_subtree,omitempty"`
 	// If true, workers share more of the information from their local trail.
 	// Specifically, literals implied by the shared tree decisions.
-	SharedTreeWorkerEnableTrailSharing *bool `protobuf:"varint,295,opt,name=shared_tree_worker_enable_trail_sharing,json=sharedTreeWorkerEnableTrailSharing,def=1" json:"shared_tree_worker_enable_trail_sharing,omitempty"`
+	SharedTreeWorkerEnableTrailSharing *bool `                   protobuf:"varint,295,opt,name=shared_tree_worker_enable_trail_sharing,json=sharedTreeWorkerEnableTrailSharing,def=1"                                                    json:"shared_tree_worker_enable_trail_sharing,omitempty"`
 	// If true, shared tree workers share their target phase when returning an
 	// assigned subtree for the next worker to use.
-	SharedTreeWorkerEnablePhaseSharing *bool `protobuf:"varint,304,opt,name=shared_tree_worker_enable_phase_sharing,json=sharedTreeWorkerEnablePhaseSharing,def=1" json:"shared_tree_worker_enable_phase_sharing,omitempty"`
+	SharedTreeWorkerEnablePhaseSharing *bool `                   protobuf:"varint,304,opt,name=shared_tree_worker_enable_phase_sharing,json=sharedTreeWorkerEnablePhaseSharing,def=1"                                                    json:"shared_tree_worker_enable_phase_sharing,omitempty"`
 	// How many open leaf nodes should the shared tree maintain per worker.
-	SharedTreeOpenLeavesPerWorker *float64 `protobuf:"fixed64,281,opt,name=shared_tree_open_leaves_per_worker,json=sharedTreeOpenLeavesPerWorker,def=2" json:"shared_tree_open_leaves_per_worker,omitempty"`
+	SharedTreeOpenLeavesPerWorker *float64 `                   protobuf:"fixed64,281,opt,name=shared_tree_open_leaves_per_worker,json=sharedTreeOpenLeavesPerWorker,def=2"                                                             json:"shared_tree_open_leaves_per_worker,omitempty"`
 	// In order to limit total shared memory and communication overhead, limit the
 	// total number of nodes that may be generated in the shared tree. If the
 	// shared tree runs out of unassigned leaves, workers act as portfolio
 	// workers. Note: this limit includes interior nodes, not just leaves.
-	SharedTreeMaxNodesPerWorker *int32                                 `protobuf:"varint,238,opt,name=shared_tree_max_nodes_per_worker,json=sharedTreeMaxNodesPerWorker,def=10000" json:"shared_tree_max_nodes_per_worker,omitempty"`
-	SharedTreeSplitStrategy     *SatParameters_SharedTreeSplitStrategy `protobuf:"varint,239,opt,name=shared_tree_split_strategy,json=sharedTreeSplitStrategy,enum=operations_research.sat.SatParameters_SharedTreeSplitStrategy,def=0" json:"shared_tree_split_strategy,omitempty"`
+	SharedTreeMaxNodesPerWorker *int32                                 `                   protobuf:"varint,238,opt,name=shared_tree_max_nodes_per_worker,json=sharedTreeMaxNodesPerWorker,def=10000"                                                              json:"shared_tree_max_nodes_per_worker,omitempty"`
+	SharedTreeSplitStrategy     *SatParameters_SharedTreeSplitStrategy `                   protobuf:"varint,239,opt,name=shared_tree_split_strategy,json=sharedTreeSplitStrategy,enum=operations_research.sat.SatParameters_SharedTreeSplitStrategy,def=0"         json:"shared_tree_split_strategy,omitempty"`
 	// How much deeper compared to the ideal max depth of the tree is considered
 	// "balanced" enough to still accept a split. Without such a tolerance,
 	// sometimes the tree can only be split by a single worker, and they may not
@@ -1658,7 +1658,7 @@ type SatParameters struct {
 	// least half of all workers should be able to split the tree as soon as a
 	// split becomes required. This only has an effect on
 	// SPLIT_STRATEGY_BALANCED_TREE and SPLIT_STRATEGY_DISCREPANCY.
-	SharedTreeBalanceTolerance *int32 `protobuf:"varint,305,opt,name=shared_tree_balance_tolerance,json=sharedTreeBalanceTolerance,def=1" json:"shared_tree_balance_tolerance,omitempty"`
+	SharedTreeBalanceTolerance *int32 `                   protobuf:"varint,305,opt,name=shared_tree_balance_tolerance,json=sharedTreeBalanceTolerance,def=1"                                                                      json:"shared_tree_balance_tolerance,omitempty"`
 	// Whether we enumerate all solutions of a problem without objective. Note
 	// that setting this to true automatically disable some presolve reduction
 	// that can remove feasible solution. That is it has the same effect as
@@ -1666,7 +1666,7 @@ type SatParameters struct {
 	//
 	// TODO(user): Do not do that and let the user choose what behavior is best by
 	// setting keep_all_feasible_solutions_in_presolve ?
-	EnumerateAllSolutions *bool `protobuf:"varint,87,opt,name=enumerate_all_solutions,json=enumerateAllSolutions,def=0" json:"enumerate_all_solutions,omitempty"`
+	EnumerateAllSolutions *bool `                   protobuf:"varint,87,opt,name=enumerate_all_solutions,json=enumerateAllSolutions,def=0"                                                                                  json:"enumerate_all_solutions,omitempty"`
 	// If true, we disable the presolve reductions that remove feasible solutions
 	// from the search space. Such solution are usually dominated by a "better"
 	// solution that is kept, but depending on the situation, we might want to
@@ -1675,13 +1675,13 @@ type SatParameters struct {
 	// A trivial example is when a variable is unused. If this is true, then the
 	// presolve will not fix it to an arbitrary value and it will stay in the
 	// search space.
-	KeepAllFeasibleSolutionsInPresolve *bool `protobuf:"varint,173,opt,name=keep_all_feasible_solutions_in_presolve,json=keepAllFeasibleSolutionsInPresolve,def=0" json:"keep_all_feasible_solutions_in_presolve,omitempty"`
+	KeepAllFeasibleSolutionsInPresolve *bool `                   protobuf:"varint,173,opt,name=keep_all_feasible_solutions_in_presolve,json=keepAllFeasibleSolutionsInPresolve,def=0"                                                    json:"keep_all_feasible_solutions_in_presolve,omitempty"`
 	// If true, add information about the derived variable domains to the
 	// CpSolverResponse. It is an option because it makes the response slighly
 	// bigger and there is a bit more work involved during the postsolve to
 	// construct it, but it should still have a low overhead. See the
 	// tightened_variables field in CpSolverResponse for more details.
-	FillTightenedDomainsInResponse *bool `protobuf:"varint,132,opt,name=fill_tightened_domains_in_response,json=fillTightenedDomainsInResponse,def=0" json:"fill_tightened_domains_in_response,omitempty"`
+	FillTightenedDomainsInResponse *bool `                   protobuf:"varint,132,opt,name=fill_tightened_domains_in_response,json=fillTightenedDomainsInResponse,def=0"                                                             json:"fill_tightened_domains_in_response,omitempty"`
 	// If true, the final response addition_solutions field will be filled with
 	// all solutions from our solutions pool.
 	//
@@ -1692,183 +1692,183 @@ type SatParameters struct {
 	//
 	// Note that this only affect the "final" solution, not the one passed to the
 	// solution callbacks.
-	FillAdditionalSolutionsInResponse *bool `protobuf:"varint,194,opt,name=fill_additional_solutions_in_response,json=fillAdditionalSolutionsInResponse,def=0" json:"fill_additional_solutions_in_response,omitempty"`
+	FillAdditionalSolutionsInResponse *bool `                   protobuf:"varint,194,opt,name=fill_additional_solutions_in_response,json=fillAdditionalSolutionsInResponse,def=0"                                                       json:"fill_additional_solutions_in_response,omitempty"`
 	// If true, the solver will add a default integer branching strategy to the
 	// already defined search strategy. If not, some variable might still not be
 	// fixed at the end of the search. For now we assume these variable can just
 	// be set to their lower bound.
-	InstantiateAllVariables *bool `protobuf:"varint,106,opt,name=instantiate_all_variables,json=instantiateAllVariables,def=1" json:"instantiate_all_variables,omitempty"`
+	InstantiateAllVariables *bool `                   protobuf:"varint,106,opt,name=instantiate_all_variables,json=instantiateAllVariables,def=1"                                                                             json:"instantiate_all_variables,omitempty"`
 	// If true, then the precedences propagator try to detect for each variable if
 	// it has a set of "optional incoming arc" for which at least one of them is
 	// present. This is usually useful to have but can be slow on model with a lot
 	// of precedence.
-	AutoDetectGreaterThanAtLeastOneOf *bool `protobuf:"varint,95,opt,name=auto_detect_greater_than_at_least_one_of,json=autoDetectGreaterThanAtLeastOneOf,def=1" json:"auto_detect_greater_than_at_least_one_of,omitempty"`
+	AutoDetectGreaterThanAtLeastOneOf *bool `                   protobuf:"varint,95,opt,name=auto_detect_greater_than_at_least_one_of,json=autoDetectGreaterThanAtLeastOneOf,def=1"                                                     json:"auto_detect_greater_than_at_least_one_of,omitempty"`
 	// For an optimization problem, stop the solver as soon as we have a solution.
-	StopAfterFirstSolution *bool `protobuf:"varint,98,opt,name=stop_after_first_solution,json=stopAfterFirstSolution,def=0" json:"stop_after_first_solution,omitempty"`
+	StopAfterFirstSolution *bool `                   protobuf:"varint,98,opt,name=stop_after_first_solution,json=stopAfterFirstSolution,def=0"                                                                               json:"stop_after_first_solution,omitempty"`
 	// Mainly used when improving the presolver. When true, stops the solver after
 	// the presolve is complete (or after loading and root level propagation).
-	StopAfterPresolve        *bool `protobuf:"varint,149,opt,name=stop_after_presolve,json=stopAfterPresolve,def=0" json:"stop_after_presolve,omitempty"`
-	StopAfterRootPropagation *bool `protobuf:"varint,252,opt,name=stop_after_root_propagation,json=stopAfterRootPropagation,def=0" json:"stop_after_root_propagation,omitempty"`
+	StopAfterPresolve        *bool `                   protobuf:"varint,149,opt,name=stop_after_presolve,json=stopAfterPresolve,def=0"                                                                                         json:"stop_after_presolve,omitempty"`
+	StopAfterRootPropagation *bool `                   protobuf:"varint,252,opt,name=stop_after_root_propagation,json=stopAfterRootPropagation,def=0"                                                                          json:"stop_after_root_propagation,omitempty"`
 	// Initial parameters for neighborhood generation.
-	LnsInitialDifficulty         *float64 `protobuf:"fixed64,307,opt,name=lns_initial_difficulty,json=lnsInitialDifficulty,def=0.5" json:"lns_initial_difficulty,omitempty"`
-	LnsInitialDeterministicLimit *float64 `protobuf:"fixed64,308,opt,name=lns_initial_deterministic_limit,json=lnsInitialDeterministicLimit,def=0.1" json:"lns_initial_deterministic_limit,omitempty"`
+	LnsInitialDifficulty         *float64 `                   protobuf:"fixed64,307,opt,name=lns_initial_difficulty,json=lnsInitialDifficulty,def=0.5"                                                                                json:"lns_initial_difficulty,omitempty"`
+	LnsInitialDeterministicLimit *float64 `                   protobuf:"fixed64,308,opt,name=lns_initial_deterministic_limit,json=lnsInitialDeterministicLimit,def=0.1"                                                               json:"lns_initial_deterministic_limit,omitempty"`
 	// Testing parameters used to disable all lns workers.
-	UseLns *bool `protobuf:"varint,283,opt,name=use_lns,json=useLns,def=1" json:"use_lns,omitempty"`
+	UseLns *bool `                   protobuf:"varint,283,opt,name=use_lns,json=useLns,def=1"                                                                                                                json:"use_lns,omitempty"`
 	// Experimental parameters to disable everything but lns.
-	UseLnsOnly *bool `protobuf:"varint,101,opt,name=use_lns_only,json=useLnsOnly,def=0" json:"use_lns_only,omitempty"`
+	UseLnsOnly *bool `                   protobuf:"varint,101,opt,name=use_lns_only,json=useLnsOnly,def=0"                                                                                                       json:"use_lns_only,omitempty"`
 	// Size of the top-n different solutions kept by the solver.
 	// This parameter must be > 0.
 	// Currently this only impact the "base" solution chosen for a LNS fragment.
-	SolutionPoolSize *int32 `protobuf:"varint,193,opt,name=solution_pool_size,json=solutionPoolSize,def=3" json:"solution_pool_size,omitempty"`
+	SolutionPoolSize *int32 `                   protobuf:"varint,193,opt,name=solution_pool_size,json=solutionPoolSize,def=3"                                                                                           json:"solution_pool_size,omitempty"`
 	// Turns on relaxation induced neighborhood generator.
-	UseRinsLns *bool `protobuf:"varint,129,opt,name=use_rins_lns,json=useRinsLns,def=1" json:"use_rins_lns,omitempty"`
+	UseRinsLns *bool `                   protobuf:"varint,129,opt,name=use_rins_lns,json=useRinsLns,def=1"                                                                                                       json:"use_rins_lns,omitempty"`
 	// Adds a feasibility pump subsolver along with lns subsolvers.
-	UseFeasibilityPump *bool `protobuf:"varint,164,opt,name=use_feasibility_pump,json=useFeasibilityPump,def=1" json:"use_feasibility_pump,omitempty"`
+	UseFeasibilityPump *bool `                   protobuf:"varint,164,opt,name=use_feasibility_pump,json=useFeasibilityPump,def=1"                                                                                       json:"use_feasibility_pump,omitempty"`
 	// Turns on neighborhood generator based on local branching LP. Based on Huang
 	// et al., "Local Branching Relaxation Heuristics for Integer Linear
 	// Programs", 2023.
-	UseLbRelaxLns *bool `protobuf:"varint,255,opt,name=use_lb_relax_lns,json=useLbRelaxLns,def=1" json:"use_lb_relax_lns,omitempty"`
+	UseLbRelaxLns *bool `                   protobuf:"varint,255,opt,name=use_lb_relax_lns,json=useLbRelaxLns,def=1"                                                                                                json:"use_lb_relax_lns,omitempty"`
 	// Only use lb-relax if we have at least that many workers.
-	LbRelaxNumWorkersThreshold *int32                          `protobuf:"varint,296,opt,name=lb_relax_num_workers_threshold,json=lbRelaxNumWorkersThreshold,def=16" json:"lb_relax_num_workers_threshold,omitempty"`
-	FpRounding                 *SatParameters_FPRoundingMethod `protobuf:"varint,165,opt,name=fp_rounding,json=fpRounding,enum=operations_research.sat.SatParameters_FPRoundingMethod,def=2" json:"fp_rounding,omitempty"`
+	LbRelaxNumWorkersThreshold *int32                          `                   protobuf:"varint,296,opt,name=lb_relax_num_workers_threshold,json=lbRelaxNumWorkersThreshold,def=16"                                                                    json:"lb_relax_num_workers_threshold,omitempty"`
+	FpRounding                 *SatParameters_FPRoundingMethod `                   protobuf:"varint,165,opt,name=fp_rounding,json=fpRounding,enum=operations_research.sat.SatParameters_FPRoundingMethod,def=2"                                            json:"fp_rounding,omitempty"`
 	// If true, registers more lns subsolvers with different parameters.
-	DiversifyLnsParams *bool `protobuf:"varint,137,opt,name=diversify_lns_params,json=diversifyLnsParams,def=0" json:"diversify_lns_params,omitempty"`
+	DiversifyLnsParams *bool `                   protobuf:"varint,137,opt,name=diversify_lns_params,json=diversifyLnsParams,def=0"                                                                                       json:"diversify_lns_params,omitempty"`
 	// Randomize fixed search.
-	RandomizeSearch *bool `protobuf:"varint,103,opt,name=randomize_search,json=randomizeSearch,def=0" json:"randomize_search,omitempty"`
+	RandomizeSearch *bool `                   protobuf:"varint,103,opt,name=randomize_search,json=randomizeSearch,def=0"                                                                                              json:"randomize_search,omitempty"`
 	// Search randomization will collect the top
 	// 'search_random_variable_pool_size' valued variables, and pick one randomly.
 	// The value of the variable is specific to each strategy.
-	SearchRandomVariablePoolSize *int64 `protobuf:"varint,104,opt,name=search_random_variable_pool_size,json=searchRandomVariablePoolSize,def=0" json:"search_random_variable_pool_size,omitempty"`
+	SearchRandomVariablePoolSize *int64 `                   protobuf:"varint,104,opt,name=search_random_variable_pool_size,json=searchRandomVariablePoolSize,def=0"                                                                 json:"search_random_variable_pool_size,omitempty"`
 	// Experimental code: specify if the objective pushes all tasks toward the
 	// start of the schedule.
-	PushAllTasksTowardStart *bool `protobuf:"varint,262,opt,name=push_all_tasks_toward_start,json=pushAllTasksTowardStart,def=0" json:"push_all_tasks_toward_start,omitempty"`
+	PushAllTasksTowardStart *bool `                   protobuf:"varint,262,opt,name=push_all_tasks_toward_start,json=pushAllTasksTowardStart,def=0"                                                                           json:"push_all_tasks_toward_start,omitempty"`
 	// If true, we automatically detect variables whose constraint are always
 	// enforced by the same literal and we mark them as optional. This allows
 	// to propagate them as if they were present in some situation.
 	//
 	// TODO(user): This is experimental and seems to lead to wrong optimal in
 	// some situation. It should however gives correct solutions. Fix.
-	UseOptionalVariables *bool `protobuf:"varint,108,opt,name=use_optional_variables,json=useOptionalVariables,def=0" json:"use_optional_variables,omitempty"`
+	UseOptionalVariables *bool `                   protobuf:"varint,108,opt,name=use_optional_variables,json=useOptionalVariables,def=0"                                                                                   json:"use_optional_variables,omitempty"`
 	// The solver usually exploit the LP relaxation of a model. If this option is
 	// true, then whatever is infered by the LP will be used like an heuristic to
 	// compute EXACT propagation on the IP. So with this option, there is no
 	// numerical imprecision issues.
-	UseExactLpReason *bool `protobuf:"varint,109,opt,name=use_exact_lp_reason,json=useExactLpReason,def=1" json:"use_exact_lp_reason,omitempty"`
+	UseExactLpReason *bool `                   protobuf:"varint,109,opt,name=use_exact_lp_reason,json=useExactLpReason,def=1"                                                                                          json:"use_exact_lp_reason,omitempty"`
 	// This can be beneficial if there is a lot of no-overlap constraints but a
 	// relatively low number of different intervals in the problem. Like 1000
 	// intervals, but 1M intervals in the no-overlap constraints covering them.
-	UseCombinedNoOverlap *bool `protobuf:"varint,133,opt,name=use_combined_no_overlap,json=useCombinedNoOverlap,def=0" json:"use_combined_no_overlap,omitempty"`
+	UseCombinedNoOverlap *bool `                   protobuf:"varint,133,opt,name=use_combined_no_overlap,json=useCombinedNoOverlap,def=0"                                                                                  json:"use_combined_no_overlap,omitempty"`
 	// All at_most_one constraints with a size <= param will be replaced by a
 	// quadratic number of binary implications.
-	AtMostOneMaxExpansionSize *int32 `protobuf:"varint,270,opt,name=at_most_one_max_expansion_size,json=atMostOneMaxExpansionSize,def=3" json:"at_most_one_max_expansion_size,omitempty"`
+	AtMostOneMaxExpansionSize *int32 `                   protobuf:"varint,270,opt,name=at_most_one_max_expansion_size,json=atMostOneMaxExpansionSize,def=3"                                                                      json:"at_most_one_max_expansion_size,omitempty"`
 	// Indicates if the CP-SAT layer should catch Control-C (SIGINT) signals
 	// when calling solve. If set, catching the SIGINT signal will terminate the
 	// search gracefully, as if a time limit was reached.
-	CatchSigintSignal *bool `protobuf:"varint,135,opt,name=catch_sigint_signal,json=catchSigintSignal,def=1" json:"catch_sigint_signal,omitempty"`
+	CatchSigintSignal *bool `                   protobuf:"varint,135,opt,name=catch_sigint_signal,json=catchSigintSignal,def=1"                                                                                         json:"catch_sigint_signal,omitempty"`
 	// Stores and exploits "implied-bounds" in the solver. That is, relations of
 	// the form literal => (var >= bound). This is currently used to derive
 	// stronger cuts.
-	UseImpliedBounds *bool `protobuf:"varint,144,opt,name=use_implied_bounds,json=useImpliedBounds,def=1" json:"use_implied_bounds,omitempty"`
+	UseImpliedBounds *bool `                   protobuf:"varint,144,opt,name=use_implied_bounds,json=useImpliedBounds,def=1"                                                                                           json:"use_implied_bounds,omitempty"`
 	// Whether we try to do a few degenerate iteration at the end of an LP solve
 	// to minimize the fractionality of the integer variable in the basis. This
 	// helps on some problems, but not so much on others. It also cost of bit of
 	// time to do such polish step.
-	PolishLpSolution *bool `protobuf:"varint,175,opt,name=polish_lp_solution,json=polishLpSolution,def=0" json:"polish_lp_solution,omitempty"`
+	PolishLpSolution *bool `                   protobuf:"varint,175,opt,name=polish_lp_solution,json=polishLpSolution,def=0"                                                                                           json:"polish_lp_solution,omitempty"`
 	// The internal LP tolerances used by CP-SAT. These applies to the internal
 	// and scaled problem. If the domains of your variables are large it might be
 	// good to use lower tolerances. If your problem is binary with low
 	// coefficients, it might be good to use higher ones to speed-up the lp
 	// solves.
-	LpPrimalTolerance *float64 `protobuf:"fixed64,266,opt,name=lp_primal_tolerance,json=lpPrimalTolerance,def=1e-07" json:"lp_primal_tolerance,omitempty"`
-	LpDualTolerance   *float64 `protobuf:"fixed64,267,opt,name=lp_dual_tolerance,json=lpDualTolerance,def=1e-07" json:"lp_dual_tolerance,omitempty"`
+	LpPrimalTolerance *float64 `                   protobuf:"fixed64,266,opt,name=lp_primal_tolerance,json=lpPrimalTolerance,def=1e-07"                                                                                    json:"lp_primal_tolerance,omitempty"`
+	LpDualTolerance   *float64 `                   protobuf:"fixed64,267,opt,name=lp_dual_tolerance,json=lpDualTolerance,def=1e-07"                                                                                        json:"lp_dual_tolerance,omitempty"`
 	// Temporary flag util the feature is more mature. This convert intervals to
 	// the newer proto format that support affine start/var/end instead of just
 	// variables.
-	ConvertIntervals *bool `protobuf:"varint,177,opt,name=convert_intervals,json=convertIntervals,def=1" json:"convert_intervals,omitempty"`
+	ConvertIntervals *bool `                   protobuf:"varint,177,opt,name=convert_intervals,json=convertIntervals,def=1"                                                                                            json:"convert_intervals,omitempty"`
 	// Whether we try to automatically detect the symmetries in a model and
 	// exploit them. Currently, at level 1 we detect them in presolve and try
 	// to fix Booleans. At level 2, we also do some form of dynamic symmetry
 	// breaking during search. At level 3, we also detect symmetries for very
 	// large models, which can be slow. At level 4, we try to break as much
 	// symmetry as possible in presolve.
-	SymmetryLevel *int32 `protobuf:"varint,183,opt,name=symmetry_level,json=symmetryLevel,def=2" json:"symmetry_level,omitempty"`
+	SymmetryLevel *int32 `                   protobuf:"varint,183,opt,name=symmetry_level,json=symmetryLevel,def=2"                                                                                                  json:"symmetry_level,omitempty"`
 	// When we have symmetry, it is possible to "fold" all variables from the same
 	// orbit into a single variable, while having the same power of LP relaxation.
 	// This can help significantly on symmetric problem. However there is
 	// currently a bit of overhead as the rest of the solver need to do some
 	// translation between the folded LP and the rest of the problem.
-	UseSymmetryInLp *bool `protobuf:"varint,301,opt,name=use_symmetry_in_lp,json=useSymmetryInLp,def=0" json:"use_symmetry_in_lp,omitempty"`
+	UseSymmetryInLp *bool `                   protobuf:"varint,301,opt,name=use_symmetry_in_lp,json=useSymmetryInLp,def=0"                                                                                            json:"use_symmetry_in_lp,omitempty"`
 	// Experimental. This will compute the symmetry of the problem once and for
 	// all. All presolve operations we do should keep the symmetry group intact
 	// or modify it properly. For now we have really little support for this. We
 	// will disable a bunch of presolve operations that could be supported.
-	KeepSymmetryInPresolve *bool `protobuf:"varint,303,opt,name=keep_symmetry_in_presolve,json=keepSymmetryInPresolve,def=0" json:"keep_symmetry_in_presolve,omitempty"`
+	KeepSymmetryInPresolve *bool `                   protobuf:"varint,303,opt,name=keep_symmetry_in_presolve,json=keepSymmetryInPresolve,def=0"                                                                              json:"keep_symmetry_in_presolve,omitempty"`
 	// Deterministic time limit for symmetry detection.
-	SymmetryDetectionDeterministicTimeLimit *float64 `protobuf:"fixed64,302,opt,name=symmetry_detection_deterministic_time_limit,json=symmetryDetectionDeterministicTimeLimit,def=1" json:"symmetry_detection_deterministic_time_limit,omitempty"`
+	SymmetryDetectionDeterministicTimeLimit *float64 `                   protobuf:"fixed64,302,opt,name=symmetry_detection_deterministic_time_limit,json=symmetryDetectionDeterministicTimeLimit,def=1"                                          json:"symmetry_detection_deterministic_time_limit,omitempty"`
 	// The new linear propagation code treat all constraints at once and use
 	// an adaptation of Bellman-Ford-Tarjan to propagate constraint in a smarter
 	// order and potentially detect propagation cycle earlier.
-	NewLinearPropagation *bool `protobuf:"varint,224,opt,name=new_linear_propagation,json=newLinearPropagation,def=1" json:"new_linear_propagation,omitempty"`
+	NewLinearPropagation *bool `                   protobuf:"varint,224,opt,name=new_linear_propagation,json=newLinearPropagation,def=1"                                                                                   json:"new_linear_propagation,omitempty"`
 	// Linear constraints that are not pseudo-Boolean and that are longer than
 	// this size will be split into sqrt(size) intermediate sums in order to have
 	// faster propation in the CP engine.
-	LinearSplitSize *int32 `protobuf:"varint,256,opt,name=linear_split_size,json=linearSplitSize,def=100" json:"linear_split_size,omitempty"`
+	LinearSplitSize *int32 `                   protobuf:"varint,256,opt,name=linear_split_size,json=linearSplitSize,def=100"                                                                                           json:"linear_split_size,omitempty"`
 	// A non-negative level indicating the type of constraints we consider in the
 	// LP relaxation. At level zero, no LP relaxation is used. At level 1, only
 	// the linear constraint and full encoding are added. At level 2, we also add
 	// all the Boolean constraints.
-	LinearizationLevel *int32 `protobuf:"varint,90,opt,name=linearization_level,json=linearizationLevel,def=1" json:"linearization_level,omitempty"`
+	LinearizationLevel *int32 `                   protobuf:"varint,90,opt,name=linearization_level,json=linearizationLevel,def=1"                                                                                         json:"linearization_level,omitempty"`
 	// A non-negative level indicating how much we should try to fully encode
 	// Integer variables as Boolean.
-	BooleanEncodingLevel *int32 `protobuf:"varint,107,opt,name=boolean_encoding_level,json=booleanEncodingLevel,def=1" json:"boolean_encoding_level,omitempty"`
+	BooleanEncodingLevel *int32 `                   protobuf:"varint,107,opt,name=boolean_encoding_level,json=booleanEncodingLevel,def=1"                                                                                   json:"boolean_encoding_level,omitempty"`
 	// When loading a*x + b*y ==/!= c when x and y are both fully encoded.
 	// The solver may decide to replace the linear equation by a set of clauses.
 	// This is triggered if the sizes of the domains of x and y are below the
 	// threshold.
-	MaxDomainSizeWhenEncodingEqNeqConstraints *int32 `protobuf:"varint,191,opt,name=max_domain_size_when_encoding_eq_neq_constraints,json=maxDomainSizeWhenEncodingEqNeqConstraints,def=16" json:"max_domain_size_when_encoding_eq_neq_constraints,omitempty"`
+	MaxDomainSizeWhenEncodingEqNeqConstraints *int32 `                   protobuf:"varint,191,opt,name=max_domain_size_when_encoding_eq_neq_constraints,json=maxDomainSizeWhenEncodingEqNeqConstraints,def=16"                                   json:"max_domain_size_when_encoding_eq_neq_constraints,omitempty"`
 	// The limit on the number of cuts in our cut pool. When this is reached we do
 	// not generate cuts anymore.
 	//
 	// TODO(user): We should probably remove this parameters, and just always
 	// generate cuts but only keep the best n or something.
-	MaxNumCuts *int32 `protobuf:"varint,91,opt,name=max_num_cuts,json=maxNumCuts,def=10000" json:"max_num_cuts,omitempty"`
+	MaxNumCuts *int32 `                   protobuf:"varint,91,opt,name=max_num_cuts,json=maxNumCuts,def=10000"                                                                                                    json:"max_num_cuts,omitempty"`
 	// Control the global cut effort. Zero will turn off all cut. For now we just
 	// have one level. Note also that most cuts are only used at linearization
 	// level >= 2.
-	CutLevel *int32 `protobuf:"varint,196,opt,name=cut_level,json=cutLevel,def=1" json:"cut_level,omitempty"`
+	CutLevel *int32 `                   protobuf:"varint,196,opt,name=cut_level,json=cutLevel,def=1"                                                                                                            json:"cut_level,omitempty"`
 	// For the cut that can be generated at any level, this control if we only
 	// try to generate them at the root node.
-	OnlyAddCutsAtLevelZero *bool `protobuf:"varint,92,opt,name=only_add_cuts_at_level_zero,json=onlyAddCutsAtLevelZero,def=0" json:"only_add_cuts_at_level_zero,omitempty"`
+	OnlyAddCutsAtLevelZero *bool `                   protobuf:"varint,92,opt,name=only_add_cuts_at_level_zero,json=onlyAddCutsAtLevelZero,def=0"                                                                             json:"only_add_cuts_at_level_zero,omitempty"`
 	// When the LP objective is fractional, do we add the cut that forces the
 	// linear objective expression to be greater or equal to this fractional value
 	// rounded up? We can always do that since our objective is integer, and
 	// combined with MIR heuristic to reduce the coefficient of such cut, it can
 	// help.
-	AddObjectiveCut *bool `protobuf:"varint,197,opt,name=add_objective_cut,json=addObjectiveCut,def=0" json:"add_objective_cut,omitempty"`
+	AddObjectiveCut *bool `                   protobuf:"varint,197,opt,name=add_objective_cut,json=addObjectiveCut,def=0"                                                                                             json:"add_objective_cut,omitempty"`
 	// Whether we generate and add Chvatal-Gomory cuts to the LP at root node.
 	// Note that for now, this is not heavily tuned.
-	AddCgCuts *bool `protobuf:"varint,117,opt,name=add_cg_cuts,json=addCgCuts,def=1" json:"add_cg_cuts,omitempty"`
+	AddCgCuts *bool `                   protobuf:"varint,117,opt,name=add_cg_cuts,json=addCgCuts,def=1"                                                                                                         json:"add_cg_cuts,omitempty"`
 	// Whether we generate MIR cuts at root node.
 	// Note that for now, this is not heavily tuned.
-	AddMirCuts *bool `protobuf:"varint,120,opt,name=add_mir_cuts,json=addMirCuts,def=1" json:"add_mir_cuts,omitempty"`
+	AddMirCuts *bool `                   protobuf:"varint,120,opt,name=add_mir_cuts,json=addMirCuts,def=1"                                                                                                       json:"add_mir_cuts,omitempty"`
 	// Whether we generate Zero-Half cuts at root node.
 	// Note that for now, this is not heavily tuned.
-	AddZeroHalfCuts *bool `protobuf:"varint,169,opt,name=add_zero_half_cuts,json=addZeroHalfCuts,def=1" json:"add_zero_half_cuts,omitempty"`
+	AddZeroHalfCuts *bool `                   protobuf:"varint,169,opt,name=add_zero_half_cuts,json=addZeroHalfCuts,def=1"                                                                                            json:"add_zero_half_cuts,omitempty"`
 	// Whether we generate clique cuts from the binary implication graph. Note
 	// that as the search goes on, this graph will contains new binary clauses
 	// learned by the SAT engine.
-	AddCliqueCuts *bool `protobuf:"varint,172,opt,name=add_clique_cuts,json=addCliqueCuts,def=1" json:"add_clique_cuts,omitempty"`
+	AddCliqueCuts *bool `                   protobuf:"varint,172,opt,name=add_clique_cuts,json=addCliqueCuts,def=1"                                                                                                 json:"add_clique_cuts,omitempty"`
 	// Whether we generate RLT cuts. This is still experimental but can help on
 	// binary problem with a lot of clauses of size 3.
-	AddRltCuts *bool `protobuf:"varint,279,opt,name=add_rlt_cuts,json=addRltCuts,def=1" json:"add_rlt_cuts,omitempty"`
+	AddRltCuts *bool `                   protobuf:"varint,279,opt,name=add_rlt_cuts,json=addRltCuts,def=1"                                                                                                       json:"add_rlt_cuts,omitempty"`
 	// Cut generator for all diffs can add too many cuts for large all_diff
 	// constraints. This parameter restricts the large all_diff constraints to
 	// have a cut generator.
-	MaxAllDiffCutSize *int32 `protobuf:"varint,148,opt,name=max_all_diff_cut_size,json=maxAllDiffCutSize,def=64" json:"max_all_diff_cut_size,omitempty"`
+	MaxAllDiffCutSize *int32 `                   protobuf:"varint,148,opt,name=max_all_diff_cut_size,json=maxAllDiffCutSize,def=64"                                                                                      json:"max_all_diff_cut_size,omitempty"`
 	// For the lin max constraints, generates the cuts described in "Strong
 	// mixed-integer programming formulations for trained neural networks" by Ross
 	// Anderson et. (https://arxiv.org/pdf/1811.01988.pdf)
-	AddLinMaxCuts *bool `protobuf:"varint,152,opt,name=add_lin_max_cuts,json=addLinMaxCuts,def=1" json:"add_lin_max_cuts,omitempty"`
+	AddLinMaxCuts *bool `                   protobuf:"varint,152,opt,name=add_lin_max_cuts,json=addLinMaxCuts,def=1"                                                                                                json:"add_lin_max_cuts,omitempty"`
 	// In the integer rounding procedure used for MIR and Gomory cut, the maximum
 	// "scaling" we use (must be positive). The lower this is, the lower the
 	// integer coefficients of the cut will be. Note that cut generated by lower
@@ -1877,79 +1877,79 @@ type SatParameters struct {
 	//
 	// Setting this to 2 result in the "strong fractional rouding" of Letchford
 	// and Lodi.
-	MaxIntegerRoundingScaling *int32 `protobuf:"varint,119,opt,name=max_integer_rounding_scaling,json=maxIntegerRoundingScaling,def=600" json:"max_integer_rounding_scaling,omitempty"`
+	MaxIntegerRoundingScaling *int32 `                   protobuf:"varint,119,opt,name=max_integer_rounding_scaling,json=maxIntegerRoundingScaling,def=600"                                                                      json:"max_integer_rounding_scaling,omitempty"`
 	// If true, we start by an empty LP, and only add constraints not satisfied
 	// by the current LP solution batch by batch. A constraint that is only added
 	// like this is known as a "lazy" constraint in the literature, except that we
 	// currently consider all constraints as lazy here.
-	AddLpConstraintsLazily *bool `protobuf:"varint,112,opt,name=add_lp_constraints_lazily,json=addLpConstraintsLazily,def=1" json:"add_lp_constraints_lazily,omitempty"`
+	AddLpConstraintsLazily *bool `                   protobuf:"varint,112,opt,name=add_lp_constraints_lazily,json=addLpConstraintsLazily,def=1"                                                                              json:"add_lp_constraints_lazily,omitempty"`
 	// Even at the root node, we do not want to spend too much time on the LP if
 	// it is "difficult". So we solve it in "chunks" of that many iterations. The
 	// solve will be continued down in the tree or the next time we go back to the
 	// root node.
-	RootLpIterations *int32 `protobuf:"varint,227,opt,name=root_lp_iterations,json=rootLpIterations,def=2000" json:"root_lp_iterations,omitempty"`
+	RootLpIterations *int32 `                   protobuf:"varint,227,opt,name=root_lp_iterations,json=rootLpIterations,def=2000"                                                                                        json:"root_lp_iterations,omitempty"`
 	// While adding constraints, skip the constraints which have orthogonality
 	// less than 'min_orthogonality_for_lp_constraints' with already added
 	// constraints during current call. Orthogonality is defined as 1 -
 	// cosine(vector angle between constraints). A value of zero disable this
 	// feature.
-	MinOrthogonalityForLpConstraints *float64 `protobuf:"fixed64,115,opt,name=min_orthogonality_for_lp_constraints,json=minOrthogonalityForLpConstraints,def=0.05" json:"min_orthogonality_for_lp_constraints,omitempty"`
+	MinOrthogonalityForLpConstraints *float64 `                   protobuf:"fixed64,115,opt,name=min_orthogonality_for_lp_constraints,json=minOrthogonalityForLpConstraints,def=0.05"                                                     json:"min_orthogonality_for_lp_constraints,omitempty"`
 	// Max number of time we perform cut generation and resolve the LP at level 0.
-	MaxCutRoundsAtLevelZero *int32 `protobuf:"varint,154,opt,name=max_cut_rounds_at_level_zero,json=maxCutRoundsAtLevelZero,def=1" json:"max_cut_rounds_at_level_zero,omitempty"`
+	MaxCutRoundsAtLevelZero *int32 `                   protobuf:"varint,154,opt,name=max_cut_rounds_at_level_zero,json=maxCutRoundsAtLevelZero,def=1"                                                                          json:"max_cut_rounds_at_level_zero,omitempty"`
 	// If a constraint/cut in LP is not active for that many consecutive OPTIMAL
 	// solves, remove it from the LP. Note that it might be added again later if
 	// it become violated by the current LP solution.
-	MaxConsecutiveInactiveCount *int32 `protobuf:"varint,121,opt,name=max_consecutive_inactive_count,json=maxConsecutiveInactiveCount,def=100" json:"max_consecutive_inactive_count,omitempty"`
+	MaxConsecutiveInactiveCount *int32 `                   protobuf:"varint,121,opt,name=max_consecutive_inactive_count,json=maxConsecutiveInactiveCount,def=100"                                                                  json:"max_consecutive_inactive_count,omitempty"`
 	// These parameters are similar to sat clause management activity parameters.
 	// They are effective only if the number of generated cuts exceed the storage
 	// limit. Default values are based on a few experiments on miplib instances.
-	CutMaxActiveCountValue *float64 `protobuf:"fixed64,155,opt,name=cut_max_active_count_value,json=cutMaxActiveCountValue,def=1e+10" json:"cut_max_active_count_value,omitempty"`
-	CutActiveCountDecay    *float64 `protobuf:"fixed64,156,opt,name=cut_active_count_decay,json=cutActiveCountDecay,def=0.8" json:"cut_active_count_decay,omitempty"`
+	CutMaxActiveCountValue *float64 `                   protobuf:"fixed64,155,opt,name=cut_max_active_count_value,json=cutMaxActiveCountValue,def=1e+10"                                                                        json:"cut_max_active_count_value,omitempty"`
+	CutActiveCountDecay    *float64 `                   protobuf:"fixed64,156,opt,name=cut_active_count_decay,json=cutActiveCountDecay,def=0.8"                                                                                 json:"cut_active_count_decay,omitempty"`
 	// Target number of constraints to remove during cleanup.
-	CutCleanupTarget *int32 `protobuf:"varint,157,opt,name=cut_cleanup_target,json=cutCleanupTarget,def=1000" json:"cut_cleanup_target,omitempty"`
+	CutCleanupTarget *int32 `                   protobuf:"varint,157,opt,name=cut_cleanup_target,json=cutCleanupTarget,def=1000"                                                                                        json:"cut_cleanup_target,omitempty"`
 	// Add that many lazy constraints (or cuts) at once in the LP. Note that at
 	// the beginning of the solve, we do add more than this.
-	NewConstraintsBatchSize *int32 `protobuf:"varint,122,opt,name=new_constraints_batch_size,json=newConstraintsBatchSize,def=50" json:"new_constraints_batch_size,omitempty"`
+	NewConstraintsBatchSize *int32 `                   protobuf:"varint,122,opt,name=new_constraints_batch_size,json=newConstraintsBatchSize,def=50"                                                                           json:"new_constraints_batch_size,omitempty"`
 	// If true and the Lp relaxation of the problem has an integer optimal
 	// solution, try to exploit it. Note that since the LP relaxation may not
 	// contain all the constraints, such a solution is not necessarily a solution
 	// of the full problem.
-	ExploitIntegerLpSolution *bool `protobuf:"varint,94,opt,name=exploit_integer_lp_solution,json=exploitIntegerLpSolution,def=1" json:"exploit_integer_lp_solution,omitempty"`
+	ExploitIntegerLpSolution *bool `                   protobuf:"varint,94,opt,name=exploit_integer_lp_solution,json=exploitIntegerLpSolution,def=1"                                                                           json:"exploit_integer_lp_solution,omitempty"`
 	// If true and the Lp relaxation of the problem has a solution, try to exploit
 	// it. This is same as above except in this case the lp solution might not be
 	// an integer solution.
-	ExploitAllLpSolution *bool `protobuf:"varint,116,opt,name=exploit_all_lp_solution,json=exploitAllLpSolution,def=1" json:"exploit_all_lp_solution,omitempty"`
+	ExploitAllLpSolution *bool `                   protobuf:"varint,116,opt,name=exploit_all_lp_solution,json=exploitAllLpSolution,def=1"                                                                                  json:"exploit_all_lp_solution,omitempty"`
 	// When branching on a variable, follow the last best solution value.
-	ExploitBestSolution *bool `protobuf:"varint,130,opt,name=exploit_best_solution,json=exploitBestSolution,def=0" json:"exploit_best_solution,omitempty"`
+	ExploitBestSolution *bool `                   protobuf:"varint,130,opt,name=exploit_best_solution,json=exploitBestSolution,def=0"                                                                                     json:"exploit_best_solution,omitempty"`
 	// When branching on a variable, follow the last best relaxation solution
 	// value. We use the relaxation with the tightest bound on the objective as
 	// the best relaxation solution.
-	ExploitRelaxationSolution *bool `protobuf:"varint,161,opt,name=exploit_relaxation_solution,json=exploitRelaxationSolution,def=0" json:"exploit_relaxation_solution,omitempty"`
+	ExploitRelaxationSolution *bool `                   protobuf:"varint,161,opt,name=exploit_relaxation_solution,json=exploitRelaxationSolution,def=0"                                                                         json:"exploit_relaxation_solution,omitempty"`
 	// When branching an a variable that directly affect the objective,
 	// branch on the value that lead to the best objective first.
-	ExploitObjective *bool `protobuf:"varint,131,opt,name=exploit_objective,json=exploitObjective,def=1" json:"exploit_objective,omitempty"`
+	ExploitObjective *bool `                   protobuf:"varint,131,opt,name=exploit_objective,json=exploitObjective,def=1"                                                                                            json:"exploit_objective,omitempty"`
 	// Infer products of Boolean or of Boolean time IntegerVariable from the
 	// linear constrainst in the problem. This can be used in some cuts, altough
 	// for now we don't really exploit it.
-	DetectLinearizedProduct *bool `protobuf:"varint,277,opt,name=detect_linearized_product,json=detectLinearizedProduct,def=0" json:"detect_linearized_product,omitempty"`
+	DetectLinearizedProduct *bool `                   protobuf:"varint,277,opt,name=detect_linearized_product,json=detectLinearizedProduct,def=0"                                                                             json:"detect_linearized_product,omitempty"`
 	// We need to bound the maximum magnitude of the variables for CP-SAT, and
 	// that is the bound we use. If the MIP model expect larger variable value in
 	// the solution, then the converted model will likely not be relevant.
-	MipMaxBound *float64 `protobuf:"fixed64,124,opt,name=mip_max_bound,json=mipMaxBound,def=1e+07" json:"mip_max_bound,omitempty"`
+	MipMaxBound *float64 `                   protobuf:"fixed64,124,opt,name=mip_max_bound,json=mipMaxBound,def=1e+07"                                                                                                json:"mip_max_bound,omitempty"`
 	// All continuous variable of the problem will be multiplied by this factor.
 	// By default, we don't do any variable scaling and rely on the MIP model to
 	// specify continuous variable domain with the wanted precision.
-	MipVarScaling *float64 `protobuf:"fixed64,125,opt,name=mip_var_scaling,json=mipVarScaling,def=1" json:"mip_var_scaling,omitempty"`
+	MipVarScaling *float64 `                   protobuf:"fixed64,125,opt,name=mip_var_scaling,json=mipVarScaling,def=1"                                                                                                json:"mip_var_scaling,omitempty"`
 	// If this is false, then mip_var_scaling is only applied to variables with
 	// "small" domain. If it is true, we scale all floating point variable
 	// independenlty of their domain.
-	MipScaleLargeDomain *bool `protobuf:"varint,225,opt,name=mip_scale_large_domain,json=mipScaleLargeDomain,def=0" json:"mip_scale_large_domain,omitempty"`
+	MipScaleLargeDomain *bool `                   protobuf:"varint,225,opt,name=mip_scale_large_domain,json=mipScaleLargeDomain,def=0"                                                                                    json:"mip_scale_large_domain,omitempty"`
 	// If true, some continuous variable might be automatically scaled. For now,
 	// this is only the case where we detect that a variable is actually an
 	// integer multiple of a constant. For instance, variables of the form k * 0.5
 	// are quite frequent, and if we detect this, we will scale such variable
 	// domain by 2 to make it implied integer.
-	MipAutomaticallyScaleVariables *bool `protobuf:"varint,166,opt,name=mip_automatically_scale_variables,json=mipAutomaticallyScaleVariables,def=1" json:"mip_automatically_scale_variables,omitempty"`
+	MipAutomaticallyScaleVariables *bool `                   protobuf:"varint,166,opt,name=mip_automatically_scale_variables,json=mipAutomaticallyScaleVariables,def=1"                                                              json:"mip_automatically_scale_variables,omitempty"`
 	// If one try to solve a MIP model with CP-SAT, because we assume all variable
 	// to be integer after scaling, we will not necessarily have the correct
 	// optimal. Note however that all feasible solutions are valid since we will
@@ -1962,7 +1962,7 @@ type SatParameters struct {
 	// Note that this is tested after some MIP presolve steps, so even if not
 	// all original variable are integer, we might end up with a pure IP after
 	// presolve and after implied integer detection.
-	OnlySolveIp *bool `protobuf:"varint,222,opt,name=only_solve_ip,json=onlySolveIp,def=0" json:"only_solve_ip,omitempty"`
+	OnlySolveIp *bool `                   protobuf:"varint,222,opt,name=only_solve_ip,json=onlySolveIp,def=0"                                                                                                     json:"only_solve_ip,omitempty"`
 	// When scaling constraint with double coefficients to integer coefficients,
 	// we will multiply by a power of 2 and round the coefficients. We will choose
 	// the lowest power such that we have no potential overflow (see
@@ -1980,7 +1980,7 @@ type SatParameters struct {
 	// will be twice this value (once for the scaling error and once for the
 	// relaxed bounds). If we are not able to scale that well, we will display
 	// that fact but still scale as best as we can.
-	MipWantedPrecision *float64 `protobuf:"fixed64,126,opt,name=mip_wanted_precision,json=mipWantedPrecision,def=1e-06" json:"mip_wanted_precision,omitempty"`
+	MipWantedPrecision *float64 `                   protobuf:"fixed64,126,opt,name=mip_wanted_precision,json=mipWantedPrecision,def=1e-06"                                                                                  json:"mip_wanted_precision,omitempty"`
 	// To avoid integer overflow, we always force the maximum possible constraint
 	// activity (and objective value) according to the initial variable domain to
 	// be smaller than 2 to this given power. Because of this, we cannot always
@@ -1989,85 +1989,89 @@ type SatParameters struct {
 	// This can go as high as 62, but some internal algo currently abort early if
 	// they might run into integer overflow, so it is better to keep it a bit
 	// lower than this.
-	MipMaxActivityExponent *int32 `protobuf:"varint,127,opt,name=mip_max_activity_exponent,json=mipMaxActivityExponent,def=53" json:"mip_max_activity_exponent,omitempty"`
+	MipMaxActivityExponent *int32 `                   protobuf:"varint,127,opt,name=mip_max_activity_exponent,json=mipMaxActivityExponent,def=53"                                                                             json:"mip_max_activity_exponent,omitempty"`
 	// As explained in mip_precision and mip_max_activity_exponent, we cannot
 	// always reach the wanted precision during scaling. We use this threshold to
 	// enphasize in the logs when the precision seems bad.
-	MipCheckPrecision *float64 `protobuf:"fixed64,128,opt,name=mip_check_precision,json=mipCheckPrecision,def=0.0001" json:"mip_check_precision,omitempty"`
+	MipCheckPrecision *float64 `                   protobuf:"fixed64,128,opt,name=mip_check_precision,json=mipCheckPrecision,def=0.0001"                                                                                   json:"mip_check_precision,omitempty"`
 	// Even if we make big error when scaling the objective, we can always derive
 	// a correct lower bound on the original objective by using the exact lower
 	// bound on the scaled integer version of the objective. This should be fast,
 	// but if you don't care about having a precise lower bound, you can turn it
 	// off.
-	MipComputeTrueObjectiveBound *bool `protobuf:"varint,198,opt,name=mip_compute_true_objective_bound,json=mipComputeTrueObjectiveBound,def=1" json:"mip_compute_true_objective_bound,omitempty"`
+	MipComputeTrueObjectiveBound *bool `                   protobuf:"varint,198,opt,name=mip_compute_true_objective_bound,json=mipComputeTrueObjectiveBound,def=1"                                                                 json:"mip_compute_true_objective_bound,omitempty"`
 	// Any finite values in the input MIP must be below this threshold, otherwise
 	// the model will be reported invalid. This is needed to avoid floating point
 	// overflow when evaluating bounds * coeff for instance. We are a bit more
 	// defensive, but in practice, users shouldn't use super large values in a
 	// MIP.
-	MipMaxValidMagnitude *float64 `protobuf:"fixed64,199,opt,name=mip_max_valid_magnitude,json=mipMaxValidMagnitude,def=1e+20" json:"mip_max_valid_magnitude,omitempty"`
+	MipMaxValidMagnitude *float64 `                   protobuf:"fixed64,199,opt,name=mip_max_valid_magnitude,json=mipMaxValidMagnitude,def=1e+20"                                                                             json:"mip_max_valid_magnitude,omitempty"`
 	// By default, any variable/constraint bound with a finite value and a
 	// magnitude greater than the mip_max_valid_magnitude will result with a
 	// invalid model. This flags change the behavior such that such bounds are
 	// silently transformed to +∞ or -∞.
 	//
 	// It is recommended to keep it at false, and create valid bounds.
-	MipTreatHighMagnitudeBoundsAsInfinity *bool `protobuf:"varint,278,opt,name=mip_treat_high_magnitude_bounds_as_infinity,json=mipTreatHighMagnitudeBoundsAsInfinity,def=0" json:"mip_treat_high_magnitude_bounds_as_infinity,omitempty"`
+	MipTreatHighMagnitudeBoundsAsInfinity *bool `                   protobuf:"varint,278,opt,name=mip_treat_high_magnitude_bounds_as_infinity,json=mipTreatHighMagnitudeBoundsAsInfinity,def=0"                                             json:"mip_treat_high_magnitude_bounds_as_infinity,omitempty"`
 	// Any value in the input mip with a magnitude lower than this will be set to
 	// zero. This is to avoid some issue in LP presolving.
-	MipDropTolerance *float64 `protobuf:"fixed64,232,opt,name=mip_drop_tolerance,json=mipDropTolerance,def=1e-16" json:"mip_drop_tolerance,omitempty"`
+	MipDropTolerance *float64 `                   protobuf:"fixed64,232,opt,name=mip_drop_tolerance,json=mipDropTolerance,def=1e-16"                                                                                      json:"mip_drop_tolerance,omitempty"`
 	// When solving a MIP, we do some basic floating point presolving before
 	// scaling the problem to integer to be handled by CP-SAT. This control how
 	// much of that presolve we do. It can help to better scale floating point
 	// model, but it is not always behaving nicely.
-	MipPresolveLevel *int32 `protobuf:"varint,261,opt,name=mip_presolve_level,json=mipPresolveLevel,def=2" json:"mip_presolve_level,omitempty"`
+	MipPresolveLevel *int32 `                   protobuf:"varint,261,opt,name=mip_presolve_level,json=mipPresolveLevel,def=2"                                                                                           json:"mip_presolve_level,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 // Default values for SatParameters fields.
 const (
-	Default_SatParameters_Name                                            = string("")
-	Default_SatParameters_PreferredVariableOrder                          = SatParameters_IN_ORDER
-	Default_SatParameters_InitialPolarity                                 = SatParameters_POLARITY_FALSE
-	Default_SatParameters_UsePhaseSaving                                  = bool(true)
-	Default_SatParameters_PolarityRephaseIncrement                        = int32(1000)
-	Default_SatParameters_PolarityExploitLsHints                          = bool(false)
-	Default_SatParameters_RandomPolarityRatio                             = float64(0)
-	Default_SatParameters_RandomBranchesRatio                             = float64(0)
-	Default_SatParameters_UseErwaHeuristic                                = bool(false)
-	Default_SatParameters_InitialVariablesActivity                        = float64(0)
-	Default_SatParameters_AlsoBumpVariablesInConflictReasons              = bool(false)
-	Default_SatParameters_MinimizationAlgorithm                           = SatParameters_RECURSIVE
-	Default_SatParameters_BinaryMinimizationAlgorithm                     = SatParameters_BINARY_MINIMIZATION_FIRST
-	Default_SatParameters_SubsumptionDuringConflictAnalysis               = bool(true)
-	Default_SatParameters_ClauseCleanupPeriod                             = int32(10000)
-	Default_SatParameters_ClauseCleanupTarget                             = int32(0)
-	Default_SatParameters_ClauseCleanupRatio                              = float64(0.5)
-	Default_SatParameters_ClauseCleanupProtection                         = SatParameters_PROTECTION_NONE
-	Default_SatParameters_ClauseCleanupLbdBound                           = int32(5)
-	Default_SatParameters_ClauseCleanupOrdering                           = SatParameters_CLAUSE_ACTIVITY
-	Default_SatParameters_PbCleanupIncrement                              = int32(200)
-	Default_SatParameters_PbCleanupRatio                                  = float64(0.5)
-	Default_SatParameters_VariableActivityDecay                           = float64(0.8)
-	Default_SatParameters_MaxVariableActivityValue                        = float64(1e+100)
-	Default_SatParameters_GlucoseMaxDecay                                 = float64(0.95)
-	Default_SatParameters_GlucoseDecayIncrement                           = float64(0.01)
-	Default_SatParameters_GlucoseDecayIncrementPeriod                     = int32(5000)
-	Default_SatParameters_ClauseActivityDecay                             = float64(0.999)
-	Default_SatParameters_MaxClauseActivityValue                          = float64(1e+20)
-	Default_SatParameters_DefaultRestartAlgorithms                        = string("LUBY_RESTART,LBD_MOVING_AVERAGE_RESTART,DL_MOVING_AVERAGE_RESTART")
-	Default_SatParameters_RestartPeriod                                   = int32(50)
-	Default_SatParameters_RestartRunningWindowSize                        = int32(50)
-	Default_SatParameters_RestartDlAverageRatio                           = float64(1)
-	Default_SatParameters_RestartLbdAverageRatio                          = float64(1)
-	Default_SatParameters_UseBlockingRestart                              = bool(false)
-	Default_SatParameters_BlockingRestartWindowSize                       = int32(5000)
-	Default_SatParameters_BlockingRestartMultiplier                       = float64(1.4)
-	Default_SatParameters_NumConflictsBeforeStrategyChanges               = int32(0)
-	Default_SatParameters_StrategyChangeIncreaseRatio                     = float64(0)
-	Default_SatParameters_MaxNumDeterministicBatches                      = int32(0)
-	Default_SatParameters_MaxNumberOfConflicts                            = int64(9223372036854775807)
+	Default_SatParameters_Name                               = string("")
+	Default_SatParameters_PreferredVariableOrder             = SatParameters_IN_ORDER
+	Default_SatParameters_InitialPolarity                    = SatParameters_POLARITY_FALSE
+	Default_SatParameters_UsePhaseSaving                     = bool(true)
+	Default_SatParameters_PolarityRephaseIncrement           = int32(1000)
+	Default_SatParameters_PolarityExploitLsHints             = bool(false)
+	Default_SatParameters_RandomPolarityRatio                = float64(0)
+	Default_SatParameters_RandomBranchesRatio                = float64(0)
+	Default_SatParameters_UseErwaHeuristic                   = bool(false)
+	Default_SatParameters_InitialVariablesActivity           = float64(0)
+	Default_SatParameters_AlsoBumpVariablesInConflictReasons = bool(false)
+	Default_SatParameters_MinimizationAlgorithm              = SatParameters_RECURSIVE
+	Default_SatParameters_BinaryMinimizationAlgorithm        = SatParameters_BINARY_MINIMIZATION_FIRST
+	Default_SatParameters_SubsumptionDuringConflictAnalysis  = bool(true)
+	Default_SatParameters_ClauseCleanupPeriod                = int32(10000)
+	Default_SatParameters_ClauseCleanupTarget                = int32(0)
+	Default_SatParameters_ClauseCleanupRatio                 = float64(0.5)
+	Default_SatParameters_ClauseCleanupProtection            = SatParameters_PROTECTION_NONE
+	Default_SatParameters_ClauseCleanupLbdBound              = int32(5)
+	Default_SatParameters_ClauseCleanupOrdering              = SatParameters_CLAUSE_ACTIVITY
+	Default_SatParameters_PbCleanupIncrement                 = int32(200)
+	Default_SatParameters_PbCleanupRatio                     = float64(0.5)
+	Default_SatParameters_VariableActivityDecay              = float64(0.8)
+	Default_SatParameters_MaxVariableActivityValue           = float64(1e+100)
+	Default_SatParameters_GlucoseMaxDecay                    = float64(0.95)
+	Default_SatParameters_GlucoseDecayIncrement              = float64(0.01)
+	Default_SatParameters_GlucoseDecayIncrementPeriod        = int32(5000)
+	Default_SatParameters_ClauseActivityDecay                = float64(0.999)
+	Default_SatParameters_MaxClauseActivityValue             = float64(1e+20)
+	Default_SatParameters_DefaultRestartAlgorithms           = string(
+		"LUBY_RESTART,LBD_MOVING_AVERAGE_RESTART,DL_MOVING_AVERAGE_RESTART",
+	)
+	Default_SatParameters_RestartPeriod                     = int32(50)
+	Default_SatParameters_RestartRunningWindowSize          = int32(50)
+	Default_SatParameters_RestartDlAverageRatio             = float64(1)
+	Default_SatParameters_RestartLbdAverageRatio            = float64(1)
+	Default_SatParameters_UseBlockingRestart                = bool(false)
+	Default_SatParameters_BlockingRestartWindowSize         = int32(5000)
+	Default_SatParameters_BlockingRestartMultiplier         = float64(1.4)
+	Default_SatParameters_NumConflictsBeforeStrategyChanges = int32(0)
+	Default_SatParameters_StrategyChangeIncreaseRatio       = float64(0)
+	Default_SatParameters_MaxNumDeterministicBatches        = int32(0)
+	Default_SatParameters_MaxNumberOfConflicts              = int64(
+		9223372036854775807,
+	)
 	Default_SatParameters_MaxMemoryInMb                                   = int64(10000)
 	Default_SatParameters_AbsoluteGapLimit                                = float64(0.0001)
 	Default_SatParameters_RelativeGapLimit                                = float64(0)
@@ -4552,7 +4556,12 @@ var (
 
 func file_ortools_sat_sat_parameters_proto_rawDescGZIP() []byte {
 	file_ortools_sat_sat_parameters_proto_rawDescOnce.Do(func() {
-		file_ortools_sat_sat_parameters_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ortools_sat_sat_parameters_proto_rawDesc), len(file_ortools_sat_sat_parameters_proto_rawDesc)))
+		file_ortools_sat_sat_parameters_proto_rawDescData = protoimpl.X.CompressGZIP(
+			unsafe.Slice(
+				unsafe.StringData(file_ortools_sat_sat_parameters_proto_rawDesc),
+				len(file_ortools_sat_sat_parameters_proto_rawDesc),
+			),
+		)
 	})
 	return file_ortools_sat_sat_parameters_proto_rawDescData
 }
@@ -4560,19 +4569,43 @@ func file_ortools_sat_sat_parameters_proto_rawDescGZIP() []byte {
 var file_ortools_sat_sat_parameters_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
 var file_ortools_sat_sat_parameters_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ortools_sat_sat_parameters_proto_goTypes = []any{
-	(SatParameters_VariableOrder)(0),                 // 0: operations_research.sat.SatParameters.VariableOrder
-	(SatParameters_Polarity)(0),                      // 1: operations_research.sat.SatParameters.Polarity
-	(SatParameters_ConflictMinimizationAlgorithm)(0), // 2: operations_research.sat.SatParameters.ConflictMinimizationAlgorithm
-	(SatParameters_BinaryMinizationAlgorithm)(0),     // 3: operations_research.sat.SatParameters.BinaryMinizationAlgorithm
-	(SatParameters_ClauseProtection)(0),              // 4: operations_research.sat.SatParameters.ClauseProtection
-	(SatParameters_ClauseOrdering)(0),                // 5: operations_research.sat.SatParameters.ClauseOrdering
-	(SatParameters_RestartAlgorithm)(0),              // 6: operations_research.sat.SatParameters.RestartAlgorithm
-	(SatParameters_MaxSatAssumptionOrder)(0),         // 7: operations_research.sat.SatParameters.MaxSatAssumptionOrder
-	(SatParameters_MaxSatStratificationAlgorithm)(0), // 8: operations_research.sat.SatParameters.MaxSatStratificationAlgorithm
-	(SatParameters_SearchBranching)(0),               // 9: operations_research.sat.SatParameters.SearchBranching
-	(SatParameters_SharedTreeSplitStrategy)(0),       // 10: operations_research.sat.SatParameters.SharedTreeSplitStrategy
-	(SatParameters_FPRoundingMethod)(0),              // 11: operations_research.sat.SatParameters.FPRoundingMethod
-	(*SatParameters)(nil),                            // 12: operations_research.sat.SatParameters
+	(SatParameters_VariableOrder)(
+		0,
+	), // 0: operations_research.sat.SatParameters.VariableOrder
+	(SatParameters_Polarity)(
+		0,
+	), // 1: operations_research.sat.SatParameters.Polarity
+	(SatParameters_ConflictMinimizationAlgorithm)(
+		0,
+	), // 2: operations_research.sat.SatParameters.ConflictMinimizationAlgorithm
+	(SatParameters_BinaryMinizationAlgorithm)(
+		0,
+	), // 3: operations_research.sat.SatParameters.BinaryMinizationAlgorithm
+	(SatParameters_ClauseProtection)(
+		0,
+	), // 4: operations_research.sat.SatParameters.ClauseProtection
+	(SatParameters_ClauseOrdering)(
+		0,
+	), // 5: operations_research.sat.SatParameters.ClauseOrdering
+	(SatParameters_RestartAlgorithm)(
+		0,
+	), // 6: operations_research.sat.SatParameters.RestartAlgorithm
+	(SatParameters_MaxSatAssumptionOrder)(
+		0,
+	), // 7: operations_research.sat.SatParameters.MaxSatAssumptionOrder
+	(SatParameters_MaxSatStratificationAlgorithm)(
+		0,
+	), // 8: operations_research.sat.SatParameters.MaxSatStratificationAlgorithm
+	(SatParameters_SearchBranching)(
+		0,
+	), // 9: operations_research.sat.SatParameters.SearchBranching
+	(SatParameters_SharedTreeSplitStrategy)(
+		0,
+	), // 10: operations_research.sat.SatParameters.SharedTreeSplitStrategy
+	(SatParameters_FPRoundingMethod)(
+		0,
+	), // 11: operations_research.sat.SatParameters.FPRoundingMethod
+	(*SatParameters)(nil), // 12: operations_research.sat.SatParameters
 }
 var file_ortools_sat_sat_parameters_proto_depIdxs = []int32{
 	0,  // 0: operations_research.sat.SatParameters.preferred_variable_order:type_name -> operations_research.sat.SatParameters.VariableOrder
@@ -4604,7 +4637,10 @@ func file_ortools_sat_sat_parameters_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ortools_sat_sat_parameters_proto_rawDesc), len(file_ortools_sat_sat_parameters_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(
+				unsafe.StringData(file_ortools_sat_sat_parameters_proto_rawDesc),
+				len(file_ortools_sat_sat_parameters_proto_rawDesc),
+			),
 			NumEnums:      12,
 			NumMessages:   1,
 			NumExtensions: 0,

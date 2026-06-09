@@ -67,7 +67,10 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("seed payout_requests[%s]: employee alias is required", alias)
 		}
 		if strings.TrimSpace(item.BalanceAdjustedByEmployeeAlias) == "" {
-			return fmt.Errorf("seed payout_requests[%s]: balance adjustment actor alias is required", alias)
+			return fmt.Errorf(
+				"seed payout_requests[%s]: balance adjustment actor alias is required",
+				alias,
+			)
 		}
 		if item.RequestedHours <= 0 {
 			return fmt.Errorf("seed payout_requests[%s]: requested hours must be positive", alias)
@@ -78,8 +81,12 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 		if !isValidSeedPayoutStatus(item.Status) {
 			return fmt.Errorf("seed payout_requests[%s]: unsupported status %q", alias, item.Status)
 		}
-		if wantsPayoutApproval(item.Status) && (item.PayPeriodStart == nil || item.PayPeriodStart.IsZero()) {
-			return fmt.Errorf("seed payout_requests[%s]: pay period start is required for approved/paid requests", alias)
+		if wantsPayoutApproval(item.Status) &&
+			(item.PayPeriodStart == nil || item.PayPeriodStart.IsZero()) {
+			return fmt.Errorf(
+				"seed payout_requests[%s]: pay period start is required for approved/paid requests",
+				alias,
+			)
 		}
 
 		requestsByEmployee[employeeAlias] = append(requestsByEmployee[employeeAlias], item)
@@ -88,12 +95,19 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 	for employeeAlias, items := range requestsByEmployee {
 		employeeID, ok := env.State.EmployeeID(employeeAlias)
 		if !ok {
-			return fmt.Errorf("seed payout_requests[%s]: employee alias missing in seed state", employeeAlias)
+			return fmt.Errorf(
+				"seed payout_requests[%s]: employee alias missing in seed state",
+				employeeAlias,
+			)
 		}
 
 		existing, err := listAllPayoutRequestsForEmployee(ctx, payoutService, employeeID)
 		if err != nil {
-			return fmt.Errorf("seed payout_requests[%s]: list existing requests: %w", employeeAlias, err)
+			return fmt.Errorf(
+				"seed payout_requests[%s]: list existing requests: %w",
+				employeeAlias,
+				err,
+			)
 		}
 
 		for _, item := range items {
@@ -104,14 +118,22 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 			current := findComparablePayoutRequest(existing, item)
 			if current == nil {
 				if err := ensureExtraLeaveHoursForPayout(ctx, leaveService, env, employeeID, item); err != nil {
-					return fmt.Errorf("seed payout_requests[%s]: ensure extra leave hours: %w", item.Alias, err)
+					return fmt.Errorf(
+						"seed payout_requests[%s]: ensure extra leave hours: %w",
+						item.Alias,
+						err,
+					)
 				}
 
-				created, err := payoutService.CreatePayoutRequest(ctx, employeeID, domain.CreatePayoutRequestParams{
-					RequestedHours: item.RequestedHours,
-					BalanceYear:    item.BalanceYear,
-					RequestNote:    normalizeOptionalText(item.RequestNote),
-				})
+				created, err := payoutService.CreatePayoutRequest(
+					ctx,
+					employeeID,
+					domain.CreatePayoutRequestParams{
+						RequestedHours: item.RequestedHours,
+						BalanceYear:    item.BalanceYear,
+						RequestNote:    normalizeOptionalText(item.RequestNote),
+					},
+				)
 				if err != nil {
 					return fmt.Errorf("seed payout_requests[%s]: create: %w", item.Alias, err)
 				}
@@ -124,7 +146,13 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 				continue
 			}
 
-			updated, err := advancePayoutRequestToDesiredState(ctx, payoutService, env, current, item)
+			updated, err := advancePayoutRequestToDesiredState(
+				ctx,
+				payoutService,
+				env,
+				current,
+				item,
+			)
 			if err != nil {
 				return fmt.Errorf("seed payout_requests[%s]: %w", item.Alias, err)
 			}
@@ -170,7 +198,10 @@ func exactPayoutRequestExists(existing []domain.PayoutRequest, item PayoutReques
 	return false
 }
 
-func findComparablePayoutRequest(existing []domain.PayoutRequest, item PayoutRequestSeed) *domain.PayoutRequest {
+func findComparablePayoutRequest(
+	existing []domain.PayoutRequest,
+	item PayoutRequestSeed,
+) *domain.PayoutRequest {
 	for _, current := range existing {
 		if samePayoutRequest(current, item, false) {
 			copy := current
@@ -180,14 +211,20 @@ func findComparablePayoutRequest(existing []domain.PayoutRequest, item PayoutReq
 	return nil
 }
 
-func samePayoutRequest(current domain.PayoutRequest, item PayoutRequestSeed, includeStatus bool) bool {
+func samePayoutRequest(
+	current domain.PayoutRequest,
+	item PayoutRequestSeed,
+	includeStatus bool,
+) bool {
 	if current.RequestedHours != item.RequestedHours || current.BalanceYear != item.BalanceYear {
 		return false
 	}
-	if normalizeOptionalText(current.RequestNote) == nil && normalizeOptionalText(item.RequestNote) != nil {
+	if normalizeOptionalText(current.RequestNote) == nil &&
+		normalizeOptionalText(item.RequestNote) != nil {
 		return false
 	}
-	if normalizeOptionalText(current.RequestNote) != nil && normalizeOptionalText(item.RequestNote) == nil {
+	if normalizeOptionalText(current.RequestNote) != nil &&
+		normalizeOptionalText(item.RequestNote) == nil {
 		return false
 	}
 	if normalizeOptionalText(current.RequestNote) != nil &&
@@ -201,10 +238,12 @@ func samePayoutRequest(current domain.PayoutRequest, item PayoutRequestSeed, inc
 		if !sameOptionalDate(current.PayPeriodStart, item.PayPeriodStart) {
 			return false
 		}
-		if normalizeOptionalText(current.DecisionNote) == nil && normalizeOptionalText(item.DecisionNote) != nil {
+		if normalizeOptionalText(current.DecisionNote) == nil &&
+			normalizeOptionalText(item.DecisionNote) != nil {
 			return false
 		}
-		if normalizeOptionalText(current.DecisionNote) != nil && normalizeOptionalText(item.DecisionNote) == nil {
+		if normalizeOptionalText(current.DecisionNote) != nil &&
+			normalizeOptionalText(item.DecisionNote) == nil {
 			return false
 		}
 		if normalizeOptionalText(current.DecisionNote) != nil &&
@@ -230,24 +269,40 @@ func advancePayoutRequestToDesiredState(
 		}
 
 		decisionByAlias := item.DecisionByEmployeeAlias
-		decisionByEmployeeID, err := resolveRequiredEmployeeAliasForPayout(env, decisionByAlias, item.Alias, "decision")
+		decisionByEmployeeID, err := resolveRequiredEmployeeAliasForPayout(
+			env,
+			decisionByAlias,
+			item.Alias,
+			"decision",
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		updated, err := payoutService.DecidePayoutRequestByAdmin(ctx, decisionByEmployeeID, current.ID, domain.DecidePayoutRequestParams{
-			Decision:       payoutDecisionFromStatus(desiredStatus),
-			DecisionNote:   normalizeOptionalText(item.DecisionNote),
-			PayPeriodStart: normalizeOptionalTime(item.PayPeriodStart),
-		})
+		updated, err := payoutService.DecidePayoutRequestByAdmin(
+			ctx,
+			decisionByEmployeeID,
+			current.ID,
+			domain.DecidePayoutRequestParams{
+				Decision:       payoutDecisionFromStatus(desiredStatus),
+				DecisionNote:   normalizeOptionalText(item.DecisionNote),
+				PayPeriodStart: normalizeOptionalTime(item.PayPeriodStart),
+			},
+		)
 		if err != nil {
 			return nil, err
 		}
 		current = updated
 	}
 
-	if current.Status == domain.PayoutRequestStatusApproved && desiredStatus == domain.PayoutRequestStatusPaid {
-		paidByEmployeeID, err := resolveRequiredEmployeeAliasForPayout(env, item.PaidByEmployeeAlias, item.Alias, "paid_by")
+	if current.Status == domain.PayoutRequestStatusApproved &&
+		desiredStatus == domain.PayoutRequestStatusPaid {
+		paidByEmployeeID, err := resolveRequiredEmployeeAliasForPayout(
+			env,
+			item.PaidByEmployeeAlias,
+			item.Alias,
+			"paid_by",
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -282,7 +337,11 @@ func resolveRequiredEmployeeAliasForPayout(
 ) (uuid.UUID, error) {
 	resolved := normalizeOptionalAlias(alias)
 	if resolved == "" {
-		return uuid.Nil, fmt.Errorf("seed payout_requests[%s]: %s employee alias is required", requestAlias, fieldName)
+		return uuid.Nil, fmt.Errorf(
+			"seed payout_requests[%s]: %s employee alias is required",
+			requestAlias,
+			fieldName,
+		)
 	}
 	employeeID, ok := env.State.EmployeeID(resolved)
 	if !ok {

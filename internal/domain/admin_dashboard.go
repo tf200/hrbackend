@@ -124,18 +124,42 @@ type ListUpcomingDashboardAlertsParams struct {
 
 type AdminDashboardService interface {
 	GetKPIs(ctx context.Context) (*AdminDashboardKPI, error)
-	ListRecentEmployees(ctx context.Context, params ListRecentEmployeesParams) (*RecentDashboardEmployeePage, error)
+	ListRecentEmployees(
+		ctx context.Context,
+		params ListRecentEmployeesParams,
+	) (*RecentDashboardEmployeePage, error)
 	GetFullTimeEmployeeBreakdowns(ctx context.Context) (*FullTimeEmployeeBreakdowns, error)
-	GetLeaveAbsenceTrends(ctx context.Context, params GetLeaveAbsenceTrendsParams) (*LeaveAbsenceTrends, error)
-	GetUpcomingDashboardAlerts(ctx context.Context, params GetUpcomingDashboardAlertsParams) (*UpcomingDashboardAlerts, error)
+	GetLeaveAbsenceTrends(
+		ctx context.Context,
+		params GetLeaveAbsenceTrendsParams,
+	) (*LeaveAbsenceTrends, error)
+	GetUpcomingDashboardAlerts(
+		ctx context.Context,
+		params GetUpcomingDashboardAlertsParams,
+	) (*UpcomingDashboardAlerts, error)
 }
 
 type AdminDashboardRepository interface {
 	GetKPIs(ctx context.Context) (*AdminDashboardKPI, error)
-	ListRecentEmployees(ctx context.Context, params ListRecentEmployeesParams) (*RecentDashboardEmployeePage, error)
+	ListRecentEmployees(
+		ctx context.Context,
+		params ListRecentEmployeesParams,
+	) (*RecentDashboardEmployeePage, error)
 	GetFullTimeEmployeeBreakdowns(ctx context.Context) (*FullTimeEmployeeBreakdowns, error)
-	ListLeaveAbsenceTrendPoints(ctx context.Context, params ListLeaveAbsenceTrendPointsParams) ([]LeaveAbsenceTrendPoint, error)
-	ListEndingContractAlerts(ctx context.Context, params ListUpcomingDashboardAlertsParams) ([]EndingContractAlert, error)
-	ListExpiringCredentialAlerts(ctx context.Context, params ListUpcomingDashboardAlertsParams) ([]ExpiringCredentialAlert, error)
-	ListReturningFromLeaveAlerts(ctx context.Context, params ListUpcomingDashboardAlertsParams) ([]ReturningFromLeaveAlert, error)
+	ListLeaveAbsenceTrendPoints(
+		ctx context.Context,
+		params ListLeaveAbsenceTrendPointsParams,
+	) ([]LeaveAbsenceTrendPoint, error)
+	ListEndingContractAlerts(
+		ctx context.Context,
+		params ListUpcomingDashboardAlertsParams,
+	) ([]EndingContractAlert, error)
+	ListExpiringCredentialAlerts(
+		ctx context.Context,
+		params ListUpcomingDashboardAlertsParams,
+	) ([]ExpiringCredentialAlert, error)
+	ListReturningFromLeaveAlerts(
+		ctx context.Context,
+		params ListUpcomingDashboardAlertsParams,
+	) ([]ReturningFromLeaveAlert, error)
 }

@@ -22,7 +22,10 @@ type fakeAttachmentRepository struct {
 	deleteErr   error
 }
 
-func (f *fakeAttachmentRepository) CreateAttachment(ctx context.Context, params domain.CreateAttachmentParams) (*domain.Attachment, error) {
+func (f *fakeAttachmentRepository) CreateAttachment(
+	ctx context.Context,
+	params domain.CreateAttachmentParams,
+) (*domain.Attachment, error) {
 	if f.createErr != nil {
 		return nil, f.createErr
 	}
@@ -45,7 +48,10 @@ func (f *fakeAttachmentRepository) CreateAttachment(ctx context.Context, params 
 	return att, nil
 }
 
-func (f *fakeAttachmentRepository) GetAttachment(ctx context.Context, id uuid.UUID) (*domain.Attachment, error) {
+func (f *fakeAttachmentRepository) GetAttachment(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.Attachment, error) {
 	if f.getErr != nil {
 		return nil, f.getErr
 	}
@@ -56,7 +62,10 @@ func (f *fakeAttachmentRepository) GetAttachment(ctx context.Context, id uuid.UU
 	return att, nil
 }
 
-func (f *fakeAttachmentRepository) UpdateAttachmentUsed(ctx context.Context, params domain.UpdateAttachmentUsedParams) (*domain.Attachment, error) {
+func (f *fakeAttachmentRepository) UpdateAttachmentUsed(
+	ctx context.Context,
+	params domain.UpdateAttachmentUsedParams,
+) (*domain.Attachment, error) {
 	if f.updateErr != nil {
 		return nil, f.updateErr
 	}
@@ -85,15 +94,28 @@ type fakeStorage struct {
 	deleteErr    error
 }
 
-func (f *fakeStorage) Upload(ctx context.Context, file multipart.File, filename string, contentType string) (string, int64, error) {
+func (f *fakeStorage) Upload(
+	ctx context.Context,
+	file multipart.File,
+	filename string,
+	contentType string,
+) (string, int64, error) {
 	return "", 0, f.uploadErr
 }
 
-func (f *fakeStorage) GeneratePresignedURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (f *fakeStorage) GeneratePresignedURL(
+	ctx context.Context,
+	objectKey string,
+	expiry time.Duration,
+) (string, error) {
 	return "", f.urlErr
 }
 
-func (f *fakeStorage) GeneratePresignedUploadURL(ctx context.Context, objectKey string, expiry time.Duration) (string, error) {
+func (f *fakeStorage) GeneratePresignedUploadURL(
+	ctx context.Context,
+	objectKey string,
+	expiry time.Duration,
+) (string, error) {
 	if f.uploadUrlErr != nil {
 		return "", f.uploadUrlErr
 	}
@@ -104,7 +126,10 @@ func (f *fakeStorage) GetFileInfo(ctx context.Context, objectKey string) (int64,
 	return 0, f.infoErr
 }
 
-func (f *fakeStorage) GetFileInfos(ctx context.Context, objectKeys []string) (map[string]int64, error) {
+func (f *fakeStorage) GetFileInfos(
+	ctx context.Context,
+	objectKeys []string,
+) (map[string]int64, error) {
 	return nil, nil
 }
 
@@ -118,7 +143,12 @@ func (f *fakeStorage) Delete(ctx context.Context, objectKey string) error {
 
 type fakeLogger struct{}
 
-func (f *fakeLogger) LogError(ctx context.Context, operation, message string, err error, fields ...zap.Field) {
+func (f *fakeLogger) LogError(
+	ctx context.Context,
+	operation, message string,
+	err error,
+	fields ...zap.Field,
+) {
 }
 func (f *fakeLogger) LogWarn(ctx context.Context, operation, message string, fields ...zap.Field) {}
 func (f *fakeLogger) LogInfo(ctx context.Context, operation, message string, fields ...zap.Field) {}
@@ -141,7 +171,11 @@ func TestAttachmentService_RequestUploadURL_Success(t *testing.T) {
 	}
 
 	if !strings.Contains(resp.UploadURL, resp.FileKey) {
-		t.Errorf("expected upload URL to contain file key %s, got: %s", resp.FileKey, resp.UploadURL)
+		t.Errorf(
+			"expected upload URL to contain file key %s, got: %s",
+			resp.FileKey,
+			resp.UploadURL,
+		)
 	}
 
 	if !strings.HasPrefix(resp.FileKey, "attachments/") {

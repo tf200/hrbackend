@@ -19,7 +19,9 @@ type fakeScheduleService struct {
 	err   error
 }
 
-func (f *fakeScheduleService) GetShiftSwapStats(ctx context.Context) (*domain.ShiftSwapStats, error) {
+func (f *fakeScheduleService) GetShiftSwapStats(
+	ctx context.Context,
+) (*domain.ShiftSwapStats, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -78,7 +80,9 @@ func TestShiftSwapHandlerGetStatsError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := gin.New()
-	handler := NewShiftSwapHandler(&fakeScheduleService{err: errors.New("database connection down")})
+	handler := NewShiftSwapHandler(
+		&fakeScheduleService{err: errors.New("database connection down")},
+	)
 	router.GET("/shift-swaps/stats", handler.GetShiftSwapStats)
 
 	req := httptest.NewRequest(http.MethodGet, "/shift-swaps/stats", nil)

@@ -476,7 +476,6 @@ type ShiftSwapStats struct {
 	HandledCount         int64
 }
 
-
 type ShiftSwapRequestRecord struct {
 	ID                    uuid.UUID
 	RequesterEmployeeID   uuid.UUID
@@ -619,7 +618,11 @@ type ScheduleRepository interface {
 		ctx context.Context,
 		swapID uuid.UUID,
 	) (*ShiftSwapResponse, error)
-	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID, status *string) ([]ShiftSwapResponse, error)
+	ListMyShiftSwapRequests(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		status *string,
+	) ([]ShiftSwapResponse, error)
 	ListShiftSwapRequests(
 		ctx context.Context,
 		params ListShiftSwapRequestsParams,
@@ -641,7 +644,6 @@ type ScheduleRepository interface {
 	UpdateScheduleEmployeeAssignment(ctx context.Context, scheduleID, employeeID uuid.UUID) error
 	GetShiftSwapStats(ctx context.Context) (*ShiftSwapStats, error)
 }
-
 
 type ScheduleService interface {
 	CreateSchedule(
@@ -712,11 +714,14 @@ type ScheduleService interface {
 		adminEmployeeID, swapID uuid.UUID,
 		req *AdminDecisionShiftSwapRequest,
 	) (*ShiftSwapResponse, error)
-	ListMyShiftSwapRequests(ctx context.Context, employeeID uuid.UUID, status *string) ([]ShiftSwapResponse, error)
+	ListMyShiftSwapRequests(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		status *string,
+	) ([]ShiftSwapResponse, error)
 	ListShiftSwapRequests(
 		ctx context.Context,
 		params ListShiftSwapRequestsParams,
 	) (*ShiftSwapPage, error)
 	GetShiftSwapStats(ctx context.Context) (*ShiftSwapStats, error)
 }
-

@@ -373,7 +373,8 @@ func normalizeUpdateExpenseParams(
 	}
 
 	if finalCategory != "travel" {
-		if finalTravelMode != nil || finalTravelFrom != nil || finalTravelTo != nil || finalDistanceKm != nil {
+		if finalTravelMode != nil || finalTravelFrom != nil || finalTravelTo != nil ||
+			finalDistanceKm != nil {
 			return domain.UpdateExpenseRequestParams{}, domain.ErrExpenseRequestInvalidRequest
 		}
 	}
@@ -401,7 +402,13 @@ func trimmedPtr(value *string) *string {
 
 func isValidExpenseCategory(value string) bool {
 	switch strings.TrimSpace(value) {
-	case "travel", "meal", "accommodation", "office_supplies", "training", "client_entertainment", "other":
+	case "travel",
+		"meal",
+		"accommodation",
+		"office_supplies",
+		"training",
+		"client_entertainment",
+		"other":
 		return true
 	default:
 		return false

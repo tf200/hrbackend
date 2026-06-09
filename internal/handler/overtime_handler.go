@@ -70,7 +70,11 @@ func (h *OvertimeHandler) CreateOvertimeEntryByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.CreateOvertimeEntryByAdmin(ctx.Request.Context(), adminEmployeeID, params)
+	item, err := h.service.CreateOvertimeEntryByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapOvertimeErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -185,7 +189,12 @@ func (h *OvertimeHandler) UpdateMyOvertimeEntry(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.UpdateMyOvertimeEntry(ctx.Request.Context(), employeeID, overtimeEntryID, params)
+	item, err := h.service.UpdateMyOvertimeEntry(
+		ctx.Request.Context(),
+		employeeID,
+		overtimeEntryID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapOvertimeErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -229,7 +238,11 @@ func (h *OvertimeHandler) GetMyOvertimeEntryByID(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.GetMyOvertimeEntryByID(ctx.Request.Context(), employeeID, overtimeEntryID)
+	item, err := h.service.GetMyOvertimeEntryByID(
+		ctx.Request.Context(),
+		employeeID,
+		overtimeEntryID,
+	)
 	if err != nil {
 		ctx.JSON(mapOvertimeErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -248,7 +261,10 @@ func (h *OvertimeHandler) ListOvertimeEntries(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListOvertimeEntries(ctx.Request.Context(), toListOvertimeEntriesParams(req))
+	page, err := h.service.ListOvertimeEntries(
+		ctx.Request.Context(),
+		toListOvertimeEntriesParams(req),
+	)
 	if err != nil {
 		ctx.JSON(mapOvertimeErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return

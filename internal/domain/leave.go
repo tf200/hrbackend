@@ -217,16 +217,33 @@ type LeaveTxRepository interface {
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
 	LockEmployeeForLeaveBalance(ctx context.Context, employeeID uuid.UUID) error
 	GetLeaveHoursPerDay(ctx context.Context, employeeID uuid.UUID) (int32, error)
-	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, date time.Time) (*LeaveContractAtDate, error)
-	ComputeLegalLeaveTotalForYear(ctx context.Context, employeeID uuid.UUID, year int32, asOf time.Time) (int32, error)
-	ComputeLegalLeaveUsedForYear(ctx context.Context, employeeID uuid.UUID, year int32) (int32, error)
+	GetEmployeeContractAtDate(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		date time.Time,
+	) (*LeaveContractAtDate, error)
+	ComputeLegalLeaveTotalForYear(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		year int32,
+		asOf time.Time,
+	) (int32, error)
+	ComputeLegalLeaveUsedForYear(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		year int32,
+	) (int32, error)
 }
 
 type LeaveRepository interface {
 	WithTx(ctx context.Context, fn func(tx LeaveTxRepository) error) error
 	CreateLeaveRequest(ctx context.Context, params CreateLeaveRequestParams) (*LeaveRequest, error)
 	GetActiveLeavePolicyByType(ctx context.Context, leaveType string) (*LeavePolicy, error)
-	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, date time.Time) (*LeaveContractAtDate, error)
+	GetEmployeeContractAtDate(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		date time.Time,
+	) (*LeaveContractAtDate, error)
 	ListMyLeaveRequests(
 		ctx context.Context,
 		params ListMyLeaveRequestsParams,

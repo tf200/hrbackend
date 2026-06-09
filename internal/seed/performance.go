@@ -329,13 +329,58 @@ func upsertPerformanceAssignment(
 
 func buildPerformanceScores(seed int) []performanceScoreSeed {
 	items := []performanceScoreSeed{
-		{DomainCode: "VSL", QuestionCode: "VSL_1", Rating: 8, QuestionTitleNL: "Voorspelbaarheid als fundament", QuestionTitleEN: "Predictability as a foundation"},
-		{DomainCode: "VSL", QuestionCode: "VSL_2", Rating: 7, QuestionTitleNL: "Fysieke en emotionele veiligheid", QuestionTitleEN: "Physical and emotional safety"},
-		{DomainCode: "ADL", QuestionCode: "ADL_2", Rating: 6, QuestionTitleNL: "Zelfzorg en hygiëne", QuestionTitleEN: "Self-care and hygiene"},
-		{DomainCode: "SO", QuestionCode: "SO_2", Rating: 5, Remarks: strPtr("Meer focus op emotieregulatie."), QuestionTitleNL: "Emotieregulatie versterken", QuestionTitleEN: "Strengthening emotion regulation"},
-		{DomainCode: "OB", QuestionCode: "OB_1", Rating: 4, Remarks: strPtr("Nog onvoldoende consistent in begrenzen."), QuestionTitleNL: "Positief en constructief corrigeren", QuestionTitleEN: "Positive and constructive correction"},
-		{DomainCode: "IB", QuestionCode: "IB_3", Rating: 6, QuestionTitleNL: "1-op-1 gesprekken", QuestionTitleEN: "One-on-one conversations"},
-		{DomainCode: "IB", QuestionCode: "IB_5", Rating: 5, Remarks: strPtr("Systemisch werken vraagt meer structuur."), QuestionTitleNL: "Systemisch werken", QuestionTitleEN: "Systemic practice"},
+		{
+			DomainCode:      "VSL",
+			QuestionCode:    "VSL_1",
+			Rating:          8,
+			QuestionTitleNL: "Voorspelbaarheid als fundament",
+			QuestionTitleEN: "Predictability as a foundation",
+		},
+		{
+			DomainCode:      "VSL",
+			QuestionCode:    "VSL_2",
+			Rating:          7,
+			QuestionTitleNL: "Fysieke en emotionele veiligheid",
+			QuestionTitleEN: "Physical and emotional safety",
+		},
+		{
+			DomainCode:      "ADL",
+			QuestionCode:    "ADL_2",
+			Rating:          6,
+			QuestionTitleNL: "Zelfzorg en hygiëne",
+			QuestionTitleEN: "Self-care and hygiene",
+		},
+		{
+			DomainCode:      "SO",
+			QuestionCode:    "SO_2",
+			Rating:          5,
+			Remarks:         strPtr("Meer focus op emotieregulatie."),
+			QuestionTitleNL: "Emotieregulatie versterken",
+			QuestionTitleEN: "Strengthening emotion regulation",
+		},
+		{
+			DomainCode:      "OB",
+			QuestionCode:    "OB_1",
+			Rating:          4,
+			Remarks:         strPtr("Nog onvoldoende consistent in begrenzen."),
+			QuestionTitleNL: "Positief en constructief corrigeren",
+			QuestionTitleEN: "Positive and constructive correction",
+		},
+		{
+			DomainCode:      "IB",
+			QuestionCode:    "IB_3",
+			Rating:          6,
+			QuestionTitleNL: "1-op-1 gesprekken",
+			QuestionTitleEN: "One-on-one conversations",
+		},
+		{
+			DomainCode:      "IB",
+			QuestionCode:    "IB_5",
+			Rating:          5,
+			Remarks:         strPtr("Systemisch werken vraagt meer structuur."),
+			QuestionTitleNL: "Systemisch werken",
+			QuestionTitleEN: "Systemic practice",
+		},
 	}
 
 	for i := range items {

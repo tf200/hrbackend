@@ -136,7 +136,10 @@ func (h *ShiftSwapHandler) CreateAdminShiftSwapRequest(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusCreated,
-		httpapi.OK(toShiftSwapResponse(*item), "Admin shift swap created and confirmed successfully"),
+		httpapi.OK(
+			toShiftSwapResponse(*item),
+			"Admin shift swap created and confirmed successfully",
+		),
 	)
 }
 
@@ -280,7 +283,6 @@ func (h *ShiftSwapHandler) GetShiftSwapStats(ctx *gin.Context) {
 		httpapi.OK(toShiftSwapStatsResponse(stats), "Shift swap stats retrieved successfully"),
 	)
 }
-
 
 func mapShiftSwapErrorStatus(err error) int {
 	switch {

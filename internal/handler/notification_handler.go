@@ -98,7 +98,10 @@ func (h *NotificationHandler) MarkAsRead(ctx *gin.Context) {
 	}
 
 	if err := h.service.MarkAsRead(ctx.Request.Context(), id, userID.UserID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to mark notification as read", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to mark notification as read", ""),
+		)
 		return
 	}
 
@@ -113,7 +116,10 @@ func (h *NotificationHandler) MarkAllAsRead(ctx *gin.Context) {
 	}
 
 	if err := h.service.MarkAllAsRead(ctx.Request.Context(), userID.UserID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to mark all notifications as read", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to mark all notifications as read", ""),
+		)
 		return
 	}
 

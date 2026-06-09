@@ -20,11 +20,18 @@ func (f *fakeNotificationService) Notify(ctx context.Context, req domain.Notific
 	f.callsCount++
 }
 
-func (f *fakeNotificationService) ListNotifications(ctx context.Context, userID uuid.UUID, page, pageSize int32) ([]domain.Notification, int64, error) {
+func (f *fakeNotificationService) ListNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+	page, pageSize int32,
+) ([]domain.Notification, int64, error) {
 	return nil, 0, nil
 }
 
-func (f *fakeNotificationService) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error) {
+func (f *fakeNotificationService) GetUnreadCount(
+	ctx context.Context,
+	userID uuid.UUID,
+) (int64, error) {
 	return 0, nil
 }
 
@@ -41,7 +48,10 @@ type fakeEmployeeRepository struct {
 	employee *domain.EmployeeDetail
 }
 
-func (f *fakeEmployeeRepository) GetEmployeeByID(ctx context.Context, id uuid.UUID) (*domain.EmployeeDetail, error) {
+func (f *fakeEmployeeRepository) GetEmployeeByID(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.EmployeeDetail, error) {
 	if f.employee != nil {
 		return f.employee, nil
 	}
@@ -61,11 +71,17 @@ type fakeOvertimeTxRepository struct {
 	repo *fakeOvertimeRepository
 }
 
-func (f *fakeOvertimeTxRepository) GetOvertimeEntryForUpdate(ctx context.Context, id uuid.UUID) (*domain.OvertimeEntry, error) {
+func (f *fakeOvertimeTxRepository) GetOvertimeEntryForUpdate(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.OvertimeEntry, error) {
 	return f.repo.mockEntry, nil
 }
 
-func (f *fakeOvertimeTxRepository) ApproveOvertimeEntry(ctx context.Context, id, approvedByEmployeeID uuid.UUID) (*domain.OvertimeEntry, error) {
+func (f *fakeOvertimeTxRepository) ApproveOvertimeEntry(
+	ctx context.Context,
+	id, approvedByEmployeeID uuid.UUID,
+) (*domain.OvertimeEntry, error) {
 	entry := *f.repo.mockEntry
 	entry.Status = domain.OvertimeStatusApproved
 	approvedByName := "Admin User"
@@ -74,23 +90,37 @@ func (f *fakeOvertimeTxRepository) ApproveOvertimeEntry(ctx context.Context, id,
 	return &entry, nil
 }
 
-func (f *fakeOvertimeTxRepository) RejectOvertimeEntry(ctx context.Context, id uuid.UUID, rejectionReason *string) (*domain.OvertimeEntry, error) {
+func (f *fakeOvertimeTxRepository) RejectOvertimeEntry(
+	ctx context.Context,
+	id uuid.UUID,
+	rejectionReason *string,
+) (*domain.OvertimeEntry, error) {
 	entry := *f.repo.mockEntry
 	entry.Status = domain.OvertimeStatusRejected
 	entry.RejectionReason = rejectionReason
 	return &entry, nil
 }
 
-func (f *fakeOvertimeTxRepository) UpdateOvertimeEntryByAdmin(ctx context.Context, id uuid.UUID, params domain.UpdateOvertimeEntryParams) (*domain.OvertimeEntry, error) {
+func (f *fakeOvertimeTxRepository) UpdateOvertimeEntryByAdmin(
+	ctx context.Context,
+	id uuid.UUID,
+	params domain.UpdateOvertimeEntryParams,
+) (*domain.OvertimeEntry, error) {
 	return nil, nil
 }
 
-func (f *fakeOvertimeRepository) WithTx(ctx context.Context, fn func(tx domain.OvertimeTxRepository) error) error {
+func (f *fakeOvertimeRepository) WithTx(
+	ctx context.Context,
+	fn func(tx domain.OvertimeTxRepository) error,
+) error {
 	tx := &fakeOvertimeTxRepository{repo: f}
 	return fn(tx)
 }
 
-func (f *fakeOvertimeRepository) CreateOvertimeEntry(ctx context.Context, params domain.CreateOvertimeEntryParams) (*domain.OvertimeEntry, error) {
+func (f *fakeOvertimeRepository) CreateOvertimeEntry(
+	ctx context.Context,
+	params domain.CreateOvertimeEntryParams,
+) (*domain.OvertimeEntry, error) {
 	f.lastParams = params
 	return &domain.OvertimeEntry{
 		ID:           uuid.New(),
@@ -107,23 +137,37 @@ func (f *fakeOvertimeRepository) CreateOvertimeEntry(ctx context.Context, params
 	}, nil
 }
 
-func (f *fakeOvertimeRepository) GetOvertimeEntryByID(ctx context.Context, id uuid.UUID) (*domain.OvertimeEntry, error) {
+func (f *fakeOvertimeRepository) GetOvertimeEntryByID(
+	ctx context.Context,
+	id uuid.UUID,
+) (*domain.OvertimeEntry, error) {
 	return nil, nil
 }
 
-func (f *fakeOvertimeRepository) ListOvertimeEntries(ctx context.Context, params domain.ListOvertimeEntriesParams) (*domain.OvertimeEntryPage, error) {
+func (f *fakeOvertimeRepository) ListOvertimeEntries(
+	ctx context.Context,
+	params domain.ListOvertimeEntriesParams,
+) (*domain.OvertimeEntryPage, error) {
 	return nil, nil
 }
 
-func (f *fakeOvertimeRepository) ListMyOvertimeEntries(ctx context.Context, params domain.ListMyOvertimeEntriesParams) (*domain.OvertimeEntryPage, error) {
+func (f *fakeOvertimeRepository) ListMyOvertimeEntries(
+	ctx context.Context,
+	params domain.ListMyOvertimeEntriesParams,
+) (*domain.OvertimeEntryPage, error) {
 	return nil, nil
 }
 
-func (f *fakeOvertimeRepository) GetCurrentMonthOvertimeStats(ctx context.Context) (*domain.OvertimeStats, error) {
+func (f *fakeOvertimeRepository) GetCurrentMonthOvertimeStats(
+	ctx context.Context,
+) (*domain.OvertimeStats, error) {
 	return nil, nil
 }
 
-func (f *fakeOvertimeRepository) GetMyCurrentMonthOvertimeStats(ctx context.Context, employeeID uuid.UUID) (*domain.OvertimeStats, error) {
+func (f *fakeOvertimeRepository) GetMyCurrentMonthOvertimeStats(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.OvertimeStats, error) {
 	return nil, nil
 }
 
@@ -166,7 +210,10 @@ func TestOvertimeServiceCreateOvertimeEntryTriggersNotification(t *testing.T) {
 
 	data, ok := req.Data.(domain.OvertimeRequestCreatedNotificationData)
 	if !ok {
-		t.Fatalf("expected NotificationData of type OvertimeRequestCreatedNotificationData, got %T", req.Data)
+		t.Fatalf(
+			"expected NotificationData of type OvertimeRequestCreatedNotificationData, got %T",
+			req.Data,
+		)
 	}
 
 	if data.OvertimeEntryID != entry.ID {
@@ -214,9 +261,14 @@ func TestOvertimeServiceDecideOvertimeEntryApproveTriggersNotification(t *testin
 	empRepo := &fakeEmployeeRepository{}
 	svc := NewOvertimeService(repo, empRepo, ns, nil)
 
-	updated, err := svc.DecideOvertimeEntryByAdmin(context.Background(), adminID, entry.ID, domain.DecideOvertimeEntryParams{
-		Decision: "approve",
-	})
+	updated, err := svc.DecideOvertimeEntryByAdmin(
+		context.Background(),
+		adminID,
+		entry.ID,
+		domain.DecideOvertimeEntryParams{
+			Decision: "approve",
+		},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -231,7 +283,11 @@ func TestOvertimeServiceDecideOvertimeEntryApproveTriggersNotification(t *testin
 
 	req := ns.lastRequest
 	if len(req.Recipients.EmployeeIDs) != 1 || req.Recipients.EmployeeIDs[0] != actorID {
-		t.Errorf("expected recipient EmployeeIDs to contain %s, got %v", actorID, req.Recipients.EmployeeIDs)
+		t.Errorf(
+			"expected recipient EmployeeIDs to contain %s, got %v",
+			actorID,
+			req.Recipients.EmployeeIDs,
+		)
 	}
 
 	expectedMsg := "Your overtime request for 120 minutes on 2026-06-10 has been approved by Admin User."
@@ -241,7 +297,10 @@ func TestOvertimeServiceDecideOvertimeEntryApproveTriggersNotification(t *testin
 
 	data, ok := req.Data.(domain.OvertimeRequestDecidedNotificationData)
 	if !ok {
-		t.Fatalf("expected NotificationData of type OvertimeRequestDecidedNotificationData, got %T", req.Data)
+		t.Fatalf(
+			"expected NotificationData of type OvertimeRequestDecidedNotificationData, got %T",
+			req.Data,
+		)
 	}
 
 	if data.Status != domain.OvertimeStatusApproved {
@@ -278,10 +337,15 @@ func TestOvertimeServiceDecideOvertimeEntryRejectTriggersNotification(t *testing
 	svc := NewOvertimeService(repo, empRepo, ns, nil)
 
 	reason := "Not needed"
-	updated, err := svc.DecideOvertimeEntryByAdmin(context.Background(), adminID, entry.ID, domain.DecideOvertimeEntryParams{
-		Decision:        "reject",
-		RejectionReason: &reason,
-	})
+	updated, err := svc.DecideOvertimeEntryByAdmin(
+		context.Background(),
+		adminID,
+		entry.ID,
+		domain.DecideOvertimeEntryParams{
+			Decision:        "reject",
+			RejectionReason: &reason,
+		},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -296,7 +360,11 @@ func TestOvertimeServiceDecideOvertimeEntryRejectTriggersNotification(t *testing
 
 	req := ns.lastRequest
 	if len(req.Recipients.EmployeeIDs) != 1 || req.Recipients.EmployeeIDs[0] != actorID {
-		t.Errorf("expected recipient EmployeeIDs to contain %s, got %v", actorID, req.Recipients.EmployeeIDs)
+		t.Errorf(
+			"expected recipient EmployeeIDs to contain %s, got %v",
+			actorID,
+			req.Recipients.EmployeeIDs,
+		)
 	}
 
 	expectedMsg := "Your overtime request for 120 minutes on 2026-06-10 has been rejected by Admin User. Reason: Not needed"
@@ -306,7 +374,10 @@ func TestOvertimeServiceDecideOvertimeEntryRejectTriggersNotification(t *testing
 
 	data, ok := req.Data.(domain.OvertimeRequestDecidedNotificationData)
 	if !ok {
-		t.Fatalf("expected NotificationData of type OvertimeRequestDecidedNotificationData, got %T", req.Data)
+		t.Fatalf(
+			"expected NotificationData of type OvertimeRequestDecidedNotificationData, got %T",
+			req.Data,
+		)
 	}
 
 	if data.Status != domain.OvertimeStatusRejected {

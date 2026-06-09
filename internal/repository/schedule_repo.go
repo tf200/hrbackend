@@ -178,12 +178,18 @@ func (r *ScheduleRepository) GetEmployeeNextShift(
 		ShiftName:    row.ShiftName,
 		LocationID:   row.LocationID,
 		LocationName: row.LocationName,
-		Address:      formatLocationAddress(row.Street, row.HouseNumber, row.HouseNumberAddition, row.PostalCode, row.City),
-		StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
-		EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
-		Date:         conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
-		IsCustom:     row.IsCustom,
-		Colleagues:   []domain.EmployeeShiftOverviewColleague{},
+		Address: formatLocationAddress(
+			row.Street,
+			row.HouseNumber,
+			row.HouseNumberAddition,
+			row.PostalCode,
+			row.City,
+		),
+		StartTime:  conv.TimeFromPgTimestamptz(row.StartDatetime),
+		EndTime:    conv.TimeFromPgTimestamptz(row.EndDatetime),
+		Date:       conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
+		IsCustom:   row.IsCustom,
+		Colleagues: []domain.EmployeeShiftOverviewColleague{},
 	}, nil
 }
 
@@ -666,7 +672,9 @@ func (r *ScheduleRepository) ListShiftSwapRequests(
 	return page, nil
 }
 
-func (r *ScheduleRepository) GetShiftSwapStats(ctx context.Context) (*domain.ShiftSwapStats, error) {
+func (r *ScheduleRepository) GetShiftSwapStats(
+	ctx context.Context,
+) (*domain.ShiftSwapStats, error) {
 	row, err := r.store.GetShiftSwapStats(ctx)
 	if err != nil {
 		return nil, err
@@ -967,11 +975,17 @@ func (r *ScheduleRepository) ListEmployeeUpcomingShifts(
 			IsCustom:     row.IsCustom,
 			LocationID:   row.LocationID,
 			LocationName: row.LocationName,
-			Address:      formatLocationAddress(row.Street, row.HouseNumber, row.HouseNumberAddition, row.PostalCode, row.City),
-			StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
-			EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
-			Date:         conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
-			Colleagues:   nil,
+			Address: formatLocationAddress(
+				row.Street,
+				row.HouseNumber,
+				row.HouseNumberAddition,
+				row.PostalCode,
+				row.City,
+			),
+			StartTime:  conv.TimeFromPgTimestamptz(row.StartDatetime),
+			EndTime:    conv.TimeFromPgTimestamptz(row.EndDatetime),
+			Date:       conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
+			Colleagues: nil,
 		})
 	}
 	return result, nil
@@ -983,12 +997,15 @@ func (r *ScheduleRepository) ListEmployeePastShiftsPaginated(
 	now time.Time,
 	limit, offset int32,
 ) (*domain.EmployeePastShiftsPage, error) {
-	rows, err := r.store.ListEmployeePastShiftsPaginated(ctx, db.ListEmployeePastShiftsPaginatedParams{
-		EmployeeID:  employeeID,
-		Now:         conv.PgTimestamptzFromTime(now),
-		LimitCount:  limit,
-		OffsetCount: offset,
-	})
+	rows, err := r.store.ListEmployeePastShiftsPaginated(
+		ctx,
+		db.ListEmployeePastShiftsPaginatedParams{
+			EmployeeID:  employeeID,
+			Now:         conv.PgTimestamptzFromTime(now),
+			LimitCount:  limit,
+			OffsetCount: offset,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1003,11 +1020,17 @@ func (r *ScheduleRepository) ListEmployeePastShiftsPaginated(
 			IsCustom:     row.IsCustom,
 			LocationID:   row.LocationID,
 			LocationName: row.LocationName,
-			Address:      formatLocationAddress(row.Street, row.HouseNumber, row.HouseNumberAddition, row.PostalCode, row.City),
-			StartTime:    conv.TimeFromPgTimestamptz(row.StartDatetime),
-			EndTime:      conv.TimeFromPgTimestamptz(row.EndDatetime),
-			Date:         conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
-			Colleagues:   []domain.EmployeeShiftOverviewColleague{},
+			Address: formatLocationAddress(
+				row.Street,
+				row.HouseNumber,
+				row.HouseNumberAddition,
+				row.PostalCode,
+				row.City,
+			),
+			StartTime:  conv.TimeFromPgTimestamptz(row.StartDatetime),
+			EndTime:    conv.TimeFromPgTimestamptz(row.EndDatetime),
+			Date:       conv.TimeFromPgDate(row.ShiftDate).Format("2006-01-02"),
+			Colleagues: []domain.EmployeeShiftOverviewColleague{},
 		})
 	}
 
@@ -1019,10 +1042,13 @@ func (r *ScheduleRepository) ListShiftColleaguesByScheduleIDs(
 	scheduleIDs []uuid.UUID,
 	employeeID uuid.UUID,
 ) ([]domain.EmployeeUpcomingShiftColleagueRow, error) {
-	rows, err := r.store.ListShiftColleaguesByScheduleIDs(ctx, db.ListShiftColleaguesByScheduleIDsParams{
-		ScheduleIds: scheduleIDs,
-		EmployeeID:  employeeID,
-	})
+	rows, err := r.store.ListShiftColleaguesByScheduleIDs(
+		ctx,
+		db.ListShiftColleaguesByScheduleIDsParams{
+			ScheduleIds: scheduleIDs,
+			EmployeeID:  employeeID,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}

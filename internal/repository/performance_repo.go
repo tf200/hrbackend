@@ -34,7 +34,9 @@ func (r *PerformanceRepository) WithTx(
 	})
 }
 
-func (r *PerformanceRepository) ListAssessmentCatalog(ctx context.Context) ([]domain.PerformanceDomain, error) {
+func (r *PerformanceRepository) ListAssessmentCatalog(
+	ctx context.Context,
+) ([]domain.PerformanceDomain, error) {
 	rows, err := r.store.ListPerformanceAssessmentCatalog(ctx)
 	if err != nil {
 		return nil, err
@@ -184,14 +186,17 @@ func (r *PerformanceRepository) ListWorkAssignments(
 	ctx context.Context,
 	params domain.ListPerformanceWorkAssignmentsParams,
 ) (*domain.PerformanceWorkAssignmentPage, error) {
-	rows, err := r.store.ListPerformanceWorkAssignments(ctx, db.ListPerformanceWorkAssignmentsParams{
-		Limit:      params.Limit,
-		Offset:     params.Offset,
-		EmployeeID: params.EmployeeID,
-		Status:     params.Status,
-		DueBefore:  pgDateFromTimePtr(params.DueBefore),
-		DueAfter:   pgDateFromTimePtr(params.DueAfter),
-	})
+	rows, err := r.store.ListPerformanceWorkAssignments(
+		ctx,
+		db.ListPerformanceWorkAssignmentsParams{
+			Limit:      params.Limit,
+			Offset:     params.Offset,
+			EmployeeID: params.EmployeeID,
+			Status:     params.Status,
+			DueBefore:  pgDateFromTimePtr(params.DueBefore),
+			DueAfter:   pgDateFromTimePtr(params.DueAfter),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -419,15 +424,21 @@ func (r *performanceTxRepo) CreateAssessmentScore(
 	assessmentID uuid.UUID,
 	score domain.CreatePerformanceAssessmentScoreParams,
 ) error {
-	return r.queries.CreatePerformanceAssessmentScore(ctx, db.CreatePerformanceAssessmentScoreParams{
-		AssessmentID: assessmentID,
-		QuestionCode: score.QuestionCode,
-		Rating:       score.Rating,
-		Remarks:      score.Remarks,
-	})
+	return r.queries.CreatePerformanceAssessmentScore(
+		ctx,
+		db.CreatePerformanceAssessmentScoreParams{
+			AssessmentID: assessmentID,
+			QuestionCode: score.QuestionCode,
+			Rating:       score.Rating,
+			Remarks:      score.Remarks,
+		},
+	)
 }
 
-func (r *performanceTxRepo) GetWorkAssignmentStatusForUpdate(ctx context.Context, id uuid.UUID) (string, error) {
+func (r *performanceTxRepo) GetWorkAssignmentStatusForUpdate(
+	ctx context.Context,
+	id uuid.UUID,
+) (string, error) {
 	status, err := r.queries.GetPerformanceWorkAssignmentStatusForUpdate(ctx, id)
 	if err != nil {
 		if isDBNotFound(err) {
@@ -444,11 +455,14 @@ func (r *performanceTxRepo) UpdateWorkAssignmentDecision(
 	status string,
 	feedback *string,
 ) error {
-	return r.queries.UpdatePerformanceWorkAssignmentDecision(ctx, db.UpdatePerformanceWorkAssignmentDecisionParams{
-		ID:       id,
-		Status:   db.PerformanceWorkAssignmentStatusEnum(status),
-		Feedback: feedback,
-	})
+	return r.queries.UpdatePerformanceWorkAssignmentDecision(
+		ctx,
+		db.UpdatePerformanceWorkAssignmentDecisionParams{
+			ID:       id,
+			Status:   db.PerformanceWorkAssignmentStatusEnum(status),
+			Feedback: feedback,
+		},
+	)
 }
 
 func toDomainPerformanceAssessment(

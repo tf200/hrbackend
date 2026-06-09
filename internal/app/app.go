@@ -76,7 +76,8 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 	wsTicketStore := newWebSocketTicketStore(cfg)
 
 	var storageClient domain.Storage
-	if cfg.DisableBucket || cfg.B2Endpoint == "" || cfg.B2KeyID == "" || cfg.B2Key == "" || cfg.B2Bucket == "" {
+	if cfg.DisableBucket || cfg.B2Endpoint == "" || cfg.B2KeyID == "" || cfg.B2Key == "" ||
+		cfg.B2Bucket == "" {
 		storageClient = pkgbucket.NewNoop()
 	} else {
 		var err error
@@ -93,7 +94,16 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 		}
 	}
 
-	router := buildRouter(cfg, logger, store, tokenMaker, taskQueue, wsHub, wsTicketStore, storageClient)
+	router := buildRouter(
+		cfg,
+		logger,
+		store,
+		tokenMaker,
+		taskQueue,
+		wsHub,
+		wsTicketStore,
+		storageClient,
+	)
 
 	return &App{
 		Config:    cfg,
@@ -268,7 +278,12 @@ func buildRouter(
 	notificationService := service.NewNotificationService(notificationRepo, wsHub, logger)
 
 	scheduleRepo := repository.NewScheduleRepository(store)
-	scheduleService := service.NewScheduleService(scheduleRepo, taskQueue, notificationService, logger)
+	scheduleService := service.NewScheduleService(
+		scheduleRepo,
+		taskQueue,
+		notificationService,
+		logger,
+	)
 
 	leaveRepo := repository.NewLeaveRepository(store)
 	leaveService := service.NewLeaveService(leaveRepo, employeeRepo, notificationService, logger)
@@ -280,7 +295,12 @@ func buildRouter(
 	expenseService := service.NewExpenseService(expenseRepo, logger)
 
 	overtimeRepo := repository.NewOvertimeRepository(store)
-	overtimeService := service.NewOvertimeService(overtimeRepo, employeeRepo, notificationService, logger)
+	overtimeService := service.NewOvertimeService(
+		overtimeRepo,
+		employeeRepo,
+		notificationService,
+		logger,
+	)
 
 	salaryRepo := repository.NewSalaryRepository(store)
 	salaryService := service.NewSalaryService(salaryRepo, logger)
@@ -297,7 +317,15 @@ func buildRouter(
 	attachmentRepo := repository.NewAttachmentRepository(store)
 	attachmentService := service.NewAttachmentService(attachmentRepo, storageClient, logger)
 	signDocumentRepo := repository.NewSignDocumentRepository(store)
-	signDocumentService := service.NewSignDocumentService(signDocumentRepo, attachmentRepo, employeeRepo, notificationService, storageClient, pkgpdf.NewSignDocumentStamper(), logger)
+	signDocumentService := service.NewSignDocumentService(
+		signDocumentRepo,
+		attachmentRepo,
+		employeeRepo,
+		notificationService,
+		storageClient,
+		pkgpdf.NewSignDocumentStamper(),
+		logger,
+	)
 
 	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
 	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)

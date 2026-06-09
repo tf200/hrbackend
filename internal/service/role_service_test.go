@@ -72,10 +72,16 @@ func TestRoleServiceListAllPermissionsGroupsResults(t *testing.T) {
 		t.Fatalf("unexpected first section: %+v", groups[0].Sections[0])
 	}
 	if len(groups[0].Sections[0].Permissions) != 2 {
-		t.Fatalf("expected view section to have 2 permissions, got %d", len(groups[0].Sections[0].Permissions))
+		t.Fatalf(
+			"expected view section to have 2 permissions, got %d",
+			len(groups[0].Sections[0].Permissions),
+		)
 	}
 	if groups[0].Sections[0].Permissions[0].PermissionName != "EMPLOYEE.VIEW" {
-		t.Fatalf("expected first permission to preserve source order, got %s", groups[0].Sections[0].Permissions[0].PermissionName)
+		t.Fatalf(
+			"expected first permission to preserve source order, got %s",
+			groups[0].Sections[0].Permissions[0].PermissionName,
+		)
 	}
 	if groups[1].GroupKey != "role_management" || groups[1].GroupLabel != "Role Management" {
 		t.Fatalf("unexpected second group: %+v", groups[1])

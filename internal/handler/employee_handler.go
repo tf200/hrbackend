@@ -310,7 +310,10 @@ func (h *EmployeeHandler) CreateContractAmendment(ctx *gin.Context) {
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create contract amendment", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to create contract amendment", ""),
+		)
 		return
 	}
 
@@ -800,7 +803,11 @@ func (h *EmployeeHandler) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.service.ResetPassword(ctx.Request.Context(), employeeID, toResetPasswordParams(req))
+	result, err := h.service.ResetPassword(
+		ctx.Request.Context(),
+		employeeID,
+		toResetPasswordParams(req),
+	)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrInvalidPasswordResetRequest):
@@ -877,7 +884,10 @@ func (h *EmployeeHandler) AddEmployeeAuthorization(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to add employee authorizations", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to add employee authorizations", ""),
+		)
 		return
 	}
 
@@ -895,7 +905,10 @@ func (h *EmployeeHandler) ListEmployeeAuthorizations(ctx *gin.Context) {
 
 	authorizations, err := h.service.ListEmployeeAuthorizations(ctx.Request.Context(), employeeID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list employee authorizations", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to list employee authorizations", ""),
+		)
 		return
 	}
 
@@ -930,12 +943,19 @@ func (h *EmployeeHandler) UpdateEmployeeAuthorization(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update employee authorization", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to update employee authorization", ""),
+		)
 		return
 	}
 
-	ctx.JSON(http.StatusOK,
-		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization updated successfully"),
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toEmployeeAuthorizationResponse(authRecord),
+			"Employee authorization updated successfully",
+		),
 	)
 }
 
@@ -952,12 +972,18 @@ func (h *EmployeeHandler) DeleteEmployeeAuthorization(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to delete employee authorization", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to delete employee authorization", ""),
+		)
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toEmployeeAuthorizationResponse(authRecord), "Employee authorization deleted successfully"),
+		httpapi.OK(
+			toEmployeeAuthorizationResponse(authRecord),
+			"Employee authorization deleted successfully",
+		),
 	)
 }

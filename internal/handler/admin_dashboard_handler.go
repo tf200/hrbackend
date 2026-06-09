@@ -34,13 +34,19 @@ func (h *AdminDashboardHandler) GetKPIs(ctx *gin.Context) {
 func (h *AdminDashboardHandler) GetFullTimeEmployeeBreakdowns(ctx *gin.Context) {
 	breakdowns, err := h.service.GetFullTimeEmployeeBreakdowns(ctx.Request.Context())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get full-time employee breakdowns", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to get full-time employee breakdowns", ""),
+		)
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toFullTimeEmployeeBreakdownsResponse(breakdowns), "Full-time employee breakdowns retrieved successfully"),
+		httpapi.OK(
+			toFullTimeEmployeeBreakdownsResponse(breakdowns),
+			"Full-time employee breakdowns retrieved successfully",
+		),
 	)
 }
 
@@ -51,22 +57,31 @@ func (h *AdminDashboardHandler) GetLeaveAbsenceTrends(ctx *gin.Context) {
 		return
 	}
 
-	trends, err := h.service.GetLeaveAbsenceTrends(ctx.Request.Context(), domain.GetLeaveAbsenceTrendsParams{
-		View: req.View,
-		Year: req.Year,
-	})
+	trends, err := h.service.GetLeaveAbsenceTrends(
+		ctx.Request.Context(),
+		domain.GetLeaveAbsenceTrendsParams{
+			View: req.View,
+			Year: req.Year,
+		},
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrAdminDashboardInvalidRequest) {
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get leave absence trends", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to get leave absence trends", ""),
+		)
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toLeaveAbsenceTrendsResponse(trends), "Leave and absence trends retrieved successfully"),
+		httpapi.OK(
+			toLeaveAbsenceTrendsResponse(trends),
+			"Leave and absence trends retrieved successfully",
+		),
 	)
 }
 
@@ -77,22 +92,31 @@ func (h *AdminDashboardHandler) GetUpcomingDashboardAlerts(ctx *gin.Context) {
 		return
 	}
 
-	alerts, err := h.service.GetUpcomingDashboardAlerts(ctx.Request.Context(), domain.GetUpcomingDashboardAlertsParams{
-		Days:  req.Days,
-		Limit: req.Limit,
-	})
+	alerts, err := h.service.GetUpcomingDashboardAlerts(
+		ctx.Request.Context(),
+		domain.GetUpcomingDashboardAlertsParams{
+			Days:  req.Days,
+			Limit: req.Limit,
+		},
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrAdminDashboardInvalidRequest) {
 			ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get upcoming dashboard alerts", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to get upcoming dashboard alerts", ""),
+		)
 		return
 	}
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toUpcomingDashboardAlertsResponse(alerts), "Upcoming dashboard alerts retrieved successfully"),
+		httpapi.OK(
+			toUpcomingDashboardAlertsResponse(alerts),
+			"Upcoming dashboard alerts retrieved successfully",
+		),
 	)
 }
 
@@ -109,12 +133,18 @@ func (h *AdminDashboardHandler) ListRecentEmployees(ctx *gin.Context) {
 	}
 	offset := int32((req.Page - 1) * req.PageSize)
 
-	page, err := h.service.ListRecentEmployees(ctx.Request.Context(), domain.ListRecentEmployeesParams{
-		Limit:  limit,
-		Offset: offset,
-	})
+	page, err := h.service.ListRecentEmployees(
+		ctx.Request.Context(),
+		domain.ListRecentEmployeesParams{
+			Limit:  limit,
+			Offset: offset,
+		},
+	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list recent employees", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to list recent employees", ""),
+		)
 		return
 	}
 

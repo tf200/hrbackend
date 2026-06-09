@@ -42,7 +42,10 @@ func (s LocationSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("seed location: alias is required")
 		}
 		if strings.TrimSpace(item.OrganizationAlias) == "" {
-			return fmt.Errorf("seed location: organization alias is required for location %q", item.Alias)
+			return fmt.Errorf(
+				"seed location: organization alias is required for location %q",
+				item.Alias,
+			)
 		}
 		if strings.TrimSpace(item.Name) == "" {
 			return fmt.Errorf("seed location: name is required for location %q", item.Alias)

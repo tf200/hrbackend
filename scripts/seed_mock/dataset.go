@@ -49,11 +49,41 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	}
 
 	departments := []departmentTemplate{
-		{Alias: "care", Name: "Care", HeadPosition: "Care Team Lead", StaffPosition: "Care Worker", Description: "Primary care and resident support."},
-		{Alias: "operations", Name: "Operations", HeadPosition: "Operations Lead", StaffPosition: "Operations Coordinator", Description: "Daily operational coordination."},
-		{Alias: "planning", Name: "Planning", HeadPosition: "Planning Lead", StaffPosition: "Scheduler", Description: "Roster and planning management."},
-		{Alias: "finance", Name: "Finance", HeadPosition: "Finance Lead", StaffPosition: "Finance Officer", Description: "Payroll and financial administration."},
-		{Alias: "hr", Name: "HR", HeadPosition: "HR Lead", StaffPosition: "HR Officer", Description: "Employee administration and onboarding."},
+		{
+			Alias:         "care",
+			Name:          "Care",
+			HeadPosition:  "Care Team Lead",
+			StaffPosition: "Care Worker",
+			Description:   "Primary care and resident support.",
+		},
+		{
+			Alias:         "operations",
+			Name:          "Operations",
+			HeadPosition:  "Operations Lead",
+			StaffPosition: "Operations Coordinator",
+			Description:   "Daily operational coordination.",
+		},
+		{
+			Alias:         "planning",
+			Name:          "Planning",
+			HeadPosition:  "Planning Lead",
+			StaffPosition: "Scheduler",
+			Description:   "Roster and planning management.",
+		},
+		{
+			Alias:         "finance",
+			Name:          "Finance",
+			HeadPosition:  "Finance Lead",
+			StaffPosition: "Finance Officer",
+			Description:   "Payroll and financial administration.",
+		},
+		{
+			Alias:         "hr",
+			Name:          "HR",
+			HeadPosition:  "HR Lead",
+			StaffPosition: "HR Officer",
+			Description:   "Employee administration and onboarding.",
+		},
 	}
 
 	result := generatedDataset{
@@ -124,7 +154,11 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	result.ShiftSwapRequests = make([]seed.ShiftSwapRequestSeed, 0, 4)
 	result.LateArrivals = make([]seed.LateArrivalSeed, 0, len(departments)+2)
 	result.PayPeriods = make([]seed.PayPeriodSeed, 0, 2)
-	result.EmployeeHandbookAssignments = make([]seed.EmployeeHandbookAssignmentSeed, 0, len(departments)*3)
+	result.EmployeeHandbookAssignments = make(
+		[]seed.EmployeeHandbookAssignmentSeed,
+		0,
+		len(departments)*3,
+	)
 	result.PerformanceAssessments = make([]seed.PerformanceSeed, 0, 6)
 
 	for deptIdx, department := range departments {
@@ -147,11 +181,14 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			EmployeeAlias:   headAlias,
 		})
 		templateAlias := fmt.Sprintf("%s_baseline", department.Alias)
-		result.EmployeeHandbookAssignments = append(result.EmployeeHandbookAssignments, seed.EmployeeHandbookAssignmentSeed{
-			EmployeeAlias:      headAlias,
-			TemplateAlias:      templateAlias,
-			ActorEmployeeAlias: &headAlias,
-		})
+		result.EmployeeHandbookAssignments = append(
+			result.EmployeeHandbookAssignments,
+			seed.EmployeeHandbookAssignmentSeed{
+				EmployeeAlias:      headAlias,
+				TemplateAlias:      templateAlias,
+				ActorEmployeeAlias: &headAlias,
+			},
+		)
 		result.LeaveRequests = append(result.LeaveRequests, buildApprovedVacationLeaveSeed(
 			fmt.Sprintf("%s_head_vacation", department.Alias),
 			headAlias,
@@ -159,10 +196,32 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			"hr_head",
 			deptIdx,
 		))
-		result.Schedules = append(result.Schedules,
-			buildPresetScheduleSeed(fmt.Sprintf("%s_head_mon", headAlias), headAlias, headLocationAlias, headAlias, 1, time.Date(2026, time.July, 6, 0, 0, 0, 0, time.UTC)),
-			buildPresetScheduleSeed(fmt.Sprintf("%s_head_wed", headAlias), headAlias, headLocationAlias, headAlias, 2, time.Date(2026, time.July, 8, 0, 0, 0, 0, time.UTC)),
-			buildPresetScheduleSeed(fmt.Sprintf("%s_head_fri", headAlias), headAlias, headLocationAlias, headAlias, 1, time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC)),
+		result.Schedules = append(
+			result.Schedules,
+			buildPresetScheduleSeed(
+				fmt.Sprintf("%s_head_mon", headAlias),
+				headAlias,
+				headLocationAlias,
+				headAlias,
+				1,
+				time.Date(2026, time.July, 6, 0, 0, 0, 0, time.UTC),
+			),
+			buildPresetScheduleSeed(
+				fmt.Sprintf("%s_head_wed", headAlias),
+				headAlias,
+				headLocationAlias,
+				headAlias,
+				2,
+				time.Date(2026, time.July, 8, 0, 0, 0, 0, time.UTC),
+			),
+			buildPresetScheduleSeed(
+				fmt.Sprintf("%s_head_fri", headAlias),
+				headAlias,
+				headLocationAlias,
+				headAlias,
+				1,
+				time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC),
+			),
 		)
 		result.LateArrivals = append(result.LateArrivals, seed.LateArrivalSeed{
 			Alias:                  fmt.Sprintf("%s_late_mon", headAlias),
@@ -190,11 +249,14 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 			)
 			result.Employees = append(result.Employees, employeeSeed)
 			if empIdx < 2 {
-				result.EmployeeHandbookAssignments = append(result.EmployeeHandbookAssignments, seed.EmployeeHandbookAssignmentSeed{
-					EmployeeAlias:      employeeAlias,
-					TemplateAlias:      templateAlias,
-					ActorEmployeeAlias: &headAlias,
-				})
+				result.EmployeeHandbookAssignments = append(
+					result.EmployeeHandbookAssignments,
+					seed.EmployeeHandbookAssignmentSeed{
+						EmployeeAlias:      employeeAlias,
+						TemplateAlias:      templateAlias,
+						ActorEmployeeAlias: &headAlias,
+					},
+				)
 			}
 			if empIdx == 0 {
 				result.LeaveRequests = append(result.LeaveRequests, buildPendingPersonalLeaveSeed(
@@ -297,9 +359,18 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 						Alias:                  fmt.Sprintf("%s_late_shift_a", employeeAlias),
 						EmployeeAlias:          employeeAlias,
 						CreatedByEmployeeAlias: strPtr(headAlias),
-						ArrivalDate:            time.Date(2026, time.July, baseDay, 0, 0, 0, 0, time.UTC),
-						ArrivalTime:            lateArrivalTimeForShiftSlot(shiftASlot),
-						Reason:                 "Seeded late arrival reported by department lead",
+						ArrivalDate: time.Date(
+							2026,
+							time.July,
+							baseDay,
+							0,
+							0,
+							0,
+							0,
+							time.UTC,
+						),
+						ArrivalTime: lateArrivalTimeForShiftSlot(shiftASlot),
+						Reason:      "Seeded late arrival reported by department lead",
 					})
 				}
 			}
@@ -418,10 +489,14 @@ func buildGeneratedDataset(runLabel string, fakeSeed int64) generatedDataset {
 	for zzpIdx := 0; zzpIdx < 3; zzpIdx++ {
 		zzpAlias := fmt.Sprintf("zzp_contractor_%02d", zzpIdx+1)
 		zzpSeed := seed.EmployeeSeed{
-			Alias:              zzpAlias,
-			FirstName:          gofakeit.FirstName(),
-			LastName:           gofakeit.LastName(),
-			UserEmail:          fmt.Sprintf("%s+%s@example.com", sanitizeEmailPart(zzpAlias), emailSuffix),
+			Alias:     zzpAlias,
+			FirstName: gofakeit.FirstName(),
+			LastName:  gofakeit.LastName(),
+			UserEmail: fmt.Sprintf(
+				"%s+%s@example.com",
+				sanitizeEmailPart(zzpAlias),
+				emailSuffix,
+			),
 			UserPassword:       passwordValue,
 			Bsn:                gofakeit.Numerify("#########"),
 			Street:             gofakeit.StreetName(),
@@ -508,7 +583,10 @@ func generateEmployeeSeed(
 	}
 }
 
-func buildEmployeeContractSeed(locationAlias, departmentAlias, position string, isHead bool) seed.EmployeeContractSeed {
+func buildEmployeeContractSeed(
+	locationAlias, departmentAlias, position string,
+	isHead bool,
+) seed.EmployeeContractSeed {
 	jobTitle := employeeJobTitleForDepartment(departmentAlias, isHead)
 	if strings.Contains(strings.ToLower(position), "lead") {
 		jobTitle = "team_lead"
@@ -546,7 +624,11 @@ func employeeJobTitleForDepartment(departmentAlias string, isHead bool) string {
 	}
 }
 
-func buildEmployeeSalaryAssignmentSeed(departmentAlias string, isHead bool, index int) *seed.EmployeeSalaryAssignmentSeed {
+func buildEmployeeSalaryAssignmentSeed(
+	departmentAlias string,
+	isHead bool,
+	index int,
+) *seed.EmployeeSalaryAssignmentSeed {
 	scale := 8
 	step := fmt.Sprintf("%d", 3+(index%5))
 	if isHead {
@@ -614,7 +696,10 @@ func buildApprovedVacationLeaveSeed(
 	}
 }
 
-func buildPendingPersonalLeaveSeed(alias, employeeAlias string, departmentIndex int) seed.LeaveRequestSeed {
+func buildPendingPersonalLeaveSeed(
+	alias, employeeAlias string,
+	departmentIndex int,
+) seed.LeaveRequestSeed {
 	startDate := time.Date(2026, time.September, 8+(departmentIndex*3), 0, 0, 0, 0, time.UTC)
 	return seed.LeaveRequestSeed{
 		Alias:         alias,

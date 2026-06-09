@@ -74,7 +74,10 @@ func (s LeaveRequestsSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("seed leave_requests[%s]: start and end dates are required", alias)
 		}
 		if leaveDateOnlyUTC(item.EndDate).Before(leaveDateOnlyUTC(item.StartDate)) {
-			return fmt.Errorf("seed leave_requests[%s]: end date must be on or after start date", alias)
+			return fmt.Errorf(
+				"seed leave_requests[%s]: end date must be on or after start date",
+				alias,
+			)
 		}
 		requestsByEmployee[employeeAlias] = append(requestsByEmployee[employeeAlias], item)
 	}
@@ -82,12 +85,19 @@ func (s LeaveRequestsSeeder) Seed(ctx context.Context, env Env) error {
 	for employeeAlias, items := range requestsByEmployee {
 		employeeID, ok := env.State.EmployeeID(employeeAlias)
 		if !ok {
-			return fmt.Errorf("seed leave_requests[%s]: employee alias missing in seed state", employeeAlias)
+			return fmt.Errorf(
+				"seed leave_requests[%s]: employee alias missing in seed state",
+				employeeAlias,
+			)
 		}
 
 		existing, err := listAllLeaveRequestsForEmployee(ctx, leaveService, employeeID)
 		if err != nil {
-			return fmt.Errorf("seed leave_requests[%s]: list existing requests: %w", employeeAlias, err)
+			return fmt.Errorf(
+				"seed leave_requests[%s]: list existing requests: %w",
+				employeeAlias,
+				err,
+			)
 		}
 
 		for _, item := range items {
@@ -111,7 +121,8 @@ func (s LeaveRequestsSeeder) Seed(ctx context.Context, env Env) error {
 				continue
 			}
 
-			if current.Status != "pending" || (item.Status != "approved" && item.Status != "rejected") {
+			if current.Status != "pending" ||
+				(item.Status != "approved" && item.Status != "rejected") {
 				return fmt.Errorf(
 					"seed leave_requests[%s]: existing request has status %q; refusing to mutate to %q",
 					item.Alias,
@@ -120,14 +131,24 @@ func (s LeaveRequestsSeeder) Seed(ctx context.Context, env Env) error {
 				)
 			}
 
-			decisionByEmployeeID, err := resolveRequiredEmployeeAlias(env, item.DecisionByEmployeeAlias, item.Alias, "decision")
+			decisionByEmployeeID, err := resolveRequiredEmployeeAlias(
+				env,
+				item.DecisionByEmployeeAlias,
+				item.Alias,
+				"decision",
+			)
 			if err != nil {
 				return err
 			}
-			updated, err := leaveService.DecideLeaveRequestByAdmin(ctx, decisionByEmployeeID, current.ID, domain.DecideLeaveRequestParams{
-				Decision:     leaveDecisionFromStatus(item.Status),
-				DecisionNote: normalizeOptionalText(item.DecisionNote),
-			})
+			updated, err := leaveService.DecideLeaveRequestByAdmin(
+				ctx,
+				decisionByEmployeeID,
+				current.ID,
+				domain.DecideLeaveRequestParams{
+					Decision:     leaveDecisionFromStatus(item.Status),
+					DecisionNote: normalizeOptionalText(item.DecisionNote),
+				},
+			)
 			if err != nil {
 				return fmt.Errorf("seed leave_requests[%s]: decide: %w", item.Alias, err)
 			}
@@ -163,7 +184,12 @@ func createSeededLeaveRequest(
 		return leaveService.CreateLeaveRequest(ctx, employeeID, params)
 	}
 
-	createdByEmployeeID, err := resolveRequiredEmployeeAlias(env, item.CreatedByEmployeeAlias, item.Alias, "created_by")
+	createdByEmployeeID, err := resolveRequiredEmployeeAlias(
+		env,
+		item.CreatedByEmployeeAlias,
+		item.Alias,
+		"created_by",
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +221,10 @@ func exactLeaveRequestExists(existing []domain.LeaveRequestListItem, item LeaveR
 	return false
 }
 
-func findComparableLeaveRequest(existing []domain.LeaveRequestListItem, item LeaveRequestSeed) *domain.LeaveRequest {
+func findComparableLeaveRequest(
+	existing []domain.LeaveRequestListItem,
+	item LeaveRequestSeed,
+) *domain.LeaveRequest {
 	for _, current := range existing {
 		if sameLeaveRequest(current.LeaveRequest, item, false) {
 			copy := current.LeaveRequest
@@ -229,10 +258,12 @@ func sameLeaveRequest(current domain.LeaveRequest, item LeaveRequestSeed, includ
 		if current.Status != strings.TrimSpace(item.Status) {
 			return false
 		}
-		if normalizeOptionalText(current.DecisionNote) == nil && normalizeOptionalText(item.DecisionNote) != nil {
+		if normalizeOptionalText(current.DecisionNote) == nil &&
+			normalizeOptionalText(item.DecisionNote) != nil {
 			return false
 		}
-		if normalizeOptionalText(current.DecisionNote) != nil && normalizeOptionalText(item.DecisionNote) == nil {
+		if normalizeOptionalText(current.DecisionNote) != nil &&
+			normalizeOptionalText(item.DecisionNote) == nil {
 			return false
 		}
 		if normalizeOptionalText(current.DecisionNote) != nil &&
@@ -260,7 +291,11 @@ func resolveRequiredEmployeeAlias(
 ) (uuid.UUID, error) {
 	resolved := normalizeOptionalAlias(alias)
 	if resolved == "" {
-		return uuid.Nil, fmt.Errorf("seed leave_requests[%s]: %s employee alias is required", requestAlias, fieldName)
+		return uuid.Nil, fmt.Errorf(
+			"seed leave_requests[%s]: %s employee alias is required",
+			requestAlias,
+			fieldName,
+		)
 	}
 	employeeID, ok := env.State.EmployeeID(resolved)
 	if !ok {

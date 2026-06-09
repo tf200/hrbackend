@@ -60,7 +60,11 @@ func TestGenerateSchedulesWithORToolsFillsSecondStaffUpToTargets(t *testing.T) {
 
 	const expectedAssignedMinutes = int64(80 * 60)
 	if totalAssignedMinutes != expectedAssignedMinutes {
-		t.Fatalf("expected %d assigned minutes, got %d", expectedAssignedMinutes, totalAssignedMinutes)
+		t.Fatalf(
+			"expected %d assigned minutes, got %d",
+			expectedAssignedMinutes,
+			totalAssignedMinutes,
+		)
 	}
 	if doubleStaffedSlots != 3 {
 		t.Fatalf("expected 3 double-staffed slots, got %d", doubleStaffedSlots)
@@ -104,10 +108,17 @@ func TestGenerateSchedulesWithORToolsAvoidsExtraOvertime(t *testing.T) {
 
 	const expectedAssignedMinutes = int64(56 * 60)
 	if totalAssignedMinutes != expectedAssignedMinutes {
-		t.Fatalf("expected %d assigned minutes, got %d", expectedAssignedMinutes, totalAssignedMinutes)
+		t.Fatalf(
+			"expected %d assigned minutes, got %d",
+			expectedAssignedMinutes,
+			totalAssignedMinutes,
+		)
 	}
 	if doubleStaffedSlots != 0 {
-		t.Fatalf("expected no double-staffed slots once targets are exhausted, got %d", doubleStaffedSlots)
+		t.Fatalf(
+			"expected no double-staffed slots once targets are exhausted, got %d",
+			doubleStaffedSlots,
+		)
 	}
 
 	assertGeneratedScheduleRespectsDailyAndRestRules(t, resp, shifts)

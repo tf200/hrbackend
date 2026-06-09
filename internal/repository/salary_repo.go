@@ -62,7 +62,12 @@ func (r *SalaryRepository) ListSalaryScaleSteps(
 			}
 		}
 
-		label := fmt.Sprintf("Scale %d / Step %s - €%.2f/mo", row.Scale, row.Step, row.MonthlySalary)
+		label := fmt.Sprintf(
+			"Scale %d / Step %s - €%.2f/mo",
+			row.Scale,
+			row.Step,
+			row.MonthlySalary,
+		)
 
 		step := domain.SalaryScaleStepOption{
 			ID:            row.ID,
@@ -493,11 +498,14 @@ func (r *SalaryRepository) ListPayrollMonthApprovedWorkItems(
 		return []domain.PayrollWorkItem{}, nil
 	}
 
-	rows, err := r.store.ListPayrollMonthApprovedWorkItems(ctx, db.ListPayrollMonthApprovedWorkItemsParams{
-		EmployeeIds: employeeIDs,
-		MonthStart:  conv.PgTimestamptzFromTime(monthStart),
-		MonthEnd:    conv.PgTimestamptzFromTime(monthEnd),
-	})
+	rows, err := r.store.ListPayrollMonthApprovedWorkItems(
+		ctx,
+		db.ListPayrollMonthApprovedWorkItemsParams{
+			EmployeeIds: employeeIDs,
+			MonthStart:  conv.PgTimestamptzFromTime(monthStart),
+			MonthEnd:    conv.PgTimestamptzFromTime(monthEnd),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -843,10 +851,13 @@ func (r *salaryTxRepo) AssignOvertimeEntriesToPayPeriod(
 	payPeriodID uuid.UUID,
 	overtimeEntryIDs []uuid.UUID,
 ) error {
-	return r.queries.AssignOvertimeEntriesToPayPeriod(ctx, db.AssignOvertimeEntriesToPayPeriodParams{
-		PayPeriodID:      &payPeriodID,
-		OvertimeEntryIds: overtimeEntryIDs,
-	})
+	return r.queries.AssignOvertimeEntriesToPayPeriod(
+		ctx,
+		db.AssignOvertimeEntriesToPayPeriodParams{
+			PayPeriodID:      &payPeriodID,
+			OvertimeEntryIds: overtimeEntryIDs,
+		},
+	)
 }
 
 func (r *salaryTxRepo) AssignSchedulesToPayPeriod(
@@ -1032,7 +1043,9 @@ func toDomainPayrollWorkItem(row db.ListPayrollPreviewWorkItemsRow) domain.Payro
 	}
 }
 
-func toDomainPayrollWorkItemFromApproved(row db.ListPayrollMonthApprovedWorkItemsRow) domain.PayrollWorkItem {
+func toDomainPayrollWorkItemFromApproved(
+	row db.ListPayrollMonthApprovedWorkItemsRow,
+) domain.PayrollWorkItem {
 	return domain.PayrollWorkItem{
 		ID:           row.SourceID,
 		EmployeeID:   row.EmployeeID,

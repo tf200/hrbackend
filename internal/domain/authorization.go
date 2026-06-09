@@ -30,12 +30,26 @@ type CreateAuthorizationParams struct {
 
 type AuthorizationRepository interface {
 	ListAuthorizations(ctx context.Context) ([]Authorization, error)
-	CreateAuthorization(ctx context.Context, params CreateAuthorizationParams) (*Authorization, error)
-	UpdateAuthorization(ctx context.Context, id uuid.UUID, params CreateAuthorizationParams) (*Authorization, error)
+	CreateAuthorization(
+		ctx context.Context,
+		params CreateAuthorizationParams,
+	) (*Authorization, error)
+	UpdateAuthorization(
+		ctx context.Context,
+		id uuid.UUID,
+		params CreateAuthorizationParams,
+	) (*Authorization, error)
 }
 
 type AuthorizationService interface {
 	ListAuthorizations(ctx context.Context) ([]Authorization, error)
-	CreateAuthorization(ctx context.Context, params CreateAuthorizationParams) (*Authorization, error)
-	UpdateAuthorization(ctx context.Context, id uuid.UUID, params CreateAuthorizationParams) (*Authorization, error)
+	CreateAuthorization(
+		ctx context.Context,
+		params CreateAuthorizationParams,
+	) (*Authorization, error)
+	UpdateAuthorization(
+		ctx context.Context,
+		id uuid.UUID,
+		params CreateAuthorizationParams,
+	) (*Authorization, error)
 }

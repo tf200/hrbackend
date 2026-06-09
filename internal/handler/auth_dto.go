@@ -49,7 +49,7 @@ type enable2FARequest struct {
 }
 
 type enable2FAResponse struct {
-	RecoveryCodes []string `json:"recovery_codes" example:"[\"code1\", \"code2\"]"`
+	RecoveryCodes []string `json:"recovery_codes" example:"["code1", "code2"]"`
 }
 
 type changePasswordRequest struct {

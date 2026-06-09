@@ -156,26 +156,73 @@ type SignDocumentSignParams struct {
 
 type SignDocumentRepository interface {
 	WithTx(ctx context.Context, fn func(tx SignDocumentRepository) error) error
-	CreateDocument(ctx context.Context, actorEmployeeID uuid.UUID, attachment *Attachment, params CreateSignDocumentParams) (*SignDocument, error)
-	CreateRecipient(ctx context.Context, documentID uuid.UUID, params CreateSignDocumentRecipientParams) (*SignDocumentRecipient, error)
+	CreateDocument(
+		ctx context.Context,
+		actorEmployeeID uuid.UUID,
+		attachment *Attachment,
+		params CreateSignDocumentParams,
+	) (*SignDocument, error)
+	CreateRecipient(
+		ctx context.Context,
+		documentID uuid.UUID,
+		params CreateSignDocumentRecipientParams,
+	) (*SignDocumentRecipient, error)
 	GetDocumentByID(ctx context.Context, documentID uuid.UUID) (*SignDocument, error)
-	ListDocumentsByCreator(ctx context.Context, employeeID uuid.UUID, limit, offset int32) ([]SignDocument, error)
-	ListDocumentsForEmployee(ctx context.Context, employeeID uuid.UUID, limit, offset int32) ([]SignDocument, error)
+	ListDocumentsByCreator(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		limit, offset int32,
+	) ([]SignDocument, error)
+	ListDocumentsForEmployee(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		limit, offset int32,
+	) ([]SignDocument, error)
 	ListRecipients(ctx context.Context, documentID uuid.UUID) ([]SignDocumentRecipient, error)
-	GetRecipientForEmployee(ctx context.Context, documentID, employeeID uuid.UUID) (*SignDocumentRecipient, error)
-	ReplaceFields(ctx context.Context, documentID uuid.UUID, fields []UpsertSignDocumentFieldParams) ([]SignDocumentField, error)
+	GetRecipientForEmployee(
+		ctx context.Context,
+		documentID, employeeID uuid.UUID,
+	) (*SignDocumentRecipient, error)
+	ReplaceFields(
+		ctx context.Context,
+		documentID uuid.UUID,
+		fields []UpsertSignDocumentFieldParams,
+	) ([]SignDocumentField, error)
 	ListFields(ctx context.Context, documentID uuid.UUID) ([]SignDocumentField, error)
-	ListFieldsForRecipient(ctx context.Context, documentID, recipientID uuid.UUID) ([]SignDocumentField, error)
+	ListFieldsForRecipient(
+		ctx context.Context,
+		documentID, recipientID uuid.UUID,
+	) ([]SignDocumentField, error)
 	SendDocument(ctx context.Context, documentID uuid.UUID) (*SignDocument, error)
 	MarkRecipientViewed(ctx context.Context, recipientID uuid.UUID) (*SignDocumentRecipient, error)
 	CountUnsignedPriorRecipients(ctx context.Context, recipientID uuid.UUID) (int32, error)
-	CreateSignatureProfile(ctx context.Context, employeeID uuid.UUID, typ string, typedName, imageFileKey *string, isDefault bool) (*EmployeeSignatureProfile, error)
-	CreateSignature(ctx context.Context, params SignDocumentSignParams, recipient SignDocumentRecipient, profileID *uuid.UUID, signatureHash string) (*SignDocumentSignature, error)
-	UpdateFieldValue(ctx context.Context, fieldID, recipientID uuid.UUID, value string) (*SignDocumentField, error)
+	CreateSignatureProfile(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		typ string,
+		typedName, imageFileKey *string,
+		isDefault bool,
+	) (*EmployeeSignatureProfile, error)
+	CreateSignature(
+		ctx context.Context,
+		params SignDocumentSignParams,
+		recipient SignDocumentRecipient,
+		profileID *uuid.UUID,
+		signatureHash string,
+	) (*SignDocumentSignature, error)
+	UpdateFieldValue(
+		ctx context.Context,
+		fieldID, recipientID uuid.UUID,
+		value string,
+	) (*SignDocumentField, error)
 	MarkRecipientSigned(ctx context.Context, recipientID uuid.UUID) (*SignDocumentRecipient, error)
 	CountUnsignedRecipients(ctx context.Context, documentID uuid.UUID) (int32, error)
 	MarkDocumentPartiallySigned(ctx context.Context, documentID uuid.UUID) (*SignDocument, error)
-	MarkDocumentCompleted(ctx context.Context, documentID uuid.UUID, signedFileKey string) (*SignDocument, error)
+	MarkDocumentCompleted(
+		ctx context.Context,
+		documentID uuid.UUID,
+		signedFileKey string,
+	) (*SignDocument, error)
 	CancelDocument(ctx context.Context, documentID uuid.UUID) (*SignDocument, error)
 	CreateEvent(ctx context.Context, event SignDocumentEvent) error
 	ListEvents(ctx context.Context, documentID uuid.UUID) ([]SignDocumentEvent, error)
@@ -183,16 +230,46 @@ type SignDocumentRepository interface {
 }
 
 type SignDocumentService interface {
-	CreateDocument(ctx context.Context, actorEmployeeID uuid.UUID, params CreateSignDocumentParams) (*SignDocument, error)
-	SetFields(ctx context.Context, actorEmployeeID, documentID uuid.UUID, fields []UpsertSignDocumentFieldParams) ([]SignDocumentField, error)
+	CreateDocument(
+		ctx context.Context,
+		actorEmployeeID uuid.UUID,
+		params CreateSignDocumentParams,
+	) (*SignDocument, error)
+	SetFields(
+		ctx context.Context,
+		actorEmployeeID, documentID uuid.UUID,
+		fields []UpsertSignDocumentFieldParams,
+	) ([]SignDocumentField, error)
 	SendDocument(ctx context.Context, actorEmployeeID, documentID uuid.UUID) (*SignDocument, error)
 	GetDocument(ctx context.Context, actorEmployeeID, documentID uuid.UUID) (*SignDocument, error)
-	ListMyCreatedDocuments(ctx context.Context, employeeID uuid.UUID, limit, offset int32) ([]SignDocument, error)
-	ListMySigningDocuments(ctx context.Context, employeeID uuid.UUID, limit, offset int32) ([]SignDocument, error)
-	GetMySigningDocument(ctx context.Context, employeeID, documentID uuid.UUID) (*SignDocument, error)
-	MarkViewed(ctx context.Context, employeeID, documentID uuid.UUID, ipAddress, userAgent *string) (*SignDocumentRecipient, error)
-	Sign(ctx context.Context, employeeID uuid.UUID, params SignDocumentSignParams) (*SignDocument, error)
-	CancelDocument(ctx context.Context, actorEmployeeID, documentID uuid.UUID) (*SignDocument, error)
+	ListMyCreatedDocuments(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		limit, offset int32,
+	) ([]SignDocument, error)
+	ListMySigningDocuments(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		limit, offset int32,
+	) ([]SignDocument, error)
+	GetMySigningDocument(
+		ctx context.Context,
+		employeeID, documentID uuid.UUID,
+	) (*SignDocument, error)
+	MarkViewed(
+		ctx context.Context,
+		employeeID, documentID uuid.UUID,
+		ipAddress, userAgent *string,
+	) (*SignDocumentRecipient, error)
+	Sign(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params SignDocumentSignParams,
+	) (*SignDocument, error)
+	CancelDocument(
+		ctx context.Context,
+		actorEmployeeID, documentID uuid.UUID,
+	) (*SignDocument, error)
 	GetSourceURL(ctx context.Context, employeeID, documentID uuid.UUID) (string, error)
 	GetSignedURL(ctx context.Context, employeeID, documentID uuid.UUID) (string, error)
 }

@@ -29,8 +29,8 @@ func toAuthorizationResponse(a *domain.Authorization) authorizationResponse {
 }
 
 type createAuthorizationRequest struct {
-	Name           string  `json:"name"           binding:"required"`
-	Category       string  `json:"category"       binding:"required"`
+	Name           string  `json:"name"            binding:"required"`
+	Category       string  `json:"category"        binding:"required"`
 	Description    *string `json:"description"`
 	RequiresExpiry bool    `json:"requires_expiry"`
 }

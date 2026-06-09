@@ -15,18 +15,18 @@ const overtimeDateLayout = "2006-01-02"
 
 type createOvertimeEntryRequest struct {
 	ScheduleID  *uuid.UUID `json:"schedule_id,omitempty"`
-	EntryDate   string     `json:"entry_date"  binding:"required,datetime=2006-01-02"`
-	Minutes     int32      `json:"minutes"     binding:"required,min=1"`
-	Reason      string     `json:"reason"      binding:"required"`
+	EntryDate   string     `json:"entry_date"            binding:"required,datetime=2006-01-02"`
+	Minutes     int32      `json:"minutes"               binding:"required,min=1"`
+	Reason      string     `json:"reason"                binding:"required"`
 	Description *string    `json:"description"`
 }
 
 type createOvertimeEntryByAdminRequest struct {
-	EmployeeID  uuid.UUID  `json:"employee_id"  binding:"required"`
+	EmployeeID  uuid.UUID  `json:"employee_id"           binding:"required"`
 	ScheduleID  *uuid.UUID `json:"schedule_id,omitempty"`
-	EntryDate   string     `json:"entry_date"   binding:"required,datetime=2006-01-02"`
-	Minutes     int32      `json:"minutes"      binding:"required,min=1"`
-	Reason      string     `json:"reason"       binding:"required"`
+	EntryDate   string     `json:"entry_date"            binding:"required,datetime=2006-01-02"`
+	Minutes     int32      `json:"minutes"               binding:"required,min=1"`
+	Reason      string     `json:"reason"                binding:"required"`
 	Description *string    `json:"description"`
 }
 
@@ -37,16 +37,16 @@ type decideOvertimeEntryByAdminRequest struct {
 
 type updateOvertimeEntryByAdminRequest struct {
 	ScheduleID  *uuid.UUID `json:"schedule_id,omitempty"`
-	EntryDate   *string    `json:"entry_date"           binding:"omitempty,datetime=2006-01-02"`
-	Minutes     *int32     `json:"minutes"              binding:"omitempty,min=1"`
+	EntryDate   *string    `json:"entry_date"            binding:"omitempty,datetime=2006-01-02"`
+	Minutes     *int32     `json:"minutes"               binding:"omitempty,min=1"`
 	Reason      *string    `json:"reason"`
 	Description *string    `json:"description"`
 }
 
 type updateMyOvertimeEntryRequest struct {
 	ScheduleID  *uuid.UUID `json:"schedule_id,omitempty"`
-	EntryDate   *string    `json:"entry_date"   binding:"omitempty,datetime=2006-01-02"`
-	Minutes     *int32     `json:"minutes"      binding:"omitempty,min=1"`
+	EntryDate   *string    `json:"entry_date"            binding:"omitempty,datetime=2006-01-02"`
+	Minutes     *int32     `json:"minutes"               binding:"omitempty,min=1"`
 	Reason      *string    `json:"reason"`
 	Description *string    `json:"description"`
 }
@@ -88,7 +88,9 @@ type overtimeStatsResponse struct {
 	TotalSubmitted        int64 `json:"total_submitted"`
 }
 
-func toCreateOvertimeEntryParams(req createOvertimeEntryRequest) (domain.CreateOvertimeEntryParams, error) {
+func toCreateOvertimeEntryParams(
+	req createOvertimeEntryRequest,
+) (domain.CreateOvertimeEntryParams, error) {
 	entryDate, err := time.Parse(overtimeDateLayout, req.EntryDate)
 	if err != nil {
 		return domain.CreateOvertimeEntryParams{}, err
@@ -120,7 +122,9 @@ func toCreateOvertimeEntryByAdminParams(
 	return base, nil
 }
 
-func toDecideOvertimeEntryParams(req decideOvertimeEntryByAdminRequest) domain.DecideOvertimeEntryParams {
+func toDecideOvertimeEntryParams(
+	req decideOvertimeEntryByAdminRequest,
+) domain.DecideOvertimeEntryParams {
 	return domain.DecideOvertimeEntryParams{
 		Decision:        strings.TrimSpace(req.Decision),
 		RejectionReason: ptr.TrimString(req.RejectionReason),

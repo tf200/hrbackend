@@ -63,10 +63,16 @@ func (s SchedulesSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("seed schedules[%s]: location alias is required", item.Alias)
 		}
 		if strings.TrimSpace(item.CreatedByEmployeeAlias) == "" {
-			return fmt.Errorf("seed schedules[%s]: created-by employee alias is required", item.Alias)
+			return fmt.Errorf(
+				"seed schedules[%s]: created-by employee alias is required",
+				item.Alias,
+			)
 		}
 		if item.IsCustom {
-			return fmt.Errorf("seed schedules[%s]: only preset schedules are supported in the baseline seed", item.Alias)
+			return fmt.Errorf(
+				"seed schedules[%s]: only preset schedules are supported in the baseline seed",
+				item.Alias,
+			)
 		}
 		if item.ShiftSlot < 1 || item.ShiftSlot > 3 {
 			return fmt.Errorf("seed schedules[%s]: shift slot must be between 1 and 3", item.Alias)
@@ -77,11 +83,19 @@ func (s SchedulesSeeder) Seed(ctx context.Context, env Env) error {
 
 		employeeID, ok := env.State.EmployeeID(strings.TrimSpace(item.EmployeeAlias))
 		if !ok {
-			return fmt.Errorf("seed schedules[%s]: employee alias %q missing in seed state", item.Alias, item.EmployeeAlias)
+			return fmt.Errorf(
+				"seed schedules[%s]: employee alias %q missing in seed state",
+				item.Alias,
+				item.EmployeeAlias,
+			)
 		}
 		locationID, ok := env.State.LocationID(strings.TrimSpace(item.LocationAlias))
 		if !ok {
-			return fmt.Errorf("seed schedules[%s]: location alias %q missing in seed state", item.Alias, item.LocationAlias)
+			return fmt.Errorf(
+				"seed schedules[%s]: location alias %q missing in seed state",
+				item.Alias,
+				item.LocationAlias,
+			)
 		}
 		creatorID, ok := env.State.EmployeeID(strings.TrimSpace(item.CreatedByEmployeeAlias))
 		if !ok {
@@ -92,13 +106,25 @@ func (s SchedulesSeeder) Seed(ctx context.Context, env Env) error {
 			)
 		}
 
-		locationShift, err := resolveShiftBySlot(ctx, scheduleRepo, shiftsByLocationAlias, item.LocationAlias, locationID, item.ShiftSlot)
+		locationShift, err := resolveShiftBySlot(
+			ctx,
+			scheduleRepo,
+			shiftsByLocationAlias,
+			item.LocationAlias,
+			locationID,
+			item.ShiftSlot,
+		)
 		if err != nil {
 			return fmt.Errorf("seed schedules[%s]: resolve location shift: %w", item.Alias, err)
 		}
 
 		day := item.ShiftDate.UTC().Format("2006-01-02")
-		existing, err := scheduleRepo.GetSchedulesByLocationInRange(ctx, locationID, dateOnlyUTC(item.ShiftDate), dateOnlyUTC(item.ShiftDate))
+		existing, err := scheduleRepo.GetSchedulesByLocationInRange(
+			ctx,
+			locationID,
+			dateOnlyUTC(item.ShiftDate),
+			dateOnlyUTC(item.ShiftDate),
+		)
 		if err != nil {
 			return fmt.Errorf("seed schedules[%s]: list existing schedules: %w", item.Alias, err)
 		}
@@ -118,18 +144,26 @@ func (s SchedulesSeeder) Seed(ctx context.Context, env Env) error {
 
 		locationShiftID := locationShift.ID
 		shiftDate := day
-		created, err := scheduleService.CreateSchedule(ctx, creatorID, &domain.CreateScheduleRequest{
-			EmployeeIDs:     []uuid.UUID{employeeID},
-			LocationID:      locationID,
-			IsCustom:        false,
-			LocationShiftID: &locationShiftID,
-			ShiftDate:       &shiftDate,
-		})
+		created, err := scheduleService.CreateSchedule(
+			ctx,
+			creatorID,
+			&domain.CreateScheduleRequest{
+				EmployeeIDs:     []uuid.UUID{employeeID},
+				LocationID:      locationID,
+				IsCustom:        false,
+				LocationShiftID: &locationShiftID,
+				ShiftDate:       &shiftDate,
+			},
+		)
 		if err != nil {
 			return fmt.Errorf("seed schedules[%s]: create: %w", item.Alias, err)
 		}
 		if len(created) != 1 {
-			return fmt.Errorf("seed schedules[%s]: expected 1 created schedule, got %d", item.Alias, len(created))
+			return fmt.Errorf(
+				"seed schedules[%s]: expected 1 created schedule, got %d",
+				item.Alias,
+				len(created),
+			)
 		}
 
 		env.State.PutSchedule(item.Alias, created[0].ID)
@@ -200,7 +234,8 @@ func findMatchingPresetSchedule(
 ) *domain.Shift {
 	for _, day := range items {
 		for _, shift := range day.Shifts {
-			if shift.EmployeeID == employeeID && shift.LocationShiftID != nil && *shift.LocationShiftID == locationShiftID {
+			if shift.EmployeeID == employeeID && shift.LocationShiftID != nil &&
+				*shift.LocationShiftID == locationShiftID {
 				copy := shift
 				return &copy
 			}

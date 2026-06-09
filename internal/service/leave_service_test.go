@@ -522,7 +522,12 @@ func TestDecideLeaveRequestUsesLiveLegalBalance(t *testing.T) {
 	}
 	svc := &LeaveService{repository: &fakeLeaveRepository{tx: tx}}
 
-	_, err := svc.DecideLeaveRequestByAdmin(context.Background(), adminID, leaveRequestID, domain.DecideLeaveRequestParams{Decision: "approve"})
+	_, err := svc.DecideLeaveRequestByAdmin(
+		context.Background(),
+		adminID,
+		leaveRequestID,
+		domain.DecideLeaveRequestParams{Decision: "approve"},
+	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -551,7 +556,12 @@ func TestDecideLeaveRequestRejectsInsufficientLiveBalance(t *testing.T) {
 	}
 	svc := &LeaveService{repository: &fakeLeaveRepository{tx: tx}}
 
-	_, err := svc.DecideLeaveRequestByAdmin(context.Background(), adminID, leaveRequestID, domain.DecideLeaveRequestParams{Decision: "approve"})
+	_, err := svc.DecideLeaveRequestByAdmin(
+		context.Background(),
+		adminID,
+		leaveRequestID,
+		domain.DecideLeaveRequestParams{Decision: "approve"},
+	)
 	if err != domain.ErrLeaveBalanceInsufficient {
 		t.Fatalf("expected insufficient balance, got %v", err)
 	}
@@ -684,15 +694,28 @@ type fakeLeaveTxRepository struct {
 	lockedEmployeeForBalance bool
 }
 
-func (f *fakeLeaveTxRepository) GetLeaveRequestForUpdate(_ context.Context, _ uuid.UUID) (*domain.LeaveRequest, error) {
+func (f *fakeLeaveTxRepository) GetLeaveRequestForUpdate(
+	_ context.Context,
+	_ uuid.UUID,
+) (*domain.LeaveRequest, error) {
 	return f.request, nil
 }
 
-func (f *fakeLeaveTxRepository) UpdateLeaveRequestEditableFields(_ context.Context, _ uuid.UUID, _ domain.UpdateLeaveRequestParams) (*domain.LeaveRequest, error) {
+func (f *fakeLeaveTxRepository) UpdateLeaveRequestEditableFields(
+	_ context.Context,
+	_ uuid.UUID,
+	_ domain.UpdateLeaveRequestParams,
+) (*domain.LeaveRequest, error) {
 	return f.request, nil
 }
 
-func (f *fakeLeaveTxRepository) UpdateLeaveRequestDecision(_ context.Context, _ uuid.UUID, status string, decisionNote *string, decidedByEmployeeID uuid.UUID) (*domain.LeaveRequest, error) {
+func (f *fakeLeaveTxRepository) UpdateLeaveRequestDecision(
+	_ context.Context,
+	_ uuid.UUID,
+	status string,
+	decisionNote *string,
+	decidedByEmployeeID uuid.UUID,
+) (*domain.LeaveRequest, error) {
 	updated := *f.request
 	updated.Status = status
 	updated.DecisionNote = decisionNote
@@ -700,7 +723,10 @@ func (f *fakeLeaveTxRepository) UpdateLeaveRequestDecision(_ context.Context, _ 
 	return &updated, nil
 }
 
-func (f *fakeLeaveTxRepository) GetActiveLeavePolicyByType(_ context.Context, _ string) (*domain.LeavePolicy, error) {
+func (f *fakeLeaveTxRepository) GetActiveLeavePolicyByType(
+	_ context.Context,
+	_ string,
+) (*domain.LeavePolicy, error) {
 	return f.policy, nil
 }
 
@@ -713,15 +739,28 @@ func (f *fakeLeaveTxRepository) GetLeaveHoursPerDay(_ context.Context, _ uuid.UU
 	return 8, nil
 }
 
-func (f *fakeLeaveTxRepository) GetEmployeeContractAtDate(_ context.Context, _ uuid.UUID, _ time.Time) (*domain.LeaveContractAtDate, error) {
+func (f *fakeLeaveTxRepository) GetEmployeeContractAtDate(
+	_ context.Context,
+	_ uuid.UUID,
+	_ time.Time,
+) (*domain.LeaveContractAtDate, error) {
 	return &domain.LeaveContractAtDate{}, nil
 }
 
-func (f *fakeLeaveTxRepository) ComputeLegalLeaveTotalForYear(_ context.Context, _ uuid.UUID, _ int32, _ time.Time) (int32, error) {
+func (f *fakeLeaveTxRepository) ComputeLegalLeaveTotalForYear(
+	_ context.Context,
+	_ uuid.UUID,
+	_ int32,
+	_ time.Time,
+) (int32, error) {
 	return f.legalCalculatedMinutes, nil
 }
 
-func (f *fakeLeaveTxRepository) ComputeLegalLeaveUsedForYear(_ context.Context, _ uuid.UUID, _ int32) (int32, error) {
+func (f *fakeLeaveTxRepository) ComputeLegalLeaveUsedForYear(
+	_ context.Context,
+	_ uuid.UUID,
+	_ int32,
+) (int32, error) {
 	return f.legalUsedMinutes, nil
 }
 

@@ -69,15 +69,26 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 			return fmt.Errorf("seed pay_periods[%s]: period start and end are required", alias)
 		}
 		if dateOnlyUTC(item.PeriodEnd).Before(dateOnlyUTC(item.PeriodStart)) {
-			return fmt.Errorf("seed pay_periods[%s]: period end must be on or after period start", alias)
+			return fmt.Errorf(
+				"seed pay_periods[%s]: period end must be on or after period start",
+				alias,
+			)
 		}
-		if strings.TrimSpace(item.Status) == domain.PayPeriodStatusPaid && normalizeOptionalAlias(item.PaidByEmployeeAlias) == "" {
-			return fmt.Errorf("seed pay_periods[%s]: paid-by employee alias is required for paid periods", alias)
+		if strings.TrimSpace(item.Status) == domain.PayPeriodStatusPaid &&
+			normalizeOptionalAlias(item.PaidByEmployeeAlias) == "" {
+			return fmt.Errorf(
+				"seed pay_periods[%s]: paid-by employee alias is required for paid periods",
+				alias,
+			)
 		}
 
 		employeeID, ok := env.State.EmployeeID(employeeAlias)
 		if !ok {
-			return fmt.Errorf("seed pay_periods[%s]: employee alias %q missing in seed state", alias, employeeAlias)
+			return fmt.Errorf(
+				"seed pay_periods[%s]: employee alias %q missing in seed state",
+				alias,
+				employeeAlias,
+			)
 		}
 		creatorID, ok := env.State.EmployeeID(strings.TrimSpace(item.CreatedByEmployeeAlias))
 		if !ok {
@@ -88,16 +99,26 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 			)
 		}
 
-		existing, err := findExistingPayPeriod(ctx, salaryService, employeeID, item.PeriodStart, item.PeriodEnd)
+		existing, err := findExistingPayPeriod(
+			ctx,
+			salaryService,
+			employeeID,
+			item.PeriodStart,
+			item.PeriodEnd,
+		)
 		if err != nil {
 			return fmt.Errorf("seed pay_periods[%s]: inspect existing period: %w", alias, err)
 		}
 		if existing == nil {
-			created, err := salaryService.ClosePayPeriod(ctx, creatorID, domain.ClosePayPeriodParams{
-				EmployeeID:  employeeID,
-				PeriodStart: dateOnlyUTC(item.PeriodStart),
-				PeriodEnd:   dateOnlyUTC(item.PeriodEnd),
-			})
+			created, err := salaryService.ClosePayPeriod(
+				ctx,
+				creatorID,
+				domain.ClosePayPeriodParams{
+					EmployeeID:  employeeID,
+					PeriodStart: dateOnlyUTC(item.PeriodStart),
+					PeriodEnd:   dateOnlyUTC(item.PeriodEnd),
+				},
+			)
 			if err != nil {
 				return fmt.Errorf("seed pay_periods[%s]: close pay period: %w", alias, err)
 			}
@@ -109,12 +130,22 @@ func (s PayPeriodsSeeder) Seed(ctx context.Context, env Env) error {
 			continue
 		}
 
-		if existing.Status == domain.PayPeriodStatusDraft && strings.TrimSpace(item.Status) == domain.PayPeriodStatusPaid {
-			paidByEmployeeID, err := resolveRequiredEmployeeAliasForPayPeriod(env, item.PaidByEmployeeAlias, alias, "paid_by")
+		if existing.Status == domain.PayPeriodStatusDraft &&
+			strings.TrimSpace(item.Status) == domain.PayPeriodStatusPaid {
+			paidByEmployeeID, err := resolveRequiredEmployeeAliasForPayPeriod(
+				env,
+				item.PaidByEmployeeAlias,
+				alias,
+				"paid_by",
+			)
 			if err != nil {
 				return err
 			}
-			updated, err := salaryService.MarkPayPeriodPaidByAdmin(ctx, paidByEmployeeID, existing.ID)
+			updated, err := salaryService.MarkPayPeriodPaidByAdmin(
+				ctx,
+				paidByEmployeeID,
+				existing.ID,
+			)
 			if err != nil {
 				return fmt.Errorf("seed pay_periods[%s]: mark paid: %w", alias, err)
 			}
@@ -169,7 +200,11 @@ func resolveRequiredEmployeeAliasForPayPeriod(
 ) (uuid.UUID, error) {
 	resolved := normalizeOptionalAlias(alias)
 	if resolved == "" {
-		return uuid.Nil, fmt.Errorf("seed pay_periods[%s]: %s employee alias is required", periodAlias, fieldName)
+		return uuid.Nil, fmt.Errorf(
+			"seed pay_periods[%s]: %s employee alias is required",
+			periodAlias,
+			fieldName,
+		)
 	}
 	employeeID, ok := env.State.EmployeeID(resolved)
 	if !ok {

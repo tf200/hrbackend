@@ -24,7 +24,9 @@ func NewPerformanceService(
 	return &PerformanceService{repository: repository, logger: logger}
 }
 
-func (s *PerformanceService) ListAssessmentCatalog(ctx context.Context) ([]domain.PerformanceDomain, error) {
+func (s *PerformanceService) ListAssessmentCatalog(
+	ctx context.Context,
+) ([]domain.PerformanceDomain, error) {
 	items, err := s.repository.ListAssessmentCatalog(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list assessment catalog: %w", err)
@@ -326,23 +328,29 @@ func (s *PerformanceService) GetMine(
 	}
 
 	completedStatus := domain.PerformanceAssessmentStatusCompleted
-	assessmentPage, err := s.repository.ListAssessments(ctx, domain.ListPerformanceAssessmentsParams{
-		Limit:      params.Limit,
-		Offset:     0,
-		EmployeeID: &params.EmployeeID,
-		Status:     &completedStatus,
-	})
+	assessmentPage, err := s.repository.ListAssessments(
+		ctx,
+		domain.ListPerformanceAssessmentsParams{
+			Limit:      params.Limit,
+			Offset:     0,
+			EmployeeID: &params.EmployeeID,
+			Status:     &completedStatus,
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("list performance mine assessments: %w", err)
 	}
 
 	assignments := make([]domain.PerformanceWorkAssignment, 0)
 	if params.IncludeAssignments {
-		assignmentPage, err := s.repository.ListWorkAssignments(ctx, domain.ListPerformanceWorkAssignmentsParams{
-			Limit:      100,
-			Offset:     0,
-			EmployeeID: &params.EmployeeID,
-		})
+		assignmentPage, err := s.repository.ListWorkAssignments(
+			ctx,
+			domain.ListPerformanceWorkAssignmentsParams{
+				Limit:      100,
+				Offset:     0,
+				EmployeeID: &params.EmployeeID,
+			},
+		)
 		if err != nil {
 			return nil, fmt.Errorf("list performance mine work assignments: %w", err)
 		}
@@ -383,7 +391,8 @@ func (s *PerformanceService) GetMine(
 	for i, assessment := range assessmentPage.Items {
 		cycleNumber := len(assessmentPage.Items) - i
 		var scoreDelta *float64
-		if assessment.TotalScore != nil && i+1 < len(assessmentPage.Items) && assessmentPage.Items[i+1].TotalScore != nil {
+		if assessment.TotalScore != nil && i+1 < len(assessmentPage.Items) &&
+			assessmentPage.Items[i+1].TotalScore != nil {
 			delta := *assessment.TotalScore - *assessmentPage.Items[i+1].TotalScore
 			scoreDelta = &delta
 		}
@@ -406,7 +415,8 @@ func (s *PerformanceService) GetMine(
 	if len(assessmentPage.Items) > 0 {
 		mine.Summary.LatestScore = assessmentPage.Items[0].TotalScore
 		mine.Summary.FirstScore = assessmentPage.Items[len(assessmentPage.Items)-1].TotalScore
-		if mine.Summary.LatestScore != nil && mine.Summary.FirstScore != nil && len(assessmentPage.Items) > 1 {
+		if mine.Summary.LatestScore != nil && mine.Summary.FirstScore != nil &&
+			len(assessmentPage.Items) > 1 {
 			growth := *mine.Summary.LatestScore - *mine.Summary.FirstScore
 			mine.Summary.ScoreGrowth = &growth
 		}
@@ -436,10 +446,12 @@ func (s *PerformanceService) GetMine(
 			}
 			for i := range scoresByAssessment[assessment.ID] {
 				score := scoresByAssessment[assessment.ID][i]
-				if mine.Highlighted.StrongestScore == nil || score.Rating > mine.Highlighted.StrongestScore.Rating {
+				if mine.Highlighted.StrongestScore == nil ||
+					score.Rating > mine.Highlighted.StrongestScore.Rating {
 					mine.Highlighted.StrongestScore = &score
 				}
-				if mine.Highlighted.FocusScore == nil || score.Rating < mine.Highlighted.FocusScore.Rating {
+				if mine.Highlighted.FocusScore == nil ||
+					score.Rating < mine.Highlighted.FocusScore.Rating {
 					mine.Highlighted.FocusScore = &score
 				}
 			}
@@ -523,7 +535,8 @@ func normalizeListAssignmentsParams(
 		normalized := performanceDateOnlyUTC(*params.DueBefore)
 		params.DueBefore = &normalized
 	}
-	if params.DueAfter != nil && params.DueBefore != nil && params.DueAfter.After(*params.DueBefore) {
+	if params.DueAfter != nil && params.DueBefore != nil &&
+		params.DueAfter.After(*params.DueBefore) {
 		return domain.ListPerformanceWorkAssignmentsParams{}, domain.ErrPerformanceInvalidRequest
 	}
 

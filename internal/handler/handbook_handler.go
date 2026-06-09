@@ -39,8 +39,16 @@ func RegisterHandbookRoutes(
 	handbook := rg.Group("/handbook")
 	handbook.Use(auth)
 
-	handbook.GET("/me", requirePermission(permission.Handbook.Self.View), handler.GetMyActiveHandbook)
-	handbook.POST("/me/start", requirePermission(permission.Handbook.Self.Update), handler.StartMyHandbook)
+	handbook.GET(
+		"/me",
+		requirePermission(permission.Handbook.Self.View),
+		handler.GetMyActiveHandbook,
+	)
+	handbook.POST(
+		"/me/start",
+		requirePermission(permission.Handbook.Self.Update),
+		handler.StartMyHandbook,
+	)
 	handbook.POST(
 		"/me/steps/:step_id/complete",
 		requirePermission(permission.Handbook.Self.Update),
@@ -73,7 +81,11 @@ func RegisterHandbookRoutes(
 		handler.ListHandbookTemplatesByDepartment,
 	)
 
-	handbook.POST("/steps", requirePermission(permission.Handbook.Step.Create), handler.CreateHandbookStep)
+	handbook.POST(
+		"/steps",
+		requirePermission(permission.Handbook.Step.Create),
+		handler.CreateHandbookStep,
+	)
 	handbook.PATCH(
 		"/steps/:step_id",
 		requirePermission(permission.Handbook.Step.Update),

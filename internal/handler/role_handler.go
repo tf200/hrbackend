@@ -62,7 +62,10 @@ func (h *RoleHandler) ListRolePermissions(ctx *gin.Context) {
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list role permissions", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to list role permissions", ""),
+		)
 		return
 	}
 
@@ -105,7 +108,10 @@ func (h *RoleHandler) UpdateRolePermissions(ctx *gin.Context) {
 			return
 		}
 
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update role permissions", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to update role permissions", ""),
+		)
 		return
 	}
 

@@ -29,7 +29,11 @@ func (h *SignDocumentHandler) CreateDocument(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request body", "INVALID_REQUEST"))
 		return
 	}
-	doc, err := h.service.CreateDocument(ctx.Request.Context(), employeeID, toCreateSignDocumentParams(req))
+	doc, err := h.service.CreateDocument(
+		ctx.Request.Context(),
+		employeeID,
+		toCreateSignDocumentParams(req),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -52,7 +56,12 @@ func (h *SignDocumentHandler) SetFields(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request body", "INVALID_REQUEST"))
 		return
 	}
-	fields, err := h.service.SetFields(ctx.Request.Context(), employeeID, documentID, toSignDocumentFieldParams(req.Fields))
+	fields, err := h.service.SetFields(
+		ctx.Request.Context(),
+		employeeID,
+		documentID,
+		toSignDocumentFieldParams(req.Fields),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -117,7 +126,12 @@ func (h *SignDocumentHandler) ListCreatedDocuments(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
 		return
 	}
-	docs, err := h.service.ListMyCreatedDocuments(ctx.Request.Context(), employeeID, queryInt32(ctx, "limit", 50), queryInt32(ctx, "offset", 0))
+	docs, err := h.service.ListMyCreatedDocuments(
+		ctx.Request.Context(),
+		employeeID,
+		queryInt32(ctx, "limit", 50),
+		queryInt32(ctx, "offset", 0),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -130,7 +144,12 @@ func (h *SignDocumentHandler) ListMySigningDocuments(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
 		return
 	}
-	docs, err := h.service.ListMySigningDocuments(ctx.Request.Context(), employeeID, queryInt32(ctx, "limit", 50), queryInt32(ctx, "offset", 0))
+	docs, err := h.service.ListMySigningDocuments(
+		ctx.Request.Context(),
+		employeeID,
+		queryInt32(ctx, "limit", 50),
+		queryInt32(ctx, "offset", 0),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
@@ -188,7 +207,11 @@ func (h *SignDocumentHandler) Sign(ctx *gin.Context) {
 		return
 	}
 	ip, ua := requestIPAndUserAgent(ctx)
-	doc, err := h.service.Sign(ctx.Request.Context(), employeeID, toSignDocumentSignParams(documentID, req, ip, ua))
+	doc, err := h.service.Sign(
+		ctx.Request.Context(),
+		employeeID,
+		toSignDocumentSignParams(documentID, req, ip, ua),
+	)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return

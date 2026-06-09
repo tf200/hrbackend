@@ -246,7 +246,10 @@ func loadConfigFromEnv() (seedConfig, error) {
 		Table:    *table,
 		RunLabel: runLabel,
 		Profile: seed.AppOrganizationProfileDefaults{
-			Name:            envOrDefault("SEED_ORG_NAME", fmt.Sprintf("%s Profile", gofakeit.Company())),
+			Name: envOrDefault(
+				"SEED_ORG_NAME",
+				fmt.Sprintf("%s Profile", gofakeit.Company()),
+			),
 			DefaultTimezone: envOrDefault("SEED_ORG_TIMEZONE", "Europe/Amsterdam"),
 			Email:           optionalEnv("SEED_ORG_EMAIL"),
 			PhoneNumber:     optionalEnv("SEED_ORG_PHONE"),
@@ -260,17 +263,72 @@ func loadConfigFromEnv() (seedConfig, error) {
 			HQCity:       optionalEnv("SEED_ORG_HQ_CITY"),
 		},
 		NationalHolidays: []seed.NationalHolidaySeed{
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC), Name: "Nieuwjaarsdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.April, 3, 0, 0, 0, 0, time.UTC), Name: "Goede vrijdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.April, 5, 0, 0, 0, 0, time.UTC), Name: "Eerste paasdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.April, 6, 0, 0, 0, 0, time.UTC), Name: "Tweede paasdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.April, 27, 0, 0, 0, 0, time.UTC), Name: "Koningsdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.May, 5, 0, 0, 0, 0, time.UTC), Name: "Bevrijdingsdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.May, 14, 0, 0, 0, 0, time.UTC), Name: "Hemelvaartsdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.May, 24, 0, 0, 0, 0, time.UTC), Name: "Eerste pinksterdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.May, 25, 0, 0, 0, 0, time.UTC), Name: "Tweede pinksterdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC), Name: "Eerste kerstdag", IsNational: true},
-			{CountryCode: "NL", HolidayDate: time.Date(2026, time.December, 26, 0, 0, 0, 0, time.UTC), Name: "Tweede kerstdag", IsNational: true},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Name:        "Nieuwjaarsdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.April, 3, 0, 0, 0, 0, time.UTC),
+				Name:        "Goede vrijdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.April, 5, 0, 0, 0, 0, time.UTC),
+				Name:        "Eerste paasdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.April, 6, 0, 0, 0, 0, time.UTC),
+				Name:        "Tweede paasdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.April, 27, 0, 0, 0, 0, time.UTC),
+				Name:        "Koningsdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.May, 5, 0, 0, 0, 0, time.UTC),
+				Name:        "Bevrijdingsdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.May, 14, 0, 0, 0, 0, time.UTC),
+				Name:        "Hemelvaartsdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.May, 24, 0, 0, 0, 0, time.UTC),
+				Name:        "Eerste pinksterdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.May, 25, 0, 0, 0, 0, time.UTC),
+				Name:        "Tweede pinksterdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.December, 25, 0, 0, 0, 0, time.UTC),
+				Name:        "Eerste kerstdag",
+				IsNational:  true,
+			},
+			{
+				CountryCode: "NL",
+				HolidayDate: time.Date(2026, time.December, 26, 0, 0, 0, 0, time.UTC),
+				Name:        "Tweede kerstdag",
+				IsNational:  true,
+			},
 		},
 		Organizations:     dataset.Organizations,
 		SalaryTables:      dataset.SalaryTables,
@@ -292,9 +350,31 @@ func loadConfigFromEnv() (seedConfig, error) {
 				Title:              "Care Department Onboarding",
 				Description:        strPtr("Baseline onboarding handbook for care employees."),
 				Steps: []seed.HandbookStepSeed{
-					{SortOrder: 1, Kind: "content", Title: "Welcome to Care", Body: strPtr("This handbook explains resident care expectations, escalation paths, and safe handover basics."), IsRequired: boolPtr(true)},
-					{SortOrder: 2, Kind: "ack", Title: "Acknowledge Resident Safety Rules", Body: strPtr("Confirm that you understand resident identification, medication escalation, and incident reporting rules."), IsRequired: boolPtr(true)},
-					{SortOrder: 3, Kind: "link", Title: "Read the Medication Protocol", Content: []byte(`{"url":"https://www.rijksoverheid.nl/"}`), IsRequired: boolPtr(true)},
+					{
+						SortOrder: 1,
+						Kind:      "content",
+						Title:     "Welcome to Care",
+						Body: strPtr(
+							"This handbook explains resident care expectations, escalation paths, and safe handover basics.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 2,
+						Kind:      "ack",
+						Title:     "Acknowledge Resident Safety Rules",
+						Body: strPtr(
+							"Confirm that you understand resident identification, medication escalation, and incident reporting rules.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder:  3,
+						Kind:       "link",
+						Title:      "Read the Medication Protocol",
+						Content:    []byte(`{"url":"https://www.rijksoverheid.nl/"}`),
+						IsRequired: boolPtr(true),
+					},
 				},
 			},
 			{
@@ -302,11 +382,37 @@ func loadConfigFromEnv() (seedConfig, error) {
 				DepartmentAlias:    "operations",
 				ActorEmployeeAlias: strPtr("operations_head"),
 				Title:              "Operations Department Onboarding",
-				Description:        strPtr("Baseline onboarding handbook for operations employees."),
+				Description: strPtr(
+					"Baseline onboarding handbook for operations employees.",
+				),
 				Steps: []seed.HandbookStepSeed{
-					{SortOrder: 1, Kind: "content", Title: "Operations Workflow", Body: strPtr("This handbook covers opening checks, facility issues, and daily coordination responsibilities."), IsRequired: boolPtr(true)},
-					{SortOrder: 2, Kind: "ack", Title: "Acknowledge Escalation Process", Body: strPtr("Confirm that you understand how to escalate urgent facility and staffing incidents."), IsRequired: boolPtr(true)},
-					{SortOrder: 3, Kind: "quiz", Title: "Operations Basics Check", Content: []byte(`{"question":"Who should be notified first for an urgent building safety issue?","options":["A resident family member","The on-duty operations lead","The payroll team"],"correct_option_index":1}`), IsRequired: boolPtr(true)},
+					{
+						SortOrder: 1,
+						Kind:      "content",
+						Title:     "Operations Workflow",
+						Body: strPtr(
+							"This handbook covers opening checks, facility issues, and daily coordination responsibilities.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 2,
+						Kind:      "ack",
+						Title:     "Acknowledge Escalation Process",
+						Body: strPtr(
+							"Confirm that you understand how to escalate urgent facility and staffing incidents.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 3,
+						Kind:      "quiz",
+						Title:     "Operations Basics Check",
+						Content: []byte(
+							`{"question":"Who should be notified first for an urgent building safety issue?","options":["A resident family member","The on-duty operations lead","The payroll team"],"correct_option_index":1}`,
+						),
+						IsRequired: boolPtr(true),
+					},
 				},
 			},
 			{
@@ -316,9 +422,31 @@ func loadConfigFromEnv() (seedConfig, error) {
 				Title:              "Planning Department Onboarding",
 				Description:        strPtr("Baseline onboarding handbook for planning employees."),
 				Steps: []seed.HandbookStepSeed{
-					{SortOrder: 1, Kind: "content", Title: "Roster Planning Standards", Body: strPtr("This handbook explains roster coverage, shift balance, and absence follow-up expectations."), IsRequired: boolPtr(true)},
-					{SortOrder: 2, Kind: "ack", Title: "Acknowledge Coverage Rules", Body: strPtr("Confirm that you understand minimum coverage and handover timing requirements."), IsRequired: boolPtr(true)},
-					{SortOrder: 3, Kind: "link", Title: "Review Scheduling Guidance", Content: []byte(`{"url":"https://www.rijksoverheid.nl/"}`), IsRequired: boolPtr(true)},
+					{
+						SortOrder: 1,
+						Kind:      "content",
+						Title:     "Roster Planning Standards",
+						Body: strPtr(
+							"This handbook explains roster coverage, shift balance, and absence follow-up expectations.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 2,
+						Kind:      "ack",
+						Title:     "Acknowledge Coverage Rules",
+						Body: strPtr(
+							"Confirm that you understand minimum coverage and handover timing requirements.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder:  3,
+						Kind:       "link",
+						Title:      "Review Scheduling Guidance",
+						Content:    []byte(`{"url":"https://www.rijksoverheid.nl/"}`),
+						IsRequired: boolPtr(true),
+					},
 				},
 			},
 			{
@@ -328,9 +456,33 @@ func loadConfigFromEnv() (seedConfig, error) {
 				Title:              "Finance Department Onboarding",
 				Description:        strPtr("Baseline onboarding handbook for finance employees."),
 				Steps: []seed.HandbookStepSeed{
-					{SortOrder: 1, Kind: "content", Title: "Payroll and Controls", Body: strPtr("This handbook covers payroll deadlines, approval checks, and payout control responsibilities."), IsRequired: boolPtr(true)},
-					{SortOrder: 2, Kind: "ack", Title: "Acknowledge Payroll Controls", Body: strPtr("Confirm that you understand separation of duties and payment approval controls."), IsRequired: boolPtr(true)},
-					{SortOrder: 3, Kind: "quiz", Title: "Finance Basics Check", Content: []byte(`{"question":"Which action best supports payroll control?","options":["Approving your own payout change","Reviewing source data before approval","Skipping exception review"],"correct_option_index":1}`), IsRequired: boolPtr(true)},
+					{
+						SortOrder: 1,
+						Kind:      "content",
+						Title:     "Payroll and Controls",
+						Body: strPtr(
+							"This handbook covers payroll deadlines, approval checks, and payout control responsibilities.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 2,
+						Kind:      "ack",
+						Title:     "Acknowledge Payroll Controls",
+						Body: strPtr(
+							"Confirm that you understand separation of duties and payment approval controls.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 3,
+						Kind:      "quiz",
+						Title:     "Finance Basics Check",
+						Content: []byte(
+							`{"question":"Which action best supports payroll control?","options":["Approving your own payout change","Reviewing source data before approval","Skipping exception review"],"correct_option_index":1}`,
+						),
+						IsRequired: boolPtr(true),
+					},
 				},
 			},
 			{
@@ -340,9 +492,31 @@ func loadConfigFromEnv() (seedConfig, error) {
 				Title:              "HR Department Onboarding",
 				Description:        strPtr("Baseline onboarding handbook for HR employees."),
 				Steps: []seed.HandbookStepSeed{
-					{SortOrder: 1, Kind: "content", Title: "HR Administration Standards", Body: strPtr("This handbook explains employee record handling, privacy expectations, and onboarding responsibilities."), IsRequired: boolPtr(true)},
-					{SortOrder: 2, Kind: "ack", Title: "Acknowledge Privacy Rules", Body: strPtr("Confirm that you understand confidentiality and employee record access rules."), IsRequired: boolPtr(true)},
-					{SortOrder: 3, Kind: "link", Title: "Review Government Leave Guidance", Content: []byte(`{"url":"https://www.rijksoverheid.nl/"}`), IsRequired: boolPtr(true)},
+					{
+						SortOrder: 1,
+						Kind:      "content",
+						Title:     "HR Administration Standards",
+						Body: strPtr(
+							"This handbook explains employee record handling, privacy expectations, and onboarding responsibilities.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder: 2,
+						Kind:      "ack",
+						Title:     "Acknowledge Privacy Rules",
+						Body: strPtr(
+							"Confirm that you understand confidentiality and employee record access rules.",
+						),
+						IsRequired: boolPtr(true),
+					},
+					{
+						SortOrder:  3,
+						Kind:       "link",
+						Title:      "Review Government Leave Guidance",
+						Content:    []byte(`{"url":"https://www.rijksoverheid.nl/"}`),
+						IsRequired: boolPtr(true),
+					},
 				},
 			},
 		},

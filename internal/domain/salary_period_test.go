@@ -13,8 +13,17 @@ func TestResolvePayrollPeriod(t *testing.T) {
 		wantEnd   time.Time
 	}{
 		{
-			name:      "anchor start",
-			date:      time.Date(2025, time.December, 29, 15, 30, 0, 0, time.FixedZone("test", 3600)),
+			name: "anchor start",
+			date: time.Date(
+				2025,
+				time.December,
+				29,
+				15,
+				30,
+				0,
+				0,
+				time.FixedZone("test", 3600),
+			),
 			wantStart: time.Date(2025, time.December, 29, 0, 0, 0, 0, time.UTC),
 			wantEnd:   time.Date(2026, time.January, 25, 0, 0, 0, 0, time.UTC),
 		},

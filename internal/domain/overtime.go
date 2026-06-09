@@ -12,7 +12,9 @@ var (
 	ErrOvertimeNotFound       = errors.New("overtime entry not found")
 	ErrOvertimeForbidden      = errors.New("overtime entry is not accessible by the actor")
 	ErrOvertimeInvalidRequest = errors.New("invalid overtime entry")
-	ErrOvertimeStateInvalid   = errors.New("overtime entry is not in a valid state for this operation")
+	ErrOvertimeStateInvalid   = errors.New(
+		"overtime entry is not in a valid state for this operation",
+	)
 )
 
 const (
@@ -101,7 +103,10 @@ type UpdateOvertimeEntryParams struct {
 }
 
 type OvertimeTxRepository interface {
-	GetOvertimeEntryForUpdate(ctx context.Context, overtimeEntryID uuid.UUID) (*OvertimeEntry, error)
+	GetOvertimeEntryForUpdate(
+		ctx context.Context,
+		overtimeEntryID uuid.UUID,
+	) (*OvertimeEntry, error)
 	ApproveOvertimeEntry(
 		ctx context.Context,
 		overtimeEntryID, approvedByEmployeeID uuid.UUID,
@@ -120,12 +125,24 @@ type OvertimeTxRepository interface {
 
 type OvertimeRepository interface {
 	WithTx(ctx context.Context, fn func(tx OvertimeTxRepository) error) error
-	CreateOvertimeEntry(ctx context.Context, params CreateOvertimeEntryParams) (*OvertimeEntry, error)
+	CreateOvertimeEntry(
+		ctx context.Context,
+		params CreateOvertimeEntryParams,
+	) (*OvertimeEntry, error)
 	GetOvertimeEntryByID(ctx context.Context, id uuid.UUID) (*OvertimeEntry, error)
-	ListOvertimeEntries(ctx context.Context, params ListOvertimeEntriesParams) (*OvertimeEntryPage, error)
-	ListMyOvertimeEntries(ctx context.Context, params ListMyOvertimeEntriesParams) (*OvertimeEntryPage, error)
+	ListOvertimeEntries(
+		ctx context.Context,
+		params ListOvertimeEntriesParams,
+	) (*OvertimeEntryPage, error)
+	ListMyOvertimeEntries(
+		ctx context.Context,
+		params ListMyOvertimeEntriesParams,
+	) (*OvertimeEntryPage, error)
 	GetCurrentMonthOvertimeStats(ctx context.Context) (*OvertimeStats, error)
-	GetMyCurrentMonthOvertimeStats(ctx context.Context, employeeID uuid.UUID) (*OvertimeStats, error)
+	GetMyCurrentMonthOvertimeStats(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*OvertimeStats, error)
 }
 
 type OvertimeService interface {
@@ -159,8 +176,17 @@ type OvertimeService interface {
 		ctx context.Context,
 		actorEmployeeID, overtimeEntryID uuid.UUID,
 	) (*OvertimeEntry, error)
-	ListOvertimeEntries(ctx context.Context, params ListOvertimeEntriesParams) (*OvertimeEntryPage, error)
-	ListMyOvertimeEntries(ctx context.Context, params ListMyOvertimeEntriesParams) (*OvertimeEntryPage, error)
+	ListOvertimeEntries(
+		ctx context.Context,
+		params ListOvertimeEntriesParams,
+	) (*OvertimeEntryPage, error)
+	ListMyOvertimeEntries(
+		ctx context.Context,
+		params ListMyOvertimeEntriesParams,
+	) (*OvertimeEntryPage, error)
 	GetCurrentMonthOvertimeStats(ctx context.Context) (*OvertimeStats, error)
-	GetMyCurrentMonthOvertimeStats(ctx context.Context, employeeID uuid.UUID) (*OvertimeStats, error)
+	GetMyCurrentMonthOvertimeStats(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*OvertimeStats, error)
 }

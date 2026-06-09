@@ -50,7 +50,10 @@ func (s EmployeeHandbookAssignmentsSeeder) Seed(ctx context.Context, env Env) er
 			return fmt.Errorf("seed employee_handbook_assignments: employee alias is required")
 		}
 		if strings.TrimSpace(item.TemplateAlias) == "" {
-			return fmt.Errorf("seed employee_handbook_assignments[%s]: template alias is required", item.EmployeeAlias)
+			return fmt.Errorf(
+				"seed employee_handbook_assignments[%s]: template alias is required",
+				item.EmployeeAlias,
+			)
 		}
 
 		employeeID, ok := env.State.EmployeeID(strings.TrimSpace(item.EmployeeAlias))
@@ -94,14 +97,20 @@ func (s EmployeeHandbookAssignmentsSeeder) Seed(ctx context.Context, env Env) er
 	return nil
 }
 
-func resolveOptionalAssignmentActor(env Env, item EmployeeHandbookAssignmentSeed) (uuid.UUID, error) {
+func resolveOptionalAssignmentActor(
+	env Env,
+	item EmployeeHandbookAssignmentSeed,
+) (uuid.UUID, error) {
 	if item.ActorEmployeeAlias == nil || strings.TrimSpace(*item.ActorEmployeeAlias) == "" {
 		return uuid.Nil, nil
 	}
 
 	employeeID, ok := env.State.EmployeeID(strings.TrimSpace(*item.ActorEmployeeAlias))
 	if !ok {
-		return uuid.Nil, fmt.Errorf("missing actor employee alias %q in seed state", strings.TrimSpace(*item.ActorEmployeeAlias))
+		return uuid.Nil, fmt.Errorf(
+			"missing actor employee alias %q in seed state",
+			strings.TrimSpace(*item.ActorEmployeeAlias),
+		)
 	}
 	return employeeID, nil
 }

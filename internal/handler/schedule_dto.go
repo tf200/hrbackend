@@ -45,7 +45,9 @@ type getMyPastShiftsRequest struct {
 	httpapi.PageRequest
 }
 
-var uuidExtractRegex = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+var uuidExtractRegex = regexp.MustCompile(
+	`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`,
+)
 
 type updateScheduleRequest struct {
 	EmployeeID *uuid.UUID `json:"employee_id,omitempty"`

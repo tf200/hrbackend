@@ -54,7 +54,12 @@ func (s *OvertimeService) CreateOvertimeEntry(
 			Recipients: domain.NotificationRecipients{
 				Roles: []string{"admin"},
 			},
-			Message: fmt.Sprintf("%s has requested %d minutes of overtime for the shift on %s.", entry.EmployeeName, entry.Minutes, entry.EntryDate.Format("2006-01-02")),
+			Message: fmt.Sprintf(
+				"%s has requested %d minutes of overtime for the shift on %s.",
+				entry.EmployeeName,
+				entry.Minutes,
+				entry.EntryDate.Format("2006-01-02"),
+			),
 			Data: domain.OvertimeRequestCreatedNotificationData{
 				OvertimeEntryID: entry.ID,
 				EmployeeID:      entry.EmployeeID,
@@ -142,7 +147,12 @@ func (s *OvertimeService) DecideOvertimeEntryByAdmin(
 
 		var message string
 		if updated.Status == "approved" {
-			message = fmt.Sprintf("Your overtime request for %d minutes on %s has been approved by %s.", updated.Minutes, updated.EntryDate.Format("2006-01-02"), decidedByName)
+			message = fmt.Sprintf(
+				"Your overtime request for %d minutes on %s has been approved by %s.",
+				updated.Minutes,
+				updated.EntryDate.Format("2006-01-02"),
+				decidedByName,
+			)
 		} else if updated.Status == "rejected" {
 			if rejectionReasonStr != "" {
 				message = fmt.Sprintf("Your overtime request for %d minutes on %s has been rejected by %s. Reason: %s", updated.Minutes, updated.EntryDate.Format("2006-01-02"), decidedByName, rejectionReasonStr)
@@ -316,7 +326,12 @@ func (s *OvertimeService) ListOvertimeEntries(
 
 	page, err := s.repository.ListOvertimeEntries(ctx, normalizedParams)
 	if err != nil {
-		s.logError(ctx, "OvertimeService.ListOvertimeEntries", "failed to list overtime entries", err)
+		s.logError(
+			ctx,
+			"OvertimeService.ListOvertimeEntries",
+			"failed to list overtime entries",
+			err,
+		)
 		return nil, fmt.Errorf("failed to list overtime entries: %w", err)
 	}
 
@@ -334,7 +349,11 @@ func (s *OvertimeService) ListMyOvertimeEntries(
 
 	page, err := s.repository.ListMyOvertimeEntries(ctx, normalizedParams)
 	if err != nil {
-		s.logError(ctx, "OvertimeService.ListMyOvertimeEntries", "failed to list my overtime entries", err,
+		s.logError(
+			ctx,
+			"OvertimeService.ListMyOvertimeEntries",
+			"failed to list my overtime entries",
+			err,
 			zap.String("employee_id", normalizedParams.EmployeeID.String()),
 		)
 		return nil, fmt.Errorf("failed to list my overtime entries: %w", err)
@@ -370,7 +389,11 @@ func (s *OvertimeService) GetMyCurrentMonthOvertimeStats(
 
 	stats, err := s.repository.GetMyCurrentMonthOvertimeStats(ctx, employeeID)
 	if err != nil {
-		s.logError(ctx, "OvertimeService.GetMyCurrentMonthOvertimeStats", "failed to get my current month overtime stats", err,
+		s.logError(
+			ctx,
+			"OvertimeService.GetMyCurrentMonthOvertimeStats",
+			"failed to get my current month overtime stats",
+			err,
 			zap.String("employee_id", employeeID.String()),
 		)
 		return nil, fmt.Errorf("failed to get my current month overtime stats: %w", err)
@@ -415,7 +438,16 @@ func normalizeUpdateOvertimeEntryParams(
 	}
 	if params.EntryDate != nil {
 		dateOnly := params.EntryDate.UTC()
-		dateOnly = time.Date(dateOnly.Year(), dateOnly.Month(), dateOnly.Day(), 0, 0, 0, 0, time.UTC)
+		dateOnly = time.Date(
+			dateOnly.Year(),
+			dateOnly.Month(),
+			dateOnly.Day(),
+			0,
+			0,
+			0,
+			0,
+			time.UTC,
+		)
 		normalized.EntryDate = &dateOnly
 		hasUpdates = true
 	}

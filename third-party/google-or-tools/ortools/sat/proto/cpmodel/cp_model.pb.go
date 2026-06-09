@@ -252,7 +252,7 @@ func (DecisionStrategyProto_DomainReductionStrategy) EnumDescriptor() ([]byte, [
 type IntegerVariableProto struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// For debug/logging only. Can be empty.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `                   protobuf:"bytes,1,opt,name=name,proto3"           json:"name,omitempty"`
 	// The variable domain given as a sorted list of n disjoint intervals
 	// [min, max] and encoded as [min_0, max_0,  ..., min_{n-1}, max_{n-1}].
 	//
@@ -270,7 +270,7 @@ type IntegerVariableProto struct {
 	// that we don't run into integer overflow in our algorithms. Because of that,
 	// you cannot just have "unbounded" variable like [0, kint64max] and should
 	// try to specify tighter domains.
-	Domain        []int64 `protobuf:"varint,2,rep,packed,name=domain,proto3" json:"domain,omitempty"`
+	Domain        []int64 `                   protobuf:"varint,2,rep,packed,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -322,7 +322,7 @@ func (x *IntegerVariableProto) GetDomain() []int64 {
 // Argument of the constraints of the form OP(literals).
 type BoolArgumentProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Literals      []int32                `protobuf:"varint,1,rep,packed,name=literals,proto3" json:"literals,omitempty"`
+	Literals      []int32                `                   protobuf:"varint,1,rep,packed,name=literals,proto3" json:"literals,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -369,9 +369,9 @@ func (x *BoolArgumentProto) GetLiterals() []int32 {
 // size.
 type LinearExpressionProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Vars          []int32                `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
-	Coeffs        []int64                `protobuf:"varint,2,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"`
-	Offset        int64                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	Vars          []int32                `                   protobuf:"varint,1,rep,packed,name=vars,proto3"   json:"vars,omitempty"`
+	Coeffs        []int64                `                   protobuf:"varint,2,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"`
+	Offset        int64                  `                   protobuf:"varint,3,opt,name=offset,proto3"        json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -429,8 +429,8 @@ func (x *LinearExpressionProto) GetOffset() int64 {
 
 type LinearArgumentProto struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Target        *LinearExpressionProto   `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	Exprs         []*LinearExpressionProto `protobuf:"bytes,2,rep,name=exprs,proto3" json:"exprs,omitempty"`
+	Target        *LinearExpressionProto   `                   protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	Exprs         []*LinearExpressionProto `                   protobuf:"bytes,2,rep,name=exprs,proto3"  json:"exprs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -482,7 +482,7 @@ func (x *LinearArgumentProto) GetExprs() []*LinearExpressionProto {
 // All affine expressions must take different values.
 type AllDifferentConstraintProto struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Exprs         []*LinearExpressionProto `protobuf:"bytes,1,rep,name=exprs,proto3" json:"exprs,omitempty"`
+	Exprs         []*LinearExpressionProto `                   protobuf:"bytes,1,rep,name=exprs,proto3" json:"exprs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -532,9 +532,9 @@ func (x *AllDifferentConstraintProto) GetExprs() []*LinearExpressionProto {
 // overflow and throws an error otherwise.
 type LinearConstraintProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Vars          []int32                `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
-	Coeffs        []int64                `protobuf:"varint,2,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"` // Same size as vars.
-	Domain        []int64                `protobuf:"varint,3,rep,packed,name=domain,proto3" json:"domain,omitempty"`
+	Vars          []int32                `                   protobuf:"varint,1,rep,packed,name=vars,proto3"   json:"vars,omitempty"`
+	Coeffs        []int64                `                   protobuf:"varint,2,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"` // Same size as vars.
+	Domain        []int64                `                   protobuf:"varint,3,rep,packed,name=domain,proto3" json:"domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -594,13 +594,13 @@ func (x *LinearConstraintProto) GetDomain() []int64 {
 // This enforces that index takes one of the value in [0, vars_size()).
 type ElementConstraintProto struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
-	Index  int32                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`      // Legacy field.
-	Target int32                  `protobuf:"varint,2,opt,name=target,proto3" json:"target,omitempty"`    // Legacy field.
-	Vars   []int32                `protobuf:"varint,3,rep,packed,name=vars,proto3" json:"vars,omitempty"` // Legacy field.
+	Index  int32                  `                   protobuf:"varint,1,opt,name=index,proto3"                          json:"index,omitempty"`  // Legacy field.
+	Target int32                  `                   protobuf:"varint,2,opt,name=target,proto3"                         json:"target,omitempty"` // Legacy field.
+	Vars   []int32                `                   protobuf:"varint,3,rep,packed,name=vars,proto3"                    json:"vars,omitempty"`   // Legacy field.
 	// All expressions below must be affine function with at most one variable.
-	LinearIndex   *LinearExpressionProto   `protobuf:"bytes,4,opt,name=linear_index,json=linearIndex,proto3" json:"linear_index,omitempty"`
-	LinearTarget  *LinearExpressionProto   `protobuf:"bytes,5,opt,name=linear_target,json=linearTarget,proto3" json:"linear_target,omitempty"`
-	Exprs         []*LinearExpressionProto `protobuf:"bytes,6,rep,name=exprs,proto3" json:"exprs,omitempty"`
+	LinearIndex   *LinearExpressionProto   `                   protobuf:"bytes,4,opt,name=linear_index,json=linearIndex,proto3"   json:"linear_index,omitempty"`
+	LinearTarget  *LinearExpressionProto   `                   protobuf:"bytes,5,opt,name=linear_target,json=linearTarget,proto3" json:"linear_target,omitempty"`
+	Exprs         []*LinearExpressionProto `                   protobuf:"bytes,6,rep,name=exprs,proto3"                           json:"exprs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -690,9 +690,9 @@ func (x *ElementConstraintProto) GetExprs() []*LinearExpressionProto {
 // isn't done currently.
 type IntervalConstraintProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Start         *LinearExpressionProto `protobuf:"bytes,4,opt,name=start,proto3" json:"start,omitempty"`
-	End           *LinearExpressionProto `protobuf:"bytes,5,opt,name=end,proto3" json:"end,omitempty"`
-	Size          *LinearExpressionProto `protobuf:"bytes,6,opt,name=size,proto3" json:"size,omitempty"`
+	Start         *LinearExpressionProto `                   protobuf:"bytes,4,opt,name=start,proto3" json:"start,omitempty"`
+	End           *LinearExpressionProto `                   protobuf:"bytes,5,opt,name=end,proto3"   json:"end,omitempty"`
+	Size          *LinearExpressionProto `                   protobuf:"bytes,6,opt,name=size,proto3"  json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -755,7 +755,7 @@ func (x *IntervalConstraintProto) GetSize() *LinearExpressionProto {
 // scheduling.
 type NoOverlapConstraintProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Intervals     []int32                `protobuf:"varint,1,rep,packed,name=intervals,proto3" json:"intervals,omitempty"`
+	Intervals     []int32                `                   protobuf:"varint,1,rep,packed,name=intervals,proto3" json:"intervals,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -808,8 +808,8 @@ func (x *NoOverlapConstraintProto) GetIntervals() []int32 {
 //   - one vertical line box crossing an horizontal line box.
 type NoOverlap2DConstraintProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	XIntervals    []int32                `protobuf:"varint,1,rep,packed,name=x_intervals,json=xIntervals,proto3" json:"x_intervals,omitempty"`
-	YIntervals    []int32                `protobuf:"varint,2,rep,packed,name=y_intervals,json=yIntervals,proto3" json:"y_intervals,omitempty"` // Same size as x_intervals.
+	XIntervals    []int32                `                   protobuf:"varint,1,rep,packed,name=x_intervals,json=xIntervals,proto3" json:"x_intervals,omitempty"`
+	YIntervals    []int32                `                   protobuf:"varint,2,rep,packed,name=y_intervals,json=yIntervals,proto3" json:"y_intervals,omitempty"` // Same size as x_intervals.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -869,9 +869,9 @@ func (x *NoOverlap2DConstraintProto) GetYIntervals() []int32 {
 // considered valid but always infeasible.
 type CumulativeConstraintProto struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Capacity      *LinearExpressionProto   `protobuf:"bytes,1,opt,name=capacity,proto3" json:"capacity,omitempty"`
-	Intervals     []int32                  `protobuf:"varint,2,rep,packed,name=intervals,proto3" json:"intervals,omitempty"`
-	Demands       []*LinearExpressionProto `protobuf:"bytes,3,rep,name=demands,proto3" json:"demands,omitempty"` // Same size as intervals.
+	Capacity      *LinearExpressionProto   `                   protobuf:"bytes,1,opt,name=capacity,proto3"          json:"capacity,omitempty"`
+	Intervals     []int32                  `                   protobuf:"varint,2,rep,packed,name=intervals,proto3" json:"intervals,omitempty"`
+	Demands       []*LinearExpressionProto `                   protobuf:"bytes,3,rep,name=demands,proto3"           json:"demands,omitempty"` // Same size as intervals.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -946,12 +946,12 @@ func (x *CumulativeConstraintProto) GetDemands() []*LinearExpressionProto {
 // all actions will be performed.
 type ReservoirConstraintProto struct {
 	state     protoimpl.MessageState   `protogen:"open.v1"`
-	MinLevel  int64                    `protobuf:"varint,1,opt,name=min_level,json=minLevel,proto3" json:"min_level,omitempty"`
-	MaxLevel  int64                    `protobuf:"varint,2,opt,name=max_level,json=maxLevel,proto3" json:"max_level,omitempty"`
-	TimeExprs []*LinearExpressionProto `protobuf:"bytes,3,rep,name=time_exprs,json=timeExprs,proto3" json:"time_exprs,omitempty"` // affine expressions.
+	MinLevel  int64                    `                   protobuf:"varint,1,opt,name=min_level,json=minLevel,proto3"                    json:"min_level,omitempty"`
+	MaxLevel  int64                    `                   protobuf:"varint,2,opt,name=max_level,json=maxLevel,proto3"                    json:"max_level,omitempty"`
+	TimeExprs []*LinearExpressionProto `                   protobuf:"bytes,3,rep,name=time_exprs,json=timeExprs,proto3"                   json:"time_exprs,omitempty"` // affine expressions.
 	// Currently, we only support constant level changes.
-	LevelChanges   []*LinearExpressionProto `protobuf:"bytes,6,rep,name=level_changes,json=levelChanges,proto3" json:"level_changes,omitempty"` // affine expressions.
-	ActiveLiterals []int32                  `protobuf:"varint,5,rep,packed,name=active_literals,json=activeLiterals,proto3" json:"active_literals,omitempty"`
+	LevelChanges   []*LinearExpressionProto `                   protobuf:"bytes,6,rep,name=level_changes,json=levelChanges,proto3"             json:"level_changes,omitempty"` // affine expressions.
+	ActiveLiterals []int32                  `                   protobuf:"varint,5,rep,packed,name=active_literals,json=activeLiterals,proto3" json:"active_literals,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1032,9 +1032,9 @@ func (x *ReservoirConstraintProto) GetActiveLiterals() []int32 {
 // at the same time. Multi-self loop are disallowed though.
 type CircuitConstraintProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tails         []int32                `protobuf:"varint,3,rep,packed,name=tails,proto3" json:"tails,omitempty"`
-	Heads         []int32                `protobuf:"varint,4,rep,packed,name=heads,proto3" json:"heads,omitempty"`
-	Literals      []int32                `protobuf:"varint,5,rep,packed,name=literals,proto3" json:"literals,omitempty"`
+	Tails         []int32                `                   protobuf:"varint,3,rep,packed,name=tails,proto3"    json:"tails,omitempty"`
+	Heads         []int32                `                   protobuf:"varint,4,rep,packed,name=heads,proto3"    json:"heads,omitempty"`
+	Literals      []int32                `                   protobuf:"varint,5,rep,packed,name=literals,proto3" json:"literals,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1112,9 +1112,9 @@ func (x *CircuitConstraintProto) GetLiterals() []int32 {
 // specific constraint allow us to add specific "cuts" to a VRP problem.
 type RoutesConstraintProto struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	Tails    []int32                `protobuf:"varint,1,rep,packed,name=tails,proto3" json:"tails,omitempty"`
-	Heads    []int32                `protobuf:"varint,2,rep,packed,name=heads,proto3" json:"heads,omitempty"`
-	Literals []int32                `protobuf:"varint,3,rep,packed,name=literals,proto3" json:"literals,omitempty"`
+	Tails    []int32                `                   protobuf:"varint,1,rep,packed,name=tails,proto3"    json:"tails,omitempty"`
+	Heads    []int32                `                   protobuf:"varint,2,rep,packed,name=heads,proto3"    json:"heads,omitempty"`
+	Literals []int32                `                   protobuf:"varint,3,rep,packed,name=literals,proto3" json:"literals,omitempty"`
 	// EXPERIMENTAL. The demands for each node, and the maximum capacity for each
 	// route. Note that this is currently only used for the LP relaxation and one
 	// need to add the corresponding constraint to enforce this outside of the LP.
@@ -1125,8 +1125,8 @@ type RoutesConstraintProto struct {
 	// the route and linear equations of the form:
 	//
 	//	arc_literal => (current_capacity_tail + demand <= current_capacity_head)
-	Demands       []int32 `protobuf:"varint,4,rep,packed,name=demands,proto3" json:"demands,omitempty"`
-	Capacity      int64   `protobuf:"varint,5,opt,name=capacity,proto3" json:"capacity,omitempty"`
+	Demands       []int32 `                   protobuf:"varint,4,rep,packed,name=demands,proto3"  json:"demands,omitempty"`
+	Capacity      int64   `                   protobuf:"varint,5,opt,name=capacity,proto3"        json:"capacity,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1211,12 +1211,12 @@ func (x *RoutesConstraintProto) GetCapacity() int64 {
 //   - If `vars` and `exprs` are empty but `values` is not, the model is invalid.
 type TableConstraintProto struct {
 	state  protoimpl.MessageState   `protogen:"open.v1"`
-	Vars   []int32                  `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"` // Legacy field.
-	Values []int64                  `protobuf:"varint,2,rep,packed,name=values,proto3" json:"values,omitempty"`
-	Exprs  []*LinearExpressionProto `protobuf:"bytes,4,rep,name=exprs,proto3" json:"exprs,omitempty"`
+	Vars   []int32                  `                   protobuf:"varint,1,rep,packed,name=vars,proto3"   json:"vars,omitempty"` // Legacy field.
+	Values []int64                  `                   protobuf:"varint,2,rep,packed,name=values,proto3" json:"values,omitempty"`
+	Exprs  []*LinearExpressionProto `                   protobuf:"bytes,4,rep,name=exprs,proto3"          json:"exprs,omitempty"`
 	// If true, the meaning is "negated", that is we forbid any of the given
 	// tuple from a feasible assignment.
-	Negated       bool `protobuf:"varint,3,opt,name=negated,proto3" json:"negated,omitempty"`
+	Negated       bool `                   protobuf:"varint,3,opt,name=negated,proto3"       json:"negated,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1283,8 +1283,8 @@ func (x *TableConstraintProto) GetNegated() bool {
 // inverse of the first: f_direct[i] == j <=> f_inverse[j] == i.
 type InverseConstraintProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FDirect       []int32                `protobuf:"varint,1,rep,packed,name=f_direct,json=fDirect,proto3" json:"f_direct,omitempty"`
-	FInverse      []int32                `protobuf:"varint,2,rep,packed,name=f_inverse,json=fInverse,proto3" json:"f_inverse,omitempty"`
+	FDirect       []int32                `                   protobuf:"varint,1,rep,packed,name=f_direct,json=fDirect,proto3"   json:"f_direct,omitempty"`
+	FInverse      []int32                `                   protobuf:"varint,2,rep,packed,name=f_inverse,json=fInverse,proto3" json:"f_inverse,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1340,20 +1340,20 @@ type AutomatonConstraintProto struct {
 	// A state is identified by a non-negative number. It is preferable to keep
 	// all the states dense in says [0, num_states). The automaton starts at
 	// starting_state and must finish in any of the final states.
-	StartingState int64   `protobuf:"varint,2,opt,name=starting_state,json=startingState,proto3" json:"starting_state,omitempty"`
-	FinalStates   []int64 `protobuf:"varint,3,rep,packed,name=final_states,json=finalStates,proto3" json:"final_states,omitempty"`
+	StartingState int64   `                   protobuf:"varint,2,opt,name=starting_state,json=startingState,proto3"            json:"starting_state,omitempty"`
+	FinalStates   []int64 `                   protobuf:"varint,3,rep,packed,name=final_states,json=finalStates,proto3"         json:"final_states,omitempty"`
 	// List of transitions (all 3 vectors have the same size). Both tail and head
 	// are states, label is any variable value. No two outgoing transitions from
 	// the same state can have the same label.
-	TransitionTail  []int64 `protobuf:"varint,4,rep,packed,name=transition_tail,json=transitionTail,proto3" json:"transition_tail,omitempty"`
-	TransitionHead  []int64 `protobuf:"varint,5,rep,packed,name=transition_head,json=transitionHead,proto3" json:"transition_head,omitempty"`
-	TransitionLabel []int64 `protobuf:"varint,6,rep,packed,name=transition_label,json=transitionLabel,proto3" json:"transition_label,omitempty"`
+	TransitionTail  []int64 `                   protobuf:"varint,4,rep,packed,name=transition_tail,json=transitionTail,proto3"   json:"transition_tail,omitempty"`
+	TransitionHead  []int64 `                   protobuf:"varint,5,rep,packed,name=transition_head,json=transitionHead,proto3"   json:"transition_head,omitempty"`
+	TransitionLabel []int64 `                   protobuf:"varint,6,rep,packed,name=transition_label,json=transitionLabel,proto3" json:"transition_label,omitempty"`
 	// Legacy field.
-	Vars []int32 `protobuf:"varint,7,rep,packed,name=vars,proto3" json:"vars,omitempty"`
+	Vars []int32 `                   protobuf:"varint,7,rep,packed,name=vars,proto3"                                  json:"vars,omitempty"`
 	// The sequence of affine expressions (a * var + b). The automaton is ran for
 	// exprs_size() "steps" and the value of exprs[i] corresponds to the
 	// transition label at step i.
-	Exprs         []*LinearExpressionProto `protobuf:"bytes,8,rep,name=exprs,proto3" json:"exprs,omitempty"`
+	Exprs         []*LinearExpressionProto `                   protobuf:"bytes,8,rep,name=exprs,proto3"                                         json:"exprs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1440,7 +1440,7 @@ func (x *AutomatonConstraintProto) GetExprs() []*LinearExpressionProto {
 // A list of variables, without any semantics.
 type ListOfVariablesProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Vars          []int32                `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
+	Vars          []int32                `                   protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1486,7 +1486,7 @@ func (x *ListOfVariablesProto) GetVars() []int32 {
 type ConstraintProto struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// For debug/logging only. Can be empty.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `                   protobuf:"bytes,1,opt,name=name,proto3"                                                json:"name,omitempty"`
 	// The constraint will be enforced iff all literals listed here are true. If
 	// this is empty, then the constraint will always be enforced. An enforced
 	// constraint must be satisfied, and an un-enforced one will simply be
@@ -1501,7 +1501,7 @@ type ConstraintProto struct {
 	// - bool_or, bool_and, linear: fully supported.
 	// - interval: only support a single enforcement literal.
 	// - other: no support (but can be added on a per-demand basis).
-	EnforcementLiteral []int32 `protobuf:"varint,2,rep,packed,name=enforcement_literal,json=enforcementLiteral,proto3" json:"enforcement_literal,omitempty"`
+	EnforcementLiteral []int32 `                   protobuf:"varint,2,rep,packed,name=enforcement_literal,json=enforcementLiteral,proto3" json:"enforcement_literal,omitempty"`
 	// The actual constraint with its arguments.
 	//
 	// Types that are valid to be assigned to Constraint:
@@ -1529,7 +1529,7 @@ type ConstraintProto struct {
 	//	*ConstraintProto_NoOverlap_2D
 	//	*ConstraintProto_Cumulative
 	//	*ConstraintProto_DummyConstraint
-	Constraint    isConstraintProto_Constraint `protobuf_oneof:"constraint"`
+	Constraint    isConstraintProto_Constraint `                                                                                                                                               protobuf_oneof:"constraint"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2019,8 +2019,8 @@ type CpObjectiveProto struct {
 	// The linear terms of the objective to minimize.
 	// For a maximization problem, one can negate all coefficients in the
 	// objective and set scaling_factor to -1.
-	Vars   []int32 `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
-	Coeffs []int64 `protobuf:"varint,4,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"`
+	Vars   []int32 `                   protobuf:"varint,1,rep,packed,name=vars,proto3"                                      json:"vars,omitempty"`
+	Coeffs []int64 `                   protobuf:"varint,4,rep,packed,name=coeffs,proto3"                                    json:"coeffs,omitempty"`
 	// The displayed objective is always:
 	//
 	//	scaling_factor * (sum(coefficients[i] * objective_vars[i]) + offset).
@@ -2030,18 +2030,18 @@ type CpObjectiveProto struct {
 	//
 	// Note that if scaling_factor is zero, then it is assumed to be 1, so that by
 	// default these fields have no effect.
-	Offset        float64 `protobuf:"fixed64,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	ScalingFactor float64 `protobuf:"fixed64,3,opt,name=scaling_factor,json=scalingFactor,proto3" json:"scaling_factor,omitempty"`
+	Offset        float64 `                   protobuf:"fixed64,2,opt,name=offset,proto3"                                          json:"offset,omitempty"`
+	ScalingFactor float64 `                   protobuf:"fixed64,3,opt,name=scaling_factor,json=scalingFactor,proto3"               json:"scaling_factor,omitempty"`
 	// If non-empty, only look for an objective value in the given domain.
 	// Note that this does not depend on the offset or scaling factor, it is a
 	// domain on the sum of the objective terms only.
-	Domain []int64 `protobuf:"varint,5,rep,packed,name=domain,proto3" json:"domain,omitempty"`
+	Domain []int64 `                   protobuf:"varint,5,rep,packed,name=domain,proto3"                                    json:"domain,omitempty"`
 	// Internal field. Do not set. When we scale a FloatObjectiveProto to a
 	// integer version, we set this to true if the scaling was exact (i.e. all
 	// original coeff were integer for instance).
 	//
 	// TODO(user): Put the error bounds we computed instead?
-	ScalingWasExact bool `protobuf:"varint,6,opt,name=scaling_was_exact,json=scalingWasExact,proto3" json:"scaling_was_exact,omitempty"`
+	ScalingWasExact bool `                   protobuf:"varint,6,opt,name=scaling_was_exact,json=scalingWasExact,proto3"           json:"scaling_was_exact,omitempty"`
 	// Internal fields to recover a bound on the original integer objective from
 	// the presolved one. Basically, initially the integer objective fit on an
 	// int64 and is in [Initial_lb, Initial_ub]. During presolve, we might change
@@ -2056,9 +2056,9 @@ type CpObjectiveProto struct {
 	// Note that we use both offsets to always be able to do the computation while
 	// staying in the int64 domain. In particular, the after_offset will always
 	// be in (-integer_scaling_factor, integer_scaling_factor).
-	IntegerBeforeOffset  int64 `protobuf:"varint,7,opt,name=integer_before_offset,json=integerBeforeOffset,proto3" json:"integer_before_offset,omitempty"`
-	IntegerAfterOffset   int64 `protobuf:"varint,9,opt,name=integer_after_offset,json=integerAfterOffset,proto3" json:"integer_after_offset,omitempty"`
-	IntegerScalingFactor int64 `protobuf:"varint,8,opt,name=integer_scaling_factor,json=integerScalingFactor,proto3" json:"integer_scaling_factor,omitempty"`
+	IntegerBeforeOffset  int64 `                   protobuf:"varint,7,opt,name=integer_before_offset,json=integerBeforeOffset,proto3"   json:"integer_before_offset,omitempty"`
+	IntegerAfterOffset   int64 `                   protobuf:"varint,9,opt,name=integer_after_offset,json=integerAfterOffset,proto3"     json:"integer_after_offset,omitempty"`
+	IntegerScalingFactor int64 `                   protobuf:"varint,8,opt,name=integer_scaling_factor,json=integerScalingFactor,proto3" json:"integer_scaling_factor,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -2160,11 +2160,11 @@ func (x *CpObjectiveProto) GetIntegerScalingFactor() int64 {
 // Note that the variable can only still take integer value.
 type FloatObjectiveProto struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
-	Vars   []int32                `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
-	Coeffs []float64              `protobuf:"fixed64,2,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"`
-	Offset float64                `protobuf:"fixed64,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	Vars   []int32                `                   protobuf:"varint,1,rep,packed,name=vars,proto3"    json:"vars,omitempty"`
+	Coeffs []float64              `                   protobuf:"fixed64,2,rep,packed,name=coeffs,proto3" json:"coeffs,omitempty"`
+	Offset float64                `                   protobuf:"fixed64,3,opt,name=offset,proto3"        json:"offset,omitempty"`
 	// The optimization direction. The default is to minimize
-	Maximize      bool `protobuf:"varint,4,opt,name=maximize,proto3" json:"maximize,omitempty"`
+	Maximize      bool `                   protobuf:"varint,4,opt,name=maximize,proto3"       json:"maximize,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2234,16 +2234,16 @@ type DecisionStrategyProto struct {
 	// The variables to be considered for the next decision. The order matter and
 	// is always used as a tie-breaker after the variable selection strategy
 	// criteria defined below.
-	Variables []int32 `protobuf:"varint,1,rep,packed,name=variables,proto3" json:"variables,omitempty"`
+	Variables []int32 `                   protobuf:"varint,1,rep,packed,name=variables,proto3"                                                                                                                        json:"variables,omitempty"`
 	// If this is set, then the variables field must be empty.
 	// We currently only support affine expression.
 	//
 	// Note that this is needed so that if a variable has an affine
 	// representative, we can properly transform a DecisionStrategyProto through
 	// presolve.
-	Exprs                     []*LinearExpressionProto                        `protobuf:"bytes,5,rep,name=exprs,proto3" json:"exprs,omitempty"`
-	VariableSelectionStrategy DecisionStrategyProto_VariableSelectionStrategy `protobuf:"varint,2,opt,name=variable_selection_strategy,json=variableSelectionStrategy,proto3,enum=operations_research.sat.DecisionStrategyProto_VariableSelectionStrategy" json:"variable_selection_strategy,omitempty"`
-	DomainReductionStrategy   DecisionStrategyProto_DomainReductionStrategy   `protobuf:"varint,3,opt,name=domain_reduction_strategy,json=domainReductionStrategy,proto3,enum=operations_research.sat.DecisionStrategyProto_DomainReductionStrategy" json:"domain_reduction_strategy,omitempty"`
+	Exprs                     []*LinearExpressionProto                        `                   protobuf:"bytes,5,rep,name=exprs,proto3"                                                                                                                                    json:"exprs,omitempty"`
+	VariableSelectionStrategy DecisionStrategyProto_VariableSelectionStrategy `                   protobuf:"varint,2,opt,name=variable_selection_strategy,json=variableSelectionStrategy,proto3,enum=operations_research.sat.DecisionStrategyProto_VariableSelectionStrategy" json:"variable_selection_strategy,omitempty"`
+	DomainReductionStrategy   DecisionStrategyProto_DomainReductionStrategy   `                   protobuf:"varint,3,opt,name=domain_reduction_strategy,json=domainReductionStrategy,proto3,enum=operations_research.sat.DecisionStrategyProto_DomainReductionStrategy"       json:"domain_reduction_strategy,omitempty"`
 	unknownFields             protoimpl.UnknownFields
 	sizeCache                 protoimpl.SizeCache
 }
@@ -2311,8 +2311,8 @@ func (x *DecisionStrategyProto) GetDomainReductionStrategy() DecisionStrategyPro
 // indices.
 type PartialVariableAssignment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Vars          []int32                `protobuf:"varint,1,rep,packed,name=vars,proto3" json:"vars,omitempty"`
-	Values        []int64                `protobuf:"varint,2,rep,packed,name=values,proto3" json:"values,omitempty"`
+	Vars          []int32                `                   protobuf:"varint,1,rep,packed,name=vars,proto3"   json:"vars,omitempty"`
+	Values        []int64                `                   protobuf:"varint,2,rep,packed,name=values,proto3" json:"values,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2367,8 +2367,8 @@ type SparsePermutationProto struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Each cycle is listed one after the other in the support field.
 	// The size of each cycle is given (in order) in the cycle_sizes field.
-	Support       []int32 `protobuf:"varint,1,rep,packed,name=support,proto3" json:"support,omitempty"`
-	CycleSizes    []int32 `protobuf:"varint,2,rep,packed,name=cycle_sizes,json=cycleSizes,proto3" json:"cycle_sizes,omitempty"`
+	Support       []int32 `                   protobuf:"varint,1,rep,packed,name=support,proto3"                     json:"support,omitempty"`
+	CycleSizes    []int32 `                   protobuf:"varint,2,rep,packed,name=cycle_sizes,json=cycleSizes,proto3" json:"cycle_sizes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2421,9 +2421,9 @@ func (x *SparsePermutationProto) GetCycleSizes() []int32 {
 // That is matrix[i][j] = entries[i * num_cols + j];
 type DenseMatrixProto struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	NumRows       int32                  `protobuf:"varint,1,opt,name=num_rows,json=numRows,proto3" json:"num_rows,omitempty"`
-	NumCols       int32                  `protobuf:"varint,2,opt,name=num_cols,json=numCols,proto3" json:"num_cols,omitempty"`
-	Entries       []int32                `protobuf:"varint,3,rep,packed,name=entries,proto3" json:"entries,omitempty"`
+	NumRows       int32                  `                   protobuf:"varint,1,opt,name=num_rows,json=numRows,proto3" json:"num_rows,omitempty"`
+	NumCols       int32                  `                   protobuf:"varint,2,opt,name=num_cols,json=numCols,proto3" json:"num_cols,omitempty"`
+	Entries       []int32                `                   protobuf:"varint,3,rep,packed,name=entries,proto3"        json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2496,7 +2496,7 @@ type SymmetryProto struct {
 	// A list of variable indices permutations that leave the feasible space of
 	// solution invariant. Usually, we only encode a set of generators of the
 	// group.
-	Permutations []*SparsePermutationProto `protobuf:"bytes,1,rep,name=permutations,proto3" json:"permutations,omitempty"`
+	Permutations []*SparsePermutationProto `                   protobuf:"bytes,1,rep,name=permutations,proto3" json:"permutations,omitempty"`
 	// An orbitope is a special symmetry structure of the solution space. If the
 	// variable indices are arranged in a matrix (with no duplicates), then any
 	// permutation of the columns will be a valid permutation of the feasible
@@ -2506,7 +2506,7 @@ type SymmetryProto struct {
 	// where for each node i, you have j booleans to indicate its color. If the
 	// variables color_of_i_is_j are arranged in a matrix[i][j], then any columns
 	// permutations leave the problem invariant.
-	Orbitopes     []*DenseMatrixProto `protobuf:"bytes,2,rep,name=orbitopes,proto3" json:"orbitopes,omitempty"`
+	Orbitopes     []*DenseMatrixProto `                   protobuf:"bytes,2,rep,name=orbitopes,proto3"    json:"orbitopes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2559,12 +2559,12 @@ func (x *SymmetryProto) GetOrbitopes() []*DenseMatrixProto {
 type CpModelProto struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// For debug/logging only. Can be empty.
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `                   protobuf:"bytes,1,opt,name=name,proto3"                                                 json:"name,omitempty"`
 	// The associated Protos should be referred by their index in these fields.
-	Variables   []*IntegerVariableProto `protobuf:"bytes,2,rep,name=variables,proto3" json:"variables,omitempty"`
-	Constraints []*ConstraintProto      `protobuf:"bytes,3,rep,name=constraints,proto3" json:"constraints,omitempty"`
+	Variables   []*IntegerVariableProto `                   protobuf:"bytes,2,rep,name=variables,proto3"                                            json:"variables,omitempty"`
+	Constraints []*ConstraintProto      `                   protobuf:"bytes,3,rep,name=constraints,proto3"                                          json:"constraints,omitempty"`
 	// The objective to minimize. Can be empty for pure decision problems.
-	Objective *CpObjectiveProto `protobuf:"bytes,4,opt,name=objective,proto3" json:"objective,omitempty"`
+	Objective *CpObjectiveProto `                   protobuf:"bytes,4,opt,name=objective,proto3"                                            json:"objective,omitempty"`
 	// Advanced usage.
 	// It is invalid to have both an objective and a floating point objective.
 	//
@@ -2578,7 +2578,7 @@ type CpModelProto struct {
 	// Note that even if the precision is bad, the returned objective_value and
 	// best_objective_bound will be computed correctly. So at the end of the solve
 	// you can check the gap if you only want precise optimal.
-	FloatingPointObjective *FloatObjectiveProto `protobuf:"bytes,9,opt,name=floating_point_objective,json=floatingPointObjective,proto3" json:"floating_point_objective,omitempty"`
+	FloatingPointObjective *FloatObjectiveProto `                   protobuf:"bytes,9,opt,name=floating_point_objective,json=floatingPointObjective,proto3" json:"floating_point_objective,omitempty"`
 	// Defines the strategy that the solver should follow when the
 	// search_branching parameter is set to FIXED_SEARCH. Note that this strategy
 	// is also used as a heuristic when we are not in fixed search.
@@ -2588,7 +2588,7 @@ type CpModelProto struct {
 	// to instantiate the variables that do not appear. Thus, at the end of the
 	// search, not all variables may be fixed. Currently, we will set them to
 	// their lower bound in the solution.
-	SearchStrategy []*DecisionStrategyProto `protobuf:"bytes,5,rep,name=search_strategy,json=searchStrategy,proto3" json:"search_strategy,omitempty"`
+	SearchStrategy []*DecisionStrategyProto `                   protobuf:"bytes,5,rep,name=search_strategy,json=searchStrategy,proto3"                  json:"search_strategy,omitempty"`
 	// Solution hint.
 	//
 	// If a feasible or almost-feasible solution to the problem is already known,
@@ -2600,7 +2600,7 @@ type CpModelProto struct {
 	// solver. There is also no guarantee that the solver will use this hint or
 	// try to return a solution "close" to this assignment in case of multiple
 	// optimal solutions.
-	SolutionHint *PartialVariableAssignment `protobuf:"bytes,6,opt,name=solution_hint,json=solutionHint,proto3" json:"solution_hint,omitempty"`
+	SolutionHint *PartialVariableAssignment `                   protobuf:"bytes,6,opt,name=solution_hint,json=solutionHint,proto3"                      json:"solution_hint,omitempty"`
 	// A list of literals. The model will be solved assuming all these literals
 	// are true. Compared to just fixing the domain of these literals, using this
 	// mechanism is slower but allows in case the model is INFEASIBLE to get a
@@ -2614,13 +2614,13 @@ type CpModelProto struct {
 	//
 	// Such infeasibility explanation will be available in the
 	// sufficient_assumptions_for_infeasibility response field.
-	Assumptions []int32 `protobuf:"varint,7,rep,packed,name=assumptions,proto3" json:"assumptions,omitempty"`
+	Assumptions []int32 `                   protobuf:"varint,7,rep,packed,name=assumptions,proto3"                                  json:"assumptions,omitempty"`
 	// For now, this is not meant to be filled by a client writing a model, but
 	// by our preprocessing step.
 	//
 	// Information about the symmetries of the feasible solution space.
 	// These usually leaves the objective invariant.
-	Symmetry      *SymmetryProto `protobuf:"bytes,8,opt,name=symmetry,proto3" json:"symmetry,omitempty"`
+	Symmetry      *SymmetryProto `                   protobuf:"bytes,8,opt,name=symmetry,proto3"                                             json:"symmetry,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2722,7 +2722,7 @@ func (x *CpModelProto) GetSymmetry() *SymmetryProto {
 // This is used by the additional_solutions field.
 type CpSolverSolution struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Values        []int64                `protobuf:"varint,1,rep,packed,name=values,proto3" json:"values,omitempty"`
+	Values        []int64                `                   protobuf:"varint,1,rep,packed,name=values,proto3" json:"values,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2770,28 +2770,28 @@ func (x *CpSolverSolution) GetValues() []int64 {
 type CpSolverResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The status of the solve.
-	Status CpSolverStatus `protobuf:"varint,1,opt,name=status,proto3,enum=operations_research.sat.CpSolverStatus" json:"status,omitempty"`
+	Status CpSolverStatus `                   protobuf:"varint,1,opt,name=status,proto3,enum=operations_research.sat.CpSolverStatus"                                          json:"status,omitempty"`
 	// A feasible solution to the given problem. Depending on the returned status
 	// it may be optimal or just feasible. This is in one-to-one correspondence
 	// with a CpModelProto::variables repeated field and list the values of all
 	// the variables.
-	Solution []int64 `protobuf:"varint,2,rep,packed,name=solution,proto3" json:"solution,omitempty"`
+	Solution []int64 `                   protobuf:"varint,2,rep,packed,name=solution,proto3"                                                                             json:"solution,omitempty"`
 	// Only make sense for an optimization problem. The objective value of the
 	// returned solution if it is non-empty. If there is no solution, then for a
 	// minimization problem, this will be an upper-bound of the objective of any
 	// feasible solution, and a lower-bound for a maximization problem.
-	ObjectiveValue float64 `protobuf:"fixed64,3,opt,name=objective_value,json=objectiveValue,proto3" json:"objective_value,omitempty"`
+	ObjectiveValue float64 `                   protobuf:"fixed64,3,opt,name=objective_value,json=objectiveValue,proto3"                                                        json:"objective_value,omitempty"`
 	// Only make sense for an optimization problem. A proven lower-bound on the
 	// objective for a minimization problem, or a proven upper-bound for a
 	// maximization problem.
-	BestObjectiveBound float64 `protobuf:"fixed64,4,opt,name=best_objective_bound,json=bestObjectiveBound,proto3" json:"best_objective_bound,omitempty"`
+	BestObjectiveBound float64 `                   protobuf:"fixed64,4,opt,name=best_objective_bound,json=bestObjectiveBound,proto3"                                               json:"best_objective_bound,omitempty"`
 	// If the parameter fill_additional_solutions_in_response is set, then we
 	// copy all the solutions from our internal solution pool here.
 	//
 	// Note that the one returned in the solution field will likely appear here
 	// too. Do not rely on the solutions order as it depends on our internal
 	// representation (after postsolve).
-	AdditionalSolutions []*CpSolverSolution `protobuf:"bytes,27,rep,name=additional_solutions,json=additionalSolutions,proto3" json:"additional_solutions,omitempty"`
+	AdditionalSolutions []*CpSolverSolution `                   protobuf:"bytes,27,rep,name=additional_solutions,json=additionalSolutions,proto3"                                               json:"additional_solutions,omitempty"`
 	// Advanced usage.
 	//
 	// If the option fill_tightened_domains_in_response is set, then this field
@@ -2808,7 +2808,7 @@ type CpSolverResponse struct {
 	// for the problem of finding an improving solution to the best one found so
 	// far. It might be better to solve a feasibility version if one just want to
 	// explore the feasible region.
-	TightenedVariables []*IntegerVariableProto `protobuf:"bytes,21,rep,name=tightened_variables,json=tightenedVariables,proto3" json:"tightened_variables,omitempty"`
+	TightenedVariables []*IntegerVariableProto `                   protobuf:"bytes,21,rep,name=tightened_variables,json=tightenedVariables,proto3"                                                 json:"tightened_variables,omitempty"`
 	// A subset of the model "assumptions" field. This will only be filled if the
 	// status is INFEASIBLE. This subset of assumption will be enough to still get
 	// an infeasible problem.
@@ -2828,44 +2828,44 @@ type CpSolverResponse struct {
 	// all the assumptions.
 	//
 	// TODO(user): Allows for returning multiple core at once.
-	SufficientAssumptionsForInfeasibility []int32 `protobuf:"varint,23,rep,packed,name=sufficient_assumptions_for_infeasibility,json=sufficientAssumptionsForInfeasibility,proto3" json:"sufficient_assumptions_for_infeasibility,omitempty"`
+	SufficientAssumptionsForInfeasibility []int32 `                   protobuf:"varint,23,rep,packed,name=sufficient_assumptions_for_infeasibility,json=sufficientAssumptionsForInfeasibility,proto3" json:"sufficient_assumptions_for_infeasibility,omitempty"`
 	// Contains the integer objective optimized internally. This is only filled if
 	// the problem had a floating point objective, and on the final response, not
 	// the ones given to callbacks.
-	IntegerObjective *CpObjectiveProto `protobuf:"bytes,28,opt,name=integer_objective,json=integerObjective,proto3" json:"integer_objective,omitempty"`
+	IntegerObjective *CpObjectiveProto `                   protobuf:"bytes,28,opt,name=integer_objective,json=integerObjective,proto3"                                                     json:"integer_objective,omitempty"`
 	// Advanced usage.
 	//
 	// A lower bound on the inner integer expression of the objective. This is
 	// either a bound on the expression in the returned integer_objective or on
 	// the integer expression of the original objective if the problem already has
 	// an integer objective.
-	InnerObjectiveLowerBound int64 `protobuf:"varint,29,opt,name=inner_objective_lower_bound,json=innerObjectiveLowerBound,proto3" json:"inner_objective_lower_bound,omitempty"`
+	InnerObjectiveLowerBound int64 `                   protobuf:"varint,29,opt,name=inner_objective_lower_bound,json=innerObjectiveLowerBound,proto3"                                  json:"inner_objective_lower_bound,omitempty"`
 	// Some statistics about the solve.
 	//
 	// Important: in multithread, this correspond the statistics of the first
 	// subsolver. Which is usually the one with the user defined parameters. Or
 	// the default-search if none are specified.
-	NumIntegers            int64 `protobuf:"varint,30,opt,name=num_integers,json=numIntegers,proto3" json:"num_integers,omitempty"`
-	NumBooleans            int64 `protobuf:"varint,10,opt,name=num_booleans,json=numBooleans,proto3" json:"num_booleans,omitempty"`
-	NumFixedBooleans       int64 `protobuf:"varint,31,opt,name=num_fixed_booleans,json=numFixedBooleans,proto3" json:"num_fixed_booleans,omitempty"`
-	NumConflicts           int64 `protobuf:"varint,11,opt,name=num_conflicts,json=numConflicts,proto3" json:"num_conflicts,omitempty"`
-	NumBranches            int64 `protobuf:"varint,12,opt,name=num_branches,json=numBranches,proto3" json:"num_branches,omitempty"`
-	NumBinaryPropagations  int64 `protobuf:"varint,13,opt,name=num_binary_propagations,json=numBinaryPropagations,proto3" json:"num_binary_propagations,omitempty"`
-	NumIntegerPropagations int64 `protobuf:"varint,14,opt,name=num_integer_propagations,json=numIntegerPropagations,proto3" json:"num_integer_propagations,omitempty"`
-	NumRestarts            int64 `protobuf:"varint,24,opt,name=num_restarts,json=numRestarts,proto3" json:"num_restarts,omitempty"`
-	NumLpIterations        int64 `protobuf:"varint,25,opt,name=num_lp_iterations,json=numLpIterations,proto3" json:"num_lp_iterations,omitempty"`
+	NumIntegers            int64 `                   protobuf:"varint,30,opt,name=num_integers,json=numIntegers,proto3"                                                              json:"num_integers,omitempty"`
+	NumBooleans            int64 `                   protobuf:"varint,10,opt,name=num_booleans,json=numBooleans,proto3"                                                              json:"num_booleans,omitempty"`
+	NumFixedBooleans       int64 `                   protobuf:"varint,31,opt,name=num_fixed_booleans,json=numFixedBooleans,proto3"                                                   json:"num_fixed_booleans,omitempty"`
+	NumConflicts           int64 `                   protobuf:"varint,11,opt,name=num_conflicts,json=numConflicts,proto3"                                                            json:"num_conflicts,omitempty"`
+	NumBranches            int64 `                   protobuf:"varint,12,opt,name=num_branches,json=numBranches,proto3"                                                              json:"num_branches,omitempty"`
+	NumBinaryPropagations  int64 `                   protobuf:"varint,13,opt,name=num_binary_propagations,json=numBinaryPropagations,proto3"                                         json:"num_binary_propagations,omitempty"`
+	NumIntegerPropagations int64 `                   protobuf:"varint,14,opt,name=num_integer_propagations,json=numIntegerPropagations,proto3"                                       json:"num_integer_propagations,omitempty"`
+	NumRestarts            int64 `                   protobuf:"varint,24,opt,name=num_restarts,json=numRestarts,proto3"                                                              json:"num_restarts,omitempty"`
+	NumLpIterations        int64 `                   protobuf:"varint,25,opt,name=num_lp_iterations,json=numLpIterations,proto3"                                                     json:"num_lp_iterations,omitempty"`
 	// The time counted from the beginning of the Solve() call.
-	WallTime          float64 `protobuf:"fixed64,15,opt,name=wall_time,json=wallTime,proto3" json:"wall_time,omitempty"`
-	UserTime          float64 `protobuf:"fixed64,16,opt,name=user_time,json=userTime,proto3" json:"user_time,omitempty"`
-	DeterministicTime float64 `protobuf:"fixed64,17,opt,name=deterministic_time,json=deterministicTime,proto3" json:"deterministic_time,omitempty"`
+	WallTime          float64 `                   protobuf:"fixed64,15,opt,name=wall_time,json=wallTime,proto3"                                                                   json:"wall_time,omitempty"`
+	UserTime          float64 `                   protobuf:"fixed64,16,opt,name=user_time,json=userTime,proto3"                                                                   json:"user_time,omitempty"`
+	DeterministicTime float64 `                   protobuf:"fixed64,17,opt,name=deterministic_time,json=deterministicTime,proto3"                                                 json:"deterministic_time,omitempty"`
 	// The integral of log(1 + absolute_objective_gap) over time.
-	GapIntegral float64 `protobuf:"fixed64,22,opt,name=gap_integral,json=gapIntegral,proto3" json:"gap_integral,omitempty"`
+	GapIntegral float64 `                   protobuf:"fixed64,22,opt,name=gap_integral,json=gapIntegral,proto3"                                                             json:"gap_integral,omitempty"`
 	// Additional information about how the solution was found. It also stores
 	// model or parameters errors that caused the model to be invalid.
-	SolutionInfo string `protobuf:"bytes,20,opt,name=solution_info,json=solutionInfo,proto3" json:"solution_info,omitempty"`
+	SolutionInfo string `                   protobuf:"bytes,20,opt,name=solution_info,json=solutionInfo,proto3"                                                             json:"solution_info,omitempty"`
 	// The solve log will be filled if the parameter log_to_response is set to
 	// true.
-	SolveLog      string `protobuf:"bytes,26,opt,name=solve_log,json=solveLog,proto3" json:"solve_log,omitempty"`
+	SolveLog      string `                   protobuf:"bytes,26,opt,name=solve_log,json=solveLog,proto3"                                                                     json:"solve_log,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3281,7 +3281,12 @@ var (
 
 func file_ortools_sat_cp_model_proto_rawDescGZIP() []byte {
 	file_ortools_sat_cp_model_proto_rawDescOnce.Do(func() {
-		file_ortools_sat_cp_model_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ortools_sat_cp_model_proto_rawDesc), len(file_ortools_sat_cp_model_proto_rawDesc)))
+		file_ortools_sat_cp_model_proto_rawDescData = protoimpl.X.CompressGZIP(
+			unsafe.Slice(
+				unsafe.StringData(file_ortools_sat_cp_model_proto_rawDesc),
+				len(file_ortools_sat_cp_model_proto_rawDesc),
+			),
+		)
 	})
 	return file_ortools_sat_cp_model_proto_rawDescData
 }
@@ -3290,37 +3295,99 @@ var file_ortools_sat_cp_model_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_ortools_sat_cp_model_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_ortools_sat_cp_model_proto_goTypes = []any{
 	(CpSolverStatus)(0), // 0: operations_research.sat.CpSolverStatus
-	(DecisionStrategyProto_VariableSelectionStrategy)(0), // 1: operations_research.sat.DecisionStrategyProto.VariableSelectionStrategy
-	(DecisionStrategyProto_DomainReductionStrategy)(0),   // 2: operations_research.sat.DecisionStrategyProto.DomainReductionStrategy
-	(*IntegerVariableProto)(nil),                         // 3: operations_research.sat.IntegerVariableProto
-	(*BoolArgumentProto)(nil),                            // 4: operations_research.sat.BoolArgumentProto
-	(*LinearExpressionProto)(nil),                        // 5: operations_research.sat.LinearExpressionProto
-	(*LinearArgumentProto)(nil),                          // 6: operations_research.sat.LinearArgumentProto
-	(*AllDifferentConstraintProto)(nil),                  // 7: operations_research.sat.AllDifferentConstraintProto
-	(*LinearConstraintProto)(nil),                        // 8: operations_research.sat.LinearConstraintProto
-	(*ElementConstraintProto)(nil),                       // 9: operations_research.sat.ElementConstraintProto
-	(*IntervalConstraintProto)(nil),                      // 10: operations_research.sat.IntervalConstraintProto
-	(*NoOverlapConstraintProto)(nil),                     // 11: operations_research.sat.NoOverlapConstraintProto
-	(*NoOverlap2DConstraintProto)(nil),                   // 12: operations_research.sat.NoOverlap2DConstraintProto
-	(*CumulativeConstraintProto)(nil),                    // 13: operations_research.sat.CumulativeConstraintProto
-	(*ReservoirConstraintProto)(nil),                     // 14: operations_research.sat.ReservoirConstraintProto
-	(*CircuitConstraintProto)(nil),                       // 15: operations_research.sat.CircuitConstraintProto
-	(*RoutesConstraintProto)(nil),                        // 16: operations_research.sat.RoutesConstraintProto
-	(*TableConstraintProto)(nil),                         // 17: operations_research.sat.TableConstraintProto
-	(*InverseConstraintProto)(nil),                       // 18: operations_research.sat.InverseConstraintProto
-	(*AutomatonConstraintProto)(nil),                     // 19: operations_research.sat.AutomatonConstraintProto
-	(*ListOfVariablesProto)(nil),                         // 20: operations_research.sat.ListOfVariablesProto
-	(*ConstraintProto)(nil),                              // 21: operations_research.sat.ConstraintProto
-	(*CpObjectiveProto)(nil),                             // 22: operations_research.sat.CpObjectiveProto
-	(*FloatObjectiveProto)(nil),                          // 23: operations_research.sat.FloatObjectiveProto
-	(*DecisionStrategyProto)(nil),                        // 24: operations_research.sat.DecisionStrategyProto
-	(*PartialVariableAssignment)(nil),                    // 25: operations_research.sat.PartialVariableAssignment
-	(*SparsePermutationProto)(nil),                       // 26: operations_research.sat.SparsePermutationProto
-	(*DenseMatrixProto)(nil),                             // 27: operations_research.sat.DenseMatrixProto
-	(*SymmetryProto)(nil),                                // 28: operations_research.sat.SymmetryProto
-	(*CpModelProto)(nil),                                 // 29: operations_research.sat.CpModelProto
-	(*CpSolverSolution)(nil),                             // 30: operations_research.sat.CpSolverSolution
-	(*CpSolverResponse)(nil),                             // 31: operations_research.sat.CpSolverResponse
+	(DecisionStrategyProto_VariableSelectionStrategy)(
+		0,
+	), // 1: operations_research.sat.DecisionStrategyProto.VariableSelectionStrategy
+	(DecisionStrategyProto_DomainReductionStrategy)(
+		0,
+	), // 2: operations_research.sat.DecisionStrategyProto.DomainReductionStrategy
+	(*IntegerVariableProto)(
+		nil,
+	), // 3: operations_research.sat.IntegerVariableProto
+	(*BoolArgumentProto)(
+		nil,
+	), // 4: operations_research.sat.BoolArgumentProto
+	(*LinearExpressionProto)(
+		nil,
+	), // 5: operations_research.sat.LinearExpressionProto
+	(*LinearArgumentProto)(
+		nil,
+	), // 6: operations_research.sat.LinearArgumentProto
+	(*AllDifferentConstraintProto)(
+		nil,
+	), // 7: operations_research.sat.AllDifferentConstraintProto
+	(*LinearConstraintProto)(
+		nil,
+	), // 8: operations_research.sat.LinearConstraintProto
+	(*ElementConstraintProto)(
+		nil,
+	), // 9: operations_research.sat.ElementConstraintProto
+	(*IntervalConstraintProto)(
+		nil,
+	), // 10: operations_research.sat.IntervalConstraintProto
+	(*NoOverlapConstraintProto)(
+		nil,
+	), // 11: operations_research.sat.NoOverlapConstraintProto
+	(*NoOverlap2DConstraintProto)(
+		nil,
+	), // 12: operations_research.sat.NoOverlap2DConstraintProto
+	(*CumulativeConstraintProto)(
+		nil,
+	), // 13: operations_research.sat.CumulativeConstraintProto
+	(*ReservoirConstraintProto)(
+		nil,
+	), // 14: operations_research.sat.ReservoirConstraintProto
+	(*CircuitConstraintProto)(
+		nil,
+	), // 15: operations_research.sat.CircuitConstraintProto
+	(*RoutesConstraintProto)(
+		nil,
+	), // 16: operations_research.sat.RoutesConstraintProto
+	(*TableConstraintProto)(
+		nil,
+	), // 17: operations_research.sat.TableConstraintProto
+	(*InverseConstraintProto)(
+		nil,
+	), // 18: operations_research.sat.InverseConstraintProto
+	(*AutomatonConstraintProto)(
+		nil,
+	), // 19: operations_research.sat.AutomatonConstraintProto
+	(*ListOfVariablesProto)(
+		nil,
+	), // 20: operations_research.sat.ListOfVariablesProto
+	(*ConstraintProto)(
+		nil,
+	), // 21: operations_research.sat.ConstraintProto
+	(*CpObjectiveProto)(
+		nil,
+	), // 22: operations_research.sat.CpObjectiveProto
+	(*FloatObjectiveProto)(
+		nil,
+	), // 23: operations_research.sat.FloatObjectiveProto
+	(*DecisionStrategyProto)(
+		nil,
+	), // 24: operations_research.sat.DecisionStrategyProto
+	(*PartialVariableAssignment)(
+		nil,
+	), // 25: operations_research.sat.PartialVariableAssignment
+	(*SparsePermutationProto)(
+		nil,
+	), // 26: operations_research.sat.SparsePermutationProto
+	(*DenseMatrixProto)(
+		nil,
+	), // 27: operations_research.sat.DenseMatrixProto
+	(*SymmetryProto)(
+		nil,
+	), // 28: operations_research.sat.SymmetryProto
+	(*CpModelProto)(
+		nil,
+	), // 29: operations_research.sat.CpModelProto
+	(*CpSolverSolution)(
+		nil,
+	), // 30: operations_research.sat.CpSolverSolution
+	(*CpSolverResponse)(
+		nil,
+	), // 31: operations_research.sat.CpSolverResponse
 }
 var file_ortools_sat_cp_model_proto_depIdxs = []int32{
 	5,  // 0: operations_research.sat.LinearArgumentProto.target:type_name -> operations_research.sat.LinearExpressionProto
@@ -3418,7 +3485,10 @@ func file_ortools_sat_cp_model_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ortools_sat_cp_model_proto_rawDesc), len(file_ortools_sat_cp_model_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(
+				unsafe.StringData(file_ortools_sat_cp_model_proto_rawDesc),
+				len(file_ortools_sat_cp_model_proto_rawDesc),
+			),
 			NumEnums:      3,
 			NumMessages:   29,
 			NumExtensions: 0,

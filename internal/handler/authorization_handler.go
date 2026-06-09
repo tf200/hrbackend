@@ -37,22 +37,31 @@ func (h *AuthorizationHandler) ListAuthorizations(ctx *gin.Context) {
 func (h *AuthorizationHandler) CreateAuthorization(ctx *gin.Context) {
 	var req createAuthorizationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request: name and category are required", ""))
+		ctx.JSON(
+			http.StatusBadRequest,
+			httpapi.Fail("invalid request: name and category are required", ""),
+		)
 		return
 	}
 
-	item, err := h.service.CreateAuthorization(ctx.Request.Context(), domain.CreateAuthorizationParams{
-		Name:           req.Name,
-		Category:       req.Category,
-		Description:    req.Description,
-		RequiresExpiry: req.RequiresExpiry,
-	})
+	item, err := h.service.CreateAuthorization(
+		ctx.Request.Context(),
+		domain.CreateAuthorizationParams{
+			Name:           req.Name,
+			Category:       req.Category,
+			Description:    req.Description,
+			RequiresExpiry: req.RequiresExpiry,
+		},
+	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create authorization", ""))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toAuthorizationResponse(item), "Authorization created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toAuthorizationResponse(item), "Authorization created successfully"),
+	)
 }
 
 func (h *AuthorizationHandler) UpdateAuthorization(ctx *gin.Context) {
@@ -65,16 +74,23 @@ func (h *AuthorizationHandler) UpdateAuthorization(ctx *gin.Context) {
 
 	var req createAuthorizationRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid request: name and category are required", ""))
+		ctx.JSON(
+			http.StatusBadRequest,
+			httpapi.Fail("invalid request: name and category are required", ""),
+		)
 		return
 	}
 
-	item, err := h.service.UpdateAuthorization(ctx.Request.Context(), id, domain.CreateAuthorizationParams{
-		Name:           req.Name,
-		Category:       req.Category,
-		Description:    req.Description,
-		RequiresExpiry: req.RequiresExpiry,
-	})
+	item, err := h.service.UpdateAuthorization(
+		ctx.Request.Context(),
+		id,
+		domain.CreateAuthorizationParams{
+			Name:           req.Name,
+			Category:       req.Category,
+			Description:    req.Description,
+			RequiresExpiry: req.RequiresExpiry,
+		},
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrAuthorizationNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail("authorization not found", ""))
@@ -84,5 +100,8 @@ func (h *AuthorizationHandler) UpdateAuthorization(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toAuthorizationResponse(item), "Authorization updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toAuthorizationResponse(item), "Authorization updated successfully"),
+	)
 }

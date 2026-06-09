@@ -61,7 +61,11 @@ func TestWebSocketAuthServiceIssueTicketCapsExpiryToEarlierOfTTLAndPayload(t *te
 
 			if tc.expectSource == "payload" {
 				if !result.ExpiresAt.Equal(payload.ExpiresAt) {
-					t.Fatalf("expected expires_at to match payload expiry, got %v want %v", result.ExpiresAt, payload.ExpiresAt)
+					t.Fatalf(
+						"expected expires_at to match payload expiry, got %v want %v",
+						result.ExpiresAt,
+						payload.ExpiresAt,
+					)
 				}
 			} else {
 				if result.ExpiresAt.After(start.Add(tc.ttl).Add(150 * time.Millisecond)) {
@@ -73,9 +77,14 @@ func TestWebSocketAuthServiceIssueTicketCapsExpiryToEarlierOfTTLAndPayload(t *te
 			}
 
 			if !store.issuePayload.ExpiresAt.Equal(result.ExpiresAt) {
-				t.Fatalf("expected store payload expiry %v, got %v", result.ExpiresAt, store.issuePayload.ExpiresAt)
+				t.Fatalf(
+					"expected store payload expiry %v, got %v",
+					result.ExpiresAt,
+					store.issuePayload.ExpiresAt,
+				)
 			}
-			if store.issuePayload.UserID != payload.UserID || store.issuePayload.EmployeeID != payload.EmployeeID {
+			if store.issuePayload.UserID != payload.UserID ||
+				store.issuePayload.EmployeeID != payload.EmployeeID {
 				t.Fatalf("expected user/employee IDs to be forwarded to store")
 			}
 			if store.issueTTL <= 0 {
@@ -171,7 +180,10 @@ func (f *fakeWebSocketTicketStore) Issue(
 	return f.issueTicket, nil
 }
 
-func (f *fakeWebSocketTicketStore) Consume(_ context.Context, ticket string) (*domain.WebSocketTicketPayload, error) {
+func (f *fakeWebSocketTicketStore) Consume(
+	_ context.Context,
+	ticket string,
+) (*domain.WebSocketTicketPayload, error) {
 	f.consumeCalled++
 	f.consumeTicket = ticket
 

@@ -24,7 +24,12 @@ func RegisterOrganizationRoutes(
 		requirePermission(permission.Location.Create),
 		handler.CreateOrganization,
 	)
-	rg.GET("/organizations", auth, requirePermission(permission.Location.View), handler.ListOrganizations)
+	rg.GET(
+		"/organizations",
+		auth,
+		requirePermission(permission.Location.View),
+		handler.ListOrganizations,
+	)
 	rg.GET(
 		"/organizations/:id",
 		auth,
@@ -49,11 +54,36 @@ func RegisterOrganizationRoutes(
 		requirePermission(permission.Location.View),
 		handler.ListOrganizationLocations,
 	)
-	rg.GET("/locations", auth, requirePermission(permission.Location.View), handler.ListAllLocations)
-	rg.GET("/locations/:id", auth, requirePermission(permission.Location.View), handler.GetLocationByID)
-	rg.PUT("/locations/:id", auth, requirePermission(permission.Location.Update), handler.UpdateLocation)
-	rg.DELETE("/locations/:id", auth, requirePermission(permission.Location.Delete), handler.DeleteLocation)
-	rg.POST("/locations/:id/shifts", auth, requirePermission(permission.Shift.Create), handler.CreateShift)
+	rg.GET(
+		"/locations",
+		auth,
+		requirePermission(permission.Location.View),
+		handler.ListAllLocations,
+	)
+	rg.GET(
+		"/locations/:id",
+		auth,
+		requirePermission(permission.Location.View),
+		handler.GetLocationByID,
+	)
+	rg.PUT(
+		"/locations/:id",
+		auth,
+		requirePermission(permission.Location.Update),
+		handler.UpdateLocation,
+	)
+	rg.DELETE(
+		"/locations/:id",
+		auth,
+		requirePermission(permission.Location.Delete),
+		handler.DeleteLocation,
+	)
+	rg.POST(
+		"/locations/:id/shifts",
+		auth,
+		requirePermission(permission.Shift.Create),
+		handler.CreateShift,
+	)
 	rg.GET(
 		"/locations/:id/shifts",
 		auth,
@@ -537,6 +567,9 @@ func (h *OrganizationHandler) ListOrganizationalRoles(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toOrganizationalRoleResponses(roles), "Organizational roles retrieved successfully"),
+		httpapi.OK(
+			toOrganizationalRoleResponses(roles),
+			"Organizational roles retrieved successfully",
+		),
 	)
 }

@@ -265,7 +265,9 @@ func toDomainTrainingCatalogItem(item db.TrainingCatalogItem) *domain.TrainingCa
 	}
 }
 
-func toDomainEmployeeTrainingAssignment(item db.EmployeeTrainingAssignment) *domain.EmployeeTrainingAssignment {
+func toDomainEmployeeTrainingAssignment(
+	item db.EmployeeTrainingAssignment,
+) *domain.EmployeeTrainingAssignment {
 	return &domain.EmployeeTrainingAssignment{
 		ID:                   item.ID,
 		EmployeeID:           item.EmployeeID,

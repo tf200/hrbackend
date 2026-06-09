@@ -74,12 +74,19 @@ func (s LateArrivalsSeeder) Seed(ctx context.Context, env Env) error {
 	for employeeAlias, items := range arrivalsByEmployee {
 		employeeID, ok := env.State.EmployeeID(employeeAlias)
 		if !ok {
-			return fmt.Errorf("seed late_arrivals[%s]: employee alias missing in seed state", employeeAlias)
+			return fmt.Errorf(
+				"seed late_arrivals[%s]: employee alias missing in seed state",
+				employeeAlias,
+			)
 		}
 
 		existing, err := listAllLateArrivalsForEmployee(ctx, lateArrivalService, employeeID)
 		if err != nil {
-			return fmt.Errorf("seed late_arrivals[%s]: list existing arrivals: %w", employeeAlias, err)
+			return fmt.Errorf(
+				"seed late_arrivals[%s]: list existing arrivals: %w",
+				employeeAlias,
+				err,
+			)
 		}
 
 		for _, item := range items {
@@ -109,7 +116,12 @@ func (s LateArrivalsSeeder) Seed(ctx context.Context, env Env) error {
 				continue
 			}
 
-			createdByEmployeeID, err := resolveRequiredEmployeeAliasForLateArrival(env, item.CreatedByEmployeeAlias, item.Alias, "created_by")
+			createdByEmployeeID, err := resolveRequiredEmployeeAliasForLateArrival(
+				env,
+				item.CreatedByEmployeeAlias,
+				item.Alias,
+				"created_by",
+			)
 			if err != nil {
 				return err
 			}
@@ -148,7 +160,10 @@ func exactLateArrivalExists(existing []domain.LateArrivalListItem, item LateArri
 	return false
 }
 
-func findComparableLateArrival(existing []domain.LateArrivalListItem, item LateArrivalSeed) *domain.LateArrival {
+func findComparableLateArrival(
+	existing []domain.LateArrivalListItem,
+	item LateArrivalSeed,
+) *domain.LateArrival {
 	for _, current := range existing {
 		if sameLateArrival(current.LateArrival, item, false) {
 			copy := current.LateArrival
@@ -159,7 +174,9 @@ func findComparableLateArrival(existing []domain.LateArrivalListItem, item LateA
 }
 
 func sameLateArrival(current domain.LateArrival, item LateArrivalSeed, includeReason bool) bool {
-	if !lateArrivalDateOnlyUTC(current.ArrivalDate).Equal(lateArrivalDateOnlyUTC(item.ArrivalDate)) {
+	if !lateArrivalDateOnlyUTC(
+		current.ArrivalDate,
+	).Equal(lateArrivalDateOnlyUTC(item.ArrivalDate)) {
 		return false
 	}
 	if strings.TrimSpace(current.ArrivalTime) != normalizeLateArrivalTime(item.ArrivalTime) {
@@ -195,7 +212,11 @@ func resolveRequiredEmployeeAliasForLateArrival(
 ) (uuid.UUID, error) {
 	resolved := normalizeOptionalAlias(alias)
 	if resolved == "" {
-		return uuid.Nil, fmt.Errorf("seed late_arrivals[%s]: %s employee alias is required", arrivalAlias, fieldName)
+		return uuid.Nil, fmt.Errorf(
+			"seed late_arrivals[%s]: %s employee alias is required",
+			arrivalAlias,
+			fieldName,
+		)
 	}
 	employeeID, ok := env.State.EmployeeID(resolved)
 	if !ok {

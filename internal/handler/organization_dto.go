@@ -473,7 +473,9 @@ type organizationalRoleResponse struct {
 	IsActive    bool      `json:"is_active"`
 }
 
-func toListOrganizationalRolesParams(req listOrganizationalRolesRequest) domain.ListOrganizationalRolesParams {
+func toListOrganizationalRolesParams(
+	req listOrganizationalRolesRequest,
+) domain.ListOrganizationalRolesParams {
 	return domain.ListOrganizationalRolesParams{
 		ActiveOnly: req.ActiveOnly,
 		Search:     req.Search,

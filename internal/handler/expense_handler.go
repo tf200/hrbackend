@@ -39,7 +39,11 @@ func (h *ExpenseHandler) CreateExpenseRequestByAdmin(ctx *gin.Context) {
 		return
 	}
 
-	item, err := h.service.CreateExpenseRequestByAdmin(ctx.Request.Context(), adminEmployeeID, params)
+	item, err := h.service.CreateExpenseRequestByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -58,7 +62,10 @@ func (h *ExpenseHandler) ListExpenseRequests(ctx *gin.Context) {
 		return
 	}
 
-	page, err := h.service.ListExpenseRequests(ctx.Request.Context(), toListExpenseRequestsParams(req))
+	page, err := h.service.ListExpenseRequests(
+		ctx.Request.Context(),
+		toListExpenseRequestsParams(req),
+	)
 	if err != nil {
 		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -224,7 +231,10 @@ func (h *ExpenseHandler) MarkExpenseRequestReimbursedByAdmin(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toExpenseRequestResponse(*item), "Expense request marked reimbursed successfully"),
+		httpapi.OK(
+			toExpenseRequestResponse(*item),
+			"Expense request marked reimbursed successfully",
+		),
 	)
 }
 

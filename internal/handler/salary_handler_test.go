@@ -83,7 +83,8 @@ func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 	if service.ortOverviewParams.Limit != 5 || service.ortOverviewParams.Offset != 0 {
 		t.Fatalf("unexpected pagination params: %#v", service.ortOverviewParams)
 	}
-	if service.ortOverviewParams.EmployeeSearch == nil || *service.ortOverviewParams.EmployeeSearch != "annie" {
+	if service.ortOverviewParams.EmployeeSearch == nil ||
+		*service.ortOverviewParams.EmployeeSearch != "annie" {
 		t.Fatalf("unexpected employee_search: %#v", service.ortOverviewParams.EmployeeSearch)
 	}
 
@@ -169,7 +170,8 @@ func TestSalaryHandlerGetORTRulesSuccess(t *testing.T) {
 	if len(response.Data.Rules) != 1 {
 		t.Fatalf("expected 1 rule, got %d", len(response.Data.Rules))
 	}
-	if response.Data.Rules[0].RatePercent != 25 || response.Data.Rules[0].IrregularHoursProfile == nil {
+	if response.Data.Rules[0].RatePercent != 25 ||
+		response.Data.Rules[0].IrregularHoursProfile == nil {
 		t.Fatalf("unexpected rule payload: %#v", response.Data.Rules[0])
 	}
 }
@@ -208,7 +210,8 @@ func TestSalaryHandlerGetFixedPayrollMonthStatsSuccess(t *testing.T) {
 	if service.fixedStatsParams.Month.Format("2006-01") != "2026-04" {
 		t.Fatalf("unexpected parsed month: %s", service.fixedStatsParams.Month.Format("2006-01"))
 	}
-	if service.fixedStatsParams.EmployeeSearch == nil || *service.fixedStatsParams.EmployeeSearch != "ann" {
+	if service.fixedStatsParams.EmployeeSearch == nil ||
+		*service.fixedStatsParams.EmployeeSearch != "ann" {
 		t.Fatalf("unexpected employee_search: %#v", service.fixedStatsParams.EmployeeSearch)
 	}
 
@@ -227,7 +230,8 @@ func TestSalaryHandlerGetFixedPayrollMonthStatsSuccess(t *testing.T) {
 	if response.Message != "Fixed payroll month stats retrieved successfully" {
 		t.Fatalf("unexpected message: %s", response.Message)
 	}
-	if response.Data.Month != "2026-04" || response.Data.TotalORTPay != 200 || response.Data.TotalGrossPayable != 4575.5 {
+	if response.Data.Month != "2026-04" || response.Data.TotalORTPay != 200 ||
+		response.Data.TotalGrossPayable != 4575.5 {
 		t.Fatalf("unexpected stats response: %#v", response.Data)
 	}
 }
@@ -250,7 +254,11 @@ func TestSalaryHandlerGetOnCallPayrollMonthStatsSuccess(t *testing.T) {
 	handler := NewSalaryHandler(service)
 	router.GET("/payroll-month-summary/on-call/stats", handler.GetOnCallPayrollMonthStats)
 
-	req := httptest.NewRequest(http.MethodGet, "/payroll-month-summary/on-call/stats?month=2026-04", nil)
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/payroll-month-summary/on-call/stats?month=2026-04",
+		nil,
+	)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, req)
@@ -341,7 +349,10 @@ func TestSalaryPageResponseIncludesLiveLineItemLabelAndBreakMinutes(t *testing.T
 		t.Fatalf("expected gross amount 229.69, got %.2f", shift.GrossAmount)
 	}
 	if shift.BaseAmount != nil {
-		t.Fatalf("expected shift base amount to be nil for permanent contract, got %.2f", *shift.BaseAmount)
+		t.Fatalf(
+			"expected shift base amount to be nil for permanent contract, got %.2f",
+			*shift.BaseAmount,
+		)
 	}
 	if response.BaseEarnings.Amount == nil || *response.BaseEarnings.Amount != 183.75 {
 		t.Fatalf("expected base earnings amount to be 183.75, got %v", response.BaseEarnings.Amount)
@@ -373,17 +384,17 @@ func TestResolvePayrollPeriodRequestDefaultsToCurrentPeriod(t *testing.T) {
 }
 
 type fakeSalaryService struct {
-	ortOverviewPage   *domain.PayrollMonthORTOverviewPage
-	ortOverviewParams domain.PayrollMonthORTOverviewParams
-	ortOverviewErr    error
-	ortRules          *domain.ORTRulesResponse
-	ortRulesErr       error
-	fixedStats        *domain.PayrollMonthStats
-	fixedStatsParams  domain.PayrollMonthSummaryParams
-	fixedStatsErr     error
-	onCallStats       *domain.PayrollMonthStats
-	onCallStatsParams domain.PayrollMonthSummaryParams
-	onCallStatsErr    error
+	ortOverviewPage      *domain.PayrollMonthORTOverviewPage
+	ortOverviewParams    domain.PayrollMonthORTOverviewParams
+	ortOverviewErr       error
+	ortRules             *domain.ORTRulesResponse
+	ortRulesErr          error
+	fixedStats           *domain.PayrollMonthStats
+	fixedStatsParams     domain.PayrollMonthSummaryParams
+	fixedStatsErr        error
+	onCallStats          *domain.PayrollMonthStats
+	onCallStatsParams    domain.PayrollMonthSummaryParams
+	onCallStatsErr       error
 	salaryPageData       *domain.SalaryPageData
 	salaryPageErr        error
 	salaryPageEmployeeID uuid.UUID
@@ -592,7 +603,9 @@ func TestSalaryHandlerGetMySalaryPageSuccess(t *testing.T) {
 	router := gin.New()
 	handler := NewSalaryHandler(service)
 	router.GET("/salary-page/mine", func(ctx *gin.Context) {
-		ctx.Request = ctx.Request.WithContext(middleware.WithEmployeeID(ctx.Request.Context(), employeeID))
+		ctx.Request = ctx.Request.WithContext(
+			middleware.WithEmployeeID(ctx.Request.Context(), employeeID),
+		)
 		ctx.Next()
 	}, handler.GetMySalaryPage)
 

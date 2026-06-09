@@ -11,95 +11,95 @@ import (
 )
 
 type createEmployeeContractRequest struct {
-	JobTitle             string     `json:"job_title" binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
-	DepartmentID         uuid.UUID  `json:"department_id" binding:"required"`
-	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
+	JobTitle             string     `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID  `json:"department_id"          binding:"required"`
+	LocationID           uuid.UUID  `json:"location_id"            binding:"required"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
-	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
-	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
-	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
-	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        string     `json:"roster_free_day" binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
-	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+	ContractType         string     `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
+	StartDate            string     `json:"start_date"             binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        string     `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
+	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
 }
 
 type updateContractRequest struct {
-	JobTitle             *string    `json:"job_title" binding:"omitempty,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	JobTitle             *string    `json:"job_title"              binding:"omitempty,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
 	DepartmentID         *uuid.UUID `json:"department_id"`
 	LocationID           *uuid.UUID `json:"location_id"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
-	ContractType         *string    `json:"contract_type" binding:"omitempty,oneof=permanent temporary on_call"`
-	StartDate            *string    `json:"start_date" binding:"omitempty,datetime=2006-01-02"`
-	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
-	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        *string    `json:"roster_free_day" binding:"omitempty,oneof=monday tuesday wednesday thursday friday saturday sunday"`
-	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+	ContractType         *string    `json:"contract_type"          binding:"omitempty,oneof=permanent temporary on_call"`
+	StartDate            *string    `json:"start_date"             binding:"omitempty,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        *string    `json:"roster_free_day"        binding:"omitempty,oneof=monday tuesday wednesday thursday friday saturday sunday"`
+	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
 }
 
 type createContractRequest struct {
-	JobTitle             string     `json:"job_title" binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
-	DepartmentID         uuid.UUID  `json:"department_id" binding:"required"`
-	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
+	JobTitle             string     `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID  `json:"department_id"          binding:"required"`
+	LocationID           uuid.UUID  `json:"location_id"            binding:"required"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
-	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
-	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
-	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
-	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        string     `json:"roster_free_day" binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
-	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+	ContractType         string     `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
+	StartDate            string     `json:"start_date"             binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        string     `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
+	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
 }
 
 type createContractAmendmentRequest struct {
-	JobTitle             string     `json:"job_title" binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
-	DepartmentID         uuid.UUID  `json:"department_id" binding:"required"`
-	LocationID           uuid.UUID  `json:"location_id" binding:"required"`
+	JobTitle             string     `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
+	DepartmentID         uuid.UUID  `json:"department_id"          binding:"required"`
+	LocationID           uuid.UUID  `json:"location_id"            binding:"required"`
 	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
-	ContractType         string     `json:"contract_type" binding:"required,oneof=permanent temporary on_call"`
-	StartDate            string     `json:"start_date" binding:"required,datetime=2006-01-02"`
-	ContractEndDate      *string    `json:"contract_end_date" binding:"omitempty,datetime=2006-01-02"`
-	HoursPerWeek         *float64   `json:"hours_per_week" binding:"omitempty,min=0,max=40"`
-	RosterFreeDay        string     `json:"roster_free_day" binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
-	WageTaxTable         *string    `json:"wage_tax_table" binding:"omitempty,oneof=white_table green_table"`
+	ContractType         string     `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
+	StartDate            string     `json:"start_date"             binding:"required,datetime=2006-01-02"`
+	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
+	HoursPerWeek         *float64   `json:"hours_per_week"         binding:"omitempty,min=0,max=40"`
+	RosterFreeDay        string     `json:"roster_free_day"        binding:"required,oneof=monday tuesday wednesday thursday friday saturday sunday"`
+	WageTaxTable         *string    `json:"wage_tax_table"         binding:"omitempty,oneof=white_table green_table"`
 	ChangeReason         *string    `json:"change_reason"`
 }
 
 type createEmployeeSalaryAssignmentRequest struct {
 	SalaryScaleStepID uuid.UUID `json:"salary_scale_step_id" binding:"required"`
-	EffectiveFrom     *string   `json:"effective_from" binding:"omitempty,datetime=2006-01-02"`
-	EffectiveTo       *string   `json:"effective_to" binding:"omitempty,datetime=2006-01-02"`
+	EffectiveFrom     *string   `json:"effective_from"       binding:"omitempty,datetime=2006-01-02"`
+	EffectiveTo       *string   `json:"effective_to"         binding:"omitempty,datetime=2006-01-02"`
 }
 
 type updateEmployeeSalaryAssignmentRequest struct {
 	SalaryScaleStepID uuid.UUID `json:"salary_scale_step_id" binding:"required"`
-	EffectiveFrom     string    `json:"effective_from" binding:"required,datetime=2006-01-02"`
-	EffectiveTo       *string   `json:"effective_to" binding:"omitempty,datetime=2006-01-02"`
+	EffectiveFrom     string    `json:"effective_from"       binding:"required,datetime=2006-01-02"`
+	EffectiveTo       *string   `json:"effective_to"         binding:"omitempty,datetime=2006-01-02"`
 }
 
 type createEmployeeRequest struct {
 	EmployeeNumber      *string                                `json:"employee_number"`
 	EmploymentNumber    *string                                `json:"employment_number"`
-	FirstName           string                                 `json:"first_name"              binding:"required"`
-	LastName            string                                 `json:"last_name"               binding:"required"`
-	Bsn                 string                                 `json:"bsn"                     binding:"required"`
-	Street              string                                 `json:"street"                  binding:"required"`
-	HouseNumber         string                                 `json:"house_number"            binding:"required"`
+	FirstName           string                                 `json:"first_name"                  binding:"required"`
+	LastName            string                                 `json:"last_name"                   binding:"required"`
+	Bsn                 string                                 `json:"bsn"                         binding:"required"`
+	Street              string                                 `json:"street"                      binding:"required"`
+	HouseNumber         string                                 `json:"house_number"                binding:"required"`
 	HouseNumberAddition *string                                `json:"house_number_addition"`
-	PostalCode          string                                 `json:"postal_code"             binding:"required"`
-	City                string                                 `json:"city"                    binding:"required"`
+	PostalCode          string                                 `json:"postal_code"                 binding:"required"`
+	City                string                                 `json:"city"                        binding:"required"`
 	ManagerEmployeeID   *uuid.UUID                             `json:"manager_employee_id"`
 	PrivateEmailAddress *string                                `json:"private_email_address"`
-	WorkEmailAddress    string                                 `json:"work_email_address"      binding:"required,email"`
+	WorkEmailAddress    string                                 `json:"work_email_address"          binding:"required,email"`
 	WorkPhoneNumber     *string                                `json:"work_phone_number"`
 	PrivatePhoneNumber  *string                                `json:"private_phone_number"`
-	DateOfBirth         *string                                `json:"date_of_birth" binding:"omitempty,datetime=2006-01-02"`
+	DateOfBirth         *string                                `json:"date_of_birth"               binding:"omitempty,datetime=2006-01-02"`
 	HomeTelephoneNumber *string                                `json:"home_telephone_number"`
-	Gender              string                                 `json:"gender"                  binding:"required,oneof=male female not_specified"`
-	RoleID              uuid.UUID                              `json:"role_id"                 binding:"required"`
+	Gender              string                                 `json:"gender"                      binding:"required,oneof=male female not_specified"`
+	RoleID              uuid.UUID                              `json:"role_id"                     binding:"required"`
 	Contract            *createEmployeeContractRequest         `json:"contract,omitempty"`
 	SalaryAssignment    *createEmployeeSalaryAssignmentRequest `json:"salary_assignment,omitempty"`
-	AttachmentIDs       []uuid.UUID                            `json:"attachment_ids"          binding:"omitempty"`
-	Qualifications      []createQualificationRequest           `json:"qualifications,omitempty" binding:"dive"`
-	Authorizations      []createEmployeeAuthorizationRequest   `json:"authorizations,omitempty" binding:"dive"`
+	AttachmentIDs       []uuid.UUID                            `json:"attachment_ids"              binding:"omitempty"`
+	Qualifications      []createQualificationRequest           `json:"qualifications,omitempty"    binding:"dive"`
+	Authorizations      []createEmployeeAuthorizationRequest   `json:"authorizations,omitempty"    binding:"dive"`
 }
 
 type updateEmployeeRequest struct {
@@ -115,12 +115,12 @@ type updateEmployeeRequest struct {
 	EmployeeNumber      *string                                `json:"employee_number"`
 	EmploymentNumber    *string                                `json:"employment_number"`
 	PrivateEmailAddress *string                                `json:"private_email_address"`
-	WorkEmailAddress    *string                                `json:"work_email_address" binding:"omitempty,email"`
+	WorkEmailAddress    *string                                `json:"work_email_address"          binding:"omitempty,email"`
 	PrivatePhoneNumber  *string                                `json:"private_phone_number"`
 	WorkPhoneNumber     *string                                `json:"work_phone_number"`
 	DateOfBirth         *string                                `json:"date_of_birth"`
 	HomeTelephoneNumber *string                                `json:"home_telephone_number"`
-	Gender              *string                                `json:"gender" binding:"omitempty,oneof=male female not_specified"`
+	Gender              *string                                `json:"gender"                      binding:"omitempty,oneof=male female not_specified"`
 	RoleID              *uuid.UUID                             `json:"role_id"`
 	SalaryAssignment    *updateEmployeeSalaryAssignmentRequest `json:"salary_assignment,omitempty"`
 	OutOfService        *bool                                  `json:"out_of_service"`
@@ -132,7 +132,7 @@ type listEmployeesRequest struct {
 	IncludeArchived     *bool      `form:"is_archived"`
 	IncludeOutOfService *bool      `form:"out_of_service"`
 	LocationID          *uuid.UUID `form:"location_id,parser=encoding.TextUnmarshaler"`
-	ContractType        *string    `form:"contract_type" binding:"omitempty,oneof=permanent temporary on_call"`
+	ContractType        *string    `form:"contract_type"                               binding:"omitempty,oneof=permanent temporary on_call"`
 	Search              *string    `form:"search"`
 }
 
@@ -206,7 +206,7 @@ type searchEmployeesRequest struct {
 }
 
 type resetPasswordRequest struct {
-	Generated *bool   `json:"generated" binding:"required"`
+	Generated *bool   `json:"generated"  binding:"required"`
 	Password  *string `json:"password"`
 	SendEmail bool    `json:"send_email"`
 }
@@ -537,7 +537,9 @@ func toCreateNewContractParams(req createContractRequest) domain.CreateNewContra
 	}
 }
 
-func toCreateContractAmendmentParams(req createContractAmendmentRequest) domain.CreateContractAmendmentParams {
+func toCreateContractAmendmentParams(
+	req createContractAmendmentRequest,
+) domain.CreateContractAmendmentParams {
 	startDate, _ := parseDate(req.StartDate)
 	contractEndDate, _ := parseDatePtr(req.ContractEndDate)
 
@@ -672,7 +674,9 @@ func toCreateQualificationParams(req createQualificationRequest) domain.CreateQu
 	}
 }
 
-func toCreateQualificationsParams(req []createQualificationRequest) ([]domain.CreateQualificationParams, error) {
+func toCreateQualificationsParams(
+	req []createQualificationRequest,
+) ([]domain.CreateQualificationParams, error) {
 	out := make([]domain.CreateQualificationParams, len(req))
 	for i, r := range req {
 		qualificationID, err := uuid.Parse(r.QualificationID)
@@ -709,7 +713,9 @@ func toUpdateQualificationParams(req updateQualificationRequest) domain.UpdateQu
 	}
 }
 
-func toCreateEmployeeAuthorizationsParams(req []createEmployeeAuthorizationRequest) ([]domain.CreateEmployeeAuthorizationParams, error) {
+func toCreateEmployeeAuthorizationsParams(
+	req []createEmployeeAuthorizationRequest,
+) ([]domain.CreateEmployeeAuthorizationParams, error) {
 	out := make([]domain.CreateEmployeeAuthorizationParams, len(req))
 	for i, r := range req {
 		authorizationID, err := uuid.Parse(r.AuthorizationID)
@@ -734,7 +740,9 @@ func toCreateEmployeeAuthorizationsParams(req []createEmployeeAuthorizationReque
 	return out, nil
 }
 
-func toCreateEmployeeAuthorizationParams(req createEmployeeAuthorizationRequest) domain.CreateEmployeeAuthorizationParams {
+func toCreateEmployeeAuthorizationParams(
+	req createEmployeeAuthorizationRequest,
+) domain.CreateEmployeeAuthorizationParams {
 	grantedDate, _ := parseDate(req.GrantedDate)
 	expiryDate, _ := parseDate(req.ExpiryDate)
 
@@ -746,7 +754,9 @@ func toCreateEmployeeAuthorizationParams(req createEmployeeAuthorizationRequest)
 	}
 }
 
-func toUpdateEmployeeAuthorizationParams(req updateEmployeeAuthorizationRequest) domain.UpdateEmployeeAuthorizationParams {
+func toUpdateEmployeeAuthorizationParams(
+	req updateEmployeeAuthorizationRequest,
+) domain.UpdateEmployeeAuthorizationParams {
 	var grantedDate *time.Time
 	if req.GrantedDate != nil {
 		d, _ := parseDate(*req.GrantedDate)
@@ -767,7 +777,9 @@ func toUpdateEmployeeAuthorizationParams(req updateEmployeeAuthorizationRequest)
 	}
 }
 
-func toEmployeeAttachmentDetailResponse(a *domain.EmployeeAttachmentDetail) employeeAttachmentDetailResponse {
+func toEmployeeAttachmentDetailResponse(
+	a *domain.EmployeeAttachmentDetail,
+) employeeAttachmentDetailResponse {
 	return employeeAttachmentDetailResponse{
 		ID:           a.ID,
 		AttachmentID: a.AttachmentID,
@@ -836,14 +848,18 @@ func toEmployeeDetailResponse(emp *domain.EmployeeDetail) employeeDetailResponse
 		HoursPendingApproval:         emp.HoursPendingApproval,
 		TotalHoursWorkedThisYear:     emp.TotalHoursWorkedThisYear,
 		LastPerformanceReviewScore:   emp.LastPerformanceReviewScore,
-		SalaryAssignment:             toEmployeeSalaryAssignmentDetailResponse(emp.SalaryAssignment),
-		Attachments:                  attachments,
-		Qualifications:               qualifications,
-		Authorizations:               authorizations,
+		SalaryAssignment: toEmployeeSalaryAssignmentDetailResponse(
+			emp.SalaryAssignment,
+		),
+		Attachments:    attachments,
+		Qualifications: qualifications,
+		Authorizations: authorizations,
 	}
 }
 
-func toEmployeeContractDetailResponse(contract *domain.EmployeeContractDetail) *employeeContractDetailResponse {
+func toEmployeeContractDetailResponse(
+	contract *domain.EmployeeContractDetail,
+) *employeeContractDetailResponse {
 	if contract == nil {
 		return nil
 	}
@@ -871,7 +887,9 @@ func toEmployeeContractDetailResponse(contract *domain.EmployeeContractDetail) *
 	}
 }
 
-func toEmployeeSalaryAssignmentDetailResponse(salary *domain.EmployeeSalaryAssignmentDetail) *employeeSalaryAssignmentDetailResponse {
+func toEmployeeSalaryAssignmentDetailResponse(
+	salary *domain.EmployeeSalaryAssignmentDetail,
+) *employeeSalaryAssignmentDetailResponse {
 	if salary == nil {
 		return nil
 	}
@@ -981,7 +999,9 @@ func toQualificationResponse(qualification *domain.Qualification) qualificationR
 	}
 }
 
-func toEmployeeAuthorizationResponse(a *domain.EmployeeAuthorization) employeeAuthorizationResponse {
+func toEmployeeAuthorizationResponse(
+	a *domain.EmployeeAuthorization,
+) employeeAuthorizationResponse {
 	return employeeAuthorizationResponse{
 		ID:              a.ID,
 		EmployeeID:      a.EmployeeID,

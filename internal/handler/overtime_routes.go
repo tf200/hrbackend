@@ -12,7 +12,12 @@ func RegisterOvertimeRoutes(
 	auth gin.HandlerFunc,
 	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
-	rg.POST("/overtime-entries", auth, requirePermission(permission.Overtime.Create), handler.CreateOvertimeEntry)
+	rg.POST(
+		"/overtime-entries",
+		auth,
+		requirePermission(permission.Overtime.Create),
+		handler.CreateOvertimeEntry,
+	)
 	rg.POST(
 		"/overtime-entries/admin",
 		auth,

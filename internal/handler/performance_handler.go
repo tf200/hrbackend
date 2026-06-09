@@ -28,7 +28,13 @@ func (h *PerformanceHandler) ListAssessmentCatalog(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceAssessmentCatalogResponse(items), "Assessment catalog retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPerformanceAssessmentCatalogResponse(items),
+			"Assessment catalog retrieved successfully",
+		),
+	)
 }
 
 func (h *PerformanceHandler) CreateAssessment(ctx *gin.Context) {
@@ -99,7 +105,10 @@ func (h *PerformanceHandler) GetAssessmentByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceAssessmentResponse(item), "Assessment retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPerformanceAssessmentResponse(item), "Assessment retrieved successfully"),
+	)
 }
 
 func (h *PerformanceHandler) DeleteAssessment(ctx *gin.Context) {
@@ -115,7 +124,10 @@ func (h *PerformanceHandler) DeleteAssessment(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(gin.H{"deleted": deleted}, "Assessment deleted successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(gin.H{"deleted": deleted}, "Assessment deleted successfully"),
+	)
 }
 
 func (h *PerformanceHandler) ListAssessmentScores(ctx *gin.Context) {
@@ -131,7 +143,13 @@ func (h *PerformanceHandler) ListAssessmentScores(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceAssessmentScoreResponses(items), "Assessment scores retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPerformanceAssessmentScoreResponses(items),
+			"Assessment scores retrieved successfully",
+		),
+	)
 }
 
 func (h *PerformanceHandler) ListWorkAssignments(ctx *gin.Context) {
@@ -175,7 +193,13 @@ func (h *PerformanceHandler) GetWorkAssignmentByID(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceWorkAssignmentResponse(item), "Work assignment retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPerformanceWorkAssignmentResponse(item),
+			"Work assignment retrieved successfully",
+		),
+	)
 }
 
 func (h *PerformanceHandler) DecideWorkAssignment(ctx *gin.Context) {
@@ -201,7 +225,13 @@ func (h *PerformanceHandler) DecideWorkAssignment(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceWorkAssignmentResponse(item), "Work assignment decided successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPerformanceWorkAssignmentResponse(item),
+			"Work assignment decided successfully",
+		),
+	)
 }
 
 func (h *PerformanceHandler) ListUpcoming(ctx *gin.Context) {
@@ -222,7 +252,13 @@ func (h *PerformanceHandler) ListUpcoming(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceUpcomingResponses(items), "Upcoming assessments retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPerformanceUpcomingResponses(items),
+			"Upcoming assessments retrieved successfully",
+		),
+	)
 }
 
 func (h *PerformanceHandler) SendUpcomingInvitations(ctx *gin.Context) {
@@ -242,7 +278,13 @@ func (h *PerformanceHandler) SendUpcomingInvitations(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(sendPerformanceUpcomingInvitationsResponse{SentCount: sentCount}, "Invitations queued successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			sendPerformanceUpcomingInvitationsResponse{SentCount: sentCount},
+			"Invitations queued successfully",
+		),
+	)
 }
 
 func (h *PerformanceHandler) GetMine(ctx *gin.Context) {
@@ -277,7 +319,10 @@ func (h *PerformanceHandler) GetMine(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceMineResponse(mine), "My performance retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPerformanceMineResponse(mine), "My performance retrieved successfully"),
+	)
 }
 
 func (h *PerformanceHandler) GetStats(ctx *gin.Context) {
@@ -287,7 +332,10 @@ func (h *PerformanceHandler) GetStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPerformanceStatsResponse(stats), "Performance stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toPerformanceStatsResponse(stats), "Performance stats retrieved successfully"),
+	)
 }
 
 func mapPerformanceErrorStatus(err error) int {

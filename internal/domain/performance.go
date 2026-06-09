@@ -235,15 +235,27 @@ type DecidePerformanceWorkAssignmentParams struct {
 }
 
 type PerformanceTxRepository interface {
-	GetActiveEmployeeName(ctx context.Context, employeeID uuid.UUID) (*PerformanceEmployeeName, error)
+	GetActiveEmployeeName(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*PerformanceEmployeeName, error)
 	CreateAssessment(
 		ctx context.Context,
 		params CreatePerformanceAssessmentRecordParams,
 		employeeName PerformanceEmployeeName,
 	) (*PerformanceAssessment, error)
-	CreateAssessmentScore(ctx context.Context, assessmentID uuid.UUID, score CreatePerformanceAssessmentScoreParams) error
+	CreateAssessmentScore(
+		ctx context.Context,
+		assessmentID uuid.UUID,
+		score CreatePerformanceAssessmentScoreParams,
+	) error
 	GetWorkAssignmentStatusForUpdate(ctx context.Context, id uuid.UUID) (string, error)
-	UpdateWorkAssignmentDecision(ctx context.Context, id uuid.UUID, status string, feedback *string) error
+	UpdateWorkAssignmentDecision(
+		ctx context.Context,
+		id uuid.UUID,
+		status string,
+		feedback *string,
+	) error
 }
 
 type PerformanceRepository interface {
@@ -255,27 +267,39 @@ type PerformanceRepository interface {
 	) (*PerformanceAssessmentPage, error)
 	GetAssessmentByID(ctx context.Context, id uuid.UUID) (*PerformanceAssessment, error)
 	DeleteAssessment(ctx context.Context, id uuid.UUID) (bool, error)
-	ListAssessmentScores(ctx context.Context, assessmentID uuid.UUID) ([]PerformanceAssessmentScore, error)
+	ListAssessmentScores(
+		ctx context.Context,
+		assessmentID uuid.UUID,
+	) ([]PerformanceAssessmentScore, error)
 	ListWorkAssignments(
 		ctx context.Context,
 		params ListPerformanceWorkAssignmentsParams,
 	) (*PerformanceWorkAssignmentPage, error)
 	GetWorkAssignmentByID(ctx context.Context, id uuid.UUID) (*PerformanceWorkAssignment, error)
 	ListUpcoming(ctx context.Context, windowDays int) ([]PerformanceUpcomingItem, error)
-	GetMineReviewContext(ctx context.Context, employeeID uuid.UUID) (*PerformanceUpcomingItem, error)
+	GetMineReviewContext(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) (*PerformanceUpcomingItem, error)
 	GetStats(ctx context.Context) (*PerformanceStats, error)
 }
 
 type PerformanceService interface {
 	ListAssessmentCatalog(ctx context.Context) ([]PerformanceDomain, error)
-	CreateAssessment(ctx context.Context, params CreatePerformanceAssessmentParams) (*PerformanceAssessment, error)
+	CreateAssessment(
+		ctx context.Context,
+		params CreatePerformanceAssessmentParams,
+	) (*PerformanceAssessment, error)
 	ListAssessments(
 		ctx context.Context,
 		params ListPerformanceAssessmentsParams,
 	) (*PerformanceAssessmentPage, error)
 	GetAssessmentByID(ctx context.Context, id uuid.UUID) (*PerformanceAssessment, error)
 	DeleteAssessment(ctx context.Context, id uuid.UUID) (bool, error)
-	ListAssessmentScores(ctx context.Context, assessmentID uuid.UUID) ([]PerformanceAssessmentScore, error)
+	ListAssessmentScores(
+		ctx context.Context,
+		assessmentID uuid.UUID,
+	) ([]PerformanceAssessmentScore, error)
 	ListWorkAssignments(
 		ctx context.Context,
 		params ListPerformanceWorkAssignmentsParams,

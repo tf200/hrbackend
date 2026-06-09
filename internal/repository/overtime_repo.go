@@ -133,12 +133,15 @@ func (r *OvertimeRepository) ListMyOvertimeEntries(
 	ctx context.Context,
 	params domain.ListMyOvertimeEntriesParams,
 ) (*domain.OvertimeEntryPage, error) {
-	rows, err := r.store.ListMyOvertimeEntriesPaginated(ctx, db.ListMyOvertimeEntriesPaginatedParams{
-		EmployeeID:  params.EmployeeID,
-		Status:      toDBOvertimeStatusPtr(params.Status),
-		LimitCount:  params.Limit,
-		OffsetCount: params.Offset,
-	})
+	rows, err := r.store.ListMyOvertimeEntriesPaginated(
+		ctx,
+		db.ListMyOvertimeEntriesPaginatedParams{
+			EmployeeID:  params.EmployeeID,
+			Status:      toDBOvertimeStatusPtr(params.Status),
+			LimitCount:  params.Limit,
+			OffsetCount: params.Offset,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -468,7 +471,9 @@ func toDomainOvertimeEntryFromRejectRow(row db.RejectOvertimeEntryRow) domain.Ov
 	)
 }
 
-func toDomainOvertimeEntryFromUpdateByAdminRow(row db.UpdateOvertimeEntryByAdminRow) domain.OvertimeEntry {
+func toDomainOvertimeEntryFromUpdateByAdminRow(
+	row db.UpdateOvertimeEntryByAdminRow,
+) domain.OvertimeEntry {
 	return buildDomainOvertimeEntry(
 		row.ID,
 		row.EmployeeID,

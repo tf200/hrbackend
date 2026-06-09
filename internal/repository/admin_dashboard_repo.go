@@ -65,7 +65,9 @@ func (r *AdminDashboardRepository) ListRecentEmployees(
 	}, nil
 }
 
-func (r *AdminDashboardRepository) GetFullTimeEmployeeBreakdowns(ctx context.Context) (*domain.FullTimeEmployeeBreakdowns, error) {
+func (r *AdminDashboardRepository) GetFullTimeEmployeeBreakdowns(
+	ctx context.Context,
+) (*domain.FullTimeEmployeeBreakdowns, error) {
 	deptRows, err := r.store.ListFullTimeEmployeesByDepartment(ctx)
 	if err != nil {
 		return nil, err

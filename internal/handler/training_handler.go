@@ -44,7 +44,10 @@ func (h *TrainingHandler) CreateTrainingCatalogItem(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusCreated,
-		httpapi.OK(toTrainingCatalogItemResponse(item), "Training catalog item created successfully"),
+		httpapi.OK(
+			toTrainingCatalogItemResponse(item),
+			"Training catalog item created successfully",
+		),
 	)
 }
 
@@ -106,7 +109,10 @@ func (h *TrainingHandler) CancelTrainingAssignment(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toTrainingAssignmentResponse(item), "Training assignment cancelled successfully"),
+		httpapi.OK(
+			toTrainingAssignmentResponse(item),
+			"Training assignment cancelled successfully",
+		),
 	)
 }
 
@@ -181,7 +187,10 @@ func (h *TrainingHandler) GetMyTrainingAssignmentsCounts(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toMyTrainingAssignmentsCountsResponse(counts), "My training assignments counts retrieved successfully"),
+		httpapi.OK(
+			toMyTrainingAssignmentsCountsResponse(counts),
+			"My training assignments counts retrieved successfully",
+		),
 	)
 }
 

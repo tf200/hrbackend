@@ -12,11 +12,31 @@ func RegisterEmployeeRoutes(
 	auth gin.HandlerFunc,
 	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
-	rg.POST("/employees", auth, requirePermission(permission.Employee.Create), handler.CreateEmployee)
+	rg.POST(
+		"/employees",
+		auth,
+		requirePermission(permission.Employee.Create),
+		handler.CreateEmployee,
+	)
 	rg.GET("/employees", auth, requirePermission(permission.Employee.View), handler.ListEmployee)
-	rg.GET("/employees/counts", auth, requirePermission(permission.Employee.View), handler.GetEmployeeCounts)
-	rg.GET("/employees/:id", auth, requirePermission(permission.Employee.View), handler.GetEmployeeByID)
-	rg.PUT("/employees/:id", auth, requirePermission(permission.Employee.Update), handler.UpdateEmployee)
+	rg.GET(
+		"/employees/counts",
+		auth,
+		requirePermission(permission.Employee.View),
+		handler.GetEmployeeCounts,
+	)
+	rg.GET(
+		"/employees/:id",
+		auth,
+		requirePermission(permission.Employee.View),
+		handler.GetEmployeeByID,
+	)
+	rg.PUT(
+		"/employees/:id",
+		auth,
+		requirePermission(permission.Employee.Update),
+		handler.UpdateEmployee,
+	)
 	rg.GET("/employees/profile", auth, handler.GetEmployeeProfile)
 	rg.POST(
 		"/employees/:id/education",

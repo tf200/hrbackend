@@ -18,7 +18,9 @@ type listSalaryScaleStepsRequest struct {
 	ActiveOnly bool `form:"active_only"`
 }
 
-func toListSalaryScaleStepsParams(req listSalaryScaleStepsRequest) domain.ListSalaryScaleStepsParams {
+func toListSalaryScaleStepsParams(
+	req listSalaryScaleStepsRequest,
+) domain.ListSalaryScaleStepsParams {
 	return domain.ListSalaryScaleStepsParams{
 		ActiveOnly: req.ActiveOnly,
 	}
@@ -93,11 +95,11 @@ func toSalaryScaleStepsResponse(result *domain.SalaryScaleStepsResult) salarySca
 }
 
 type closePayPeriodRequest struct {
-	EmployeeID   uuid.UUID  `json:"employee_id"    binding:"required"`
-	PeriodStart  string     `json:"period_start"   binding:"required,datetime=2006-01-02"`
-	PeriodEnd    string     `json:"period_end"     binding:"required,datetime=2006-01-02"`
-	PayrollGroup string     `json:"payroll_group"  binding:"omitempty,oneof=fixed on_call"`
-	CutoffAt     *time.Time `json:"cutoff_at"      binding:"omitempty"`
+	EmployeeID   uuid.UUID  `json:"employee_id"   binding:"required"`
+	PeriodStart  string     `json:"period_start"  binding:"required,datetime=2006-01-02"`
+	PeriodEnd    string     `json:"period_end"    binding:"required,datetime=2006-01-02"`
+	PayrollGroup string     `json:"payroll_group" binding:"omitempty,oneof=fixed on_call"`
+	CutoffAt     *time.Time `json:"cutoff_at"     binding:"omitempty"`
 }
 type closePayrollMonthRequest struct {
 	Month       string      `json:"month"        binding:"required,datetime=2006-01"`
@@ -142,8 +144,8 @@ type payrollMonthDetailRequest struct {
 }
 type previewPayrollRequest struct {
 	EmployeeID  uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler" binding:"required"`
-	PeriodStart string    `form:"period_start"                                 binding:"required,datetime=2006-01-02"`
-	PeriodEnd   string    `form:"period_end"                                   binding:"required,datetime=2006-01-02"`
+	PeriodStart string    `form:"period_start"                                binding:"required,datetime=2006-01-02"`
+	PeriodEnd   string    `form:"period_end"                                  binding:"required,datetime=2006-01-02"`
 }
 type previewMyPayrollRequest struct {
 	PeriodStart string `form:"period_start" binding:"required,datetime=2006-01-02"`
@@ -476,7 +478,10 @@ func toClosePayPeriodParams(req closePayPeriodRequest) (domain.ClosePayPeriodPar
 	}, nil
 }
 
-func toClosePayrollMonthParams(req closePayrollMonthRequest, payrollGroup string) (domain.ClosePayrollMonthParams, error) {
+func toClosePayrollMonthParams(
+	req closePayrollMonthRequest,
+	payrollGroup string,
+) (domain.ClosePayrollMonthParams, error) {
 	month, err := time.Parse(payoutMonthLayout, req.Month)
 	if err != nil {
 		return domain.ClosePayrollMonthParams{}, err
@@ -489,7 +494,10 @@ func toClosePayrollMonthParams(req closePayrollMonthRequest, payrollGroup string
 	}, nil
 }
 
-func toClosePayrollPeriodParams(req closePayrollPeriodRequest, payrollGroup string) (domain.ClosePayrollPeriodParams, error) {
+func toClosePayrollPeriodParams(
+	req closePayrollPeriodRequest,
+	payrollGroup string,
+) (domain.ClosePayrollPeriodParams, error) {
 	periodStart, periodEnd, err := resolvePayrollPeriodRequest(req.PeriodStart, req.Date)
 	if err != nil {
 		return domain.ClosePayrollPeriodParams{}, err
@@ -576,7 +584,9 @@ func toPayrollPeriodStatsParams(
 	}, nil
 }
 
-func resolvePayrollPeriodRequest(periodStartValue, dateValue *string) (time.Time, time.Time, error) {
+func resolvePayrollPeriodRequest(
+	periodStartValue, dateValue *string,
+) (time.Time, time.Time, error) {
 	periodStartProvided := periodStartValue != nil && strings.TrimSpace(*periodStartValue) != ""
 	dateProvided := dateValue != nil && strings.TrimSpace(*dateValue) != ""
 	if periodStartProvided && dateProvided {
@@ -588,7 +598,9 @@ func resolvePayrollPeriodRequest(periodStartValue, dateValue *string) (time.Time
 			return time.Time{}, time.Time{}, err
 		}
 		if !domain.IsPayrollPeriodStart(periodStart) {
-			return time.Time{}, time.Time{}, fmt.Errorf("period_start must be the first day of a payroll period")
+			return time.Time{}, time.Time{}, fmt.Errorf(
+				"period_start must be the first day of a payroll period",
+			)
 		}
 		return periodStart.UTC(), periodStart.UTC().AddDate(0, 0, 27), nil
 	}
@@ -604,7 +616,9 @@ func resolvePayrollPeriodRequest(periodStartValue, dateValue *string) (time.Time
 	return periodStart, periodEnd, nil
 }
 
-func toPayrollPeriodOptionResponses(items []domain.PayrollPeriodOption) []payrollPeriodOptionResponse {
+func toPayrollPeriodOptionResponses(
+	items []domain.PayrollPeriodOption,
+) []payrollPeriodOptionResponse {
 	results := make([]payrollPeriodOptionResponse, len(items))
 	for i, item := range items {
 		periodStart := item.PeriodStart.UTC().Format(timeEntryDateLayout)
@@ -727,7 +741,10 @@ func toPayPeriodResponse(item *domain.PayPeriod) payPeriodResponse {
 		LineItems:            lines,
 	}
 }
-func toPayrollMonthCloseResultResponse(result *domain.PayrollMonthCloseResult) payrollMonthCloseResultResponse {
+
+func toPayrollMonthCloseResultResponse(
+	result *domain.PayrollMonthCloseResult,
+) payrollMonthCloseResultResponse {
 	items := make([]payrollMonthCloseEmployeeResultResponse, len(result.Items))
 	for i, item := range result.Items {
 		items[i] = payrollMonthCloseEmployeeResultResponse{
@@ -750,7 +767,10 @@ func toPayrollMonthCloseResultResponse(result *domain.PayrollMonthCloseResult) p
 		Items:        items,
 	}
 }
-func toPayrollPeriodCloseResultResponse(result *domain.PayrollPeriodCloseResult) payrollPeriodCloseResultResponse {
+
+func toPayrollPeriodCloseResultResponse(
+	result *domain.PayrollPeriodCloseResult,
+) payrollPeriodCloseResultResponse {
 	items := make([]payrollMonthCloseEmployeeResultResponse, len(result.Items))
 	for i, item := range result.Items {
 		items[i] = payrollMonthCloseEmployeeResultResponse{
@@ -1031,7 +1051,11 @@ func toPayrollMonthStatsResponse(stats *domain.PayrollMonthStats) payrollMonthSt
 		TotalGrossPayable:           stats.TotalGrossPayable,
 	}
 }
-func toPayrollPeriodStatsResponse(stats *domain.PayrollMonthStats, periodStart, periodEnd time.Time) payrollPeriodStatsResponse {
+
+func toPayrollPeriodStatsResponse(
+	stats *domain.PayrollMonthStats,
+	periodStart, periodEnd time.Time,
+) payrollPeriodStatsResponse {
 	return payrollPeriodStatsResponse{
 		PeriodStart:                 periodStart.UTC().Format(timeEntryDateLayout),
 		PeriodEnd:                   periodEnd.UTC().Format(timeEntryDateLayout),
@@ -1119,7 +1143,10 @@ func toORTRulesResponse(item *domain.ORTRulesResponse) ortRulesResponse {
 	}
 	return ortRulesResponse{Rules: rules}
 }
-func toPayrollMonthDetailRequest(req payrollMonthDetailRequest) (uuid.UUID, time.Time, *string, error) {
+
+func toPayrollMonthDetailRequest(
+	req payrollMonthDetailRequest,
+) (uuid.UUID, time.Time, *string, error) {
 	employeeRaw := strings.TrimSpace(req.EmployeeID)
 	employeeRaw = strings.TrimPrefix(employeeRaw, "[")
 	employeeRaw = strings.TrimSuffix(employeeRaw, "]")
@@ -1181,7 +1208,9 @@ func normalizePayrollContractType(value *string) (*string, error) {
 		value := "ZZP"
 		return &value, nil
 	default:
-		return nil, fmt.Errorf("invalid contract_type, expected loondienst, ZZP, permanent, temporary, or on_call")
+		return nil, fmt.Errorf(
+			"invalid contract_type, expected loondienst, ZZP, permanent, temporary, or on_call",
+		)
 	}
 }
 func formatPayoutSalaryMonth(value *time.Time) *string {
@@ -1597,7 +1626,12 @@ func buildSalaryPageORTBuckets(data *domain.SalaryPageData) []salaryPageMultipli
 	}
 	if data.PayPeriod != nil {
 		for _, item := range data.PayPeriod.LineItems {
-			accumulate(item.AppliedRatePercent, item.MinutesWorked, item.BaseAmount, item.PremiumAmount)
+			accumulate(
+				item.AppliedRatePercent,
+				item.MinutesWorked,
+				item.BaseAmount,
+				item.PremiumAmount,
+			)
 		}
 	} else if data.Preview != nil {
 		for _, item := range data.Preview.LineItems {
@@ -1733,7 +1767,10 @@ func lineItemsFromPayPeriod(items []domain.PayPeriodLineItem) []salaryPageLineIt
 	}
 	return res
 }
-func buildSalaryPagePendingEntries(items []domain.PayrollPendingEntryDetail) []salaryPagePendingEntryResponse {
+
+func buildSalaryPagePendingEntries(
+	items []domain.PayrollPendingEntryDetail,
+) []salaryPagePendingEntryResponse {
 	res := make([]salaryPagePendingEntryResponse, 0, len(items))
 	for _, item := range items {
 		res = append(res, salaryPagePendingEntryResponse{

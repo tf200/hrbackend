@@ -61,22 +61,43 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 		}
 		requesterAlias := strings.TrimSpace(item.RequesterEmployeeAlias)
 		if requesterAlias == "" {
-			return fmt.Errorf("seed shift_swap_requests[%s]: requester employee alias is required", alias)
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: requester employee alias is required",
+				alias,
+			)
 		}
 		if strings.TrimSpace(item.RecipientEmployeeAlias) == "" {
-			return fmt.Errorf("seed shift_swap_requests[%s]: recipient employee alias is required", alias)
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: recipient employee alias is required",
+				alias,
+			)
 		}
 		if strings.TrimSpace(item.RequesterScheduleAlias) == "" {
-			return fmt.Errorf("seed shift_swap_requests[%s]: requester schedule alias is required", alias)
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: requester schedule alias is required",
+				alias,
+			)
 		}
 		if strings.TrimSpace(item.RecipientScheduleAlias) == "" {
-			return fmt.Errorf("seed shift_swap_requests[%s]: recipient schedule alias is required", alias)
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: recipient schedule alias is required",
+				alias,
+			)
 		}
 		if !isValidSeedShiftSwapStatus(item.Status) {
-			return fmt.Errorf("seed shift_swap_requests[%s]: unsupported status %q", alias, item.Status)
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: unsupported status %q",
+				alias,
+				item.Status,
+			)
 		}
-		if wantsShiftSwapAdminDecision(item.Status) && normalizeOptionalAlias(item.AdminEmployeeAlias) == "" {
-			return fmt.Errorf("seed shift_swap_requests[%s]: admin employee alias is required for status %q", alias, item.Status)
+		if wantsShiftSwapAdminDecision(item.Status) &&
+			normalizeOptionalAlias(item.AdminEmployeeAlias) == "" {
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: admin employee alias is required for status %q",
+				alias,
+				item.Status,
+			)
 		}
 		requestsByRequester[requesterAlias] = append(requestsByRequester[requesterAlias], item)
 	}
@@ -92,11 +113,17 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 
 		existing, err := scheduleService.ListMyShiftSwapRequests(ctx, requesterEmployeeID, nil)
 		if err != nil {
-			return fmt.Errorf("seed shift_swap_requests[%s]: list existing requests: %w", requesterAlias, err)
+			return fmt.Errorf(
+				"seed shift_swap_requests[%s]: list existing requests: %w",
+				requesterAlias,
+				err,
+			)
 		}
 
 		for _, item := range items {
-			requesterScheduleID, ok := env.State.ScheduleID(strings.TrimSpace(item.RequesterScheduleAlias))
+			requesterScheduleID, ok := env.State.ScheduleID(
+				strings.TrimSpace(item.RequesterScheduleAlias),
+			)
 			if !ok {
 				return fmt.Errorf(
 					"seed shift_swap_requests[%s]: requester schedule alias %q missing in seed state",
@@ -104,7 +131,9 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 					item.RequesterScheduleAlias,
 				)
 			}
-			recipientScheduleID, ok := env.State.ScheduleID(strings.TrimSpace(item.RecipientScheduleAlias))
+			recipientScheduleID, ok := env.State.ScheduleID(
+				strings.TrimSpace(item.RecipientScheduleAlias),
+			)
 			if !ok {
 				return fmt.Errorf(
 					"seed shift_swap_requests[%s]: recipient schedule alias %q missing in seed state",
@@ -112,7 +141,9 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 					item.RecipientScheduleAlias,
 				)
 			}
-			recipientEmployeeID, ok := env.State.EmployeeID(strings.TrimSpace(item.RecipientEmployeeAlias))
+			recipientEmployeeID, ok := env.State.EmployeeID(
+				strings.TrimSpace(item.RecipientEmployeeAlias),
+			)
 			if !ok {
 				return fmt.Errorf(
 					"seed shift_swap_requests[%s]: recipient employee alias %q missing in seed state",
@@ -121,7 +152,14 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 				)
 			}
 
-			if exactShiftSwapRequestExists(existing, requesterEmployeeID, recipientEmployeeID, requesterScheduleID, recipientScheduleID, item) {
+			if exactShiftSwapRequestExists(
+				existing,
+				requesterEmployeeID,
+				recipientEmployeeID,
+				requesterScheduleID,
+				recipientScheduleID,
+				item,
+			) {
 				continue
 			}
 
@@ -133,25 +171,40 @@ func (s ShiftSwapRequestsSeeder) Seed(ctx context.Context, env Env) error {
 				recipientScheduleID,
 			)
 			if current == nil {
-				created, err := scheduleService.CreateShiftSwapRequest(ctx, requesterEmployeeID, &domain.CreateShiftSwapRequest{
-					RecipientEmployeeID: recipientEmployeeID,
-					RequesterScheduleID: requesterScheduleID,
-					RecipientScheduleID: recipientScheduleID,
-					ExpiresAt:           normalizeShiftSwapOptionalTime(item.ExpiresAt),
-				})
+				created, err := scheduleService.CreateShiftSwapRequest(
+					ctx,
+					requesterEmployeeID,
+					&domain.CreateShiftSwapRequest{
+						RecipientEmployeeID: recipientEmployeeID,
+						RequesterScheduleID: requesterScheduleID,
+						RecipientScheduleID: recipientScheduleID,
+						ExpiresAt:           normalizeShiftSwapOptionalTime(item.ExpiresAt),
+					},
+				)
 				if err != nil {
 					return fmt.Errorf("seed shift_swap_requests[%s]: create: %w", item.Alias, err)
 				}
 
 				details, err := scheduleRepo.GetShiftSwapRequestDetailsByID(ctx, created.ID)
 				if err != nil {
-					return fmt.Errorf("seed shift_swap_requests[%s]: load created request: %w", item.Alias, err)
+					return fmt.Errorf(
+						"seed shift_swap_requests[%s]: load created request: %w",
+						item.Alias,
+						err,
+					)
 				}
 				existing = append(existing, *details)
 				current = details
 			}
 
-			updated, err := advanceShiftSwapRequestToDesiredState(ctx, scheduleService, scheduleRepo, env, current, item)
+			updated, err := advanceShiftSwapRequestToDesiredState(
+				ctx,
+				scheduleService,
+				scheduleRepo,
+				env,
+				current,
+				item,
+			)
 			if err != nil {
 				return fmt.Errorf("seed shift_swap_requests[%s]: %w", item.Alias, err)
 			}
@@ -168,7 +221,15 @@ func exactShiftSwapRequestExists(
 	item ShiftSwapRequestSeed,
 ) bool {
 	for _, current := range existing {
-		if sameShiftSwapRequest(current, requesterEmployeeID, recipientEmployeeID, requesterScheduleID, recipientScheduleID, item, true) {
+		if sameShiftSwapRequest(
+			current,
+			requesterEmployeeID,
+			recipientEmployeeID,
+			requesterScheduleID,
+			recipientScheduleID,
+			item,
+			true,
+		) {
 			return true
 		}
 	}
@@ -180,10 +241,12 @@ func findComparableShiftSwapRequest(
 	requesterEmployeeID, recipientEmployeeID, requesterScheduleID, recipientScheduleID uuid.UUID,
 ) *domain.ShiftSwapResponse {
 	for _, current := range existing {
-		if current.RequesterEmployeeID != requesterEmployeeID || current.RecipientEmployeeID != recipientEmployeeID {
+		if current.RequesterEmployeeID != requesterEmployeeID ||
+			current.RecipientEmployeeID != recipientEmployeeID {
 			continue
 		}
-		if current.RequesterSchedule.ID != requesterScheduleID || current.RecipientSchedule.ID != recipientScheduleID {
+		if current.RequesterSchedule.ID != requesterScheduleID ||
+			current.RecipientSchedule.ID != recipientScheduleID {
 			continue
 		}
 		copy := current
@@ -198,10 +261,12 @@ func sameShiftSwapRequest(
 	item ShiftSwapRequestSeed,
 	includeStatus bool,
 ) bool {
-	if current.RequesterEmployeeID != requesterEmployeeID || current.RecipientEmployeeID != recipientEmployeeID {
+	if current.RequesterEmployeeID != requesterEmployeeID ||
+		current.RecipientEmployeeID != recipientEmployeeID {
 		return false
 	}
-	if current.RequesterSchedule.ID != requesterScheduleID || current.RecipientSchedule.ID != recipientScheduleID {
+	if current.RequesterSchedule.ID != requesterScheduleID ||
+		current.RecipientSchedule.ID != recipientScheduleID {
 		return false
 	}
 	if !sameOptionalTime(current.ExpiresAt, item.ExpiresAt) {
@@ -248,7 +313,12 @@ func advanceShiftSwapRequestToDesiredState(
 	}
 
 	if current.Status == "pending_admin" && wantsShiftSwapAdminDecision(desiredStatus) {
-		adminEmployeeID, err := resolveRequiredEmployeeAliasForShiftSwap(env, item.AdminEmployeeAlias, item.Alias, "admin")
+		adminEmployeeID, err := resolveRequiredEmployeeAliasForShiftSwap(
+			env,
+			item.AdminEmployeeAlias,
+			item.Alias,
+			"admin",
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -283,13 +353,20 @@ func advanceShiftSwapRequestToDesiredState(
 		item,
 		true,
 	) {
-		return nil, fmt.Errorf("existing request has status %q; refusing to mutate to %q", current.Status, desiredStatus)
+		return nil, fmt.Errorf(
+			"existing request has status %q; refusing to mutate to %q",
+			current.Status,
+			desiredStatus,
+		)
 	}
 
 	return current, nil
 }
 
-func replaceShiftSwapRequest(existing []domain.ShiftSwapResponse, updated domain.ShiftSwapResponse) {
+func replaceShiftSwapRequest(
+	existing []domain.ShiftSwapResponse,
+	updated domain.ShiftSwapResponse,
+) {
 	for idx := range existing {
 		if existing[idx].ID == updated.ID {
 			existing[idx] = updated
@@ -342,7 +419,11 @@ func resolveRequiredEmployeeAliasForShiftSwap(
 ) (uuid.UUID, error) {
 	resolved := normalizeOptionalAlias(alias)
 	if resolved == "" {
-		return uuid.Nil, fmt.Errorf("seed shift_swap_requests[%s]: %s employee alias is required", requestAlias, fieldName)
+		return uuid.Nil, fmt.Errorf(
+			"seed shift_swap_requests[%s]: %s employee alias is required",
+			requestAlias,
+			fieldName,
+		)
 	}
 	employeeID, ok := env.State.EmployeeID(resolved)
 	if !ok {

@@ -111,13 +111,16 @@ func (r *ExpenseRepository) ListMyExpenseRequests(
 	ctx context.Context,
 	params domain.ListMyExpenseRequestsParams,
 ) (*domain.ExpenseRequestPage, error) {
-	rows, err := r.store.ListMyExpenseRequestsPaginated(ctx, db.ListMyExpenseRequestsPaginatedParams{
-		EmployeeID: params.EmployeeID,
-		Status:     toDBExpenseStatusPtr(params.Status),
-		Category:   toDBExpenseCategoryPtr(params.Category),
-		Limit:      params.Limit,
-		Offset:     params.Offset,
-	})
+	rows, err := r.store.ListMyExpenseRequestsPaginated(
+		ctx,
+		db.ListMyExpenseRequestsPaginatedParams{
+			EmployeeID: params.EmployeeID,
+			Status:     toDBExpenseStatusPtr(params.Status),
+			Category:   toDBExpenseCategoryPtr(params.Category),
+			Limit:      params.Limit,
+			Offset:     params.Offset,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -246,41 +249,44 @@ func (r *expenseTxRepo) UpdateExpenseRequestEditableFields(
 	expenseRequestID uuid.UUID,
 	params domain.UpdateExpenseRequestParams,
 ) (*domain.ExpenseRequest, error) {
-	row, err := r.queries.UpdateExpenseRequestEditableFields(ctx, db.UpdateExpenseRequestEditableFieldsParams{
-		ID: expenseRequestID,
-		Category: func() *db.ExpenseRequestCategoryEnum {
-			if params.Category == nil {
-				return nil
-			}
-			category, ok := toDBExpenseCategory(*params.Category)
-			if !ok {
-				return nil
-			}
-			return enumPtr(category)
-		}(),
-		ExpenseDate: func() pgtype.Date {
-			if params.ExpenseDate == nil {
-				return pgtype.Date{}
-			}
-			return conv.PgDateFromTime(*params.ExpenseDate)
-		}(),
-		MerchantName:    params.MerchantName,
-		Description:     params.Description,
-		BusinessPurpose: params.BusinessPurpose,
-		Currency: func() *string {
-			if params.Currency == nil {
-				return nil
-			}
-			value := strings.TrimSpace(strings.ToUpper(*params.Currency))
-			return &value
-		}(),
-		ClaimedAmount: params.ClaimedAmount,
-		TravelMode:    params.TravelMode,
-		TravelFrom:    params.TravelFrom,
-		TravelTo:      params.TravelTo,
-		DistanceKm:    params.DistanceKm,
-		RequestNote:   params.RequestNote,
-	})
+	row, err := r.queries.UpdateExpenseRequestEditableFields(
+		ctx,
+		db.UpdateExpenseRequestEditableFieldsParams{
+			ID: expenseRequestID,
+			Category: func() *db.ExpenseRequestCategoryEnum {
+				if params.Category == nil {
+					return nil
+				}
+				category, ok := toDBExpenseCategory(*params.Category)
+				if !ok {
+					return nil
+				}
+				return enumPtr(category)
+			}(),
+			ExpenseDate: func() pgtype.Date {
+				if params.ExpenseDate == nil {
+					return pgtype.Date{}
+				}
+				return conv.PgDateFromTime(*params.ExpenseDate)
+			}(),
+			MerchantName:    params.MerchantName,
+			Description:     params.Description,
+			BusinessPurpose: params.BusinessPurpose,
+			Currency: func() *string {
+				if params.Currency == nil {
+					return nil
+				}
+				value := strings.TrimSpace(strings.ToUpper(*params.Currency))
+				return &value
+			}(),
+			ClaimedAmount: params.ClaimedAmount,
+			TravelMode:    params.TravelMode,
+			TravelFrom:    params.TravelFrom,
+			TravelTo:      params.TravelTo,
+			DistanceKm:    params.DistanceKm,
+			RequestNote:   params.RequestNote,
+		},
+	)
 	if err != nil {
 		if isDBNotFound(err) {
 			return nil, domain.ErrExpenseRequestNotFound

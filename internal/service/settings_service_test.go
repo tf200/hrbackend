@@ -51,9 +51,12 @@ func TestSettingsServiceUpdateOrganizationProfile(t *testing.T) {
 	repo := &fakeSettingsRepository{profile: expected}
 	service := &SettingsService{repository: repo}
 
-	profile, err := service.UpdateOrganizationProfile(context.Background(), domain.UpdateOrganizationProfileParams{
-		Name: &name,
-	})
+	profile, err := service.UpdateOrganizationProfile(
+		context.Background(),
+		domain.UpdateOrganizationProfileParams{
+			Name: &name,
+		},
+	)
 	if err != nil {
 		t.Fatalf("UpdateOrganizationProfile returned error: %v", err)
 	}

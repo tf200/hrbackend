@@ -29,7 +29,13 @@ func (s *QualificationService) ListQualificationTypes(
 	items, err := s.repo.ListQualificationTypes(ctx)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "QualificationService.ListQualificationTypes", "failed to list qualification types", err, zap.Error(err))
+			s.logger.LogError(
+				ctx,
+				"QualificationService.ListQualificationTypes",
+				"failed to list qualification types",
+				err,
+				zap.Error(err),
+			)
 		}
 		return nil, err
 	}
@@ -42,7 +48,12 @@ func (s *QualificationService) CreateQualificationType(
 ) (*domain.QualificationType, error) {
 	if strings.TrimSpace(params.Name) == "" {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "QualificationService.CreateQualificationType", "name is required", nil)
+			s.logger.LogError(
+				ctx,
+				"QualificationService.CreateQualificationType",
+				"name is required",
+				nil,
+			)
 		}
 		return nil, fmt.Errorf("name is required")
 	}
@@ -52,7 +63,13 @@ func (s *QualificationService) CreateQualificationType(
 	result, err := s.repo.CreateQualificationType(ctx, params)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "QualificationService.CreateQualificationType", "failed to create qualification type", err, zap.Error(err))
+			s.logger.LogError(
+				ctx,
+				"QualificationService.CreateQualificationType",
+				"failed to create qualification type",
+				err,
+				zap.Error(err),
+			)
 		}
 		return nil, err
 	}
@@ -66,7 +83,12 @@ func (s *QualificationService) UpdateQualificationType(
 ) (*domain.QualificationType, error) {
 	if strings.TrimSpace(params.Name) == "" {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "QualificationService.UpdateQualificationType", "name is required", nil)
+			s.logger.LogError(
+				ctx,
+				"QualificationService.UpdateQualificationType",
+				"name is required",
+				nil,
+			)
 		}
 		return nil, fmt.Errorf("name is required")
 	}
@@ -76,7 +98,13 @@ func (s *QualificationService) UpdateQualificationType(
 	result, err := s.repo.UpdateQualificationType(ctx, id, params)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "QualificationService.UpdateQualificationType", "failed to update qualification type", err, zap.Error(err))
+			s.logger.LogError(
+				ctx,
+				"QualificationService.UpdateQualificationType",
+				"failed to update qualification type",
+				err,
+				zap.Error(err),
+			)
 		}
 		return nil, err
 	}

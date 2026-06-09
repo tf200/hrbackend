@@ -29,7 +29,13 @@ func (s *AuthorizationService) ListAuthorizations(
 	items, err := s.repo.ListAuthorizations(ctx)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.ListAuthorizations", "failed to list authorizations", err, zap.Error(err))
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.ListAuthorizations",
+				"failed to list authorizations",
+				err,
+				zap.Error(err),
+			)
 		}
 		return nil, err
 	}
@@ -42,13 +48,23 @@ func (s *AuthorizationService) CreateAuthorization(
 ) (*domain.Authorization, error) {
 	if strings.TrimSpace(params.Name) == "" {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.CreateAuthorization", "name is required", nil)
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.CreateAuthorization",
+				"name is required",
+				nil,
+			)
 		}
 		return nil, fmt.Errorf("name is required")
 	}
 	if strings.TrimSpace(params.Category) == "" {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.CreateAuthorization", "category is required", nil)
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.CreateAuthorization",
+				"category is required",
+				nil,
+			)
 		}
 		return nil, fmt.Errorf("category is required")
 	}
@@ -56,7 +72,13 @@ func (s *AuthorizationService) CreateAuthorization(
 	result, err := s.repo.CreateAuthorization(ctx, params)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.CreateAuthorization", "failed to create authorization", err, zap.Error(err))
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.CreateAuthorization",
+				"failed to create authorization",
+				err,
+				zap.Error(err),
+			)
 		}
 		return nil, err
 	}
@@ -70,13 +92,23 @@ func (s *AuthorizationService) UpdateAuthorization(
 ) (*domain.Authorization, error) {
 	if strings.TrimSpace(params.Name) == "" {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.UpdateAuthorization", "name is required", nil)
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.UpdateAuthorization",
+				"name is required",
+				nil,
+			)
 		}
 		return nil, fmt.Errorf("name is required")
 	}
 	if strings.TrimSpace(params.Category) == "" {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.UpdateAuthorization", "category is required", nil)
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.UpdateAuthorization",
+				"category is required",
+				nil,
+			)
 		}
 		return nil, fmt.Errorf("category is required")
 	}
@@ -84,7 +116,13 @@ func (s *AuthorizationService) UpdateAuthorization(
 	result, err := s.repo.UpdateAuthorization(ctx, id, params)
 	if err != nil {
 		if s.logger != nil {
-			s.logger.LogError(ctx, "AuthorizationService.UpdateAuthorization", "failed to update authorization", err, zap.Error(err))
+			s.logger.LogError(
+				ctx,
+				"AuthorizationService.UpdateAuthorization",
+				"failed to update authorization",
+				err,
+				zap.Error(err),
+			)
 		}
 		return nil, err
 	}

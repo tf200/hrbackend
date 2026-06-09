@@ -57,8 +57,8 @@ type listPerformanceWorkAssignmentsRequest struct {
 	httpapi.PageRequest
 	EmployeeID *uuid.UUID `form:"employee_id,parser=encoding.TextUnmarshaler"`
 	Status     *string    `form:"status"`
-	DueBefore  *string    `form:"due_before" binding:"omitempty,datetime=2006-01-02"`
-	DueAfter   *string    `form:"due_after"  binding:"omitempty,datetime=2006-01-02"`
+	DueBefore  *string    `form:"due_before"                                  binding:"omitempty,datetime=2006-01-02"`
+	DueAfter   *string    `form:"due_after"                                   binding:"omitempty,datetime=2006-01-02"`
 }
 
 type decidePerformanceWorkAssignmentRequest struct {
@@ -76,7 +76,7 @@ type sendPerformanceUpcomingInvitationsRequest struct {
 }
 
 type getPerformanceMineRequest struct {
-	Limit              *int32 `form:"limit" binding:"omitempty,min=1,max=100"`
+	Limit              *int32 `form:"limit"               binding:"omitempty,min=1,max=100"`
 	IncludeScores      *bool  `form:"include_scores"`
 	IncludeAssignments *bool  `form:"include_assignments"`
 }
@@ -312,7 +312,9 @@ func toDecidePerformanceWorkAssignmentParams(
 	}
 }
 
-func toPerformanceAssessmentResponse(item *domain.PerformanceAssessment) performanceAssessmentResponse {
+func toPerformanceAssessmentResponse(
+	item *domain.PerformanceAssessment,
+) performanceAssessmentResponse {
 	return performanceAssessmentResponse{
 		ID:             item.ID,
 		Employee:       gin.H{"id": item.EmployeeID, "name": item.EmployeeName},
@@ -325,7 +327,9 @@ func toPerformanceAssessmentResponse(item *domain.PerformanceAssessment) perform
 	}
 }
 
-func toPerformanceAssessmentResponses(items []domain.PerformanceAssessment) []performanceAssessmentResponse {
+func toPerformanceAssessmentResponses(
+	items []domain.PerformanceAssessment,
+) []performanceAssessmentResponse {
 	results := make([]performanceAssessmentResponse, len(items))
 	for i, item := range items {
 		results[i] = toPerformanceAssessmentResponse(&item)

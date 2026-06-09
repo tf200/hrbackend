@@ -120,19 +120,30 @@ func (s *EmployeeService) CreateEmployee(
 		if err := validateContractHours(params.Contract.ContractType, params.Contract.HoursPerWeek); err != nil {
 			return nil, fmt.Errorf("%w: %w", domain.ErrContractChangeInvalid, err)
 		}
-		if params.Contract.ContractEndDate != nil && params.Contract.ContractEndDate.Before(params.Contract.StartDate) {
-			return nil, fmt.Errorf("%w: contract_end_date cannot be before start_date", domain.ErrContractChangeInvalid)
+		if params.Contract.ContractEndDate != nil &&
+			params.Contract.ContractEndDate.Before(params.Contract.StartDate) {
+			return nil, fmt.Errorf(
+				"%w: contract_end_date cannot be before start_date",
+				domain.ErrContractChangeInvalid,
+			)
 		}
 	}
 	if params.SalaryAssignment != nil {
 		if params.SalaryAssignment.EffectiveFrom == nil {
 			if params.Contract == nil {
-				return nil, fmt.Errorf("%w: salary effective_from is required without contract", domain.ErrContractChangeInvalid)
+				return nil, fmt.Errorf(
+					"%w: salary effective_from is required without contract",
+					domain.ErrContractChangeInvalid,
+				)
 			}
 			params.SalaryAssignment.EffectiveFrom = &params.Contract.StartDate
 		}
-		if params.SalaryAssignment.EffectiveTo != nil && !params.SalaryAssignment.EffectiveTo.After(*params.SalaryAssignment.EffectiveFrom) {
-			return nil, fmt.Errorf("%w: salary effective_to must be after effective_from", domain.ErrContractChangeInvalid)
+		if params.SalaryAssignment.EffectiveTo != nil &&
+			!params.SalaryAssignment.EffectiveTo.After(*params.SalaryAssignment.EffectiveFrom) {
+			return nil, fmt.Errorf(
+				"%w: salary effective_to must be after effective_from",
+				domain.ErrContractChangeInvalid,
+			)
 		}
 	}
 	hashedPassword, err := password.HashPassword(params.UserPassword)
@@ -169,7 +180,12 @@ func (s *EmployeeService) CreateEmployee(
 		}
 
 		if params.SalaryAssignment != nil {
-			_, err = tx.CreateEmployeeSalaryAssignment(ctx, empID, contractID, *params.SalaryAssignment)
+			_, err = tx.CreateEmployeeSalaryAssignment(
+				ctx,
+				empID,
+				contractID,
+				*params.SalaryAssignment,
+			)
 			if err != nil {
 				return err
 			}
@@ -220,10 +236,17 @@ func (s *EmployeeService) UpdateEmployee(
 ) (*domain.EmployeeDetail, error) {
 	if params.SalaryAssignment != nil {
 		if params.SalaryAssignment.EffectiveFrom == nil {
-			return nil, fmt.Errorf("%w: salary effective_from is required", domain.ErrContractChangeInvalid)
+			return nil, fmt.Errorf(
+				"%w: salary effective_from is required",
+				domain.ErrContractChangeInvalid,
+			)
 		}
-		if params.SalaryAssignment.EffectiveTo != nil && !params.SalaryAssignment.EffectiveTo.After(*params.SalaryAssignment.EffectiveFrom) {
-			return nil, fmt.Errorf("%w: salary effective_to must be after effective_from", domain.ErrContractChangeInvalid)
+		if params.SalaryAssignment.EffectiveTo != nil &&
+			!params.SalaryAssignment.EffectiveTo.After(*params.SalaryAssignment.EffectiveFrom) {
+			return nil, fmt.Errorf(
+				"%w: salary effective_to must be after effective_from",
+				domain.ErrContractChangeInvalid,
+			)
 		}
 	}
 
@@ -416,7 +439,12 @@ func (s *EmployeeService) ListEmployeeAuthorizations(
 ) ([]domain.EmployeeAuthorization, error) {
 	items, err := s.repo.ListEmployeeAuthorizations(ctx, employeeID)
 	if err != nil {
-		s.logError(ctx, "ListEmployeeAuthorizations", err, zap.String("employee_id", employeeID.String()))
+		s.logError(
+			ctx,
+			"ListEmployeeAuthorizations",
+			err,
+			zap.String("employee_id", employeeID.String()),
+		)
 		return nil, err
 	}
 	return items, nil
@@ -433,7 +461,12 @@ func (s *EmployeeService) AddEmployeeAuthorizations(
 
 	count, err := s.repo.AddEmployeeAuthorizations(ctx, employeeID, params)
 	if err != nil {
-		s.logError(ctx, "AddEmployeeAuthorizations", err, zap.String("employee_id", employeeID.String()))
+		s.logError(
+			ctx,
+			"AddEmployeeAuthorizations",
+			err,
+			zap.String("employee_id", employeeID.String()),
+		)
 		return 0, err
 	}
 	return count, nil
@@ -446,7 +479,12 @@ func (s *EmployeeService) UpdateEmployeeAuthorization(
 ) (*domain.EmployeeAuthorization, error) {
 	authRecord, err := s.repo.UpdateEmployeeAuthorization(ctx, id, params)
 	if err != nil {
-		s.logError(ctx, "UpdateEmployeeAuthorization", err, zap.String("authorization_id", id.String()))
+		s.logError(
+			ctx,
+			"UpdateEmployeeAuthorization",
+			err,
+			zap.String("authorization_id", id.String()),
+		)
 		return nil, err
 	}
 	return authRecord, nil
@@ -458,7 +496,12 @@ func (s *EmployeeService) DeleteEmployeeAuthorization(
 ) (*domain.EmployeeAuthorization, error) {
 	authRecord, err := s.repo.DeleteEmployeeAuthorization(ctx, id)
 	if err != nil {
-		s.logError(ctx, "DeleteEmployeeAuthorization", err, zap.String("authorization_id", id.String()))
+		s.logError(
+			ctx,
+			"DeleteEmployeeAuthorization",
+			err,
+			zap.String("authorization_id", id.String()),
+		)
 		return nil, err
 	}
 	return authRecord, nil
@@ -547,7 +590,10 @@ func (s *EmployeeService) CreateContractAmendment(
 	}
 
 	if baseContract.EmployeeID != employeeID {
-		return nil, fmt.Errorf("%w: contract does not belong to employee", domain.ErrContractChangeInvalid)
+		return nil, fmt.Errorf(
+			"%w: contract does not belong to employee",
+			domain.ErrContractChangeInvalid,
+		)
 	}
 
 	if !params.StartDate.After(baseContract.StartDate) {

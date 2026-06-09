@@ -17,12 +17,15 @@ func TestTrainingServiceListTrainingAssignmentsNormalizesFilters(t *testing.T) {
 	status := " Completed "
 	search := "  jane doe  "
 
-	_, err := svc.ListTrainingAssignments(context.Background(), domain.ListTrainingAssignmentsParams{
-		Limit:          20,
-		Offset:         40,
-		EmployeeSearch: &search,
-		Status:         &status,
-	})
+	_, err := svc.ListTrainingAssignments(
+		context.Background(),
+		domain.ListTrainingAssignmentsParams{
+			Limit:          20,
+			Offset:         40,
+			EmployeeSearch: &search,
+			Status:         &status,
+		},
+	)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -47,16 +50,22 @@ func TestTrainingServiceListTrainingAssignmentsAllowsDefaultCurrentView(t *testi
 
 	status := "   "
 
-	_, err := svc.ListTrainingAssignments(context.Background(), domain.ListTrainingAssignmentsParams{
-		Limit:  10,
-		Offset: 0,
-		Status: &status,
-	})
+	_, err := svc.ListTrainingAssignments(
+		context.Background(),
+		domain.ListTrainingAssignmentsParams{
+			Limit:  10,
+			Offset: 0,
+			Status: &status,
+		},
+	)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if repo.lastListTrainingAssignmentsParams.Status != nil {
-		t.Fatalf("expected blank status to normalize to nil, got %#v", repo.lastListTrainingAssignmentsParams.Status)
+		t.Fatalf(
+			"expected blank status to normalize to nil, got %#v",
+			repo.lastListTrainingAssignmentsParams.Status,
+		)
 	}
 }
 
@@ -65,11 +74,14 @@ func TestTrainingServiceListTrainingAssignmentsRejectsInvalidStatus(t *testing.T
 
 	status := "paused"
 
-	_, err := svc.ListTrainingAssignments(context.Background(), domain.ListTrainingAssignmentsParams{
-		Limit:  10,
-		Offset: 0,
-		Status: &status,
-	})
+	_, err := svc.ListTrainingAssignments(
+		context.Background(),
+		domain.ListTrainingAssignmentsParams{
+			Limit:  10,
+			Offset: 0,
+			Status: &status,
+		},
+	)
 	if err != domain.ErrTrainingInvalidRequest {
 		t.Fatalf("expected %v, got %v", domain.ErrTrainingInvalidRequest, err)
 	}
@@ -82,16 +94,23 @@ func TestTrainingServiceCancelTrainingAssignmentNormalizesReason(t *testing.T) {
 	reason := "  duplicate assignment  "
 	assignmentID := uuid.New()
 
-	_, err := svc.CancelTrainingAssignment(context.Background(), domain.CancelTrainingAssignmentParams{
-		AssignmentID:       assignmentID,
-		CancellationReason: &reason,
-	})
+	_, err := svc.CancelTrainingAssignment(
+		context.Background(),
+		domain.CancelTrainingAssignmentParams{
+			AssignmentID:       assignmentID,
+			CancellationReason: &reason,
+		},
+	)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 
 	if repo.lastCancelTrainingAssignmentParams.AssignmentID != assignmentID {
-		t.Fatalf("expected assignment id %v, got %v", assignmentID, repo.lastCancelTrainingAssignmentParams.AssignmentID)
+		t.Fatalf(
+			"expected assignment id %v, got %v",
+			assignmentID,
+			repo.lastCancelTrainingAssignmentParams.AssignmentID,
+		)
 	}
 	if repo.lastCancelTrainingAssignmentParams.CancellationReason == nil {
 		t.Fatalf("expected cancellation reason to be preserved")
@@ -107,22 +126,31 @@ func TestTrainingServiceCancelTrainingAssignmentBlankReasonBecomesNil(t *testing
 
 	reason := "   "
 
-	_, err := svc.CancelTrainingAssignment(context.Background(), domain.CancelTrainingAssignmentParams{
-		AssignmentID:       uuid.New(),
-		CancellationReason: &reason,
-	})
+	_, err := svc.CancelTrainingAssignment(
+		context.Background(),
+		domain.CancelTrainingAssignmentParams{
+			AssignmentID:       uuid.New(),
+			CancellationReason: &reason,
+		},
+	)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 	if repo.lastCancelTrainingAssignmentParams.CancellationReason != nil {
-		t.Fatalf("expected blank reason to normalize to nil, got %#v", repo.lastCancelTrainingAssignmentParams.CancellationReason)
+		t.Fatalf(
+			"expected blank reason to normalize to nil, got %#v",
+			repo.lastCancelTrainingAssignmentParams.CancellationReason,
+		)
 	}
 }
 
 func TestTrainingServiceCancelTrainingAssignmentRejectsNilID(t *testing.T) {
 	svc := &TrainingService{repository: &fakeTrainingRepository{}}
 
-	_, err := svc.CancelTrainingAssignment(context.Background(), domain.CancelTrainingAssignmentParams{})
+	_, err := svc.CancelTrainingAssignment(
+		context.Background(),
+		domain.CancelTrainingAssignmentParams{},
+	)
 	if err != domain.ErrTrainingInvalidRequest {
 		t.Fatalf("expected %v, got %v", domain.ErrTrainingInvalidRequest, err)
 	}
@@ -220,17 +248,24 @@ func TestTrainingServiceListMyTrainingAssignmentsFiltersByEmployeeID(t *testing.
 
 	employeeID := uuid.New()
 
-	_, err := svc.ListMyTrainingAssignments(context.Background(), domain.ListMyTrainingAssignmentsParams{
-		Limit:      10,
-		Offset:     0,
-		EmployeeID: employeeID,
-	})
+	_, err := svc.ListMyTrainingAssignments(
+		context.Background(),
+		domain.ListMyTrainingAssignmentsParams{
+			Limit:      10,
+			Offset:     0,
+			EmployeeID: employeeID,
+		},
+	)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
 
 	if repo.lastListMyTrainingAssignmentsParams.EmployeeID != employeeID {
-		t.Fatalf("expected employee ID %v, got %v", employeeID, repo.lastListMyTrainingAssignmentsParams.EmployeeID)
+		t.Fatalf(
+			"expected employee ID %v, got %v",
+			employeeID,
+			repo.lastListMyTrainingAssignmentsParams.EmployeeID,
+		)
 	}
 }
 
@@ -246,10 +281,15 @@ func TestTrainingServiceGetMyTrainingAssignmentsCounts(t *testing.T) {
 	}
 
 	if repo.lastGetMyTrainingAssignmentsCountsEmployeeID != employeeID {
-		t.Fatalf("expected employee ID %v, got %v", employeeID, repo.lastGetMyTrainingAssignmentsCountsEmployeeID)
+		t.Fatalf(
+			"expected employee ID %v, got %v",
+			employeeID,
+			repo.lastGetMyTrainingAssignmentsCountsEmployeeID,
+		)
 	}
 
-	if counts.Total != 10 || counts.Completed != 5 || counts.Expired != 2 || counts.ExpiringSoon != 1 {
+	if counts.Total != 10 || counts.Completed != 5 || counts.Expired != 2 ||
+		counts.ExpiringSoon != 1 {
 		t.Fatalf("unexpected counts: %+v", counts)
 	}
 }

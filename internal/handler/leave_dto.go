@@ -26,7 +26,7 @@ type createLeaveRequestRequest struct {
 }
 
 type createLeaveRequestByAdminRequest struct {
-	EmployeeID   uuid.UUID `json:"employee_id"  binding:"required"`
+	EmployeeID   uuid.UUID `json:"employee_id"   binding:"required"`
 	LeaveType    string    `json:"leave_type"    binding:"required,oneof=vacation personal sick pregnancy unpaid other"`
 	DurationType string    `json:"duration_type" binding:"required,oneof=full_day hours"`
 	StartDate    string    `json:"start_date"    binding:"required,datetime=2006-01-02"`
@@ -74,10 +74,10 @@ type listLeaveRequestsRequest struct {
 }
 
 type listLeaveCalendarRequest struct {
-	Month          string     `form:"month"                                               binding:"required,datetime=2006-01"`
+	Month          string     `form:"month"                                         binding:"required,datetime=2006-01"`
 	DepartmentID   *uuid.UUID `form:"department_id,parser=encoding.TextUnmarshaler"`
 	LeaveTypes     []string   `form:"leave_types"`
-	EmployeeSearch *string    `form:"employee_search"                                     binding:"omitempty,max=120"`
+	EmployeeSearch *string    `form:"employee_search"                               binding:"omitempty,max=120"`
 }
 
 type listLeaveBalancesRequest struct {

@@ -55,7 +55,10 @@ func RegisterWebSocketRoutes(rg *gin.RouterGroup, handler *WebSocketHandler, aut
 
 func (h *WebSocketHandler) IssueTicket(ctx *gin.Context) {
 	if h.service == nil {
-		ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail("websocket ticket manager unavailable", ""))
+		ctx.JSON(
+			http.StatusServiceUnavailable,
+			httpapi.Fail("websocket ticket manager unavailable", ""),
+		)
 		return
 	}
 
@@ -75,7 +78,10 @@ func (h *WebSocketHandler) IssueTicket(ctx *gin.Context) {
 		case errors.Is(err, domain.ErrWebSocketTicketUnavailable):
 			ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail(err.Error(), ""))
 		default:
-			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to issue websocket ticket", ""))
+			ctx.JSON(
+				http.StatusInternalServerError,
+				httpapi.Fail("failed to issue websocket ticket", ""),
+			)
 		}
 		return
 	}
@@ -91,7 +97,10 @@ func (h *WebSocketHandler) IssueTicket(ctx *gin.Context) {
 
 func (h *WebSocketHandler) Connect(ctx *gin.Context) {
 	if h.service == nil {
-		ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail("websocket ticket manager unavailable", ""))
+		ctx.JSON(
+			http.StatusServiceUnavailable,
+			httpapi.Fail("websocket ticket manager unavailable", ""),
+		)
 		return
 	}
 	if h.hub == nil {
@@ -113,7 +122,10 @@ func (h *WebSocketHandler) Connect(ctx *gin.Context) {
 		case errors.Is(err, domain.ErrWebSocketTicketUnavailable):
 			ctx.JSON(http.StatusServiceUnavailable, httpapi.Fail(err.Error(), ""))
 		default:
-			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to authenticate websocket", ""))
+			ctx.JSON(
+				http.StatusInternalServerError,
+				httpapi.Fail("failed to authenticate websocket", ""),
+			)
 		}
 		return
 	}

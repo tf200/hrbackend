@@ -34,12 +34,20 @@ type UpdateAttachmentUsedParams struct {
 type AttachmentRepository interface {
 	CreateAttachment(ctx context.Context, params CreateAttachmentParams) (*Attachment, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (*Attachment, error)
-	UpdateAttachmentUsed(ctx context.Context, params UpdateAttachmentUsedParams) (*Attachment, error)
+	UpdateAttachmentUsed(
+		ctx context.Context,
+		params UpdateAttachmentUsedParams,
+	) (*Attachment, error)
 	DeleteAttachment(ctx context.Context, id uuid.UUID) error
 }
 
 type AttachmentService interface {
-	RequestUploadURL(ctx context.Context, filename string, size int64, tag *string) (*UploadURLResponse, error)
+	RequestUploadURL(
+		ctx context.Context,
+		filename string,
+		size int64,
+		tag *string,
+	) (*UploadURLResponse, error)
 	GetAttachment(ctx context.Context, id uuid.UUID) (*Attachment, error)
 }
 

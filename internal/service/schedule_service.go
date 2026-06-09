@@ -247,7 +247,16 @@ func (s *ScheduleService) GetEmployeeSchedulesTimeline(
 		return nil, fmt.Errorf("end_date must be on or after start_date")
 	}
 
-	periodStart := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	periodStart := time.Date(
+		startDate.Year(),
+		startDate.Month(),
+		startDate.Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
 	periodEnd := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 0, 0, 0, 0, time.UTC).
 		AddDate(0, 0, 1)
 
@@ -350,7 +359,12 @@ func (s *ScheduleService) GetMyShiftOverview(
 		return nil, fmt.Errorf("failed to list week shift counts: %w", err)
 	}
 
-	monthCounts, err := s.repository.ListEmployeeMonthShiftCounts(ctx, employeeID, monthStart, monthEnd)
+	monthCounts, err := s.repository.ListEmployeeMonthShiftCounts(
+		ctx,
+		employeeID,
+		monthStart,
+		monthEnd,
+	)
 	if err != nil {
 		s.logError(ctx, "GetMyShiftOverview", "failed to list month shift counts", err)
 		return nil, fmt.Errorf("failed to list month shift counts: %w", err)
@@ -382,7 +396,12 @@ func (s *ScheduleService) GetMyUpcomingShifts(
 	}
 
 	now := time.Now()
-	shifts, err := s.repository.ListEmployeeUpcomingShifts(ctx, employeeID, now, now.AddDate(0, 0, 15))
+	shifts, err := s.repository.ListEmployeeUpcomingShifts(
+		ctx,
+		employeeID,
+		now,
+		now.AddDate(0, 0, 15),
+	)
 	if err != nil {
 		s.logError(ctx, "GetMyUpcomingShifts", "failed to list upcoming shifts", err)
 		return nil, fmt.Errorf("failed to list upcoming shifts: %w", err)
@@ -409,7 +428,13 @@ func (s *ScheduleService) GetMyPastShifts(
 		return nil, fmt.Errorf("employee_id is required")
 	}
 
-	page, err := s.repository.ListEmployeePastShiftsPaginated(ctx, employeeID, time.Now(), limit, offset)
+	page, err := s.repository.ListEmployeePastShiftsPaginated(
+		ctx,
+		employeeID,
+		time.Now(),
+		limit,
+		offset,
+	)
 	if err != nil {
 		s.logError(ctx, "GetMyPastShifts", "failed to list past shifts", err)
 		return nil, fmt.Errorf("failed to list past shifts: %w", err)
@@ -434,18 +459,25 @@ func (s *ScheduleService) attachShiftColleagues(
 		scheduleIDs[i] = shift.ScheduleID
 	}
 
-	colleagueRows, err := s.repository.ListShiftColleaguesByScheduleIDs(ctx, scheduleIDs, employeeID)
+	colleagueRows, err := s.repository.ListShiftColleaguesByScheduleIDs(
+		ctx,
+		scheduleIDs,
+		employeeID,
+	)
 	if err != nil {
 		return err
 	}
 
 	colleaguesBySchedule := make(map[uuid.UUID][]domain.EmployeeShiftOverviewColleague, len(shifts))
 	for _, row := range colleagueRows {
-		colleaguesBySchedule[row.ScheduleID] = append(colleaguesBySchedule[row.ScheduleID], domain.EmployeeShiftOverviewColleague{
-			EmployeeID: row.EmployeeID,
-			FirstName:  row.FirstName,
-			LastName:   row.LastName,
-		})
+		colleaguesBySchedule[row.ScheduleID] = append(
+			colleaguesBySchedule[row.ScheduleID],
+			domain.EmployeeShiftOverviewColleague{
+				EmployeeID: row.EmployeeID,
+				FirstName:  row.FirstName,
+				LastName:   row.LastName,
+			},
+		)
 	}
 
 	for i := range shifts {

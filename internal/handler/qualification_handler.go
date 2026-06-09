@@ -22,7 +22,10 @@ func NewQualificationHandler(service domain.QualificationTypeService) *Qualifica
 func (h *QualificationHandler) ListQualificationTypes(ctx *gin.Context) {
 	types, err := h.service.ListQualificationTypes(ctx.Request.Context())
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list qualification types", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to list qualification types", ""),
+		)
 		return
 	}
 
@@ -41,15 +44,27 @@ func (h *QualificationHandler) CreateQualificationType(ctx *gin.Context) {
 		return
 	}
 
-	qualification, err := h.service.CreateQualificationType(ctx.Request.Context(), domain.CreateQualificationTypeParams{
-		Name: req.Name,
-	})
+	qualification, err := h.service.CreateQualificationType(
+		ctx.Request.Context(),
+		domain.CreateQualificationTypeParams{
+			Name: req.Name,
+		},
+	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to create qualification type", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to create qualification type", ""),
+		)
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, httpapi.OK(toQualificationTypeResponse(qualification), "Qualification type created successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(
+			toQualificationTypeResponse(qualification),
+			"Qualification type created successfully",
+		),
+	)
 }
 
 func (h *QualificationHandler) UpdateQualificationType(ctx *gin.Context) {
@@ -66,17 +81,30 @@ func (h *QualificationHandler) UpdateQualificationType(ctx *gin.Context) {
 		return
 	}
 
-	qualification, err := h.service.UpdateQualificationType(ctx.Request.Context(), id, domain.CreateQualificationTypeParams{
-		Name: req.Name,
-	})
+	qualification, err := h.service.UpdateQualificationType(
+		ctx.Request.Context(),
+		id,
+		domain.CreateQualificationTypeParams{
+			Name: req.Name,
+		},
+	)
 	if err != nil {
 		if errors.Is(err, domain.ErrQualificationTypeNotFound) {
 			ctx.JSON(http.StatusNotFound, httpapi.Fail("qualification type not found", ""))
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to update qualification type", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to update qualification type", ""),
+		)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toQualificationTypeResponse(qualification), "Qualification type updated successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toQualificationTypeResponse(qualification),
+			"Qualification type updated successfully",
+		),
+	)
 }

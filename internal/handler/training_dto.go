@@ -20,17 +20,17 @@ type listTrainingAssignmentsRequest struct {
 	EmployeeSearch *string    `form:"employee_search"`
 	DepartmentID   *uuid.UUID `form:"department_id,parser=encoding.TextUnmarshaler"`
 	TrainingID     *uuid.UUID `form:"training_id,parser=encoding.TextUnmarshaler"`
-	Status         *string    `form:"status" binding:"omitempty,oneof=assigned in_progress completed cancelled"`
+	Status         *string    `form:"status"                                        binding:"omitempty,oneof=assigned in_progress completed cancelled"`
 }
 
 type listMyTrainingAssignmentsRequest struct {
 	httpapi.PageRequest
 	TrainingID *uuid.UUID `form:"training_id,parser=encoding.TextUnmarshaler"`
-	Status     *string    `form:"status" binding:"omitempty,oneof=assigned in_progress completed cancelled"`
+	Status     *string    `form:"status"                                      binding:"omitempty,oneof=assigned in_progress completed cancelled"`
 }
 
 type createTrainingCatalogItemRequest struct {
-	Title                    string  `json:"title" binding:"required"`
+	Title                    string  `json:"title"                      binding:"required"`
 	Description              *string `json:"description"`
 	Category                 *string `json:"category"`
 	EstimatedDurationMinutes *int32  `json:"estimated_duration_minutes" binding:"omitempty,min=1"`
@@ -39,7 +39,7 @@ type createTrainingCatalogItemRequest struct {
 type assignTrainingRequest struct {
 	EmployeeID uuid.UUID `json:"employee_id" binding:"required"`
 	TrainingID uuid.UUID `json:"training_id" binding:"required"`
-	DueAt      time.Time `json:"due_at" binding:"required"`
+	DueAt      time.Time `json:"due_at"      binding:"required"`
 }
 
 type cancelTrainingAssignmentRequest struct {
@@ -218,7 +218,9 @@ func toTrainingCatalogItemResponse(item *domain.TrainingCatalogItem) trainingCat
 	}
 }
 
-func toTrainingCatalogItemResponses(items []domain.TrainingCatalogItem) []trainingCatalogItemResponse {
+func toTrainingCatalogItemResponses(
+	items []domain.TrainingCatalogItem,
+) []trainingCatalogItemResponse {
 	results := make([]trainingCatalogItemResponse, len(items))
 	for i := range items {
 		results[i] = toTrainingCatalogItemResponse(&items[i])
@@ -226,7 +228,9 @@ func toTrainingCatalogItemResponses(items []domain.TrainingCatalogItem) []traini
 	return results
 }
 
-func toTrainingAssignmentResponse(item *domain.EmployeeTrainingAssignment) trainingAssignmentResponse {
+func toTrainingAssignmentResponse(
+	item *domain.EmployeeTrainingAssignment,
+) trainingAssignmentResponse {
 	return trainingAssignmentResponse{
 		ID:                   item.ID,
 		EmployeeID:           item.EmployeeID,

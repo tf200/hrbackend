@@ -155,7 +155,8 @@ func (s *ScheduleService) CreateAdminShiftSwapRequest(
 			recipientSchedule.EmployeeID != req.RecipientEmployeeID {
 			return domain.ErrShiftSwapScheduleOwnership
 		}
-		if requesterSchedule.StartDatetime.Before(now) || recipientSchedule.StartDatetime.Before(now) {
+		if requesterSchedule.StartDatetime.Before(now) ||
+			recipientSchedule.StartDatetime.Before(now) {
 			return domain.ErrShiftSwapScheduleInPast
 		}
 

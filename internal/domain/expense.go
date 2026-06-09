@@ -12,7 +12,9 @@ var (
 	ErrExpenseRequestInvalidRequest = errors.New("invalid expense request")
 	ErrExpenseRequestNotFound       = errors.New("expense request not found")
 	ErrExpenseRequestForbidden      = errors.New("expense request is not accessible by the actor")
-	ErrExpenseRequestStateInvalid   = errors.New("expense request is not in a valid state for this operation")
+	ErrExpenseRequestStateInvalid   = errors.New(
+		"expense request is not in a valid state for this operation",
+	)
 )
 
 const (
@@ -113,7 +115,10 @@ type ListExpenseRequestsParams struct {
 }
 
 type ExpenseTxRepository interface {
-	GetExpenseRequestForUpdate(ctx context.Context, expenseRequestID uuid.UUID) (*ExpenseRequest, error)
+	GetExpenseRequestForUpdate(
+		ctx context.Context,
+		expenseRequestID uuid.UUID,
+	) (*ExpenseRequest, error)
 	UpdateExpenseRequestEditableFields(
 		ctx context.Context,
 		expenseRequestID uuid.UUID,
@@ -139,7 +144,10 @@ type ExpenseTxRepository interface {
 
 type ExpenseRepository interface {
 	WithTx(ctx context.Context, fn func(tx ExpenseTxRepository) error) error
-	CreateExpenseRequest(ctx context.Context, params CreateExpenseRequestParams) (*ExpenseRequest, error)
+	CreateExpenseRequest(
+		ctx context.Context,
+		params CreateExpenseRequestParams,
+	) (*ExpenseRequest, error)
 	GetExpenseRequestByID(ctx context.Context, expenseRequestID uuid.UUID) (*ExpenseRequest, error)
 	ListMyExpenseRequests(
 		ctx context.Context,

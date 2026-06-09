@@ -37,7 +37,9 @@ func (r *RoleRepository) ListRoles(ctx context.Context) ([]domain.RoleSummary, e
 	return items, nil
 }
 
-func (r *RoleRepository) ListAllPermissions(ctx context.Context) ([]domain.PermissionCatalogItem, error) {
+func (r *RoleRepository) ListAllPermissions(
+	ctx context.Context,
+) ([]domain.PermissionCatalogItem, error) {
 	rows, err := r.store.ListAllPermissions(ctx)
 	if err != nil {
 		return nil, err

@@ -156,7 +156,11 @@ func (s EmployeesSeeder) Seed(ctx context.Context, env Env) error {
 
 		managerID, ok := env.State.EmployeeID(managerAlias)
 		if !ok {
-			return fmt.Errorf("seed employees[%s]: manager alias %q not found in state", item.Alias, managerAlias)
+			return fmt.Errorf(
+				"seed employees[%s]: manager alias %q not found in state",
+				item.Alias,
+				managerAlias,
+			)
 		}
 
 		managerIDCopy := managerID
@@ -265,7 +269,12 @@ func resolveOptionalRoleID(
 	return &roleID, nil
 }
 
-func seedEmployeeDetails(ctx context.Context, env Env, employeeID uuid.UUID, item EmployeeSeed) error {
+func seedEmployeeDetails(
+	ctx context.Context,
+	env Env,
+	employeeID uuid.UUID,
+	item EmployeeSeed,
+) error {
 	if _, err := env.DB.Exec(ctx, `DELETE FROM employee_education WHERE employee_id = $1`, employeeID); err != nil {
 		return fmt.Errorf("reset employee_education: %w", err)
 	}
@@ -369,25 +378,41 @@ func seedEmployeeDetails(ctx context.Context, env Env, employeeID uuid.UUID, ite
 	return nil
 }
 
-func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uuid.UUID, item EmployeeSeed) error {
+func ensureEmployeeContractAndSalary(
+	ctx context.Context,
+	env Env,
+	employeeID uuid.UUID,
+	item EmployeeSeed,
+) error {
 	if item.Contract == nil {
 		return nil
 	}
 
 	departmentID, ok := env.State.DepartmentID(item.Contract.DepartmentAlias)
 	if !ok {
-		return fmt.Errorf("contract department alias %q not found in seed state", item.Contract.DepartmentAlias)
+		return fmt.Errorf(
+			"contract department alias %q not found in seed state",
+			item.Contract.DepartmentAlias,
+		)
 	}
 	locationID, ok := env.State.LocationID(item.Contract.LocationAlias)
 	if !ok {
-		return fmt.Errorf("contract location alias %q not found in seed state", item.Contract.LocationAlias)
+		return fmt.Errorf(
+			"contract location alias %q not found in seed state",
+			item.Contract.LocationAlias,
+		)
 	}
 
 	var organizationalRoleID *uuid.UUID
-	if item.Contract.OrganizationalRoleName != nil && strings.TrimSpace(*item.Contract.OrganizationalRoleName) != "" {
+	if item.Contract.OrganizationalRoleName != nil &&
+		strings.TrimSpace(*item.Contract.OrganizationalRoleName) != "" {
 		var id uuid.UUID
 		if err := env.DB.QueryRow(ctx, `SELECT id FROM organizational_roles WHERE name = $1`, strings.TrimSpace(*item.Contract.OrganizationalRoleName)).Scan(&id); err != nil {
-			return fmt.Errorf("resolve organizational role %q: %w", *item.Contract.OrganizationalRoleName, err)
+			return fmt.Errorf(
+				"resolve organizational role %q: %w",
+				*item.Contract.OrganizationalRoleName,
+				err,
+			)
 		}
 		organizationalRoleID = &id
 	}
@@ -455,7 +480,13 @@ func ensureEmployeeContractAndSalary(ctx context.Context, env Env, employeeID uu
 		ORDER BY cst.effective_from DESC
 		LIMIT 1
 	`, caoCode, item.SalaryAssignment.Scale, item.SalaryAssignment.Step, *effectiveFrom).Scan(&salaryScaleStepID); err != nil {
-		return fmt.Errorf("resolve salary scale step %s scale %d step %s: %w", caoCode, item.SalaryAssignment.Scale, item.SalaryAssignment.Step, err)
+		return fmt.Errorf(
+			"resolve salary scale step %s scale %d step %s: %w",
+			caoCode,
+			item.SalaryAssignment.Scale,
+			item.SalaryAssignment.Step,
+			err,
+		)
 	}
 
 	_, err = env.DB.Exec(ctx, `

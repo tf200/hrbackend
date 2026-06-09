@@ -472,20 +472,69 @@ type UpdateEmployeeAuthorizationParams struct {
 
 type EmployeeTxRepository interface {
 	CreateUser(ctx context.Context, email, password string) (uuid.UUID, error)
-	CreateEmployeeProfile(ctx context.Context, userID uuid.UUID, params CreateEmployeeParams) (uuid.UUID, error)
+	CreateEmployeeProfile(
+		ctx context.Context,
+		userID uuid.UUID,
+		params CreateEmployeeParams,
+	) (uuid.UUID, error)
 	AssignRoleToUser(ctx context.Context, userID, roleID uuid.UUID) error
-	AddEmployeeContractDetails(ctx context.Context, employeeID uuid.UUID, params CreateEmployeeContractParams) (uuid.UUID, error)
-	CreateEmployeeSalaryAssignment(ctx context.Context, employeeID uuid.UUID, contractID *uuid.UUID, params CreateEmployeeSalaryAssignmentParams) (uuid.UUID, error)
+	AddEmployeeContractDetails(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params CreateEmployeeContractParams,
+	) (uuid.UUID, error)
+	CreateEmployeeSalaryAssignment(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		contractID *uuid.UUID,
+		params CreateEmployeeSalaryAssignmentParams,
+	) (uuid.UUID, error)
 	GetEmployeeByID(ctx context.Context, id uuid.UUID) (*EmployeeDetail, error)
-	LinkEmployeeAttachments(ctx context.Context, employeeID uuid.UUID, attachmentIDs []uuid.UUID, category string) error
+	LinkEmployeeAttachments(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		attachmentIDs []uuid.UUID,
+		category string,
+	) error
 	UpdateAttachmentsUsed(ctx context.Context, ids []uuid.UUID, isUsed bool) error
-	AddEmployeeQualificationsBatch(ctx context.Context, employeeID uuid.UUID, params []CreateQualificationParams) error
-	AddEmployeeAuthorizationsBatch(ctx context.Context, employeeID uuid.UUID, params []CreateEmployeeAuthorizationParams) error
-	EndEmployeeContractSegment(ctx context.Context, contractID uuid.UUID, endDate time.Time, updatedBy *uuid.UUID) error
-	AddEmployeeContractAmendment(ctx context.Context, employeeID uuid.UUID, previousContractID uuid.UUID, params CreateContractAmendmentParams) (uuid.UUID, error)
-	GetEmployeeContractAtDate(ctx context.Context, employeeID uuid.UUID, targetDate time.Time) (*EmployeeContractInfo, error)
-	AddNewContract(ctx context.Context, employeeID uuid.UUID, previousContractID *uuid.UUID, params CreateNewContractParams) (uuid.UUID, error)
-	UpdateEmployeeContract(ctx context.Context, employeeID, contractID uuid.UUID, params UpdateEmployeeContractParams) (*EmployeeContractDetail, error)
+	AddEmployeeQualificationsBatch(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params []CreateQualificationParams,
+	) error
+	AddEmployeeAuthorizationsBatch(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params []CreateEmployeeAuthorizationParams,
+	) error
+	EndEmployeeContractSegment(
+		ctx context.Context,
+		contractID uuid.UUID,
+		endDate time.Time,
+		updatedBy *uuid.UUID,
+	) error
+	AddEmployeeContractAmendment(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		previousContractID uuid.UUID,
+		params CreateContractAmendmentParams,
+	) (uuid.UUID, error)
+	GetEmployeeContractAtDate(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		targetDate time.Time,
+	) (*EmployeeContractInfo, error)
+	AddNewContract(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		previousContractID *uuid.UUID,
+		params CreateNewContractParams,
+	) (uuid.UUID, error)
+	UpdateEmployeeContract(
+		ctx context.Context,
+		employeeID, contractID uuid.UUID,
+		params UpdateEmployeeContractParams,
+	) (*EmployeeContractDetail, error)
 }
 
 type EmployeeRepository interface {
@@ -550,10 +599,16 @@ type EmployeeRepository interface {
 	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
 
 	// Attachment
-	ListEmployeeAttachments(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAttachmentDetail, error)
+	ListEmployeeAttachments(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) ([]EmployeeAttachmentDetail, error)
 
 	// Employee Authorization
-	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
+	ListEmployeeAuthorizations(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) ([]EmployeeAuthorization, error)
 	AddEmployeeAuthorizations(
 		ctx context.Context,
 		employeeID uuid.UUID,
@@ -570,9 +625,19 @@ type EmployeeRepository interface {
 	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
 
 	// Contract
-	GetEmployeeContractByID(ctx context.Context, contractID uuid.UUID) (*EmployeeContractInfo, error)
-	ListEmployeeContracts(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractDetail, error)
-	UpdateEmployeeContract(ctx context.Context, employeeID, contractID uuid.UUID, params UpdateEmployeeContractParams) (*EmployeeContractDetail, error)
+	GetEmployeeContractByID(
+		ctx context.Context,
+		contractID uuid.UUID,
+	) (*EmployeeContractInfo, error)
+	ListEmployeeContracts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) ([]EmployeeContractDetail, error)
+	UpdateEmployeeContract(
+		ctx context.Context,
+		employeeID, contractID uuid.UUID,
+		params UpdateEmployeeContractParams,
+	) (*EmployeeContractDetail, error)
 }
 
 type EmployeeService interface {
@@ -634,7 +699,10 @@ type EmployeeService interface {
 	) (*Qualification, error)
 	DeleteQualification(ctx context.Context, id uuid.UUID) (*Qualification, error)
 
-	ListEmployeeAuthorizations(ctx context.Context, employeeID uuid.UUID) ([]EmployeeAuthorization, error)
+	ListEmployeeAuthorizations(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) ([]EmployeeAuthorization, error)
 	AddEmployeeAuthorizations(
 		ctx context.Context,
 		employeeID uuid.UUID,
@@ -655,7 +723,10 @@ type EmployeeService interface {
 	) (*ResetPasswordResult, error)
 
 	// Contract
-	ListEmployeeContracts(ctx context.Context, employeeID uuid.UUID) ([]EmployeeContractDetail, error)
+	ListEmployeeContracts(
+		ctx context.Context,
+		employeeID uuid.UUID,
+	) ([]EmployeeContractDetail, error)
 	CreateContractAmendment(
 		ctx context.Context,
 		employeeID uuid.UUID,

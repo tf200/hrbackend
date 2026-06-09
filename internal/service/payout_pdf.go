@@ -214,7 +214,12 @@ func addPayPeriodDetails(m core.Maroto, period *domain.PayPeriod) {
 	m.AddRow(3, col.New(12).Add(text.New("", props.Text{}))) // Spacing
 
 	// Earnings summary table
-	addEarningsSummaryTable(m, period.BaseGrossAmount, period.IrregularGrossAmount, period.GrossAmount)
+	addEarningsSummaryTable(
+		m,
+		period.BaseGrossAmount,
+		period.IrregularGrossAmount,
+		period.GrossAmount,
+	)
 	m.AddRow(3, col.New(12).Add(text.New("", props.Text{}))) // Spacing
 }
 
@@ -269,7 +274,12 @@ func addPayrollPreviewDetails(m core.Maroto, preview *domain.PayrollPreview) {
 	m.AddRow(3, col.New(12).Add(text.New("", props.Text{}))) // Spacing
 
 	// Earnings summary table
-	addEarningsSummaryTable(m, preview.BaseGrossAmount, preview.IrregularGrossAmount, preview.GrossAmount)
+	addEarningsSummaryTable(
+		m,
+		preview.BaseGrossAmount,
+		preview.IrregularGrossAmount,
+		preview.GrossAmount,
+	)
 	m.AddRow(3, col.New(12).Add(text.New("", props.Text{}))) // Spacing
 }
 

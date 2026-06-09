@@ -194,7 +194,11 @@ func TestRoleHandlerUpdateRolePermissionsInvalidID(t *testing.T) {
 	handler := NewRoleHandler(&fakeRoleService{})
 	router.POST("/roles/:id/permissions", handler.UpdateRolePermissions)
 
-	req := httptest.NewRequest(http.MethodPost, "/roles/not-a-uuid/permissions", strings.NewReader(`{"permission_ids":["`+uuid.New().String()+`"]}`))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/roles/not-a-uuid/permissions",
+		strings.NewReader(`{"permission_ids":["`+uuid.New().String()+`"]}`),
+	)
 	req.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 

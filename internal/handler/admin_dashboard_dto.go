@@ -82,7 +82,9 @@ type upcomingDashboardAlertsResponse struct {
 	ReturningFromLeave  []returningFromLeaveAlertResponse `json:"returning_from_leave"`
 }
 
-func toFullTimeEmployeeBreakdownsResponse(b *domain.FullTimeEmployeeBreakdowns) fullTimeEmployeeBreakdownsResponse {
+func toFullTimeEmployeeBreakdownsResponse(
+	b *domain.FullTimeEmployeeBreakdowns,
+) fullTimeEmployeeBreakdownsResponse {
 	deptItems := make([]fullTimeEmployeeDeptBreakdownItemResponse, len(b.ByDepartment))
 	for i, item := range b.ByDepartment {
 		deptItems[i] = fullTimeEmployeeDeptBreakdownItemResponse{
@@ -123,7 +125,9 @@ func toLeaveAbsenceTrendsResponse(trends *domain.LeaveAbsenceTrends) leaveAbsenc
 	}
 }
 
-func toUpcomingDashboardAlertsResponse(alerts *domain.UpcomingDashboardAlerts) upcomingDashboardAlertsResponse {
+func toUpcomingDashboardAlertsResponse(
+	alerts *domain.UpcomingDashboardAlerts,
+) upcomingDashboardAlertsResponse {
 	endingContracts := make([]endingContractAlertResponse, len(alerts.EndingContracts))
 	for i, item := range alerts.EndingContracts {
 		endingContracts[i] = endingContractAlertResponse{

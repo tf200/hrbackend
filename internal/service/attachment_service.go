@@ -56,7 +56,12 @@ func (s *attachmentService) RequestUploadURL(
 		Tag:    tag,
 	})
 	if err != nil {
-		s.logger.LogError(ctx, "AttachmentService.RequestUploadURL", "failed to create attachment record", err)
+		s.logger.LogError(
+			ctx,
+			"AttachmentService.RequestUploadURL",
+			"failed to create attachment record",
+			err,
+		)
 		return nil, fmt.Errorf("failed to create attachment record: %w", err)
 	}
 
@@ -64,7 +69,12 @@ func (s *attachmentService) RequestUploadURL(
 	expiry := 15 * time.Minute
 	uploadURL, err := s.storageClient.GeneratePresignedUploadURL(ctx, fileKey, expiry)
 	if err != nil {
-		s.logger.LogError(ctx, "AttachmentService.RequestUploadURL", "failed to generate presigned upload URL", err)
+		s.logger.LogError(
+			ctx,
+			"AttachmentService.RequestUploadURL",
+			"failed to generate presigned upload URL",
+			err,
+		)
 		// Clean up the created attachment record since we couldn't generate the upload URL
 		_ = s.repo.DeleteAttachment(ctx, attachment.UUID)
 		return nil, fmt.Errorf("failed to generate presigned upload URL: %w", err)

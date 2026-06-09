@@ -29,9 +29,15 @@ func (h *SalaryHandler) ListSalaryScaleSteps(ctx *gin.Context) {
 		return
 	}
 
-	result, err := h.service.ListSalaryScaleSteps(ctx.Request.Context(), toListSalaryScaleStepsParams(req))
+	result, err := h.service.ListSalaryScaleSteps(
+		ctx.Request.Context(),
+		toListSalaryScaleStepsParams(req),
+	)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to list salary scale steps", ""))
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail("failed to list salary scale steps", ""),
+		)
 		return
 	}
 
@@ -121,7 +127,12 @@ func (h *SalaryHandler) GetMySalaryPage(ctx *gin.Context) {
 		return
 	}
 
-	data, err := h.service.GetMySalaryPage(ctx.Request.Context(), employeeID, periodStart, periodEnd)
+	data, err := h.service.GetMySalaryPage(
+		ctx.Request.Context(),
+		employeeID,
+		periodStart,
+		periodEnd,
+	)
 	if err != nil {
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -167,7 +178,13 @@ func (h *SalaryHandler) ExportMyPayrollMonthPDF(ctx *gin.Context) {
 
 	ctx.Header("Content-Type", "application/pdf")
 	ctx.Header("Content-Disposition", `attachment; filename="`+filename+`"`)
-	ctx.DataFromReader(http.StatusOK, int64(len(pdfBytes)), "application/pdf", bytes.NewReader(pdfBytes), nil)
+	ctx.DataFromReader(
+		http.StatusOK,
+		int64(len(pdfBytes)),
+		"application/pdf",
+		bytes.NewReader(pdfBytes),
+		nil,
+	)
 }
 
 func (h *SalaryHandler) GetORTRules(ctx *gin.Context) {
@@ -177,7 +194,10 @@ func (h *SalaryHandler) GetORTRules(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toORTRulesResponse(rules), "ORT rules retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toORTRulesResponse(rules), "ORT rules retrieved successfully"),
+	)
 }
 
 func (h *SalaryHandler) GetFixedPayrollMonthSummary(ctx *gin.Context) {
@@ -205,7 +225,10 @@ func (h *SalaryHandler) GetFixedPayrollMonthSummary(ctx *gin.Context) {
 		toFixedPayrollMonthSummaryResponses(page.Items),
 		page.TotalCount,
 	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Fixed payroll month summary retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(response, "Fixed payroll month summary retrieved successfully"),
+	)
 }
 
 func (h *SalaryHandler) GetFixedPayrollPeriodSummary(ctx *gin.Context) {
@@ -233,7 +256,10 @@ func (h *SalaryHandler) GetFixedPayrollPeriodSummary(ctx *gin.Context) {
 		toFixedPayrollPeriodSummaryResponses(page.Items, params.PeriodStart, params.PeriodEnd),
 		page.TotalCount,
 	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Fixed payroll period summary retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(response, "Fixed payroll period summary retrieved successfully"),
+	)
 }
 
 func (h *SalaryHandler) GetOnCallPayrollMonthSummary(ctx *gin.Context) {
@@ -261,7 +287,10 @@ func (h *SalaryHandler) GetOnCallPayrollMonthSummary(ctx *gin.Context) {
 		toOnCallPayrollMonthSummaryResponses(page.Items),
 		page.TotalCount,
 	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "On-call payroll month summary retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(response, "On-call payroll month summary retrieved successfully"),
+	)
 }
 
 func (h *SalaryHandler) GetOnCallPayrollPeriodSummary(ctx *gin.Context) {
@@ -289,7 +318,10 @@ func (h *SalaryHandler) GetOnCallPayrollPeriodSummary(ctx *gin.Context) {
 		toOnCallPayrollPeriodSummaryResponses(page.Items, params.PeriodStart, params.PeriodEnd),
 		page.TotalCount,
 	)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "On-call payroll period summary retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(response, "On-call payroll period summary retrieved successfully"),
+	)
 }
 
 func (h *SalaryHandler) GetFixedPayrollMonthStats(ctx *gin.Context) {
@@ -311,7 +343,13 @@ func (h *SalaryHandler) GetFixedPayrollMonthStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollMonthStatsResponse(stats), "Fixed payroll month stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollMonthStatsResponse(stats),
+			"Fixed payroll month stats retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) GetFixedPayrollPeriodStats(ctx *gin.Context) {
@@ -333,7 +371,13 @@ func (h *SalaryHandler) GetFixedPayrollPeriodStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPeriodStatsResponse(stats, params.PeriodStart, params.PeriodEnd), "Fixed payroll period stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollPeriodStatsResponse(stats, params.PeriodStart, params.PeriodEnd),
+			"Fixed payroll period stats retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) GetOnCallPayrollMonthStats(ctx *gin.Context) {
@@ -355,7 +399,13 @@ func (h *SalaryHandler) GetOnCallPayrollMonthStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollMonthStatsResponse(stats), "On-call payroll month stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollMonthStatsResponse(stats),
+			"On-call payroll month stats retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) GetOnCallPayrollPeriodStats(ctx *gin.Context) {
@@ -377,7 +427,13 @@ func (h *SalaryHandler) GetOnCallPayrollPeriodStats(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPeriodStatsResponse(stats, params.PeriodStart, params.PeriodEnd), "On-call payroll period stats retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollPeriodStatsResponse(stats, params.PeriodStart, params.PeriodEnd),
+			"On-call payroll period stats retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) GetPayrollPeriodOptions(ctx *gin.Context) {
@@ -387,7 +443,13 @@ func (h *SalaryHandler) GetPayrollPeriodOptions(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPeriodOptionResponses(options), "Payroll period options retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollPeriodOptionResponses(options),
+			"Payroll period options retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
@@ -416,7 +478,10 @@ func (h *SalaryHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
 		page.TotalCount,
 	)
 	response := toPayrollMonthORTOverviewResponse(page, paged)
-	ctx.JSON(http.StatusOK, httpapi.OK(response, "Payroll month ORT overview retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(response, "Payroll month ORT overview retrieved successfully"),
+	)
 }
 
 func (h *SalaryHandler) GetPayrollMonthDetail(ctx *gin.Context) {
@@ -445,7 +510,10 @@ func (h *SalaryHandler) GetPayrollMonthDetail(ctx *gin.Context) {
 
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(toPayrollMonthDetailResponse(detail), "Payroll month detail retrieved successfully"),
+		httpapi.OK(
+			toPayrollMonthDetailResponse(detail),
+			"Payroll month detail retrieved successfully",
+		),
 	)
 }
 
@@ -562,7 +630,13 @@ func (h *SalaryHandler) previewPayrollMonthClose(ctx *gin.Context, payrollGroup 
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollMonthCloseResultResponse(result), "Payroll month close preview retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollMonthCloseResultResponse(result),
+			"Payroll month close preview retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) closePayrollMonth(ctx *gin.Context, payrollGroup string) {
@@ -581,12 +655,19 @@ func (h *SalaryHandler) closePayrollMonth(ctx *gin.Context, payrollGroup string)
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	result, err := h.service.ClosePayrollMonthByAdmin(ctx.Request.Context(), adminEmployeeID, params)
+	result, err := h.service.ClosePayrollMonthByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusCreated, httpapi.OK(toPayrollMonthCloseResultResponse(result), "Payroll month closed successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toPayrollMonthCloseResultResponse(result), "Payroll month closed successfully"),
+	)
 }
 
 func (h *SalaryHandler) previewPayrollPeriodClose(ctx *gin.Context, payrollGroup string) {
@@ -605,7 +686,13 @@ func (h *SalaryHandler) previewPayrollPeriodClose(ctx *gin.Context, payrollGroup
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusOK, httpapi.OK(toPayrollPeriodCloseResultResponse(result), "Payroll period close preview retrieved successfully"))
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toPayrollPeriodCloseResultResponse(result),
+			"Payroll period close preview retrieved successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) closePayrollPeriod(ctx *gin.Context, payrollGroup string) {
@@ -624,12 +711,22 @@ func (h *SalaryHandler) closePayrollPeriod(ctx *gin.Context, payrollGroup string
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
-	result, err := h.service.ClosePayrollPeriodByAdmin(ctx.Request.Context(), adminEmployeeID, params)
+	result, err := h.service.ClosePayrollPeriodByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		params,
+	)
 	if err != nil {
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
 	}
-	ctx.JSON(http.StatusCreated, httpapi.OK(toPayrollPeriodCloseResultResponse(result), "Payroll period closed successfully"))
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(
+			toPayrollPeriodCloseResultResponse(result),
+			"Payroll period closed successfully",
+		),
+	)
 }
 
 func (h *SalaryHandler) ListPayPeriods(ctx *gin.Context) {
