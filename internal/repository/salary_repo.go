@@ -629,12 +629,13 @@ func (r *SalaryRepository) ListPayoutRequestsByEmployeeAndMonth(
 	sql := `
 		SELECT
 			id, employee_id, created_by_employee_id, requested_hours, balance_year,
-			hourly_rate, gross_amount, salary_month, status,
+			hourly_rate, gross_amount, pay_period_start, status,
 			request_note, decision_note, decided_by_employee_id, paid_by_employee_id,
 			requested_at, decided_at, paid_at, created_at, updated_at
 		FROM leave_payout_requests
 		WHERE employee_id = $1
-		  AND salary_month = $2
+		  AND pay_period_start >= $2
+		  AND pay_period_start < $2::date + interval '1 month'
 		ORDER BY requested_at DESC
 	`
 	rows, err := r.store.ConnPool.Query(ctx, sql, employeeID, salaryMonth)
@@ -653,7 +654,7 @@ func (r *SalaryRepository) ListPayoutRequestsByEmployeeAndMonth(
 			balanceYear         int32
 			hourlyRate          float64
 			grossAmount         float64
-			salMonth            pgtype.Date
+			payPeriodStart      pgtype.Date
 			status              string
 			requestNote         *string
 			decisionNote        *string
@@ -667,7 +668,7 @@ func (r *SalaryRepository) ListPayoutRequestsByEmployeeAndMonth(
 		)
 		err := rows.Scan(
 			&id, &empID, &createdByEmpID, &requestedHours, &balanceYear,
-			&hourlyRate, &grossAmount, &salMonth, &status,
+			&hourlyRate, &grossAmount, &payPeriodStart, &status,
 			&requestNote, &decisionNote, &decidedByEmployeeID, &paidByEmployeeID,
 			&requestedAt, &decidedAt, &paidAt, &createdAt, &updatedAt,
 		)
@@ -676,7 +677,7 @@ func (r *SalaryRepository) ListPayoutRequestsByEmployeeAndMonth(
 		}
 		items = append(items, toDomainPayoutRequest(
 			id, empID, "", createdByEmpID,
-			requestedHours, balanceYear, hourlyRate, grossAmount, salMonth, status,
+			requestedHours, balanceYear, hourlyRate, grossAmount, payPeriodStart, status,
 			requestNote, decisionNote, decidedByEmployeeID, paidByEmployeeID,
 			requestedAt, decidedAt, paidAt, createdAt, updatedAt,
 		))

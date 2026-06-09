@@ -58,7 +58,7 @@ SELECT
     pr.balance_year,
     pr.hourly_rate,
     pr.gross_amount,
-    pr.salary_month,
+    pr.pay_period_start,
     pr.status,
     pr.request_note,
     pr.decision_note,
@@ -91,7 +91,7 @@ SELECT
     pr.balance_year,
     pr.hourly_rate,
     pr.gross_amount,
-    pr.salary_month,
+    pr.pay_period_start,
     pr.status,
     pr.request_note,
     pr.decision_note,
@@ -134,7 +134,7 @@ SET
     status = 'approved'::payout_request_status_enum,
     decision_note = sqlc.narg('decision_note')::text,
     decided_by_employee_id = sqlc.arg('decided_by_employee_id'),
-    salary_month = sqlc.arg('salary_month')::date,
+    pay_period_start = sqlc.arg('pay_period_start')::date,
     decided_at = NOW(),
     updated_at = NOW()
 WHERE id = sqlc.arg('id')

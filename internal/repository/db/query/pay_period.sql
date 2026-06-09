@@ -140,7 +140,7 @@ leave_payout_items AS (
         ep.first_name AS employee_first_name,
         ep.last_name AS employee_last_name,
         'Leave payout'::text AS label,
-        lpr.salary_month AS work_date,
+        lpr.pay_period_start AS work_date,
         NULL::time AS start_time_val,
         NULL::time AS end_time_val,
         0 AS break_minutes,
@@ -159,17 +159,16 @@ leave_payout_items AS (
         SELECT c.contract_type
         FROM employee_contracts c
         WHERE c.employee_id = lpr.employee_id
-          AND c.start_date <= lpr.salary_month
-          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
-          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+          AND c.start_date <= lpr.pay_period_start
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.pay_period_start)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.pay_period_start)
         ORDER BY c.start_date DESC, c.created_at DESC
         LIMIT 1
     ) cc ON TRUE
     WHERE lpr.employee_id = sqlc.arg(employee_id)
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
-      AND lpr.salary_month >= sqlc.arg(period_start)
-      AND lpr.salary_month <= sqlc.arg(cutoff_date)
+      AND lpr.pay_period_start = sqlc.arg(period_start)
 )
 SELECT * FROM schedule_items
 UNION ALL

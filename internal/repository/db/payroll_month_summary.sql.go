@@ -315,14 +315,14 @@ WITH on_call_month_employees AS (
         SELECT c.contract_type
         FROM employee_contracts c
         WHERE c.employee_id = lpr.employee_id
-          AND c.start_date <= lpr.salary_month
-          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
-          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+          AND c.start_date <= lpr.pay_period_start
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.pay_period_start)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.pay_period_start)
         ORDER BY c.start_date DESC, c.created_at DESC
         LIMIT 1
     ) cc ON TRUE
-    WHERE lpr.salary_month >= $4
-      AND lpr.salary_month <= $5
+    WHERE lpr.pay_period_start >= $4
+      AND lpr.pay_period_start <= $5
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
       AND cc.contract_type = 'on_call'::employee_contract_type_enum
@@ -589,7 +589,7 @@ leave_payout_items AS (
         ep.first_name AS employee_first_name,
         ep.last_name AS employee_last_name,
         'Leave payout'::text AS label,
-        lpr.salary_month AS work_date,
+        lpr.pay_period_start AS work_date,
         NULL::time AS start_time_val,
         NULL::time AS end_time_val,
         0 AS break_minutes,
@@ -608,17 +608,17 @@ leave_payout_items AS (
         SELECT c.contract_type
         FROM employee_contracts c
         WHERE c.employee_id = lpr.employee_id
-          AND c.start_date <= lpr.salary_month
-          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.salary_month)
-          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.salary_month)
+          AND c.start_date <= lpr.pay_period_start
+          AND (c.effective_end_date IS NULL OR c.effective_end_date >= lpr.pay_period_start)
+          AND (c.contract_end_date IS NULL OR c.contract_end_date >= lpr.pay_period_start)
         ORDER BY c.start_date DESC, c.created_at DESC
         LIMIT 1
     ) cc ON TRUE
     WHERE lpr.employee_id = ANY($1::uuid[])
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
-      AND lpr.salary_month >= $2
-      AND lpr.salary_month <= $3
+      AND lpr.pay_period_start >= $2
+      AND lpr.pay_period_start <= $3
 )
 SELECT source_id, employee_id, employee_first_name, employee_last_name, label, work_date, start_time_val, end_time_val, break_minutes, minutes_worked, source_type, schedule_id, overtime_entry_id, leave_payout_request_id, contract_type, contract_rate, gross_amount_override, irregular_hours_profile FROM schedule_items
 UNION ALL
@@ -720,8 +720,8 @@ WITH month_employees AS (
 
     SELECT DISTINCT lpr.employee_id
     FROM leave_payout_requests lpr
-    WHERE lpr.salary_month >= $2
-      AND lpr.salary_month <= $3
+    WHERE lpr.pay_period_start >= $2
+      AND lpr.pay_period_start <= $3
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
 )
@@ -800,8 +800,8 @@ WITH month_employees AS (
 
     SELECT DISTINCT lpr.employee_id
     FROM leave_payout_requests lpr
-    WHERE lpr.salary_month >= $4
-      AND lpr.salary_month <= $5
+    WHERE lpr.pay_period_start >= $4
+      AND lpr.pay_period_start <= $5
       AND lpr.status = 'approved'::payout_request_status_enum
       AND lpr.paid_period_id IS NULL
 )

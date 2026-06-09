@@ -25,7 +25,7 @@ type PayoutRequestSeed struct {
 	RequestNote                    *string
 	DecisionByEmployeeAlias        *string
 	PaidByEmployeeAlias            *string
-	SalaryMonth                    *time.Time
+	PayPeriodStart                 *time.Time
 	DecisionNote                   *string
 }
 
@@ -78,8 +78,8 @@ func (s PayoutRequestsSeeder) Seed(ctx context.Context, env Env) error {
 		if !isValidSeedPayoutStatus(item.Status) {
 			return fmt.Errorf("seed payout_requests[%s]: unsupported status %q", alias, item.Status)
 		}
-		if wantsPayoutApproval(item.Status) && (item.SalaryMonth == nil || item.SalaryMonth.IsZero()) {
-			return fmt.Errorf("seed payout_requests[%s]: salary month is required for approved/paid requests", alias)
+		if wantsPayoutApproval(item.Status) && (item.PayPeriodStart == nil || item.PayPeriodStart.IsZero()) {
+			return fmt.Errorf("seed payout_requests[%s]: pay period start is required for approved/paid requests", alias)
 		}
 
 		requestsByEmployee[employeeAlias] = append(requestsByEmployee[employeeAlias], item)
@@ -198,7 +198,7 @@ func samePayoutRequest(current domain.PayoutRequest, item PayoutRequestSeed, inc
 		if current.Status != strings.TrimSpace(item.Status) {
 			return false
 		}
-		if !sameOptionalDate(current.SalaryMonth, item.SalaryMonth) {
+		if !sameOptionalDate(current.PayPeriodStart, item.PayPeriodStart) {
 			return false
 		}
 		if normalizeOptionalText(current.DecisionNote) == nil && normalizeOptionalText(item.DecisionNote) != nil {
@@ -236,9 +236,9 @@ func advancePayoutRequestToDesiredState(
 		}
 
 		updated, err := payoutService.DecidePayoutRequestByAdmin(ctx, decisionByEmployeeID, current.ID, domain.DecidePayoutRequestParams{
-			Decision:     payoutDecisionFromStatus(desiredStatus),
-			DecisionNote: normalizeOptionalText(item.DecisionNote),
-			SalaryMonth:  normalizeOptionalTime(item.SalaryMonth),
+			Decision:       payoutDecisionFromStatus(desiredStatus),
+			DecisionNote:   normalizeOptionalText(item.DecisionNote),
+			PayPeriodStart: normalizeOptionalTime(item.PayPeriodStart),
 		})
 		if err != nil {
 			return nil, err

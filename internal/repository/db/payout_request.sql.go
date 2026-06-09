@@ -18,17 +18,17 @@ SET
     status = 'approved'::payout_request_status_enum,
     decision_note = $1::text,
     decided_by_employee_id = $2,
-    salary_month = $3::date,
+    pay_period_start = $3::date,
     decided_at = NOW(),
     updated_at = NOW()
 WHERE id = $4
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, pay_period_start, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type ApprovePayoutRequestParams struct {
 	DecisionNote        *string     `json:"decision_note"`
 	DecidedByEmployeeID *uuid.UUID  `json:"decided_by_employee_id"`
-	SalaryMonth         pgtype.Date `json:"salary_month"`
+	PayPeriodStart      pgtype.Date `json:"pay_period_start"`
 	ID                  uuid.UUID   `json:"id"`
 }
 
@@ -36,7 +36,7 @@ func (q *Queries) ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutReq
 	row := q.db.QueryRow(ctx, approvePayoutRequest,
 		arg.DecisionNote,
 		arg.DecidedByEmployeeID,
-		arg.SalaryMonth,
+		arg.PayPeriodStart,
 		arg.ID,
 	)
 	var i LeavePayoutRequest
@@ -48,7 +48,7 @@ func (q *Queries) ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutReq
 		&i.BalanceYear,
 		&i.HourlyRate,
 		&i.GrossAmount,
-		&i.SalaryMonth,
+		&i.PayPeriodStart,
 		&i.Status,
 		&i.RequestNote,
 		&i.DecisionNote,
@@ -84,7 +84,7 @@ INSERT INTO leave_payout_requests (
     $7,
     NOW()
 )
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, pay_period_start, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type CreatePayoutRequestParams struct {
@@ -116,7 +116,7 @@ func (q *Queries) CreatePayoutRequest(ctx context.Context, arg CreatePayoutReque
 		&i.BalanceYear,
 		&i.HourlyRate,
 		&i.GrossAmount,
-		&i.SalaryMonth,
+		&i.PayPeriodStart,
 		&i.Status,
 		&i.RequestNote,
 		&i.DecisionNote,
@@ -183,7 +183,7 @@ SELECT
     pr.balance_year,
     pr.hourly_rate,
     pr.gross_amount,
-    pr.salary_month,
+    pr.pay_period_start,
     pr.status,
     pr.request_note,
     pr.decision_note,
@@ -223,7 +223,7 @@ type ListMyPayoutRequestsPaginatedRow struct {
 	BalanceYear         int32                   `json:"balance_year"`
 	HourlyRate          float64                 `json:"hourly_rate"`
 	GrossAmount         float64                 `json:"gross_amount"`
-	SalaryMonth         pgtype.Date             `json:"salary_month"`
+	PayPeriodStart      pgtype.Date             `json:"pay_period_start"`
 	Status              PayoutRequestStatusEnum `json:"status"`
 	RequestNote         *string                 `json:"request_note"`
 	DecisionNote        *string                 `json:"decision_note"`
@@ -261,7 +261,7 @@ func (q *Queries) ListMyPayoutRequestsPaginated(ctx context.Context, arg ListMyP
 			&i.BalanceYear,
 			&i.HourlyRate,
 			&i.GrossAmount,
-			&i.SalaryMonth,
+			&i.PayPeriodStart,
 			&i.Status,
 			&i.RequestNote,
 			&i.DecisionNote,
@@ -295,7 +295,7 @@ SELECT
     pr.balance_year,
     pr.hourly_rate,
     pr.gross_amount,
-    pr.salary_month,
+    pr.pay_period_start,
     pr.status,
     pr.request_note,
     pr.decision_note,
@@ -342,7 +342,7 @@ type ListPayoutRequestsPaginatedRow struct {
 	BalanceYear         int32                   `json:"balance_year"`
 	HourlyRate          float64                 `json:"hourly_rate"`
 	GrossAmount         float64                 `json:"gross_amount"`
-	SalaryMonth         pgtype.Date             `json:"salary_month"`
+	PayPeriodStart      pgtype.Date             `json:"pay_period_start"`
 	Status              PayoutRequestStatusEnum `json:"status"`
 	RequestNote         *string                 `json:"request_note"`
 	DecisionNote        *string                 `json:"decision_note"`
@@ -380,7 +380,7 @@ func (q *Queries) ListPayoutRequestsPaginated(ctx context.Context, arg ListPayou
 			&i.BalanceYear,
 			&i.HourlyRate,
 			&i.GrossAmount,
-			&i.SalaryMonth,
+			&i.PayPeriodStart,
 			&i.Status,
 			&i.RequestNote,
 			&i.DecisionNote,
@@ -406,7 +406,7 @@ func (q *Queries) ListPayoutRequestsPaginated(ctx context.Context, arg ListPayou
 }
 
 const lockPayoutRequestByID = `-- name: LockPayoutRequestByID :one
-SELECT id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
+SELECT id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, pay_period_start, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 FROM leave_payout_requests
 WHERE id = $1
 FOR UPDATE
@@ -423,7 +423,7 @@ func (q *Queries) LockPayoutRequestByID(ctx context.Context, id uuid.UUID) (Leav
 		&i.BalanceYear,
 		&i.HourlyRate,
 		&i.GrossAmount,
-		&i.SalaryMonth,
+		&i.PayPeriodStart,
 		&i.Status,
 		&i.RequestNote,
 		&i.DecisionNote,
@@ -447,7 +447,7 @@ SET
     paid_at = NOW(),
     updated_at = NOW()
 WHERE id = $2
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, pay_period_start, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type MarkPayoutRequestPaidParams struct {
@@ -466,7 +466,7 @@ func (q *Queries) MarkPayoutRequestPaid(ctx context.Context, arg MarkPayoutReque
 		&i.BalanceYear,
 		&i.HourlyRate,
 		&i.GrossAmount,
-		&i.SalaryMonth,
+		&i.PayPeriodStart,
 		&i.Status,
 		&i.RequestNote,
 		&i.DecisionNote,
@@ -491,7 +491,7 @@ SET
     decided_at = NOW(),
     updated_at = NOW()
 WHERE id = $3
-RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, salary_month, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
+RETURNING id, employee_id, created_by_employee_id, requested_hours, balance_year, hourly_rate, gross_amount, pay_period_start, status, request_note, decision_note, decided_by_employee_id, paid_by_employee_id, paid_period_id, requested_at, decided_at, paid_at, created_at, updated_at
 `
 
 type RejectPayoutRequestParams struct {
@@ -511,7 +511,7 @@ func (q *Queries) RejectPayoutRequest(ctx context.Context, arg RejectPayoutReque
 		&i.BalanceYear,
 		&i.HourlyRate,
 		&i.GrossAmount,
-		&i.SalaryMonth,
+		&i.PayPeriodStart,
 		&i.Status,
 		&i.RequestNote,
 		&i.DecisionNote,

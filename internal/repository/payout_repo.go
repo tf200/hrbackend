@@ -62,7 +62,7 @@ func (r *PayoutRepository) ListMyPayoutRequests(
 			row.BalanceYear,
 			row.HourlyRate,
 			row.GrossAmount,
-			row.SalaryMonth,
+			row.PayPeriodStart,
 			string(row.Status),
 			row.RequestNote,
 			row.DecisionNote,
@@ -110,7 +110,7 @@ func (r *PayoutRepository) ListPayoutRequests(
 			row.BalanceYear,
 			row.HourlyRate,
 			row.GrossAmount,
-			row.SalaryMonth,
+			row.PayPeriodStart,
 			string(row.Status),
 			row.RequestNote,
 			row.DecisionNote,
@@ -188,14 +188,14 @@ func (r *payoutTxRepo) GetPayoutRequestForUpdate(
 func (r *payoutTxRepo) ApprovePayoutRequest(
 	ctx context.Context,
 	payoutRequestID, decidedByEmployeeID uuid.UUID,
-	salaryMonth time.Time,
+	payPeriodStart time.Time,
 	decisionNote *string,
 ) (*domain.PayoutRequest, error) {
 	row, err := r.queries.ApprovePayoutRequest(ctx, db.ApprovePayoutRequestParams{
 		ID:                  payoutRequestID,
 		DecisionNote:        decisionNote,
 		DecidedByEmployeeID: &decidedByEmployeeID,
-		SalaryMonth:         conv.PgDateFromTime(salaryMonth),
+		PayPeriodStart:      conv.PgDateFromTime(payPeriodStart),
 	})
 	if err != nil {
 		if isDBNotFound(err) {
@@ -255,7 +255,7 @@ func toDomainPayoutRequestFromRow(row db.LeavePayoutRequest) domain.PayoutReques
 		row.BalanceYear,
 		row.HourlyRate,
 		row.GrossAmount,
-		row.SalaryMonth,
+		row.PayPeriodStart,
 		string(row.Status),
 		row.RequestNote,
 		row.DecisionNote,
@@ -289,7 +289,7 @@ func toDomainPayoutRequest(
 	balanceYear int32,
 	hourlyRate float64,
 	grossAmount float64,
-	salaryMonth pgtype.Date,
+	payPeriodStart pgtype.Date,
 	status string,
 	requestNote *string,
 	decisionNote *string,
@@ -310,7 +310,7 @@ func toDomainPayoutRequest(
 		BalanceYear:         balanceYear,
 		HourlyRate:          hourlyRate,
 		GrossAmount:         grossAmount,
-		SalaryMonth:         conv.TimePtrFromPgDate(salaryMonth),
+		PayPeriodStart:      conv.TimePtrFromPgDate(payPeriodStart),
 		Status:              status,
 		RequestNote:         requestNote,
 		DecisionNote:        decisionNote,

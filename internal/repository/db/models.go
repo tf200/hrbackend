@@ -2120,7 +2120,7 @@ type LeavePayoutRequest struct {
 	BalanceYear         int32                   `json:"balance_year"`
 	HourlyRate          float64                 `json:"hourly_rate"`
 	GrossAmount         float64                 `json:"gross_amount"`
-	SalaryMonth         pgtype.Date             `json:"salary_month"`
+	PayPeriodStart      pgtype.Date             `json:"pay_period_start"`
 	Status              PayoutRequestStatusEnum `json:"status"`
 	RequestNote         *string                 `json:"request_note"`
 	DecisionNote        *string                 `json:"decision_note"`

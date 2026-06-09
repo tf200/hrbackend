@@ -1449,7 +1449,7 @@ CREATE TABLE leave_payout_requests (
     balance_year INT NOT NULL,
     hourly_rate DECIMAL(10,2) NOT NULL,
     gross_amount DECIMAL(12,2) NOT NULL,
-    salary_month DATE NULL,
+    pay_period_start DATE NULL,
     status payout_request_status_enum NOT NULL DEFAULT 'pending',
     request_note TEXT NULL,
     decision_note TEXT NULL,
@@ -1464,10 +1464,7 @@ CREATE TABLE leave_payout_requests (
     CONSTRAINT leave_payout_requests_requested_hours_positive CHECK (requested_hours > 0),
     CONSTRAINT leave_payout_requests_balance_year_range CHECK (balance_year >= 2000 AND balance_year <= 2100),
     CONSTRAINT leave_payout_requests_hourly_rate_positive CHECK (hourly_rate > 0),
-    CONSTRAINT leave_payout_requests_gross_amount_non_negative CHECK (gross_amount >= 0),
-    CONSTRAINT leave_payout_requests_salary_month_first_day CHECK (
-        salary_month IS NULL OR EXTRACT(DAY FROM salary_month) = 1
-    )
+    CONSTRAINT leave_payout_requests_gross_amount_non_negative CHECK (gross_amount >= 0)
 );
 
 CREATE INDEX idx_leave_payout_requests_employee_requested_at_desc

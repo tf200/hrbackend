@@ -15,13 +15,13 @@ func TestDecidePayoutRequestByAdminApproveUnavailable(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	requestID := uuid.New()
-	salaryMonth := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	payPeriodStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
 	service := NewPayoutService(repo, nil)
 
 	_, err := service.DecidePayoutRequestByAdmin(ctx, adminID, requestID, domain.DecidePayoutRequestParams{
-		Decision:    "approve",
-		SalaryMonth: &salaryMonth,
+		Decision:       "approve",
+		PayPeriodStart: &payPeriodStart,
 	})
 	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
 		t.Fatalf("expected unavailable invalid request, got %v", err)
@@ -65,7 +65,7 @@ func TestCreateApprovedPayoutRequestByAdminUnavailable(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	employeeID := uuid.New()
-	salaryMonth := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	payPeriodStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	requestedHours := int32(8)
 	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
 	service := NewPayoutService(repo, nil)
@@ -74,7 +74,7 @@ func TestCreateApprovedPayoutRequestByAdminUnavailable(t *testing.T) {
 		EmployeeID:     employeeID,
 		RequestedHours: requestedHours,
 		BalanceYear:    2026,
-		SalaryMonth:    salaryMonth,
+		PayPeriodStart: payPeriodStart,
 		RequestNote:    ptrString("admin-initiated"),
 		DecisionNote:   ptrString("approved by admin"),
 	})
@@ -94,7 +94,7 @@ func TestCreateApprovedPayoutRequestByAdminNoLongerChecksExtraHours(t *testing.T
 		EmployeeID:     employeeID,
 		RequestedHours: 8,
 		BalanceYear:    2026,
-		SalaryMonth:    time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+		PayPeriodStart: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
 	})
 	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
 		t.Fatalf("expected unavailable invalid request, got %v", err)
@@ -149,7 +149,7 @@ func (r *fakePayoutTxRepository) GetPayoutRequestForUpdate(context.Context, uuid
 	return r.currentRequest, nil
 }
 
-func (r *fakePayoutTxRepository) ApprovePayoutRequest(_ context.Context, _ uuid.UUID, decidedByEmployeeID uuid.UUID, salaryMonth time.Time, _ *string) (*domain.PayoutRequest, error) {
+func (r *fakePayoutTxRepository) ApprovePayoutRequest(_ context.Context, _ uuid.UUID, decidedByEmployeeID uuid.UUID, payPeriodStart time.Time, _ *string) (*domain.PayoutRequest, error) {
 	base := r.currentRequest
 	if base == nil {
 		base = r.createdPayout
@@ -160,7 +160,7 @@ func (r *fakePayoutTxRepository) ApprovePayoutRequest(_ context.Context, _ uuid.
 	updated := *base
 	updated.Status = domain.PayoutRequestStatusApproved
 	updated.DecidedByEmployeeID = &decidedByEmployeeID
-	updated.SalaryMonth = &salaryMonth
+	updated.PayPeriodStart = &payPeriodStart
 	return &updated, nil
 }
 

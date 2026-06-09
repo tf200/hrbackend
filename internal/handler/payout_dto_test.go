@@ -7,15 +7,15 @@ import (
 	"hrbackend/internal/domain"
 )
 
-func TestPayoutRequestResponseIncludesSalaryMonth(t *testing.T) {
-	salaryMonth := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+func TestPayoutRequestResponseIncludesPayPeriodStart(t *testing.T) {
+	payPeriodStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 
-	response := toPayoutRequestResponse(domain.PayoutRequest{SalaryMonth: &salaryMonth})
+	response := toPayoutRequestResponse(domain.PayoutRequest{PayPeriodStart: &payPeriodStart})
 
-	if response.SalaryMonth == nil {
-		t.Fatalf("expected salary month")
+	if response.PayPeriodStart == nil {
+		t.Fatalf("expected pay period start")
 	}
-	if *response.SalaryMonth != "2026-05" {
-		t.Fatalf("unexpected salary month: %s", *response.SalaryMonth)
+	if *response.PayPeriodStart != "2026-05-01" {
+		t.Fatalf("unexpected pay period start: %s", *response.PayPeriodStart)
 	}
 }

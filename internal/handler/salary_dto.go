@@ -1192,6 +1192,14 @@ func formatPayoutSalaryMonth(value *time.Time) *string {
 	return &formatted
 }
 
+func formatPayoutPayPeriodStart(value *time.Time) *string {
+	if value == nil {
+		return nil
+	}
+	formatted := value.UTC().Format(timeEntryDateLayout)
+	return &formatted
+}
+
 // ---------------------------------------------------------------------------
 // Salary page DTOs
 // ---------------------------------------------------------------------------
@@ -1339,7 +1347,7 @@ type salaryPagePendingEntryResponse struct {
 }
 type salaryPagePayoutRequestResponse struct {
 	ID             uuid.UUID  `json:"id"`
-	SalaryMonth    *string    `json:"salary_month"`
+	PayPeriodStart *string    `json:"pay_period_start"`
 	BalanceYear    int32      `json:"balance_year"`
 	RequestedHours int32      `json:"requested_hours"`
 	HourlyRate     float64    `json:"hourly_rate"`
@@ -1751,7 +1759,7 @@ func buildSalaryPageLeavePayout(data *domain.SalaryPageData) salaryPageLeavePayo
 	for _, r := range data.LeavePayoutRequests {
 		requests = append(requests, salaryPagePayoutRequestResponse{
 			ID:             r.ID,
-			SalaryMonth:    formatPayoutSalaryMonth(r.SalaryMonth),
+			PayPeriodStart: formatPayoutPayPeriodStart(r.PayPeriodStart),
 			BalanceYear:    r.BalanceYear,
 			RequestedHours: r.RequestedHours,
 			HourlyRate:     r.HourlyRate,

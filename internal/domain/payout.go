@@ -31,7 +31,7 @@ type PayoutRequest struct {
 	BalanceYear         int32
 	HourlyRate          float64
 	GrossAmount         float64
-	SalaryMonth         *time.Time
+	PayPeriodStart      *time.Time
 	Status              string
 	RequestNote         *string
 	DecisionNote        *string
@@ -65,14 +65,14 @@ type CreatePayoutRequestParams struct {
 type DecidePayoutRequestParams struct {
 	Decision     string
 	DecisionNote *string
-	SalaryMonth  *time.Time
+	PayPeriodStart  *time.Time
 }
 
 type CreatePayoutRequestByAdminParams struct {
 	EmployeeID     uuid.UUID
 	RequestedHours int32
 	BalanceYear    int32
-	SalaryMonth    time.Time
+	PayPeriodStart    time.Time
 	RequestNote    *string
 	DecisionNote   *string
 }
@@ -114,7 +114,7 @@ type PayoutTxRepository interface {
 	ApprovePayoutRequest(
 		ctx context.Context,
 		payoutRequestID, decidedByEmployeeID uuid.UUID,
-		salaryMonth time.Time,
+		payPeriodStart time.Time,
 		decisionNote *string,
 	) (*PayoutRequest, error)
 	RejectPayoutRequest(
