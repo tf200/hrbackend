@@ -80,6 +80,43 @@ func (s *PayoutService) UpdatePayoutRequest(
 	return updated, nil
 }
 
+func (s *PayoutService) UpdatePayoutRequestByAdmin(
+	ctx context.Context,
+	adminEmployeeID, payoutRequestID uuid.UUID,
+	params domain.UpdatePayoutRequestParams,
+) (*domain.PayoutRequest, error) {
+	if adminEmployeeID == uuid.Nil || payoutRequestID == uuid.Nil {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	var updated *domain.PayoutRequest
+	err := s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
+		current, err := tx.GetPayoutRequestForUpdate(ctx, payoutRequestID)
+		if err != nil {
+			return err
+		}
+
+		newGrossAmount := float64(params.RequestedHours) * current.HourlyRate
+
+		updated, err = tx.UpdatePayoutRequest(
+			ctx,
+			payoutRequestID,
+			domain.UpdatePayoutRequestTxParams{
+				RequestedHours: params.RequestedHours,
+				BalanceYear:    params.BalanceYear,
+				GrossAmount:    newGrossAmount,
+				RequestNote:    params.RequestNote,
+			},
+		)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
 func (s *PayoutService) CreateApprovedPayoutRequestByAdmin(
 	ctx context.Context,
 	adminEmployeeID uuid.UUID,

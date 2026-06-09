@@ -30,6 +30,12 @@ func RegisterPayoutRoutes(
 		requirePermission(permission.Payout.Request.Update),
 		handler.UpdatePayoutRequest,
 	)
+	rg.PUT(
+		"/payout-requests/admin/:id",
+		auth,
+		requirePermission(permission.Payout.Request.Decide),
+		handler.UpdatePayoutRequestByAdmin,
+	)
 	rg.GET(
 		"/payout-requests/my",
 		auth,

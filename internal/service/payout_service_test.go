@@ -78,6 +78,92 @@ func TestUpdatePayoutRequestSuccess(t *testing.T) {
 	}
 }
 
+func TestUpdatePayoutRequestByAdminSuccess(t *testing.T) {
+	ctx := context.Background()
+	adminID := uuid.New()
+	employeeID := uuid.New()
+	requestID := uuid.New()
+
+	repo := &fakePayoutRepository{
+		tx: &fakePayoutTxRepository{
+			currentRequest: &domain.PayoutRequest{
+				ID:             requestID,
+				EmployeeID:     employeeID,
+				RequestedHours: 8,
+				BalanceYear:    2026,
+				HourlyRate:     25.50,
+				Status:         domain.PayoutRequestStatusPending,
+			},
+		},
+	}
+	service := NewPayoutService(repo, nil)
+
+	updated, err := service.UpdatePayoutRequestByAdmin(
+		ctx,
+		adminID,
+		requestID,
+		domain.UpdatePayoutRequestParams{
+			RequestedHours: 15,
+			BalanceYear:    2026,
+			RequestNote:    ptrString("admin adjustment"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected admin update to succeed, got error: %v", err)
+	}
+
+	if updated.RequestedHours != 15 {
+		t.Fatalf("expected 15 requested hours, got %d", updated.RequestedHours)
+	}
+	expectedGross := 15 * 25.50
+	if updated.GrossAmount != expectedGross {
+		t.Fatalf("expected gross amount %f, got %f", expectedGross, updated.GrossAmount)
+	}
+}
+
+func TestUpdatePayoutRequestByAdminPaidSuccess(t *testing.T) {
+	ctx := context.Background()
+	adminID := uuid.New()
+	employeeID := uuid.New()
+	requestID := uuid.New()
+
+	repo := &fakePayoutRepository{
+		tx: &fakePayoutTxRepository{
+			currentRequest: &domain.PayoutRequest{
+				ID:             requestID,
+				EmployeeID:     employeeID,
+				RequestedHours: 8,
+				BalanceYear:    2026,
+				HourlyRate:     25.50,
+				Status:         domain.PayoutRequestStatusPaid,
+			},
+		},
+	}
+	service := NewPayoutService(repo, nil)
+
+	updated, err := service.UpdatePayoutRequestByAdmin(
+		ctx,
+		adminID,
+		requestID,
+		domain.UpdatePayoutRequestParams{
+			RequestedHours: 20,
+			BalanceYear:    2026,
+			RequestNote:    ptrString("admin update paid request"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected admin update on paid request to succeed, got error: %v", err)
+	}
+
+	if updated.RequestedHours != 20 {
+		t.Fatalf("expected 20 requested hours, got %d", updated.RequestedHours)
+	}
+	expectedGross := 20 * 25.50
+	if updated.GrossAmount != expectedGross {
+		t.Fatalf("expected gross amount %f, got %f", expectedGross, updated.GrossAmount)
+	}
+}
+
 func TestUpdatePayoutRequestForbidden(t *testing.T) {
 	ctx := context.Background()
 	employeeID := uuid.New()

@@ -169,6 +169,11 @@ type PayoutService interface {
 		actorEmployeeID, payoutRequestID uuid.UUID,
 		params UpdatePayoutRequestParams,
 	) (*PayoutRequest, error)
+	UpdatePayoutRequestByAdmin(
+		ctx context.Context,
+		adminEmployeeID, payoutRequestID uuid.UUID,
+		params UpdatePayoutRequestParams,
+	) (*PayoutRequest, error)
 	DecidePayoutRequestByAdmin(
 		ctx context.Context,
 		adminEmployeeID, payoutRequestID uuid.UUID,
