@@ -1438,6 +1438,13 @@ func (s *SalaryService) GetMySalaryPage(
 		return nil, err
 	}
 
+	periodContractSegments, err := s.repo.ListFixedPayrollContractSegments(ctx, []uuid.UUID{employeeID}, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetMySalaryPage", "failed to list fixed payroll contract segments", err)
+		return nil, fmt.Errorf("failed to list fixed payroll contract segments: %w", err)
+	}
+	applySalaryPagePeriodContract(employee, periodContractSegments)
+
 	payPeriods, err := s.repo.ListPayPeriodsByEmployeesAndRange(
 		ctx, []uuid.UUID{employeeID}, periodStart, periodEnd,
 	)
@@ -1564,6 +1571,25 @@ func (s *SalaryService) GetMySalaryPage(
 		LeavePayoutRequests:   leavePayouts,
 		ExtraLeaveRemaining:   extraRemaining,
 	}, nil
+}
+
+func applySalaryPagePeriodContract(employee *domain.EmployeeDetail, segments []domain.FixedPayrollContractSegmentSource) {
+	if employee == nil || len(segments) == 0 {
+		return
+	}
+
+	segment := segments[0]
+	for _, candidate := range segments[1:] {
+		if candidate.ActiveFrom.Before(segment.ActiveFrom) {
+			segment = candidate
+		}
+	}
+
+	employee.ContractType = segment.ContractType
+	employee.ContractRate = &segment.HourlyRate
+	employee.ContractHours = &segment.HoursPerWeek
+	employee.ContractStartDate = &segment.ActiveFrom
+	employee.ContractEndDate = &segment.ActiveUntil
 }
 
 func (s *SalaryService) MarkPayPeriodPaidByAdmin(

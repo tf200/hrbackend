@@ -181,7 +181,7 @@ func RegisterSalaryRoutes(
 		requirePermission(permission.PayPeriod.Close),
 		handler.ClosePayPeriod,
 	)
-	rg.GET("/pay-periods", auth, requirePermission(permission.PayPeriod.ViewAll), handler.ListPayPeriods)
+	rg.GET("/pay-periods", auth, handler.ListPayPeriods)
 	rg.GET(
 		"/pay-periods/:id",
 		auth,

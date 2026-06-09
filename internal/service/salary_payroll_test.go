@@ -11,15 +11,15 @@ import (
 )
 
 type fakeSalaryRepository struct {
-	employee          *domain.EmployeeDetail
-	payPeriods        []domain.PayPeriod
-	lineItems         map[uuid.UUID][]domain.PayPeriodLineItem
-	workItems         []domain.PayrollWorkItem
-	contractSegments  []domain.FixedPayrollContractSegmentSource
-	pendingEntries    []domain.PayrollPendingEntryDetail
-	payoutRequests    []domain.PayoutRequest
-	holidays          []domain.NationalHoliday
-	err               error
+	employee         *domain.EmployeeDetail
+	payPeriods       []domain.PayPeriod
+	lineItems        map[uuid.UUID][]domain.PayPeriodLineItem
+	workItems        []domain.PayrollWorkItem
+	contractSegments []domain.FixedPayrollContractSegmentSource
+	pendingEntries   []domain.PayrollPendingEntryDetail
+	payoutRequests   []domain.PayoutRequest
+	holidays         []domain.NationalHoliday
+	err              error
 }
 
 func (f *fakeSalaryRepository) WithTxSalary(ctx context.Context, fn func(tx domain.SalaryTxRepository) error) error {
@@ -189,5 +189,55 @@ func TestGetMySalaryPageLiveFixedEmployee(t *testing.T) {
 
 	if !hasFixedBase || !hasSchedule {
 		t.Fatalf("expected both fixed_base and schedule line items")
+	}
+}
+
+func TestGetMySalaryPageUsesPeriodContractSegment(t *testing.T) {
+	ctx := context.Background()
+	employeeID := uuid.New()
+	periodStart := time.Date(2026, 5, 18, 0, 0, 0, 0, time.UTC)
+	periodEnd := time.Date(2026, 6, 14, 0, 0, 0, 0, time.UTC)
+
+	repo := &fakeSalaryRepository{
+		employee: &domain.EmployeeDetail{
+			ID:        employeeID,
+			FirstName: "Ines",
+			LastName:  "Rodriguez",
+		},
+		contractSegments: []domain.FixedPayrollContractSegmentSource{
+			{
+				EmployeeID:           employeeID,
+				ContractID:           uuid.New(),
+				ContractType:         "permanent",
+				ActiveFrom:           periodStart,
+				ActiveUntil:          periodEnd,
+				HoursPerWeek:         32,
+				FullTimeHoursPerWeek: 40,
+				HourlyRate:           30,
+				MonthlySalary:        5200,
+			},
+		},
+	}
+	salaryService := NewSalaryService(repo, nil)
+
+	data, err := salaryService.GetMySalaryPage(ctx, employeeID, periodStart, periodEnd)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if data.ContractType != "permanent" {
+		t.Fatalf("expected period contract type permanent, got %q", data.ContractType)
+	}
+	if data.ContractRate == nil || *data.ContractRate != 30 {
+		t.Fatalf("expected period contract rate 30, got %v", data.ContractRate)
+	}
+	if data.ContractHours == nil || *data.ContractHours != 32 {
+		t.Fatalf("expected period contract hours 32, got %v", data.ContractHours)
+	}
+	if data.Preview == nil {
+		t.Fatalf("expected fixed base preview to be populated")
+	}
+	if data.Preview.BaseGrossAmount != 3840 {
+		t.Fatalf("expected fixed period base gross 3840, got %f", data.Preview.BaseGrossAmount)
 	}
 }
