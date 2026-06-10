@@ -1422,8 +1422,16 @@ func (s *SalaryService) GetOnCallPayrollPeriodStats(
 
 func (s *SalaryService) GetPayrollPeriodOptions(
 	_ context.Context,
+	year *int,
 ) ([]domain.PayrollPeriodOption, error) {
-	return domain.PayrollPeriodOptionsThrough(time.Now().UTC()), nil
+	selectedYear := domain.CurrentPayrollISOYear(time.Now().UTC())
+	if year != nil {
+		if *year <= 0 {
+			return nil, domain.ErrSalaryInvalidRequest
+		}
+		selectedYear = *year
+	}
+	return domain.PayrollPeriodOptionsForYear(selectedYear, time.Now().UTC()), nil
 }
 
 func (s *SalaryService) GetPayrollMonthORTOverview(
@@ -2396,9 +2404,11 @@ func normalizeClosePayrollPeriodParams(
 }
 
 func isPayrollPeriodRange(periodStart, periodEnd time.Time) bool {
-	return !periodEnd.Before(periodStart) &&
-		inclusiveDateDays(periodStart, periodEnd) == 28 &&
-		domain.IsPayrollPeriodStart(periodStart)
+	if periodEnd.Before(periodStart) || !domain.IsPayrollPeriodStart(periodStart) {
+		return false
+	}
+	expectedStart, expectedEnd := domain.ResolvePayrollPeriod(periodStart)
+	return periodStart.Equal(expectedStart) && periodEnd.Equal(expectedEnd)
 }
 
 func appendMonthClosePreviewItem(
@@ -2863,7 +2873,10 @@ func buildFixedPayrollPeriodContractSegmentsByEmployee(
 		}
 
 		prorationRatio := float64(activeDays) / periodDays
-		baseAmount := roundCurrency(source.HourlyRate * source.HoursPerWeek * 4 * prorationRatio)
+		periodWeeks := periodDays / 7
+		baseAmount := roundCurrency(
+			source.HourlyRate * source.HoursPerWeek * periodWeeks * prorationRatio,
+		)
 
 		segment := domain.FixedPayrollContractSegment{
 			ContractID:           source.ContractID,
@@ -3170,7 +3183,10 @@ func contractSegmentPeriodPaidMinutes(
 	if activeDays <= 0 || periodDays <= 0 {
 		return 0
 	}
-	return roundCurrency(segment.HoursPerWeek * 4 * float64(activeDays) / float64(periodDays) * 60)
+	periodWeeks := float64(periodDays) / 7
+	return roundCurrency(
+		segment.HoursPerWeek * periodWeeks * float64(activeDays) / float64(periodDays) * 60,
+	)
 }
 
 func inclusiveDateDays(start, end time.Time) int {

@@ -100,3 +100,40 @@ func TestBuildFixedPayrollPeriodContractSegmentsByEmployee(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildFixedPayrollPeriodContractSegmentsByEmployeeFiveWeekPeriod(t *testing.T) {
+	periodStart := time.Date(2026, time.November, 30, 0, 0, 0, 0, time.UTC)
+	periodEnd := time.Date(2027, time.January, 3, 0, 0, 0, 0, time.UTC)
+	employeeID := uuid.New()
+
+	segmentsByEmployee := buildFixedPayrollPeriodContractSegmentsByEmployee(
+		[]domain.FixedPayrollContractSegmentSource{
+			{
+				EmployeeID:           employeeID,
+				ContractID:           uuid.New(),
+				ContractType:         "permanent",
+				ActiveFrom:           periodStart,
+				ActiveUntil:          periodEnd,
+				HoursPerWeek:         40,
+				FullTimeHoursPerWeek: 36,
+				MonthlySalary:        3900,
+				HourlyRate:           25,
+			},
+		},
+		periodStart,
+		periodEnd,
+	)
+
+	segments := segmentsByEmployee[employeeID]
+	if len(segments) != 1 {
+		t.Fatalf("expected 1 segment, got %d", len(segments))
+	}
+	segment := segments[0]
+	if segment.BaseAmount != 5000 {
+		t.Fatalf("base amount = %v, want 5000", segment.BaseAmount)
+	}
+	paidMinutes := contractSegmentPeriodPaidMinutes(segment, periodStart, periodEnd)
+	if paidMinutes != 12000 {
+		t.Fatalf("paid minutes = %v, want 12000", paidMinutes)
+	}
+}

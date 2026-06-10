@@ -13,7 +13,7 @@ func TestResolvePayrollPeriod(t *testing.T) {
 		wantEnd   time.Time
 	}{
 		{
-			name: "anchor start",
+			name: "iso year 2026 first period start",
 			date: time.Date(
 				2025,
 				time.December,
@@ -28,22 +28,28 @@ func TestResolvePayrollPeriod(t *testing.T) {
 			wantEnd:   time.Date(2026, time.January, 25, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			name:      "period crossing year",
+			name:      "date inside first iso payroll period",
 			date:      time.Date(2026, time.January, 10, 0, 0, 0, 0, time.UTC),
 			wantStart: time.Date(2025, time.December, 29, 0, 0, 0, 0, time.UTC),
 			wantEnd:   time.Date(2026, time.January, 25, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			name:      "next rolling period",
+			name:      "next iso payroll period",
 			date:      time.Date(2026, time.January, 26, 0, 0, 0, 0, time.UTC),
 			wantStart: time.Date(2026, time.January, 26, 0, 0, 0, 0, time.UTC),
 			wantEnd:   time.Date(2026, time.February, 22, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			name:      "previous rolling period",
+			name:      "previous iso year final period",
 			date:      time.Date(2025, time.December, 28, 0, 0, 0, 0, time.UTC),
 			wantStart: time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC),
 			wantEnd:   time.Date(2025, time.December, 28, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:      "final period has five weeks in 53 week iso year",
+			date:      time.Date(2026, time.December, 15, 0, 0, 0, 0, time.UTC),
+			wantStart: time.Date(2026, time.November, 30, 0, 0, 0, 0, time.UTC),
+			wantEnd:   time.Date(2027, time.January, 3, 0, 0, 0, 0, time.UTC),
 		},
 	}
 
@@ -94,9 +100,29 @@ func TestPayrollPeriodOptionsThrough(t *testing.T) {
 	}
 }
 
+func TestPayrollPeriodOptionsForYearIncludesFiveWeekFinalPeriod(t *testing.T) {
+	options := PayrollPeriodOptionsForYear(
+		2026,
+		time.Date(2026, time.December, 15, 0, 0, 0, 0, time.UTC),
+	)
+	if len(options) != 13 {
+		t.Fatalf("expected 13 options, got %d", len(options))
+	}
+	last := options[len(options)-1]
+	if !last.PeriodStart.Equal(time.Date(2026, time.November, 30, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("unexpected final start: %s", last.PeriodStart)
+	}
+	if !last.PeriodEnd.Equal(time.Date(2027, time.January, 3, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("unexpected final end: %s", last.PeriodEnd)
+	}
+	if !last.IsCurrent {
+		t.Fatal("expected final option to be current")
+	}
+}
+
 func TestPayrollPeriodOptionsThroughBeforeAnchor(t *testing.T) {
 	options := PayrollPeriodOptionsThrough(time.Date(2025, time.December, 28, 0, 0, 0, 0, time.UTC))
-	if len(options) != 0 {
-		t.Fatalf("expected no options before anchor, got %d", len(options))
+	if len(options) != 13 {
+		t.Fatalf("expected all 2025 options through final period, got %d", len(options))
 	}
 }

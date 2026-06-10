@@ -117,6 +117,9 @@ type listPayPeriodsRequest struct {
 	Status         *string `form:"status"          binding:"omitempty,oneof=draft paid"`
 	EmployeeSearch *string `form:"employee_search" binding:"omitempty,max=120"`
 }
+type payrollPeriodOptionsRequest struct {
+	Year *int `form:"year" binding:"omitempty,min=1"`
+}
 type payrollMonthSummaryRequest struct {
 	httpapi.PageRequest
 	Month          string  `form:"month"           binding:"required,datetime=2006-01"`
@@ -602,7 +605,8 @@ func resolvePayrollPeriodRequest(
 				"period_start must be the first day of a payroll period",
 			)
 		}
-		return periodStart.UTC(), periodStart.UTC().AddDate(0, 0, 27), nil
+		resolvedStart, resolvedEnd := domain.ResolvePayrollPeriod(periodStart)
+		return resolvedStart, resolvedEnd, nil
 	}
 	if dateProvided {
 		date, err := time.Parse(timeEntryDateLayout, strings.TrimSpace(*dateValue))

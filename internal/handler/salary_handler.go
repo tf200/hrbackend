@@ -437,7 +437,13 @@ func (h *SalaryHandler) GetOnCallPayrollPeriodStats(ctx *gin.Context) {
 }
 
 func (h *SalaryHandler) GetPayrollPeriodOptions(ctx *gin.Context) {
-	options, err := h.service.GetPayrollPeriodOptions(ctx.Request.Context())
+	var req payrollPeriodOptionsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	options, err := h.service.GetPayrollPeriodOptions(ctx.Request.Context(), req.Year)
 	if err != nil {
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return

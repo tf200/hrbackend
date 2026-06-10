@@ -547,32 +547,56 @@ type PayrollPeriodOption struct {
 	IsCurrent   bool
 }
 
-var PayrollPeriodAnchorStart = time.Date(2025, time.December, 29, 0, 0, 0, 0, time.UTC)
-
 func ResolvePayrollPeriod(date time.Time) (time.Time, time.Time) {
 	day := time.Date(date.UTC().Year(), date.UTC().Month(), date.UTC().Day(), 0, 0, 0, 0, time.UTC)
-	daysSinceAnchor := int(day.Sub(PayrollPeriodAnchorStart).Hours() / 24)
-	periodIndex := floorDiv(daysSinceAnchor, 28)
-	periodStart := PayrollPeriodAnchorStart.AddDate(0, 0, periodIndex*28)
-	return periodStart, periodStart.AddDate(0, 0, 27)
+	year, _ := day.ISOWeek()
+	for _, option := range PayrollPeriodOptionsForYear(year, day) {
+		if !day.Before(option.PeriodStart) && !day.After(option.PeriodEnd) {
+			return option.PeriodStart, option.PeriodEnd
+		}
+	}
+
+	return time.Time{}, time.Time{}
 }
 
 func PayrollPeriodOptionsThrough(date time.Time) []PayrollPeriodOption {
-	currentStart, currentEnd := ResolvePayrollPeriod(date)
-	if currentStart.Before(PayrollPeriodAnchorStart) {
-		return []PayrollPeriodOption{}
-	}
-
+	year := CurrentPayrollISOYear(date)
+	allOptions := PayrollPeriodOptionsForYear(year, date)
+	currentStart, _ := ResolvePayrollPeriod(date)
 	options := []PayrollPeriodOption{}
-	for periodStart := PayrollPeriodAnchorStart; !periodStart.After(currentStart); periodStart = periodStart.AddDate(0, 0, 28) {
-		periodEnd := periodStart.AddDate(0, 0, 27)
-		options = append(options, PayrollPeriodOption{
-			PeriodStart: periodStart,
-			PeriodEnd:   periodEnd,
-			IsCurrent:   periodStart.Equal(currentStart) && periodEnd.Equal(currentEnd),
-		})
+	for _, option := range allOptions {
+		if option.PeriodStart.After(currentStart) {
+			break
+		}
+		options = append(options, option)
 	}
 	return options
+}
+
+func PayrollPeriodOptionsForYear(year int, today time.Time) []PayrollPeriodOption {
+	options := payrollPeriodOptionsForYear(year)
+	currentStart, currentEnd := ResolvePayrollPeriodForYear(today, year)
+	for i := range options {
+		options[i].IsCurrent = options[i].PeriodStart.Equal(currentStart) &&
+			options[i].PeriodEnd.Equal(currentEnd)
+	}
+	return options
+}
+
+func ResolvePayrollPeriodForYear(date time.Time, year int) (time.Time, time.Time) {
+	day := time.Date(date.UTC().Year(), date.UTC().Month(), date.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	for _, option := range payrollPeriodOptionsForYear(year) {
+		if !day.Before(option.PeriodStart) && !day.After(option.PeriodEnd) {
+			return option.PeriodStart, option.PeriodEnd
+		}
+	}
+	return time.Time{}, time.Time{}
+}
+
+func CurrentPayrollISOYear(date time.Time) int {
+	day := time.Date(date.UTC().Year(), date.UTC().Month(), date.UTC().Day(), 0, 0, 0, 0, time.UTC)
+	year, _ := day.ISOWeek()
+	return year
 }
 
 func IsPayrollPeriodStart(date time.Time) bool {
@@ -581,13 +605,42 @@ func IsPayrollPeriodStart(date time.Time) bool {
 	return day.Equal(periodStart)
 }
 
-func floorDiv(a, b int) int {
-	q := a / b
-	r := a % b
-	if r != 0 && ((r < 0) != (b < 0)) {
-		q--
+func payrollPeriodOptionsForYear(year int) []PayrollPeriodOption {
+	if year <= 0 {
+		return []PayrollPeriodOption{}
 	}
-	return q
+
+	start := isoYearStart(year)
+	weeks := isoWeeksInYear(year)
+	options := make([]PayrollPeriodOption, 0, 13)
+	for weekOffset := 0; weekOffset < weeks; {
+		periodWeeks := 4
+		if weeks-weekOffset == 5 {
+			periodWeeks = 5
+		}
+		periodStart := start.AddDate(0, 0, weekOffset*7)
+		periodEnd := periodStart.AddDate(0, 0, periodWeeks*7-1)
+		options = append(options, PayrollPeriodOption{
+			PeriodStart: periodStart,
+			PeriodEnd:   periodEnd,
+		})
+		weekOffset += periodWeeks
+	}
+	return options
+}
+
+func isoYearStart(year int) time.Time {
+	jan4 := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
+	weekday := int(jan4.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	return jan4.AddDate(0, 0, -(weekday - 1))
+}
+
+func isoWeeksInYear(year int) int {
+	_, week := time.Date(year, time.December, 28, 0, 0, 0, 0, time.UTC).ISOWeek()
+	return week
 }
 
 type ListPayPeriodsParams struct {
@@ -798,7 +851,7 @@ type SalaryService interface {
 		ctx context.Context,
 		params PayrollPeriodSummaryParams,
 	) (*PayrollMonthStats, error)
-	GetPayrollPeriodOptions(ctx context.Context) ([]PayrollPeriodOption, error)
+	GetPayrollPeriodOptions(ctx context.Context, year *int) ([]PayrollPeriodOption, error)
 	GetPayrollMonthORTOverview(
 		ctx context.Context,
 		params PayrollMonthORTOverviewParams,

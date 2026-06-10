@@ -383,6 +383,23 @@ func TestResolvePayrollPeriodRequestDefaultsToCurrentPeriod(t *testing.T) {
 	}
 }
 
+func TestResolvePayrollPeriodRequestAllowsFiveWeekFinalPeriod(t *testing.T) {
+	periodStart := "2026-11-30"
+
+	gotStart, gotEnd, err := resolvePayrollPeriodRequest(&periodStart, nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	wantStart := time.Date(2026, time.November, 30, 0, 0, 0, 0, time.UTC)
+	wantEnd := time.Date(2027, time.January, 3, 0, 0, 0, 0, time.UTC)
+	if !gotStart.Equal(wantStart) {
+		t.Fatalf("period start = %s, want %s", gotStart, wantStart)
+	}
+	if !gotEnd.Equal(wantEnd) {
+		t.Fatalf("period end = %s, want %s", gotEnd, wantEnd)
+	}
+}
+
 type fakeSalaryService struct {
 	ortOverviewPage      *domain.PayrollMonthORTOverviewPage
 	ortOverviewParams    domain.PayrollMonthORTOverviewParams
@@ -530,6 +547,7 @@ func (f *fakeSalaryService) GetOnCallPayrollPeriodStats(
 }
 func (f *fakeSalaryService) GetPayrollPeriodOptions(
 	_ context.Context,
+	_ *int,
 ) ([]domain.PayrollPeriodOption, error) {
 	panic("unexpected call")
 }
