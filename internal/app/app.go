@@ -302,6 +302,9 @@ func buildRouter(
 		logger,
 	)
 
+	lateArrivalRepo := repository.NewLateArrivalRepository(store)
+	lateArrivalService := service.NewLateArrivalService(lateArrivalRepo, logger)
+
 	salaryRepo := repository.NewSalaryRepository(store)
 	salaryService := service.NewSalaryService(salaryRepo, logger)
 
@@ -354,6 +357,7 @@ func buildRouter(
 	attachmentHandler := handler.NewAttachmentHandler(attachmentService)
 	signDocumentHandler := handler.NewSignDocumentHandler(signDocumentService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
+	lateArrivalHandler := handler.NewLateArrivalHandler(lateArrivalService)
 	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
 
 	api := router.Group("/api")
@@ -382,6 +386,7 @@ func buildRouter(
 	handler.RegisterAttachmentRoutes(api, attachmentHandler, auth)
 	handler.RegisterSignDocumentRoutes(api, signDocumentHandler, auth, requirePermission)
 	handler.RegisterNotificationRoutes(api, notificationHandler, auth)
+	handler.RegisterLateArrivalRoutes(api, lateArrivalHandler, auth, requirePermission)
 	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
 
 	return router
