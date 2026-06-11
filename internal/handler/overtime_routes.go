@@ -42,6 +42,18 @@ func RegisterOvertimeRoutes(
 		requirePermission(permission.Overtime.Update),
 		handler.UpdateMyOvertimeEntry,
 	)
+	rg.DELETE(
+		"/overtime-entries/:id/admin",
+		auth,
+		requirePermission(permission.Overtime.DeleteAll),
+		handler.DeleteOvertimeEntryByAdmin,
+	)
+	rg.DELETE(
+		"/overtime-entries/my/:id",
+		auth,
+		requirePermission(permission.Overtime.Delete),
+		handler.DeleteMyOvertimeEntry,
+	)
 	rg.GET(
 		"/overtime-entries",
 		auth,

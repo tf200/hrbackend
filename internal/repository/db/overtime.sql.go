@@ -242,6 +242,19 @@ func (q *Queries) CreateOvertimeEntry(ctx context.Context, arg CreateOvertimeEnt
 	return i, err
 }
 
+const deleteOvertimeEntry = `-- name: DeleteOvertimeEntry :one
+DELETE FROM overtime_entries
+WHERE id = $1
+RETURNING id
+`
+
+func (q *Queries) DeleteOvertimeEntry(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, deleteOvertimeEntry, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
 const getCurrentMonthOvertimeStats = `-- name: GetCurrentMonthOvertimeStats :one
 WITH ranges AS (
     SELECT

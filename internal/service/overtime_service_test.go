@@ -65,6 +65,7 @@ func (f *fakeEmployeeRepository) GetEmployeeByID(
 type fakeOvertimeRepository struct {
 	lastParams domain.CreateOvertimeEntryParams
 	mockEntry  *domain.OvertimeEntry
+	deletedID  uuid.UUID
 }
 
 type fakeOvertimeTxRepository struct {
@@ -107,6 +108,14 @@ func (f *fakeOvertimeTxRepository) UpdateOvertimeEntryByAdmin(
 	params domain.UpdateOvertimeEntryParams,
 ) (*domain.OvertimeEntry, error) {
 	return nil, nil
+}
+
+func (f *fakeOvertimeTxRepository) DeleteOvertimeEntry(
+	ctx context.Context,
+	id uuid.UUID,
+) error {
+	f.repo.deletedID = id
+	return nil
 }
 
 func (f *fakeOvertimeRepository) WithTx(
@@ -238,6 +247,110 @@ func TestOvertimeServiceCreateOvertimeEntryTriggersNotification(t *testing.T) {
 
 	if data.Reason != "emergency" {
 		t.Errorf("expected Reason 'emergency', got %q", data.Reason)
+	}
+}
+
+func TestOvertimeServiceDeleteMyOvertimeEntry(t *testing.T) {
+	actorID := uuid.New()
+	entryID := uuid.New()
+	repo := &fakeOvertimeRepository{
+		mockEntry: &domain.OvertimeEntry{
+			ID:         entryID,
+			EmployeeID: actorID,
+			Status:     domain.OvertimeStatusSubmitted,
+		},
+	}
+	svc := NewOvertimeService(repo, nil, nil, nil)
+
+	err := svc.DeleteMyOvertimeEntry(context.Background(), actorID, entryID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if repo.deletedID != entryID {
+		t.Fatalf("expected deleted id %s, got %s", entryID, repo.deletedID)
+	}
+}
+
+func TestOvertimeServiceDeleteMyOvertimeEntryRejectsNonOwner(t *testing.T) {
+	repo := &fakeOvertimeRepository{
+		mockEntry: &domain.OvertimeEntry{
+			ID:         uuid.New(),
+			EmployeeID: uuid.New(),
+			Status:     domain.OvertimeStatusSubmitted,
+		},
+	}
+	svc := NewOvertimeService(repo, nil, nil, nil)
+
+	err := svc.DeleteMyOvertimeEntry(context.Background(), uuid.New(), repo.mockEntry.ID)
+	if err != domain.ErrOvertimeForbidden {
+		t.Fatalf("expected ErrOvertimeForbidden, got %v", err)
+	}
+
+	if repo.deletedID != uuid.Nil {
+		t.Fatalf("expected no delete, got %s", repo.deletedID)
+	}
+}
+
+func TestOvertimeServiceDeleteMyOvertimeEntryRejectsDecidedEntry(t *testing.T) {
+	actorID := uuid.New()
+	repo := &fakeOvertimeRepository{
+		mockEntry: &domain.OvertimeEntry{
+			ID:         uuid.New(),
+			EmployeeID: actorID,
+			Status:     domain.OvertimeStatusApproved,
+		},
+	}
+	svc := NewOvertimeService(repo, nil, nil, nil)
+
+	err := svc.DeleteMyOvertimeEntry(context.Background(), actorID, repo.mockEntry.ID)
+	if err != domain.ErrOvertimeStateInvalid {
+		t.Fatalf("expected ErrOvertimeStateInvalid, got %v", err)
+	}
+}
+
+func TestOvertimeServiceDeleteOvertimeEntryByAdminAllowsDecidedUnpaidEntry(t *testing.T) {
+	entryID := uuid.New()
+	repo := &fakeOvertimeRepository{
+		mockEntry: &domain.OvertimeEntry{
+			ID:         entryID,
+			EmployeeID: uuid.New(),
+			Status:     domain.OvertimeStatusApproved,
+		},
+	}
+	svc := NewOvertimeService(repo, nil, nil, nil)
+
+	err := svc.DeleteOvertimeEntryByAdmin(context.Background(), uuid.New(), entryID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if repo.deletedID != entryID {
+		t.Fatalf("expected deleted id %s, got %s", entryID, repo.deletedID)
+	}
+}
+
+func TestOvertimeServiceDeleteOvertimeEntryRejectsPaidEntry(t *testing.T) {
+	actorID := uuid.New()
+	paidPeriodID := uuid.New()
+	repo := &fakeOvertimeRepository{
+		mockEntry: &domain.OvertimeEntry{
+			ID:           uuid.New(),
+			EmployeeID:   actorID,
+			Status:       domain.OvertimeStatusSubmitted,
+			PaidPeriodID: &paidPeriodID,
+		},
+	}
+	svc := NewOvertimeService(repo, nil, nil, nil)
+
+	err := svc.DeleteMyOvertimeEntry(context.Background(), actorID, repo.mockEntry.ID)
+	if err != domain.ErrOvertimeStateInvalid {
+		t.Fatalf("expected ErrOvertimeStateInvalid for self delete, got %v", err)
+	}
+
+	err = svc.DeleteOvertimeEntryByAdmin(context.Background(), uuid.New(), repo.mockEntry.ID)
+	if err != domain.ErrOvertimeStateInvalid {
+		t.Fatalf("expected ErrOvertimeStateInvalid for admin delete, got %v", err)
 	}
 }
 

@@ -121,6 +121,7 @@ type OvertimeTxRepository interface {
 		overtimeEntryID uuid.UUID,
 		params UpdateOvertimeEntryParams,
 	) (*OvertimeEntry, error)
+	DeleteOvertimeEntry(ctx context.Context, overtimeEntryID uuid.UUID) error
 }
 
 type OvertimeRepository interface {
@@ -171,6 +172,14 @@ type OvertimeService interface {
 		actorEmployeeID, overtimeEntryID uuid.UUID,
 		params UpdateOvertimeEntryParams,
 	) (*OvertimeEntry, error)
+	DeleteOvertimeEntryByAdmin(
+		ctx context.Context,
+		adminEmployeeID, overtimeEntryID uuid.UUID,
+	) error
+	DeleteMyOvertimeEntry(
+		ctx context.Context,
+		actorEmployeeID, overtimeEntryID uuid.UUID,
+	) error
 	GetOvertimeEntryByID(ctx context.Context, overtimeEntryID uuid.UUID) (*OvertimeEntry, error)
 	GetMyOvertimeEntryByID(
 		ctx context.Context,

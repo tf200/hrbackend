@@ -206,6 +206,68 @@ func (h *OvertimeHandler) UpdateMyOvertimeEntry(ctx *gin.Context) {
 	)
 }
 
+func (h *OvertimeHandler) DeleteOvertimeEntryByAdmin(ctx *gin.Context) {
+	overtimeEntryID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid overtime entry id", ""))
+		return
+	}
+
+	adminEmployeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if adminEmployeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	if err := h.service.DeleteOvertimeEntryByAdmin(
+		ctx.Request.Context(),
+		adminEmployeeID,
+		overtimeEntryID,
+	); err != nil {
+		ctx.JSON(mapOvertimeErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toDeleteOvertimeEntryResponse(overtimeEntryID),
+			"Overtime entry deleted successfully",
+		),
+	)
+}
+
+func (h *OvertimeHandler) DeleteMyOvertimeEntry(ctx *gin.Context) {
+	overtimeEntryID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid overtime entry id", ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	if err := h.service.DeleteMyOvertimeEntry(
+		ctx.Request.Context(),
+		employeeID,
+		overtimeEntryID,
+	); err != nil {
+		ctx.JSON(mapOvertimeErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(
+			toDeleteOvertimeEntryResponse(overtimeEntryID),
+			"Overtime entry deleted successfully",
+		),
+	)
+}
+
 func (h *OvertimeHandler) GetOvertimeEntryByID(ctx *gin.Context) {
 	overtimeEntryID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

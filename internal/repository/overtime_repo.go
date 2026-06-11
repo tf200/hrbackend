@@ -309,6 +309,21 @@ func (r *overtimeTxRepo) UpdateOvertimeEntryByAdmin(
 	return &model, nil
 }
 
+func (r *overtimeTxRepo) DeleteOvertimeEntry(
+	ctx context.Context,
+	overtimeEntryID uuid.UUID,
+) error {
+	_, err := r.queries.DeleteOvertimeEntry(ctx, overtimeEntryID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return domain.ErrOvertimeNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func buildDomainOvertimeEntry(
 	id uuid.UUID,
 	employeeID uuid.UUID,

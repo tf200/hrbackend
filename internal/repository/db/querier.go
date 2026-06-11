@@ -102,6 +102,7 @@ type Querier interface {
 	DeleteHandbookStepByID(ctx context.Context, id uuid.UUID) error
 	DeleteLocation(ctx context.Context, id uuid.UUID) (Location, error)
 	DeleteOrganisation(ctx context.Context, id uuid.UUID) (Organisation, error)
+	DeleteOvertimeEntry(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	DeletePerformanceAssessment(ctx context.Context, id uuid.UUID) (int64, error)
 	DeleteSchedule(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error

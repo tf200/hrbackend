@@ -88,6 +88,11 @@ FROM overtime_entries
 WHERE id = sqlc.arg(id)
 FOR UPDATE;
 
+-- name: DeleteOvertimeEntry :one
+DELETE FROM overtime_entries
+WHERE id = sqlc.arg(id)
+RETURNING id;
+
 -- name: ListOvertimeEntriesPaginated :many
 WITH filtered AS (
     SELECT

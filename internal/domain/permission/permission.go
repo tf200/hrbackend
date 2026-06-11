@@ -348,6 +348,8 @@ var Overtime = struct {
 	Create    Permission
 	CreateAll Permission
 	Decide    Permission
+	Delete    Permission
+	DeleteAll Permission
 	Update    Permission
 	UpdateAll Permission
 	View      Permission
@@ -356,6 +358,8 @@ var Overtime = struct {
 	Create:    "OVERTIME.CREATE",
 	CreateAll: "OVERTIME.CREATE_ALL",
 	Decide:    "OVERTIME.DECIDE",
+	Delete:    "OVERTIME.DELETE",
+	DeleteAll: "OVERTIME.DELETE_ALL",
 	Update:    "OVERTIME.UPDATE",
 	UpdateAll: "OVERTIME.UPDATE_ALL",
 	View:      "OVERTIME.VIEW",

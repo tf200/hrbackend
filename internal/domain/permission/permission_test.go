@@ -28,7 +28,7 @@ func TestPermissionValues_NonEmpty(t *testing.T) {
 		Settings.View, Settings.Update,
 		ScheduleSwap.Approve, ScheduleSwap.Request, ScheduleSwap.Respond, ScheduleSwap.View,
 		Shift.Create, Shift.Delete, Shift.Update, Shift.View,
-		Overtime.Create, Overtime.CreateAll, Overtime.Decide, Overtime.Update, Overtime.UpdateAll, Overtime.View, Overtime.ViewAll,
+		Overtime.Create, Overtime.CreateAll, Overtime.Decide, Overtime.Delete, Overtime.DeleteAll, Overtime.Update, Overtime.UpdateAll, Overtime.View, Overtime.ViewAll,
 		SignDocument.Cancel, SignDocument.Create, SignDocument.Send, SignDocument.Update, SignDocument.View, SignDocument.ViewAll,
 		SignDocument.Self.Sign, SignDocument.Self.View,
 	}

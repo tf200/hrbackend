@@ -88,6 +88,11 @@ type overtimeStatsResponse struct {
 	TotalSubmitted        int64 `json:"total_submitted"`
 }
 
+type deleteOvertimeEntryResponse struct {
+	ID      uuid.UUID `json:"id"`
+	Deleted bool      `json:"deleted"`
+}
+
 func toCreateOvertimeEntryParams(
 	req createOvertimeEntryRequest,
 ) (domain.CreateOvertimeEntryParams, error) {
@@ -217,6 +222,10 @@ func toOvertimeStatsResponse(stats *domain.OvertimeStats) overtimeStatsResponse 
 		TotalApproved:         stats.TotalApproved,
 		TotalSubmitted:        stats.TotalSubmitted,
 	}
+}
+
+func toDeleteOvertimeEntryResponse(id uuid.UUID) deleteOvertimeEntryResponse {
+	return deleteOvertimeEntryResponse{ID: id, Deleted: true}
 }
 
 func parseOvertimeDatePtr(value *string) (*time.Time, error) {

@@ -253,6 +253,51 @@ func (s *OvertimeService) UpdateMyOvertimeEntry(
 	return updated, nil
 }
 
+func (s *OvertimeService) DeleteOvertimeEntryByAdmin(
+	ctx context.Context,
+	adminEmployeeID, overtimeEntryID uuid.UUID,
+) error {
+	if adminEmployeeID == uuid.Nil || overtimeEntryID == uuid.Nil {
+		return domain.ErrOvertimeInvalidRequest
+	}
+
+	return s.repository.WithTx(ctx, func(tx domain.OvertimeTxRepository) error {
+		current, err := tx.GetOvertimeEntryForUpdate(ctx, overtimeEntryID)
+		if err != nil {
+			return err
+		}
+		if current.PaidPeriodID != nil {
+			return domain.ErrOvertimeStateInvalid
+		}
+
+		return tx.DeleteOvertimeEntry(ctx, overtimeEntryID)
+	})
+}
+
+func (s *OvertimeService) DeleteMyOvertimeEntry(
+	ctx context.Context,
+	actorEmployeeID, overtimeEntryID uuid.UUID,
+) error {
+	if actorEmployeeID == uuid.Nil || overtimeEntryID == uuid.Nil {
+		return domain.ErrOvertimeInvalidRequest
+	}
+
+	return s.repository.WithTx(ctx, func(tx domain.OvertimeTxRepository) error {
+		current, err := tx.GetOvertimeEntryForUpdate(ctx, overtimeEntryID)
+		if err != nil {
+			return err
+		}
+		if current.EmployeeID != actorEmployeeID {
+			return domain.ErrOvertimeForbidden
+		}
+		if current.Status != domain.OvertimeStatusSubmitted || current.PaidPeriodID != nil {
+			return domain.ErrOvertimeStateInvalid
+		}
+
+		return tx.DeleteOvertimeEntry(ctx, overtimeEntryID)
+	})
+}
+
 func (s *OvertimeService) createOvertimeEntry(
 	ctx context.Context,
 	params domain.CreateOvertimeEntryParams,
