@@ -112,7 +112,6 @@ func RegisterSalaryRoutes(
 	rg.GET(
 		"/payroll-period-summary/periods",
 		auth,
-		requirePermission(permission.PayPeriod.MonthSummaryView),
 		handler.GetPayrollPeriodOptions,
 	)
 	rg.GET(
