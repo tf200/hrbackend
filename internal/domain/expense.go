@@ -160,20 +160,38 @@ type ExpenseRepository interface {
 }
 
 type ExpenseService interface {
+	CreateExpenseRequest(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params CreateExpenseRequestParams,
+	) (*ExpenseRequest, error)
 	CreateExpenseRequestByAdmin(
 		ctx context.Context,
 		adminEmployeeID uuid.UUID,
 		params CreateExpenseRequestParams,
 	) (*ExpenseRequest, error)
 	GetExpenseRequestByID(ctx context.Context, expenseRequestID uuid.UUID) (*ExpenseRequest, error)
+	ListMyExpenseRequests(
+		ctx context.Context,
+		params ListMyExpenseRequestsParams,
+	) (*ExpenseRequestPage, error)
 	ListExpenseRequests(
 		ctx context.Context,
 		params ListExpenseRequestsParams,
 	) (*ExpenseRequestPage, error)
+	UpdateExpenseRequest(
+		ctx context.Context,
+		employeeID, expenseRequestID uuid.UUID,
+		params UpdateExpenseRequestParams,
+	) (*ExpenseRequest, error)
 	UpdateExpenseRequestByAdmin(
 		ctx context.Context,
 		adminEmployeeID, expenseRequestID uuid.UUID,
 		params UpdateExpenseRequestParams,
+	) (*ExpenseRequest, error)
+	DeleteExpenseRequest(
+		ctx context.Context,
+		employeeID, expenseRequestID uuid.UUID,
 	) (*ExpenseRequest, error)
 	DecideExpenseRequestByAdmin(
 		ctx context.Context,

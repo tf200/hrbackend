@@ -20,6 +20,37 @@ func NewExpenseHandler(service domain.ExpenseService) *ExpenseHandler {
 	return &ExpenseHandler{service: service}
 }
 
+func (h *ExpenseHandler) CreateExpenseRequest(ctx *gin.Context) {
+	var req createExpenseRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	params, err := toCreateExpenseRequestParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	item, err := h.service.CreateExpenseRequest(ctx.Request.Context(), employeeID, params)
+	if err != nil {
+		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusCreated,
+		httpapi.OK(toExpenseRequestResponse(*item), "Expense request created successfully"),
+	)
+}
+
 func (h *ExpenseHandler) CreateExpenseRequestByAdmin(ctx *gin.Context) {
 	var req createExpenseRequestByAdminRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -80,6 +111,37 @@ func (h *ExpenseHandler) ListExpenseRequests(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Expense requests retrieved successfully"))
 }
 
+func (h *ExpenseHandler) ListMyExpenseRequests(ctx *gin.Context) {
+	var req listMyExpenseRequestsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	page, err := h.service.ListMyExpenseRequests(
+		ctx.Request.Context(),
+		toListMyExpenseRequestsParams(employeeID, req),
+	)
+	if err != nil {
+		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	response := httpapi.NewPageResponse(
+		ctx,
+		req.PageRequest,
+		toExpenseRequestResponses(page.Items),
+		page.TotalCount,
+	)
+	ctx.JSON(http.StatusOK, httpapi.OK(response, "Expense requests retrieved successfully"))
+}
+
 func (h *ExpenseHandler) GetExpenseRequestByID(ctx *gin.Context) {
 	expenseRequestID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {
@@ -96,6 +158,77 @@ func (h *ExpenseHandler) GetExpenseRequestByID(ctx *gin.Context) {
 	ctx.JSON(
 		http.StatusOK,
 		httpapi.OK(toExpenseRequestResponse(*item), "Expense request retrieved successfully"),
+	)
+}
+
+func (h *ExpenseHandler) UpdateExpenseRequest(ctx *gin.Context) {
+	expenseRequestID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid expense request id", ""))
+		return
+	}
+
+	var req updateExpenseRequestByAdminRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	params, err := toUpdateExpenseRequestByAdminParams(req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	item, err := h.service.UpdateExpenseRequest(
+		ctx.Request.Context(),
+		employeeID,
+		expenseRequestID,
+		params,
+	)
+	if err != nil {
+		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toExpenseRequestResponse(*item), "Expense request updated successfully"),
+	)
+}
+
+func (h *ExpenseHandler) DeleteExpenseRequest(ctx *gin.Context) {
+	expenseRequestID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid expense request id", ""))
+		return
+	}
+
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	item, err := h.service.DeleteExpenseRequest(
+		ctx.Request.Context(),
+		employeeID,
+		expenseRequestID,
+	)
+	if err != nil {
+		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toExpenseRequestResponse(*item), "Expense request deleted successfully"),
 	)
 }
 

@@ -13,10 +13,22 @@ func RegisterExpenseRoutes(
 	requirePermission func(permission.Permission) gin.HandlerFunc,
 ) {
 	rg.POST(
+		"/expense-requests",
+		auth,
+		requirePermission(permission.Expense.Request.Create),
+		handler.CreateExpenseRequest,
+	)
+	rg.POST(
 		"/expense-requests/admin",
 		auth,
 		requirePermission(permission.Expense.Request.Create),
 		handler.CreateExpenseRequestByAdmin,
+	)
+	rg.GET(
+		"/expense-requests/my",
+		auth,
+		requirePermission(permission.Expense.Request.View),
+		handler.ListMyExpenseRequests,
 	)
 	rg.GET(
 		"/expense-requests",
@@ -29,6 +41,18 @@ func RegisterExpenseRoutes(
 		auth,
 		requirePermission(permission.Expense.Request.ViewAll),
 		handler.GetExpenseRequestByID,
+	)
+	rg.PUT(
+		"/expense-requests/:id",
+		auth,
+		requirePermission(permission.Expense.Request.Update),
+		handler.UpdateExpenseRequest,
+	)
+	rg.DELETE(
+		"/expense-requests/:id",
+		auth,
+		requirePermission(permission.Expense.Request.Update),
+		handler.DeleteExpenseRequest,
 	)
 	rg.PUT(
 		"/expense-requests/:id/admin",

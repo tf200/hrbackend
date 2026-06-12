@@ -26,6 +26,29 @@ func NewExpenseService(
 	}
 }
 
+func (s *ExpenseService) CreateExpenseRequest(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	params domain.CreateExpenseRequestParams,
+) (*domain.ExpenseRequest, error) {
+	if employeeID == uuid.Nil {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+	params.EmployeeID = employeeID
+	params.CreatedByEmployeeID = employeeID
+
+	if err := normalizeCreateExpenseParams(&params); err != nil {
+		return nil, err
+	}
+
+	item, err := s.repository.CreateExpenseRequest(ctx, params)
+	if err != nil {
+		s.logError(ctx, "CreateExpenseRequest", "failed to create expense request", err)
+		return nil, err
+	}
+	return item, nil
+}
+
 func (s *ExpenseService) CreateExpenseRequestByAdmin(
 	ctx context.Context,
 	adminEmployeeID uuid.UUID,
@@ -82,6 +105,65 @@ func (s *ExpenseService) ListExpenseRequests(
 	return page, nil
 }
 
+func (s *ExpenseService) ListMyExpenseRequests(
+	ctx context.Context,
+	params domain.ListMyExpenseRequestsParams,
+) (*domain.ExpenseRequestPage, error) {
+	if params.EmployeeID == uuid.Nil {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+	if params.Status != nil && !isValidExpenseStatus(*params.Status) {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+	if params.Category != nil && !isValidExpenseCategory(*params.Category) {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+
+	page, err := s.repository.ListMyExpenseRequests(ctx, params)
+	if err != nil {
+		s.logError(ctx, "ListMyExpenseRequests", "failed to list my expense requests", err)
+		return nil, err
+	}
+	return page, nil
+}
+
+func (s *ExpenseService) UpdateExpenseRequest(
+	ctx context.Context,
+	employeeID, expenseRequestID uuid.UUID,
+	params domain.UpdateExpenseRequestParams,
+) (*domain.ExpenseRequest, error) {
+	if employeeID == uuid.Nil || expenseRequestID == uuid.Nil {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+
+	var updated *domain.ExpenseRequest
+	err := s.repository.WithTx(ctx, func(tx domain.ExpenseTxRepository) error {
+		current, err := tx.GetExpenseRequestForUpdate(ctx, expenseRequestID)
+		if err != nil {
+			return err
+		}
+		if current.EmployeeID != employeeID {
+			return domain.ErrExpenseRequestForbidden
+		}
+		if current.Status != domain.ExpenseRequestStatusPending {
+			return domain.ErrExpenseRequestStateInvalid
+		}
+
+		next, err := normalizeUpdateExpenseParams(*current, params)
+		if err != nil {
+			return err
+		}
+
+		updated, err = tx.UpdateExpenseRequestEditableFields(ctx, expenseRequestID, next)
+		return err
+	})
+	if err != nil {
+		s.logError(ctx, "UpdateExpenseRequest", "failed to update expense request", err)
+		return nil, err
+	}
+	return updated, nil
+}
+
 func (s *ExpenseService) UpdateExpenseRequestByAdmin(
 	ctx context.Context,
 	adminEmployeeID, expenseRequestID uuid.UUID,
@@ -112,6 +194,37 @@ func (s *ExpenseService) UpdateExpenseRequestByAdmin(
 	})
 	if err != nil {
 		s.logError(ctx, "UpdateExpenseRequestByAdmin", "failed to update expense request", err)
+		return nil, err
+	}
+	return updated, nil
+}
+
+func (s *ExpenseService) DeleteExpenseRequest(
+	ctx context.Context,
+	employeeID, expenseRequestID uuid.UUID,
+) (*domain.ExpenseRequest, error) {
+	if employeeID == uuid.Nil || expenseRequestID == uuid.Nil {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+
+	var updated *domain.ExpenseRequest
+	err := s.repository.WithTx(ctx, func(tx domain.ExpenseTxRepository) error {
+		current, err := tx.GetExpenseRequestForUpdate(ctx, expenseRequestID)
+		if err != nil {
+			return err
+		}
+		if current.EmployeeID != employeeID {
+			return domain.ErrExpenseRequestForbidden
+		}
+		if current.Status != domain.ExpenseRequestStatusPending {
+			return domain.ErrExpenseRequestStateInvalid
+		}
+
+		updated, err = tx.CancelExpenseRequest(ctx, expenseRequestID)
+		return err
+	})
+	if err != nil {
+		s.logError(ctx, "DeleteExpenseRequest", "failed to delete expense request", err)
 		return nil, err
 	}
 	return updated, nil
