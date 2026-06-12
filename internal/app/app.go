@@ -172,6 +172,9 @@ var postgresEnumTypeNames = []string{
 	"employee_contract_event_type_enum",
 	"overtime_status_enum",
 	"overtime_reason_enum",
+	"bug_report_category_enum",
+	"bug_report_severity_enum",
+	"bug_report_status_enum",
 }
 
 func (a *App) Close(_ context.Context) error {
@@ -332,6 +335,8 @@ func buildRouter(
 
 	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
 	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
+	bugReportRepo := repository.NewBugReportRepository(store)
+	bugReportService := service.NewBugReportService(bugReportRepo, logger)
 
 	authHandler := handler.NewAuthHandler(authService)
 	wsAuthService := service.NewWebSocketAuthService(wsTicketStore, logger, cfg.WsTicketTTL)
@@ -359,6 +364,7 @@ func buildRouter(
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	lateArrivalHandler := handler.NewLateArrivalHandler(lateArrivalService)
 	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
+	bugReportHandler := handler.NewBugReportHandler(bugReportService)
 
 	api := router.Group("/api")
 	auth := authMiddleware.Handle()
@@ -388,6 +394,7 @@ func buildRouter(
 	handler.RegisterNotificationRoutes(api, notificationHandler, auth)
 	handler.RegisterLateArrivalRoutes(api, lateArrivalHandler, auth, requirePermission)
 	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
+	handler.RegisterBugReportRoutes(api, bugReportHandler, auth)
 
 	return router
 }

@@ -56,6 +56,138 @@ func (ns NullAttendeeResponseEnum) Value() (driver.Value, error) {
 	return string(ns.AttendeeResponseEnum), nil
 }
 
+type BugReportCategoryEnum string
+
+const (
+	BugReportCategoryEnumBug         BugReportCategoryEnum = "bug"
+	BugReportCategoryEnumFeature     BugReportCategoryEnum = "feature"
+	BugReportCategoryEnumImprovement BugReportCategoryEnum = "improvement"
+	BugReportCategoryEnumOther       BugReportCategoryEnum = "other"
+)
+
+func (e *BugReportCategoryEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BugReportCategoryEnum(s)
+	case string:
+		*e = BugReportCategoryEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BugReportCategoryEnum: %T", src)
+	}
+	return nil
+}
+
+type NullBugReportCategoryEnum struct {
+	BugReportCategoryEnum BugReportCategoryEnum `json:"bug_report_category_enum"`
+	Valid                 bool                  `json:"valid"` // Valid is true if BugReportCategoryEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBugReportCategoryEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.BugReportCategoryEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BugReportCategoryEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBugReportCategoryEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BugReportCategoryEnum), nil
+}
+
+type BugReportSeverityEnum string
+
+const (
+	BugReportSeverityEnumLow      BugReportSeverityEnum = "low"
+	BugReportSeverityEnumMedium   BugReportSeverityEnum = "medium"
+	BugReportSeverityEnumHigh     BugReportSeverityEnum = "high"
+	BugReportSeverityEnumCritical BugReportSeverityEnum = "critical"
+)
+
+func (e *BugReportSeverityEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BugReportSeverityEnum(s)
+	case string:
+		*e = BugReportSeverityEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BugReportSeverityEnum: %T", src)
+	}
+	return nil
+}
+
+type NullBugReportSeverityEnum struct {
+	BugReportSeverityEnum BugReportSeverityEnum `json:"bug_report_severity_enum"`
+	Valid                 bool                  `json:"valid"` // Valid is true if BugReportSeverityEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBugReportSeverityEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.BugReportSeverityEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BugReportSeverityEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBugReportSeverityEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BugReportSeverityEnum), nil
+}
+
+type BugReportStatusEnum string
+
+const (
+	BugReportStatusEnumOpen       BugReportStatusEnum = "open"
+	BugReportStatusEnumInProgress BugReportStatusEnum = "in_progress"
+	BugReportStatusEnumResolved   BugReportStatusEnum = "resolved"
+	BugReportStatusEnumClosed     BugReportStatusEnum = "closed"
+)
+
+func (e *BugReportStatusEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BugReportStatusEnum(s)
+	case string:
+		*e = BugReportStatusEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BugReportStatusEnum: %T", src)
+	}
+	return nil
+}
+
+type NullBugReportStatusEnum struct {
+	BugReportStatusEnum BugReportStatusEnum `json:"bug_report_status_enum"`
+	Valid               bool                `json:"valid"` // Valid is true if BugReportStatusEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBugReportStatusEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.BugReportStatusEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BugReportStatusEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBugReportStatusEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BugReportStatusEnum), nil
+}
+
 type CalendarEventKindEnum string
 
 const (
@@ -1770,6 +1902,20 @@ type Authorization struct {
 	IsActive       bool               `json:"is_active"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type BugReport struct {
+	ID          uuid.UUID             `json:"id"`
+	UserID      uuid.UUID             `json:"user_id"`
+	Subject     string                `json:"subject"`
+	Category    BugReportCategoryEnum `json:"category"`
+	Severity    BugReportSeverityEnum `json:"severity"`
+	Description string                `json:"description"`
+	Steps       *string               `json:"steps"`
+	DebugInfo   []byte                `json:"debug_info"`
+	Status      BugReportStatusEnum   `json:"status"`
+	CreatedAt   pgtype.Timestamptz    `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz    `json:"updated_at"`
 }
 
 type CalendarEvent struct {

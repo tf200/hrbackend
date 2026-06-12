@@ -482,6 +482,31 @@ CREATE TABLE notifications (
 CREATE INDEX idx_notifications_user_id_created_at ON notifications (user_id, created_at DESC);
 CREATE INDEX idx_notifications_user_id_read_at ON notifications (user_id, read_at);
 
+-- Bug reports submitted by authenticated users
+CREATE TYPE bug_report_category_enum AS ENUM ('bug', 'feature', 'improvement', 'other');
+CREATE TYPE bug_report_severity_enum AS ENUM ('low', 'medium', 'high', 'critical');
+CREATE TYPE bug_report_status_enum AS ENUM ('open', 'in_progress', 'resolved', 'closed');
+
+CREATE TABLE bug_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES custom_user(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL CHECK (btrim(subject) <> ''),
+    category bug_report_category_enum NOT NULL,
+    severity bug_report_severity_enum NOT NULL,
+    description TEXT NOT NULL CHECK (btrim(description) <> ''),
+    steps TEXT NULL,
+    debug_info JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status bug_report_status_enum NOT NULL DEFAULT 'open',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_bug_reports_user_created_at
+ON bug_reports(user_id, created_at DESC);
+
+CREATE INDEX idx_bug_reports_status_created_at
+ON bug_reports(status, created_at DESC);
+
 -- ==========================================
 -- FILE MANAGEMENT
 -- ==========================================

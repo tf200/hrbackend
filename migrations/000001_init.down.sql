@@ -114,6 +114,7 @@ DROP TABLE IF EXISTS temporary_file;
 DROP TABLE IF EXISTS attachment_file;
 
 -- Notification tables
+DROP TABLE IF EXISTS bug_reports;
 DROP TABLE IF EXISTS notifications;
 
 -- Session and auth tables
@@ -152,6 +153,9 @@ DROP TYPE IF EXISTS leave_request_type_enum;
 DROP TYPE IF EXISTS pay_period_status_enum;
 DROP TYPE IF EXISTS shift_swap_status_enum;
 DROP TYPE IF EXISTS employee_signature_type_enum;
+DROP TYPE IF EXISTS bug_report_status_enum;
+DROP TYPE IF EXISTS bug_report_severity_enum;
+DROP TYPE IF EXISTS bug_report_category_enum;
 DROP TYPE IF EXISTS sign_document_event_enum;
 DROP TYPE IF EXISTS sign_document_field_type_enum;
 DROP TYPE IF EXISTS sign_document_recipient_status_enum;

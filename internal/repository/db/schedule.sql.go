@@ -749,7 +749,12 @@ type ListEmployeeUpcomingShiftsRow struct {
 }
 
 func (q *Queries) ListEmployeeUpcomingShifts(ctx context.Context, arg ListEmployeeUpcomingShiftsParams) ([]ListEmployeeUpcomingShiftsRow, error) {
-	rows, err := q.db.Query(ctx, listEmployeeUpcomingShifts, arg.EmployeeID, arg.Now, arg.WindowEnd, arg.LimitCount)
+	rows, err := q.db.Query(ctx, listEmployeeUpcomingShifts,
+		arg.EmployeeID,
+		arg.Now,
+		arg.WindowEnd,
+		arg.LimitCount,
+	)
 	if err != nil {
 		return nil, err
 	}

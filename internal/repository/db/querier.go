@@ -56,6 +56,7 @@ type Querier interface {
 	CountUnsignedSignDocumentRecipients(ctx context.Context, documentID uuid.UUID) (int32, error)
 	CreateAttachment(ctx context.Context, arg CreateAttachmentParams) (AttachmentFile, error)
 	CreateAuthorization(ctx context.Context, arg CreateAuthorizationParams) (Authorization, error)
+	CreateBugReport(ctx context.Context, arg CreateBugReportParams) (BugReport, error)
 	CreateDepartment(ctx context.Context, arg CreateDepartmentParams) (Department, error)
 	CreateEmployeeAttachments(ctx context.Context, arg CreateEmployeeAttachmentsParams) error
 	CreateEmployeeHandbookAssignmentHistory(ctx context.Context, arg CreateEmployeeHandbookAssignmentHistoryParams) (EmployeeHandbookAssignmentHistory, error)
