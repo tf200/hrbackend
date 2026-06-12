@@ -8,7 +8,7 @@ SERVICE_NAME="${SERVICE_NAME:-app}"
 IMAGE_NAME="hrbackend:latest"
 
 echo "=== [1/5] Building Docker image locally ==="
-docker build --build-arg ENV_FILE=.env.dev -t "${IMAGE_NAME}" .
+docker build --platform linux/amd64 --build-arg ENV_FILE=.env.dev -t "${IMAGE_NAME}" .
 
 echo "=== [2/5] Creating remote directory on VPS ==="
 ssh "${SSH_USER}@${SSH_HOST}" "mkdir -p ${REMOTE_DIR}"
@@ -30,4 +30,3 @@ docker image prune -f
 EOF
 
 echo "=== Deployment Completed Successfully! ==="
-
