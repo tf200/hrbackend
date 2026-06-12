@@ -25,6 +25,9 @@ type Config struct {
 	Host                  string        `mapstructure:"HOST"`
 	RedisHost             string        `mapstructure:"REDIS_HOST"`
 	RedisPassword         string        `mapstructure:"REDIS_PASSWORD"`
+	CacheEnabled          bool          `mapstructure:"CACHE_ENABLED"`
+	CacheDefaultTTL       time.Duration `mapstructure:"CACHE_DEFAULT_TTL"`
+	CacheKeyPrefix        string        `mapstructure:"CACHE_KEY_PREFIX"`
 	Remote                bool          `mapstructure:"REMOTE"`
 	OpenRouterAPIKey      string        `mapstructure:"OPEN_ROUTER_API_KEY"`
 	SmtpName              string        `mapstructure:"SMTP_NAME"`
@@ -53,6 +56,9 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetConfigName("app")
 	viper.SetConfigType("env")
 	viper.SetDefault("WS_TICKET_TTL", "1m")
+	viper.SetDefault("CACHE_ENABLED", false)
+	viper.SetDefault("CACHE_DEFAULT_TTL", "5m")
+	viper.SetDefault("CACHE_KEY_PREFIX", "hrbackend:cache:")
 
 	// Enable automatic environment variable reading
 	viper.AutomaticEnv()
@@ -64,7 +70,8 @@ func LoadConfig(path string) (config Config, err error) {
 		"ACCESS_TOKEN_DURATION", "REFRESH_TOKEN_SECRET_KEY",
 		"REFRESH_TOKEN_DURATION", "TWO_FA_TOKEN_SECRET_KEY",
 		"TWO_FA_TOKEN_DURATION", "B2_ENDPOINT", "B2_KEY", "B2_KEY_ID", "B2_BUCKET",
-		"DISABLE_BUCKET", "HOST", "REDIS_HOST", "REDIS_PASSWORD", "REMOTE",
+		"DISABLE_BUCKET", "HOST", "REDIS_HOST", "REDIS_PASSWORD",
+		"CACHE_ENABLED", "CACHE_DEFAULT_TTL", "CACHE_KEY_PREFIX", "REMOTE",
 		"OPEN_ROUTER_API_KEY", "SMTP_NAME", "SMTP_ADDRESS",
 		"SMTP_AUTH", "SMTP_HOST", "SMTP_PORT", "BREVO_SENDER_NAME",
 		"BREVO_SENDER_EMAIL", "BREVO_API_KEY", "ENVIRONMENT",
@@ -141,6 +148,14 @@ func validateConfig(config *Config) error {
 	}
 	if config.WsTicketTTL <= 0 {
 		missingVars = append(missingVars, "WS_TICKET_TTL")
+	}
+	if config.CacheEnabled {
+		if strings.TrimSpace(config.RedisHost) == "" {
+			missingVars = append(missingVars, "REDIS_HOST")
+		}
+		if config.CacheDefaultTTL <= 0 {
+			missingVars = append(missingVars, "CACHE_DEFAULT_TTL")
+		}
 	}
 
 	if len(missingVars) > 0 {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"hrbackend/internal/domain"
@@ -13,15 +14,27 @@ import (
 
 type OrganizationService struct {
 	repository domain.OrganizationRepository
+	cache      domain.Cache
+	cacheTTL   time.Duration
 	logger     domain.Logger
 }
 
+const (
+	defaultLocationListCacheLimit = int32(30)
+	locationListCachePrefix       = "locations:all:v1:"
+	initialLocationListCacheKey   = "locations:all:v1:initial:limit:30"
+)
+
 func NewOrganizationService(
 	repository domain.OrganizationRepository,
+	cache domain.Cache,
+	cacheTTL time.Duration,
 	logger domain.Logger,
 ) domain.OrganizationService {
 	return &OrganizationService{
 		repository: repository,
+		cache:      cache,
+		cacheTTL:   cacheTTL,
 		logger:     logger,
 	}
 }
@@ -113,6 +126,8 @@ func (s *OrganizationService) CreateOrganizationLocation(
 		return nil, err
 	}
 
+	s.invalidateLocationListCache(ctx)
+
 	return location, nil
 }
 
@@ -135,6 +150,8 @@ func (s *OrganizationService) UpdateLocation(
 		return nil, err
 	}
 
+	s.invalidateLocationListCache(ctx)
+
 	return location, nil
 }
 
@@ -151,6 +168,8 @@ func (s *OrganizationService) DeleteLocation(ctx context.Context, locationID uui
 		}
 		return err
 	}
+
+	s.invalidateLocationListCache(ctx)
 
 	return nil
 }
@@ -263,6 +282,8 @@ func (s *OrganizationService) CreateShift(
 		)
 	}
 
+	s.invalidateLocationListCache(ctx)
+
 	return shift, nil
 }
 
@@ -320,6 +341,8 @@ func (s *OrganizationService) UpdateShift(
 		)
 	}
 
+	s.invalidateLocationListCache(ctx)
+
 	return shift, nil
 }
 
@@ -338,6 +361,8 @@ func (s *OrganizationService) DeleteShift(ctx context.Context, shiftID uuid.UUID
 			zap.String("shift_id", shiftID.String()),
 		)
 	}
+
+	s.invalidateLocationListCache(ctx)
 
 	return nil
 }
@@ -400,6 +425,16 @@ func (s *OrganizationService) ListAllLocations(
 	ctx context.Context,
 	params domain.ListAllLocationsParams,
 ) (*domain.OrganizationLocationPage, error) {
+	if s.shouldCacheInitialLocationList(params) {
+		var cachedPage domain.OrganizationLocationPage
+		hit, err := s.cache.Get(ctx, initialLocationListCacheKey, &cachedPage)
+		if err != nil {
+			s.logCacheWarning(ctx, "OrganizationService.ListAllLocations", "failed to get locations cache", err)
+		} else if hit {
+			return &cachedPage, nil
+		}
+	}
+
 	page, err := s.repository.ListAllLocations(ctx, params)
 	if err != nil {
 		if s.logger != nil {
@@ -416,7 +451,44 @@ func (s *OrganizationService) ListAllLocations(
 		return nil, err
 	}
 
+	if s.shouldCacheInitialLocationList(params) {
+		if err := s.cache.Set(ctx, initialLocationListCacheKey, page, s.cacheTTL); err != nil {
+			s.logCacheWarning(ctx, "OrganizationService.ListAllLocations", "failed to set locations cache", err)
+		}
+	}
+
 	return page, nil
+}
+
+func (s *OrganizationService) shouldCacheInitialLocationList(
+	params domain.ListAllLocationsParams,
+) bool {
+	return s.cache != nil &&
+		s.cacheTTL > 0 &&
+		params.Limit == defaultLocationListCacheLimit &&
+		params.Offset == 0 &&
+		strings.TrimSpace(params.Search) == ""
+}
+
+func (s *OrganizationService) invalidateLocationListCache(ctx context.Context) {
+	if s.cache == nil {
+		return
+	}
+
+	if err := s.cache.DeleteByPrefix(ctx, locationListCachePrefix); err != nil {
+		s.logCacheWarning(ctx, "OrganizationService.invalidateLocationListCache", "failed to invalidate locations cache", err)
+	}
+}
+
+func (s *OrganizationService) logCacheWarning(
+	ctx context.Context,
+	operation string,
+	message string,
+	err error,
+) {
+	if s.logger != nil {
+		s.logger.LogWarn(ctx, operation, message, zap.Error(err))
+	}
 }
 
 func (s *OrganizationService) GetOrganizationCounts(

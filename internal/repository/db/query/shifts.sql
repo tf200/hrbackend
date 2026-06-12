@@ -35,6 +35,11 @@ SELECT * FROM location_shift
 WHERE location_id = $1
 ORDER BY slot;
 
+-- name: GetShiftsByLocationIDs :many
+SELECT * FROM location_shift
+WHERE location_id = ANY(sqlc.arg(location_ids)::uuid[])
+ORDER BY location_id, slot;
+
 
 
 -- name: CheckAllShiftsExist :one

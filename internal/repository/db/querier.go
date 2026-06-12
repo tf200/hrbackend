@@ -184,6 +184,7 @@ type Querier interface {
 	GetShiftSwapRequestDetailsByID(ctx context.Context, id uuid.UUID) (GetShiftSwapRequestDetailsByIDRow, error)
 	GetShiftSwapStats(ctx context.Context) (GetShiftSwapStatsRow, error)
 	GetShiftsByLocationID(ctx context.Context, locationID uuid.UUID) ([]LocationShift, error)
+	GetShiftsByLocationIDs(ctx context.Context, locationIds []uuid.UUID) ([]LocationShift, error)
 	GetSignDocumentByID(ctx context.Context, id uuid.UUID) (SignDocument, error)
 	GetSignDocumentRecipientForEmployee(ctx context.Context, arg GetSignDocumentRecipientForEmployeeParams) (SignDocumentRecipient, error)
 	GetTemp2FaSecret(ctx context.Context, id uuid.UUID) (*string, error)

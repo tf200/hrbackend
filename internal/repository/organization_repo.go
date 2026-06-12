@@ -324,14 +324,13 @@ func (r *OrganizationRepository) ListOrganizationLocations(
 	page := &domain.OrganizationLocationPage{
 		Items: make([]domain.OrganizationLocation, 0, len(rows)),
 	}
+	shiftsByLocationID, err := r.getShiftsByLocationIDs(ctx, locationIDsFromLocationRows(rows))
+	if err != nil {
+		return nil, err
+	}
 
 	for _, row := range rows {
-		shifts, err := r.queries.GetShiftsByLocationID(ctx, row.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		page.Items = append(page.Items, toDomainOrganizationLocation(row, shifts))
+		page.Items = append(page.Items, toDomainOrganizationLocation(row, shiftsByLocationID[row.ID]))
 		page.TotalCount = row.TotalCount
 	}
 
@@ -354,18 +353,54 @@ func (r *OrganizationRepository) ListAllLocations(
 	page := &domain.OrganizationLocationPage{
 		Items: make([]domain.OrganizationLocation, 0, len(rows)),
 	}
+	shiftsByLocationID, err := r.getShiftsByLocationIDs(ctx, locationIDsFromAllLocationRows(rows))
+	if err != nil {
+		return nil, err
+	}
 
 	for _, row := range rows {
-		shifts, err := r.queries.GetShiftsByLocationID(ctx, row.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		page.Items = append(page.Items, toDomainOrganizationLocationFromAllLocations(row, shifts))
+		page.Items = append(page.Items, toDomainOrganizationLocationFromAllLocations(row, shiftsByLocationID[row.ID]))
 		page.TotalCount = row.TotalCount
 	}
 
 	return page, nil
+}
+
+func (r *OrganizationRepository) getShiftsByLocationIDs(
+	ctx context.Context,
+	locationIDs []uuid.UUID,
+) (map[uuid.UUID][]db.LocationShift, error) {
+	if len(locationIDs) == 0 {
+		return map[uuid.UUID][]db.LocationShift{}, nil
+	}
+
+	shifts, err := r.queries.GetShiftsByLocationIDs(ctx, locationIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uuid.UUID][]db.LocationShift, len(locationIDs))
+	for _, shift := range shifts {
+		result[shift.LocationID] = append(result[shift.LocationID], shift)
+	}
+
+	return result, nil
+}
+
+func locationIDsFromLocationRows(rows []db.ListLocationsPaginatedRow) []uuid.UUID {
+	ids := make([]uuid.UUID, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ID
+	}
+	return ids
+}
+
+func locationIDsFromAllLocationRows(rows []db.ListAllLocationsPaginatedRow) []uuid.UUID {
+	ids := make([]uuid.UUID, len(rows))
+	for i, row := range rows {
+		ids[i] = row.ID
+	}
+	return ids
 }
 
 func toDomainOrganization(row db.ListOrganisationsPaginatedRow) domain.Organization {

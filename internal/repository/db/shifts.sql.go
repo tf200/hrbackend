@@ -139,6 +139,41 @@ func (q *Queries) GetShiftsByLocationID(ctx context.Context, locationID uuid.UUI
 	return items, nil
 }
 
+const getShiftsByLocationIDs = `-- name: GetShiftsByLocationIDs :many
+SELECT id, location_id, slot, shift_name, start_time, end_time, created_at, updated_at FROM location_shift
+WHERE location_id = ANY($1::uuid[])
+ORDER BY location_id, slot
+`
+
+func (q *Queries) GetShiftsByLocationIDs(ctx context.Context, locationIds []uuid.UUID) ([]LocationShift, error) {
+	rows, err := q.db.Query(ctx, getShiftsByLocationIDs, locationIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []LocationShift{}
+	for rows.Next() {
+		var i LocationShift
+		if err := rows.Scan(
+			&i.ID,
+			&i.LocationID,
+			&i.Slot,
+			&i.ShiftName,
+			&i.StartTime,
+			&i.EndTime,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateShift = `-- name: UpdateShift :one
 UPDATE location_shift
 SET

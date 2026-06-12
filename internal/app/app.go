@@ -35,6 +35,7 @@ type App struct {
 	Router    *gin.Engine
 	DB        *pgxpool.Pool
 	TaskQueue domain.TaskQueue
+	Cache     domain.Cache
 	WSHub     *ws.Hub
 	WSTickets domain.WebSocketTicketStore
 	logger    domain.Logger
@@ -71,6 +72,11 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 
 	taskQueue := buildTaskQueue(cfg)
+	cache, err := buildCache(cfg)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("setup cache: %w", err)
+	}
 	wsHub := ws.NewHub()
 	go wsHub.Run()
 	wsTicketStore := newWebSocketTicketStore(cfg)
@@ -100,6 +106,7 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 		store,
 		tokenMaker,
 		taskQueue,
+		cache,
 		wsHub,
 		wsTicketStore,
 		storageClient,
@@ -110,6 +117,7 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 		Router:    router,
 		DB:        pool,
 		TaskQueue: taskQueue,
+		Cache:     cache,
 		WSHub:     wsHub,
 		WSTickets: wsTicketStore,
 		logger:    logger,
@@ -186,6 +194,12 @@ func (a *App) Close(_ context.Context) error {
 		}
 	}
 
+	if a.Cache != nil {
+		if err := a.Cache.Close(); err != nil {
+			errs = append(errs, fmt.Sprintf("close cache: %v", err))
+		}
+	}
+
 	if a.WSHub != nil {
 		a.WSHub.Shutdown()
 	}
@@ -219,6 +233,7 @@ func buildRouter(
 	store *db.Store,
 	tokenMaker domain.TokenMaker,
 	taskQueue domain.TaskQueue,
+	cache domain.Cache,
 	wsHub *ws.Hub,
 	wsTicketStore domain.WebSocketTicketStore,
 	storageClient domain.Storage,
@@ -266,7 +281,12 @@ func buildRouter(
 	authorizationService := service.NewAuthorizationService(authorizationRepo, logger)
 
 	organizationRepo := repository.NewOrganizationRepository(store)
-	organizationService := service.NewOrganizationService(organizationRepo, logger)
+	organizationService := service.NewOrganizationService(
+		organizationRepo,
+		cache,
+		cfg.CacheDefaultTTL,
+		logger,
+	)
 
 	settingsRepo := repository.NewSettingsRepository(store)
 	settingsService := service.NewSettingsService(settingsRepo, logger)
