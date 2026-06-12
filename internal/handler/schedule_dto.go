@@ -45,6 +45,17 @@ type getMyPastShiftsRequest struct {
 	httpapi.PageRequest
 }
 
+type getMyUpcomingShiftsRequest struct {
+	Limit int32 `form:"limit" binding:"omitempty,min=1,max=30"`
+}
+
+func (r getMyUpcomingShiftsRequest) normalizedLimit() int32 {
+	if r.Limit == 0 {
+		return 15
+	}
+	return r.Limit
+}
+
 var uuidExtractRegex = regexp.MustCompile(
 	`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`,
 )

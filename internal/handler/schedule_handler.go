@@ -155,13 +155,23 @@ func (h *ScheduleHandler) GetMyShiftOverview(ctx *gin.Context) {
 }
 
 func (h *ScheduleHandler) GetMyUpcomingShifts(ctx *gin.Context) {
+	var req getMyUpcomingShiftsRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
 	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
 	if employeeID == uuid.Nil {
 		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
 		return
 	}
 
-	response, err := h.service.GetMyUpcomingShifts(ctx.Request.Context(), employeeID)
+	response, err := h.service.GetMyUpcomingShifts(
+		ctx.Request.Context(),
+		employeeID,
+		req.normalizedLimit(),
+	)
 	if err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,

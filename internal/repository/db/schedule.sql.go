@@ -722,12 +722,14 @@ WHERE s.employee_id = $1
   AND s.start_datetime > $2
   AND s.start_datetime < $3
 ORDER BY s.start_datetime
+LIMIT $4
 `
 
 type ListEmployeeUpcomingShiftsParams struct {
 	EmployeeID uuid.UUID          `json:"employee_id"`
 	Now        pgtype.Timestamptz `json:"now"`
 	WindowEnd  pgtype.Timestamptz `json:"window_end"`
+	LimitCount int32              `json:"limit_count"`
 }
 
 type ListEmployeeUpcomingShiftsRow struct {
@@ -747,7 +749,7 @@ type ListEmployeeUpcomingShiftsRow struct {
 }
 
 func (q *Queries) ListEmployeeUpcomingShifts(ctx context.Context, arg ListEmployeeUpcomingShiftsParams) ([]ListEmployeeUpcomingShiftsRow, error) {
-	rows, err := q.db.Query(ctx, listEmployeeUpcomingShifts, arg.EmployeeID, arg.Now, arg.WindowEnd)
+	rows, err := q.db.Query(ctx, listEmployeeUpcomingShifts, arg.EmployeeID, arg.Now, arg.WindowEnd, arg.LimitCount)
 	if err != nil {
 		return nil, err
 	}

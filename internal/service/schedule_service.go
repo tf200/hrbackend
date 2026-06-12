@@ -390,9 +390,13 @@ func (s *ScheduleService) GetMyShiftOverview(
 func (s *ScheduleService) GetMyUpcomingShifts(
 	ctx context.Context,
 	employeeID uuid.UUID,
+	limit int32,
 ) (*domain.EmployeeUpcomingShiftsResponse, error) {
 	if employeeID == uuid.Nil {
 		return nil, fmt.Errorf("employee_id is required")
+	}
+	if limit <= 0 || limit > 30 {
+		return nil, fmt.Errorf("limit must be between 1 and 30")
 	}
 
 	now := time.Now()
@@ -401,6 +405,7 @@ func (s *ScheduleService) GetMyUpcomingShifts(
 		employeeID,
 		now,
 		now.AddDate(0, 0, 15),
+		limit,
 	)
 	if err != nil {
 		s.logError(ctx, "GetMyUpcomingShifts", "failed to list upcoming shifts", err)

@@ -554,6 +554,7 @@ type ScheduleRepository interface {
 		ctx context.Context,
 		employeeID uuid.UUID,
 		now, windowEnd time.Time,
+		limit int32,
 	) ([]EmployeeUpcomingShift, error)
 	ListEmployeePastShiftsPaginated(
 		ctx context.Context,
@@ -671,6 +672,7 @@ type ScheduleService interface {
 	GetMyUpcomingShifts(
 		ctx context.Context,
 		employeeID uuid.UUID,
+		limit int32,
 	) (*EmployeeUpcomingShiftsResponse, error)
 	GetMyPastShifts(
 		ctx context.Context,

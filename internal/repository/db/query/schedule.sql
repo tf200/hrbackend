@@ -242,7 +242,8 @@ LEFT JOIN location_shift ls ON ls.id = s.location_shift_id
 WHERE s.employee_id = @employee_id
   AND s.start_datetime > @now
   AND s.start_datetime < @window_end
-ORDER BY s.start_datetime;
+ORDER BY s.start_datetime
+LIMIT @limit_count;
 
 -- name: ListEmployeePastShiftsPaginated :many
 SELECT

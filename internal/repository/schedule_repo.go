@@ -957,11 +957,13 @@ func (r *ScheduleRepository) ListEmployeeUpcomingShifts(
 	ctx context.Context,
 	employeeID uuid.UUID,
 	now, windowEnd time.Time,
+	limit int32,
 ) ([]domain.EmployeeUpcomingShift, error) {
 	rows, err := r.store.ListEmployeeUpcomingShifts(ctx, db.ListEmployeeUpcomingShiftsParams{
 		EmployeeID: employeeID,
 		Now:        conv.PgTimestamptzFromTime(now),
 		WindowEnd:  conv.PgTimestamptzFromTime(windowEnd),
+		LimitCount: limit,
 	})
 	if err != nil {
 		return nil, err
