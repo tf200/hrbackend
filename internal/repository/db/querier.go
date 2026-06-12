@@ -338,6 +338,7 @@ type Querier interface {
 	UpdateAttachmentUsed(ctx context.Context, arg UpdateAttachmentUsedParams) (AttachmentFile, error)
 	UpdateAttachmentsUsed(ctx context.Context, arg UpdateAttachmentsUsedParams) error
 	UpdateAuthorization(ctx context.Context, arg UpdateAuthorizationParams) (Authorization, error)
+	UpdateBugReportTrelloCard(ctx context.Context, arg UpdateBugReportTrelloCardParams) (BugReport, error)
 	UpdateDepartment(ctx context.Context, arg UpdateDepartmentParams) (Department, error)
 	UpdateEmployeeAuthorization(ctx context.Context, arg UpdateEmployeeAuthorizationParams) (EmployeeAuthorization, error)
 	UpdateEmployeeContract(ctx context.Context, arg UpdateEmployeeContractParams) (EmployeeContract, error)

@@ -19,16 +19,18 @@ type createBugReportRequest struct {
 }
 
 type bugReportResponse struct {
-	ID          uuid.UUID       `json:"id"`
-	UserID      uuid.UUID       `json:"user_id"`
-	Subject     string          `json:"subject"`
-	Category    string          `json:"category"`
-	Severity    string          `json:"severity"`
-	Description string          `json:"description"`
-	Steps       *string         `json:"steps,omitempty"`
-	DebugInfo   json.RawMessage `json:"debug_info"`
-	Status      string          `json:"status"`
-	CreatedAt   time.Time       `json:"created_at"`
+	ID            uuid.UUID       `json:"id"`
+	UserID        uuid.UUID       `json:"user_id"`
+	Subject       string          `json:"subject"`
+	Category      string          `json:"category"`
+	Severity      string          `json:"severity"`
+	Description   string          `json:"description"`
+	Steps         *string         `json:"steps,omitempty"`
+	DebugInfo     json.RawMessage `json:"debug_info"`
+	TrelloCardID  *string         `json:"trello_card_id,omitempty"`
+	TrelloCardURL *string         `json:"trello_card_url,omitempty"`
+	Status        string          `json:"status"`
+	CreatedAt     time.Time       `json:"created_at"`
 }
 
 func toCreateBugReportParams(
@@ -48,15 +50,17 @@ func toCreateBugReportParams(
 
 func toBugReportResponse(item *domain.BugReport) bugReportResponse {
 	return bugReportResponse{
-		ID:          item.ID,
-		UserID:      item.UserID,
-		Subject:     item.Subject,
-		Category:    item.Category,
-		Severity:    item.Severity,
-		Description: item.Description,
-		Steps:       item.Steps,
-		DebugInfo:   item.DebugInfo,
-		Status:      item.Status,
-		CreatedAt:   item.CreatedAt,
+		ID:            item.ID,
+		UserID:        item.UserID,
+		Subject:       item.Subject,
+		Category:      item.Category,
+		Severity:      item.Severity,
+		Description:   item.Description,
+		Steps:         item.Steps,
+		DebugInfo:     item.DebugInfo,
+		TrelloCardID:  item.TrelloCardID,
+		TrelloCardURL: item.TrelloCardURL,
+		Status:        item.Status,
+		CreatedAt:     item.CreatedAt,
 	}
 }

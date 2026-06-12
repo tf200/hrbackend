@@ -43,6 +43,9 @@ type Config struct {
 	AdminPassword         string        `mapstructure:"ADMIN_PASSWORD"`
 	WsAllowedOrigins      string        `mapstructure:"WS_ALLOWED_ORIGINS"`
 	WsTicketTTL           time.Duration `mapstructure:"WS_TICKET_TTL"`
+	TrelloAPIKey          string        `mapstructure:"TRELLO_API_KEY"`
+	TrelloToken           string        `mapstructure:"TRELLO_TOKEN"`
+	TrelloListID          string        `mapstructure:"TRELLO_LIST_ID"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -67,7 +70,8 @@ func LoadConfig(path string) (config Config, err error) {
 		"BREVO_SENDER_EMAIL", "BREVO_API_KEY", "ENVIRONMENT",
 		"OPEN_ROUTER_API_KEY", "OPEN_ROUTER_MODEL",
 		"MIGRATIONS_PATH", "ADMIN_EMAIL", "ADMIN_PASSWORD",
-		"WS_ALLOWED_ORIGINS", "WS_TICKET_TTL",
+		"WS_ALLOWED_ORIGINS", "WS_TICKET_TTL", "TRELLO_API_KEY",
+		"TRELLO_TOKEN", "TRELLO_LIST_ID",
 	}
 
 	for _, envVar := range envVars {

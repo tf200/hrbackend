@@ -496,6 +496,8 @@ CREATE TABLE bug_reports (
     description TEXT NOT NULL CHECK (btrim(description) <> ''),
     steps TEXT NULL,
     debug_info JSONB NOT NULL DEFAULT '{}'::jsonb,
+    trello_card_id TEXT NULL,
+    trello_card_url TEXT NULL,
     status bug_report_status_enum NOT NULL DEFAULT 'open',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

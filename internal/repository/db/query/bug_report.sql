@@ -17,3 +17,12 @@ INSERT INTO bug_reports (
     COALESCE(sqlc.narg('debug_info'), '{}'::jsonb)
 )
 RETURNING *;
+
+-- name: UpdateBugReportTrelloCard :one
+UPDATE bug_reports
+SET
+    trello_card_id = sqlc.arg('trello_card_id'),
+    trello_card_url = sqlc.arg('trello_card_url'),
+    updated_at = NOW()
+WHERE id = sqlc.arg('id')
+RETURNING *;

@@ -1905,17 +1905,19 @@ type Authorization struct {
 }
 
 type BugReport struct {
-	ID          uuid.UUID             `json:"id"`
-	UserID      uuid.UUID             `json:"user_id"`
-	Subject     string                `json:"subject"`
-	Category    BugReportCategoryEnum `json:"category"`
-	Severity    BugReportSeverityEnum `json:"severity"`
-	Description string                `json:"description"`
-	Steps       *string               `json:"steps"`
-	DebugInfo   []byte                `json:"debug_info"`
-	Status      BugReportStatusEnum   `json:"status"`
-	CreatedAt   pgtype.Timestamptz    `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz    `json:"updated_at"`
+	ID            uuid.UUID             `json:"id"`
+	UserID        uuid.UUID             `json:"user_id"`
+	Subject       string                `json:"subject"`
+	Category      BugReportCategoryEnum `json:"category"`
+	Severity      BugReportSeverityEnum `json:"severity"`
+	Description   string                `json:"description"`
+	Steps         *string               `json:"steps"`
+	DebugInfo     []byte                `json:"debug_info"`
+	TrelloCardID  *string               `json:"trello_card_id"`
+	TrelloCardUrl *string               `json:"trello_card_url"`
+	Status        BugReportStatusEnum   `json:"status"`
+	CreatedAt     pgtype.Timestamptz    `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz    `json:"updated_at"`
 }
 
 type CalendarEvent struct {

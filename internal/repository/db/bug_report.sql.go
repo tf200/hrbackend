@@ -29,7 +29,7 @@ INSERT INTO bug_reports (
     $6,
     COALESCE($7, '{}'::jsonb)
 )
-RETURNING id, user_id, subject, category, severity, description, steps, debug_info, status, created_at, updated_at
+RETURNING id, user_id, subject, category, severity, description, steps, debug_info, trello_card_id, trello_card_url, status, created_at, updated_at
 `
 
 type CreateBugReportParams struct {
@@ -62,6 +62,45 @@ func (q *Queries) CreateBugReport(ctx context.Context, arg CreateBugReportParams
 		&i.Description,
 		&i.Steps,
 		&i.DebugInfo,
+		&i.TrelloCardID,
+		&i.TrelloCardUrl,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateBugReportTrelloCard = `-- name: UpdateBugReportTrelloCard :one
+UPDATE bug_reports
+SET
+    trello_card_id = $1,
+    trello_card_url = $2,
+    updated_at = NOW()
+WHERE id = $3
+RETURNING id, user_id, subject, category, severity, description, steps, debug_info, trello_card_id, trello_card_url, status, created_at, updated_at
+`
+
+type UpdateBugReportTrelloCardParams struct {
+	TrelloCardID  *string   `json:"trello_card_id"`
+	TrelloCardUrl *string   `json:"trello_card_url"`
+	ID            uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateBugReportTrelloCard(ctx context.Context, arg UpdateBugReportTrelloCardParams) (BugReport, error) {
+	row := q.db.QueryRow(ctx, updateBugReportTrelloCard, arg.TrelloCardID, arg.TrelloCardUrl, arg.ID)
+	var i BugReport
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Subject,
+		&i.Category,
+		&i.Severity,
+		&i.Description,
+		&i.Steps,
+		&i.DebugInfo,
+		&i.TrelloCardID,
+		&i.TrelloCardUrl,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,

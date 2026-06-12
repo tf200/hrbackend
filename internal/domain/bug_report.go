@@ -29,17 +29,19 @@ const (
 )
 
 type BugReport struct {
-	ID          uuid.UUID
-	UserID      uuid.UUID
-	Subject     string
-	Category    string
-	Severity    string
-	Description string
-	Steps       *string
-	DebugInfo   json.RawMessage
-	Status      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	Subject       string
+	Category      string
+	Severity      string
+	Description   string
+	Steps         *string
+	DebugInfo     json.RawMessage
+	TrelloCardID  *string
+	TrelloCardURL *string
+	Status        string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type CreateBugReportParams struct {
@@ -54,6 +56,20 @@ type CreateBugReportParams struct {
 
 type BugReportRepository interface {
 	CreateBugReport(ctx context.Context, params CreateBugReportParams) (*BugReport, error)
+	UpdateBugReportTrelloCard(
+		ctx context.Context,
+		bugReportID uuid.UUID,
+		card BugReportCard,
+	) (*BugReport, error)
+}
+
+type BugReportCard struct {
+	ID  string
+	URL string
+}
+
+type BugReportCardPublisher interface {
+	CreateBugReportCard(ctx context.Context, report BugReport) (*BugReportCard, error)
 }
 
 type BugReportService interface {

@@ -336,7 +336,8 @@ func buildRouter(
 	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
 	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
 	bugReportRepo := repository.NewBugReportRepository(store)
-	bugReportService := service.NewBugReportService(bugReportRepo, logger)
+	bugReportPublisher := newTrelloBugReportPublisher(cfg)
+	bugReportService := service.NewBugReportService(bugReportRepo, bugReportPublisher, logger)
 
 	authHandler := handler.NewAuthHandler(authService)
 	wsAuthService := service.NewWebSocketAuthService(wsTicketStore, logger, cfg.WsTicketTTL)

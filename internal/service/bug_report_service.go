@@ -8,18 +8,25 @@ import (
 	"hrbackend/internal/domain"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type BugReportService struct {
-	repository domain.BugReportRepository
-	logger     domain.Logger
+	repository    domain.BugReportRepository
+	cardPublisher domain.BugReportCardPublisher
+	logger        domain.Logger
 }
 
 func NewBugReportService(
 	repository domain.BugReportRepository,
+	cardPublisher domain.BugReportCardPublisher,
 	logger domain.Logger,
 ) domain.BugReportService {
-	return &BugReportService{repository: repository, logger: logger}
+	return &BugReportService{
+		repository:    repository,
+		cardPublisher: cardPublisher,
+		logger:        logger,
+	}
 }
 
 func (s *BugReportService) CreateBugReport(
@@ -31,7 +38,49 @@ func (s *BugReportService) CreateBugReport(
 		return nil, err
 	}
 
-	return s.repository.CreateBugReport(ctx, normalized)
+	report, err := s.repository.CreateBugReport(ctx, normalized)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.cardPublisher == nil {
+		return report, nil
+	}
+
+	card, err := s.cardPublisher.CreateBugReportCard(ctx, *report)
+	if err != nil {
+		s.logTrelloWarning(ctx, "create Trello card", err, report.ID)
+		return report, nil
+	}
+	if card == nil || strings.TrimSpace(card.ID) == "" {
+		return report, nil
+	}
+
+	updated, err := s.repository.UpdateBugReportTrelloCard(ctx, report.ID, *card)
+	if err != nil {
+		s.logTrelloWarning(ctx, "save Trello card details", err, report.ID)
+		return report, nil
+	}
+
+	return updated, nil
+}
+
+func (s *BugReportService) logTrelloWarning(
+	ctx context.Context,
+	operation string,
+	err error,
+	bugReportID uuid.UUID,
+) {
+	if s.logger == nil {
+		return
+	}
+	s.logger.LogWarn(
+		ctx,
+		"BugReportService.CreateBugReport",
+		operation,
+		zap.Error(err),
+		zap.String("bug_report_id", bugReportID.String()),
+	)
 }
 
 func normalizeCreateBugReportParams(
