@@ -1439,7 +1439,7 @@ func toSalaryPageResponse(data *domain.SalaryPageData) *salaryPageResponse {
 	}
 	baseGross := computeBaseGross(data)
 	irregularGross := computeIrregularGross(data)
-	leavePayoutGross := computeLeavePayoutGrossAmount(data.LeavePayoutRequests)
+	leavePayoutGross := computeLeavePayoutGrossAmount(data.LeavePayoutRequests, data.PeriodStart)
 	totalGross := roundCurrency(baseGross + irregularGross + leavePayoutGross)
 	// ORT buckets
 	ortBuckets := buildSalaryPageORTBuckets(data)
@@ -1552,15 +1552,24 @@ func computeWorkedPaidMinutes(data *domain.SalaryPageData) (float64, float64) {
 	if data.PayPeriod != nil {
 		var worked, paid float64
 		for _, item := range data.PayPeriod.LineItems {
-			worked += item.MinutesWorked
+			if isSalaryPageLeavePayoutLineType(item.LineType) {
+				continue
+			}
+			if !isSalaryPageFixedBaseLineType(item.LineType) {
+				worked += item.MinutesWorked
+			}
 			paid += item.MinutesWorked
 		}
 		return roundCurrency(worked), roundCurrency(paid)
 	}
 	if data.Preview != nil {
-		worked := float64(data.Preview.TotalWorkedMinutes)
+		var worked float64
 		var paid float64
 		for _, item := range data.Preview.LineItems {
+			if isSalaryPageLeavePayoutLineType(item.SourceType) {
+				continue
+			}
+			worked += float64(item.MinutesWorked)
 			paid += item.PaidMinutes
 		}
 		return roundCurrency(worked), roundCurrency(paid)
@@ -1590,10 +1599,22 @@ func computeShiftCount(data *domain.SalaryPageData) int32 {
 }
 func computeBaseGross(data *domain.SalaryPageData) float64 {
 	if data.PayPeriod != nil {
-		return data.PayPeriod.BaseGrossAmount
+		baseGross := data.PayPeriod.BaseGrossAmount
+		for _, item := range data.PayPeriod.LineItems {
+			if isSalaryPageLeavePayoutLineType(item.LineType) {
+				baseGross = roundCurrency(baseGross - item.BaseAmount)
+			}
+		}
+		return baseGross
 	}
 	if data.Preview != nil {
-		return data.Preview.BaseGrossAmount
+		baseGross := data.Preview.BaseGrossAmount
+		for _, item := range data.Preview.LineItems {
+			if isSalaryPageLeavePayoutLineType(item.SourceType) {
+				baseGross = roundCurrency(baseGross - item.BaseAmount)
+			}
+		}
+		return baseGross
 	}
 	return 0
 }
@@ -1606,14 +1627,45 @@ func computeIrregularGross(data *domain.SalaryPageData) float64 {
 	}
 	return 0
 }
-func computeLeavePayoutGrossAmount(requests []domain.PayoutRequest) float64 {
+func computeLeavePayoutGrossAmount(requests []domain.PayoutRequest, periodStart time.Time) float64 {
 	var total float64
 	for _, r := range requests {
-		if r.Status == "approved" || r.Status == "paid" {
-			total = roundCurrency(total + r.GrossAmount)
+		if !isSalaryPagePayoutStatusPayable(r.Status) || !payoutMatchesSalaryPagePeriod(r, periodStart) {
+			continue
 		}
+		total = roundCurrency(total + r.GrossAmount)
 	}
 	return total
+}
+func isSalaryPagePayoutStatusPayable(status string) bool {
+	switch status {
+	case domain.PayoutRequestStatusApproved, domain.PayoutRequestStatusPaid:
+		return true
+	default:
+		return false
+	}
+}
+func payoutMatchesSalaryPagePeriod(r domain.PayoutRequest, periodStart time.Time) bool {
+	if r.PayPeriodStart == nil {
+		return false
+	}
+	return sameDate(*r.PayPeriodStart, periodStart)
+}
+func sameDate(a, b time.Time) bool {
+	a = a.UTC()
+	b = b.UTC()
+	return a.Year() == b.Year() && a.Month() == b.Month() && a.Day() == b.Day()
+}
+func isSalaryPageLeavePayoutLineType(lineType string) bool {
+	return strings.EqualFold(strings.TrimSpace(lineType), domain.PayrollSourceLeavePayout)
+}
+func isSalaryPageFixedBaseLineType(lineType string) bool {
+	switch strings.ToLower(strings.TrimSpace(lineType)) {
+	case "fixed_base", "contract_base":
+		return true
+	default:
+		return false
+	}
 }
 func buildSalaryPageORTBuckets(data *domain.SalaryPageData) []salaryPageMultiplierSummaryItem {
 	rateBuckets := make(map[float64]*payrollMonthMultiplierSummaryItem)
@@ -1630,6 +1682,9 @@ func buildSalaryPageORTBuckets(data *domain.SalaryPageData) []salaryPageMultipli
 	}
 	if data.PayPeriod != nil {
 		for _, item := range data.PayPeriod.LineItems {
+			if isSalaryPageLeavePayoutLineType(item.LineType) {
+				continue
+			}
 			accumulate(
 				item.AppliedRatePercent,
 				item.MinutesWorked,
@@ -1639,6 +1694,9 @@ func buildSalaryPageORTBuckets(data *domain.SalaryPageData) []salaryPageMultipli
 		}
 	} else if data.Preview != nil {
 		for _, item := range data.Preview.LineItems {
+			if isSalaryPageLeavePayoutLineType(item.SourceType) {
+				continue
+			}
 			accumulate(item.AppliedRatePercent, item.PaidMinutes, item.BaseAmount, item.PremiumAmount)
 		}
 	}
@@ -1837,23 +1895,21 @@ func buildSalaryPageBaseEarnings(data *domain.SalaryPageData) salaryPageBaseEarn
 		var baseAmount float64
 		if data.PayPeriod != nil {
 			for _, item := range data.PayPeriod.LineItems {
-				if item.LineType == "contract_base" {
-					baseAmount = item.BaseAmount
-					break
+				if isSalaryPageFixedBaseLineType(item.LineType) {
+					baseAmount = roundCurrency(baseAmount + item.BaseAmount)
 				}
 			}
 			if baseAmount == 0 {
-				baseAmount = data.PayPeriod.BaseGrossAmount
+				baseAmount = computeBaseGross(data)
 			}
 		} else if data.Preview != nil {
 			for _, item := range data.Preview.LineItems {
-				if item.SourceType == "contract_base" {
-					baseAmount = item.BaseAmount
-					break
+				if isSalaryPageFixedBaseLineType(item.SourceType) {
+					baseAmount = roundCurrency(baseAmount + item.BaseAmount)
 				}
 			}
 			if baseAmount == 0 {
-				baseAmount = data.Preview.BaseGrossAmount
+				baseAmount = computeBaseGross(data)
 			}
 		}
 		return salaryPageBaseEarningsResponse{

@@ -11,12 +11,64 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestDecidePayoutRequestByAdminApproveUnavailable(t *testing.T) {
+func TestDecidePayoutRequestByAdminApproveSuccess(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	requestID := uuid.New()
+	employeeID := uuid.New()
 	payPeriodStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
-	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{
+		currentRequest: &domain.PayoutRequest{
+			ID:             requestID,
+			EmployeeID:     employeeID,
+			RequestedHours: 8,
+			BalanceYear:    2026,
+			Status:         domain.PayoutRequestStatusPending,
+		},
+		legalTotalMinutes:     9600,
+		legalUsedMinutes:      1200,
+		reservedPayoutMinutes: 480,
+	}}
+	service := NewPayoutService(repo, nil)
+
+	updated, err := service.DecidePayoutRequestByAdmin(
+		ctx,
+		adminID,
+		requestID,
+		domain.DecidePayoutRequestParams{
+			Decision:       "approve",
+			PayPeriodStart: &payPeriodStart,
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected approval to succeed, got %v", err)
+	}
+	if updated.Status != domain.PayoutRequestStatusApproved {
+		t.Fatalf("expected approved status, got %q", updated.Status)
+	}
+	if !repo.tx.lockedEmployee {
+		t.Fatal("expected employee leave balance lock")
+	}
+}
+
+func TestDecidePayoutRequestByAdminApproveInsufficientBalance(t *testing.T) {
+	ctx := context.Background()
+	adminID := uuid.New()
+	requestID := uuid.New()
+	employeeID := uuid.New()
+	payPeriodStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{
+		currentRequest: &domain.PayoutRequest{
+			ID:             requestID,
+			EmployeeID:     employeeID,
+			RequestedHours: 8,
+			BalanceYear:    2026,
+			Status:         domain.PayoutRequestStatusPending,
+		},
+		legalTotalMinutes:     400,
+		legalUsedMinutes:      0,
+		reservedPayoutMinutes: 480,
+	}}
 	service := NewPayoutService(repo, nil)
 
 	_, err := service.DecidePayoutRequestByAdmin(
@@ -28,8 +80,8 @@ func TestDecidePayoutRequestByAdminApproveUnavailable(t *testing.T) {
 			PayPeriodStart: &payPeriodStart,
 		},
 	)
-	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
-		t.Fatalf("expected unavailable invalid request, got %v", err)
+	if !errors.Is(err, domain.ErrLeaveBalanceInsufficient) {
+		t.Fatalf("expected insufficient balance, got %v", err)
 	}
 }
 
@@ -364,16 +416,21 @@ type fakePayoutRepository struct {
 	tx *fakePayoutTxRepository
 }
 
-func TestCreateApprovedPayoutRequestByAdminUnavailable(t *testing.T) {
+func TestCreateApprovedPayoutRequestByAdminSuccess(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	employeeID := uuid.New()
 	payPeriodStart := time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)
 	requestedHours := int32(8)
-	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{
+		payoutContract:        &domain.PayoutContract{ContractRate: float64Ptr(32.75)},
+		legalTotalMinutes:     9600,
+		legalUsedMinutes:      1200,
+		reservedPayoutMinutes: 600,
+	}}
 	service := NewPayoutService(repo, nil)
 
-	_, err := service.CreateApprovedPayoutRequestByAdmin(
+	approved, err := service.CreateApprovedPayoutRequestByAdmin(
 		ctx,
 		adminID,
 		domain.CreatePayoutRequestByAdminParams{
@@ -385,16 +442,33 @@ func TestCreateApprovedPayoutRequestByAdminUnavailable(t *testing.T) {
 			DecisionNote:   ptrString("approved by admin"),
 		},
 	)
-	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
-		t.Fatalf("expected unavailable invalid request, got %v", err)
+	if err != nil {
+		t.Fatalf("expected admin create approved to succeed, got %v", err)
+	}
+	if approved.Status != domain.PayoutRequestStatusApproved {
+		t.Fatalf("expected approved status, got %q", approved.Status)
+	}
+	if approved.DecidedByEmployeeID == nil || *approved.DecidedByEmployeeID != adminID {
+		t.Fatalf("expected decided by admin %s, got %v", adminID, approved.DecidedByEmployeeID)
+	}
+	if approved.PayPeriodStart == nil || !approved.PayPeriodStart.Equal(payPeriodStart) {
+		t.Fatalf("expected pay period %s, got %v", payPeriodStart, approved.PayPeriodStart)
+	}
+	if !repo.tx.lockedEmployee {
+		t.Fatal("expected employee leave balance lock")
 	}
 }
 
-func TestCreateApprovedPayoutRequestByAdminNoLongerChecksExtraHours(t *testing.T) {
+func TestCreateApprovedPayoutRequestByAdminInsufficientBalance(t *testing.T) {
 	ctx := context.Background()
 	adminID := uuid.New()
 	employeeID := uuid.New()
-	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{}}
+	repo := &fakePayoutRepository{tx: &fakePayoutTxRepository{
+		payoutContract:        &domain.PayoutContract{ContractRate: float64Ptr(32.75)},
+		legalTotalMinutes:     400,
+		legalUsedMinutes:      0,
+		reservedPayoutMinutes: 480,
+	}}
 	service := NewPayoutService(repo, nil)
 
 	_, err := service.CreateApprovedPayoutRequestByAdmin(
@@ -407,8 +481,8 @@ func TestCreateApprovedPayoutRequestByAdminNoLongerChecksExtraHours(t *testing.T
 			PayPeriodStart: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
 		},
 	)
-	if !errors.Is(err, domain.ErrPayoutRequestInvalidRequest) {
-		t.Fatalf("expected unavailable invalid request, got %v", err)
+	if !errors.Is(err, domain.ErrLeaveBalanceInsufficient) {
+		t.Fatalf("expected insufficient balance, got %v", err)
 	}
 }
 

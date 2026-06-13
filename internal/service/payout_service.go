@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -197,7 +196,89 @@ func (s *PayoutService) CreateApprovedPayoutRequestByAdmin(
 	adminEmployeeID uuid.UUID,
 	params domain.CreatePayoutRequestByAdminParams,
 ) (*domain.PayoutRequest, error) {
-	return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
+	if adminEmployeeID == uuid.Nil || params.EmployeeID == uuid.Nil {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+	if params.RequestedHours <= 0 || params.BalanceYear < 2000 || params.BalanceYear > 2100 ||
+		params.PayPeriodStart.IsZero() {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	var approved *domain.PayoutRequest
+	err := s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
+		if err := tx.LockEmployeeForLeaveBalance(ctx, params.EmployeeID); err != nil {
+			return err
+		}
+
+		legalTotalMinutes, err := tx.ComputeLegalLeaveTotalForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+			payoutBalanceAsOf(params.BalanceYear),
+		)
+		if err != nil {
+			return err
+		}
+
+		legalUsedMinutes, err := tx.ComputeLegalLeaveUsedForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+		)
+		if err != nil {
+			return err
+		}
+
+		reservedPayoutMinutes, err := tx.ComputeReservedPayoutMinutesForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+		)
+		if err != nil {
+			return err
+		}
+
+		requestedMinutes := params.RequestedHours * 60
+		availableMinutes := legalTotalMinutes - legalUsedMinutes - reservedPayoutMinutes
+		if availableMinutes < requestedMinutes {
+			return domain.ErrLeaveBalanceInsufficient
+		}
+
+		contract, err := tx.GetEmployeePayoutContract(ctx, params.EmployeeID)
+		if err != nil {
+			return err
+		}
+		if contract.ContractRate == nil || *contract.ContractRate <= 0 {
+			return domain.ErrPayoutRequestInvalidRequest
+		}
+
+		created, err := tx.CreatePayoutRequest(ctx, domain.CreatePayoutRequestTxParams{
+			EmployeeID:          params.EmployeeID,
+			CreatedByEmployeeID: adminEmployeeID,
+			RequestedHours:      params.RequestedHours,
+			BalanceYear:         params.BalanceYear,
+			HourlyRate:          *contract.ContractRate,
+			GrossAmount:         float64(params.RequestedHours) * *contract.ContractRate,
+			RequestNote:         params.RequestNote,
+		})
+		if err != nil {
+			return err
+		}
+
+		approved, err = tx.ApprovePayoutRequest(
+			ctx,
+			created.ID,
+			adminEmployeeID,
+			params.PayPeriodStart,
+			params.DecisionNote,
+		)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return approved, nil
 }
 
 func (s *PayoutService) DecidePayoutRequestByAdmin(
@@ -213,11 +294,8 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 	if decision != "approve" && decision != "reject" {
 		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
-	if decision == "approve" {
-		return nil, fmt.Errorf(
-			"%w: leave payout is unavailable",
-			domain.ErrPayoutRequestInvalidRequest,
-		)
+	if decision == "approve" && params.PayPeriodStart == nil {
+		return nil, domain.ErrPayoutRequestInvalidRequest
 	}
 
 	var updated *domain.PayoutRequest
@@ -228,6 +306,53 @@ func (s *PayoutService) DecidePayoutRequestByAdmin(
 		}
 		if current.Status != domain.PayoutRequestStatusPending {
 			return domain.ErrPayoutRequestStateInvalid
+		}
+
+		if decision == "approve" {
+			if err := tx.LockEmployeeForLeaveBalance(ctx, current.EmployeeID); err != nil {
+				return err
+			}
+
+			legalTotalMinutes, err := tx.ComputeLegalLeaveTotalForYear(
+				ctx,
+				current.EmployeeID,
+				current.BalanceYear,
+				payoutBalanceAsOf(current.BalanceYear),
+			)
+			if err != nil {
+				return err
+			}
+
+			legalUsedMinutes, err := tx.ComputeLegalLeaveUsedForYear(
+				ctx,
+				current.EmployeeID,
+				current.BalanceYear,
+			)
+			if err != nil {
+				return err
+			}
+
+			reservedPayoutMinutes, err := tx.ComputeReservedPayoutMinutesForYear(
+				ctx,
+				current.EmployeeID,
+				current.BalanceYear,
+			)
+			if err != nil {
+				return err
+			}
+
+			if legalTotalMinutes-legalUsedMinutes-reservedPayoutMinutes < 0 {
+				return domain.ErrLeaveBalanceInsufficient
+			}
+
+			updated, err = tx.ApprovePayoutRequest(
+				ctx,
+				payoutRequestID,
+				adminEmployeeID,
+				*params.PayPeriodStart,
+				params.DecisionNote,
+			)
+			return err
 		}
 
 		updated, err = tx.RejectPayoutRequest(
