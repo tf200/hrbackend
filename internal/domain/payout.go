@@ -115,6 +115,19 @@ type CreatePayoutRequestTxParams struct {
 }
 
 type PayoutTxRepository interface {
+	LockEmployeeForLeaveBalance(ctx context.Context, employeeID uuid.UUID) error
+	ComputeLegalLeaveTotalForYear(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		year int32,
+		asOf time.Time,
+	) (int32, error)
+	ComputeLegalLeaveUsedForYear(ctx context.Context, employeeID uuid.UUID, year int32) (int32, error)
+	ComputeReservedPayoutMinutesForYear(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		balanceYear int32,
+	) (int32, error)
 	GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (*PayoutContract, error)
 	CreatePayoutRequest(
 		ctx context.Context,
