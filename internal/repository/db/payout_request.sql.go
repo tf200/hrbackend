@@ -64,6 +64,30 @@ func (q *Queries) ApprovePayoutRequest(ctx context.Context, arg ApprovePayoutReq
 	return i, err
 }
 
+const computeReservedPayoutMinutesForYear = `-- name: ComputeReservedPayoutMinutesForYear :one
+SELECT COALESCE(SUM(requested_hours * 60), 0)::int AS reserved_payout_minutes
+FROM leave_payout_requests
+WHERE employee_id = $1
+  AND balance_year = $2
+  AND status IN (
+    'pending'::payout_request_status_enum,
+    'approved'::payout_request_status_enum,
+    'paid'::payout_request_status_enum
+  )
+`
+
+type ComputeReservedPayoutMinutesForYearParams struct {
+	EmployeeID  uuid.UUID `json:"employee_id"`
+	BalanceYear int32     `json:"balance_year"`
+}
+
+func (q *Queries) ComputeReservedPayoutMinutesForYear(ctx context.Context, arg ComputeReservedPayoutMinutesForYearParams) (int32, error) {
+	row := q.db.QueryRow(ctx, computeReservedPayoutMinutesForYear, arg.EmployeeID, arg.BalanceYear)
+	var reserved_payout_minutes int32
+	err := row.Scan(&reserved_payout_minutes)
+	return reserved_payout_minutes, err
+}
+
 const createPayoutRequest = `-- name: CreatePayoutRequest :one
 INSERT INTO leave_payout_requests (
     employee_id,

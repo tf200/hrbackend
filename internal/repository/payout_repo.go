@@ -131,6 +131,57 @@ type payoutTxRepo struct {
 	queries *db.Queries
 }
 
+func (r *payoutTxRepo) LockEmployeeForLeaveBalance(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) error {
+	_, err := r.queries.LockEmployeeProfileForLeaveBalance(ctx, employeeID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return domain.ErrEmployeeNotFound
+		}
+	}
+	return err
+}
+
+func (r *payoutTxRepo) ComputeLegalLeaveTotalForYear(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	year int32,
+	asOf time.Time,
+) (int32, error) {
+	return r.queries.ComputeLegalLeaveTotalForYear(ctx, db.ComputeLegalLeaveTotalForYearParams{
+		EmployeeID: employeeID,
+		Year:       year,
+		AsOf:       conv.PgTimestamptzFromTime(asOf),
+	})
+}
+
+func (r *payoutTxRepo) ComputeLegalLeaveUsedForYear(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	year int32,
+) (int32, error) {
+	return r.queries.ComputeLegalLeaveUsedForYear(ctx, db.ComputeLegalLeaveUsedForYearParams{
+		EmployeeID: employeeID,
+		Year:       year,
+	})
+}
+
+func (r *payoutTxRepo) ComputeReservedPayoutMinutesForYear(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	balanceYear int32,
+) (int32, error) {
+	return r.queries.ComputeReservedPayoutMinutesForYear(
+		ctx,
+		db.ComputeReservedPayoutMinutesForYearParams{
+			EmployeeID:  employeeID,
+			BalanceYear: balanceYear,
+		},
+	)
+}
+
 func (r *payoutTxRepo) GetEmployeePayoutContract(
 	ctx context.Context,
 	employeeID uuid.UUID,

@@ -33,6 +33,73 @@ func TestDecidePayoutRequestByAdminApproveUnavailable(t *testing.T) {
 	}
 }
 
+func TestCreatePayoutRequestSuccess(t *testing.T) {
+	ctx := context.Background()
+	employeeID := uuid.New()
+	repo := &fakePayoutRepository{
+		tx: &fakePayoutTxRepository{
+			payoutContract:        &domain.PayoutContract{ContractRate: float64Ptr(25.50)},
+			legalTotalMinutes:     9600,
+			legalUsedMinutes:      1200,
+			reservedPayoutMinutes: 600,
+		},
+	}
+	service := NewPayoutService(repo, nil)
+
+	created, err := service.CreatePayoutRequest(
+		ctx,
+		employeeID,
+		domain.CreatePayoutRequestParams{
+			EmployeeID:          employeeID,
+			CreatedByEmployeeID: employeeID,
+			RequestedHours:      34,
+			BalanceYear:         2026,
+			RequestNote:         ptrString("cash out leave"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected create to succeed, got error: %v", err)
+	}
+
+	if created.RequestedHours != 34 {
+		t.Fatalf("expected 34 requested hours, got %d", created.RequestedHours)
+	}
+	if created.GrossAmount != 34*25.50 {
+		t.Fatalf("expected gross amount %f, got %f", 34*25.50, created.GrossAmount)
+	}
+	if !repo.tx.lockedEmployee {
+		t.Fatal("expected employee leave balance lock")
+	}
+}
+
+func TestCreatePayoutRequestInsufficientBalance(t *testing.T) {
+	ctx := context.Background()
+	employeeID := uuid.New()
+	repo := &fakePayoutRepository{
+		tx: &fakePayoutTxRepository{
+			payoutContract:        &domain.PayoutContract{ContractRate: float64Ptr(25.50)},
+			legalTotalMinutes:     2400,
+			legalUsedMinutes:      0,
+			reservedPayoutMinutes: 600,
+		},
+	}
+	service := NewPayoutService(repo, nil)
+
+	_, err := service.CreatePayoutRequest(
+		ctx,
+		employeeID,
+		domain.CreatePayoutRequestParams{
+			EmployeeID:          employeeID,
+			CreatedByEmployeeID: employeeID,
+			RequestedHours:      34,
+			BalanceYear:         2026,
+		},
+	)
+	if !errors.Is(err, domain.ErrLeaveBalanceInsufficient) {
+		t.Fatalf("expected insufficient balance, got %v", err)
+	}
+}
+
 func TestUpdatePayoutRequestSuccess(t *testing.T) {
 	ctx := context.Background()
 	employeeID := uuid.New()
@@ -349,6 +416,10 @@ func ptrString(s string) *string {
 	return &s
 }
 
+func float64Ptr(v float64) *float64 {
+	return &v
+}
+
 func (r *fakePayoutRepository) WithTx(
 	ctx context.Context,
 	fn func(tx domain.PayoutTxRepository) error,
@@ -371,10 +442,47 @@ func (r *fakePayoutRepository) ListPayoutRequests(
 }
 
 type fakePayoutTxRepository struct {
-	currentRequest     *domain.PayoutRequest
-	payoutContract     *domain.PayoutContract
-	createdPayout      *domain.PayoutRequest
-	createPayoutParams domain.CreatePayoutRequestTxParams
+	currentRequest        *domain.PayoutRequest
+	payoutContract        *domain.PayoutContract
+	createdPayout         *domain.PayoutRequest
+	createPayoutParams    domain.CreatePayoutRequestTxParams
+	lockedEmployee        bool
+	legalTotalMinutes     int32
+	legalUsedMinutes      int32
+	reservedPayoutMinutes int32
+}
+
+func (r *fakePayoutTxRepository) LockEmployeeForLeaveBalance(
+	context.Context,
+	uuid.UUID,
+) error {
+	r.lockedEmployee = true
+	return nil
+}
+
+func (r *fakePayoutTxRepository) ComputeLegalLeaveTotalForYear(
+	context.Context,
+	uuid.UUID,
+	int32,
+	time.Time,
+) (int32, error) {
+	return r.legalTotalMinutes, nil
+}
+
+func (r *fakePayoutTxRepository) ComputeLegalLeaveUsedForYear(
+	context.Context,
+	uuid.UUID,
+	int32,
+) (int32, error) {
+	return r.legalUsedMinutes, nil
+}
+
+func (r *fakePayoutTxRepository) ComputeReservedPayoutMinutesForYear(
+	context.Context,
+	uuid.UUID,
+	int32,
+) (int32, error) {
+	return r.reservedPayoutMinutes, nil
 }
 
 func (r *fakePayoutTxRepository) GetEmployeePayoutContract(

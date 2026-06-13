@@ -27,6 +27,17 @@ JOIN LATERAL (
 ) latest_salary ON TRUE
 JOIN cao_salary_scale_steps css ON css.id = latest_salary.salary_scale_step_id;
 
+-- name: ComputeReservedPayoutMinutesForYear :one
+SELECT COALESCE(SUM(requested_hours * 60), 0)::int AS reserved_payout_minutes
+FROM leave_payout_requests
+WHERE employee_id = sqlc.arg('employee_id')
+  AND balance_year = sqlc.arg('balance_year')
+  AND status IN (
+    'pending'::payout_request_status_enum,
+    'approved'::payout_request_status_enum,
+    'paid'::payout_request_status_enum
+  );
+
 -- name: CreatePayoutRequest :one
 INSERT INTO leave_payout_requests (
     employee_id,

@@ -290,6 +290,8 @@ func mapPayoutErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, domain.ErrPayoutRequestInvalidRequest):
 		return http.StatusBadRequest
+	case errors.Is(err, domain.ErrLeaveBalanceInsufficient):
+		return http.StatusBadRequest
 	case errors.Is(err, domain.ErrEmployeeNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, domain.ErrPayoutRequestForbidden):

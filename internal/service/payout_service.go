@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"hrbackend/internal/domain"
 
@@ -31,7 +32,81 @@ func (s *PayoutService) CreatePayoutRequest(
 	actorEmployeeID uuid.UUID,
 	params domain.CreatePayoutRequestParams,
 ) (*domain.PayoutRequest, error) {
-	return nil, fmt.Errorf("%w: leave payout is unavailable", domain.ErrPayoutRequestInvalidRequest)
+	if actorEmployeeID == uuid.Nil || params.EmployeeID == uuid.Nil ||
+		params.CreatedByEmployeeID == uuid.Nil {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+	if params.EmployeeID != actorEmployeeID || params.CreatedByEmployeeID != actorEmployeeID {
+		return nil, domain.ErrPayoutRequestForbidden
+	}
+	if params.RequestedHours <= 0 || params.BalanceYear < 2000 || params.BalanceYear > 2100 {
+		return nil, domain.ErrPayoutRequestInvalidRequest
+	}
+
+	var created *domain.PayoutRequest
+	err := s.repository.WithTx(ctx, func(tx domain.PayoutTxRepository) error {
+		if err := tx.LockEmployeeForLeaveBalance(ctx, params.EmployeeID); err != nil {
+			return err
+		}
+
+		legalTotalMinutes, err := tx.ComputeLegalLeaveTotalForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+			payoutBalanceAsOf(params.BalanceYear),
+		)
+		if err != nil {
+			return err
+		}
+
+		legalUsedMinutes, err := tx.ComputeLegalLeaveUsedForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+		)
+		if err != nil {
+			return err
+		}
+
+		reservedPayoutMinutes, err := tx.ComputeReservedPayoutMinutesForYear(
+			ctx,
+			params.EmployeeID,
+			params.BalanceYear,
+		)
+		if err != nil {
+			return err
+		}
+
+		requestedMinutes := params.RequestedHours * 60
+		availableMinutes := legalTotalMinutes - legalUsedMinutes - reservedPayoutMinutes
+		if availableMinutes < requestedMinutes {
+			return domain.ErrLeaveBalanceInsufficient
+		}
+
+		contract, err := tx.GetEmployeePayoutContract(ctx, params.EmployeeID)
+		if err != nil {
+			return err
+		}
+		if contract.ContractRate == nil || *contract.ContractRate <= 0 {
+			return domain.ErrPayoutRequestInvalidRequest
+		}
+
+		created, err = tx.CreatePayoutRequest(ctx, domain.CreatePayoutRequestTxParams{
+			EmployeeID:          params.EmployeeID,
+			CreatedByEmployeeID: params.CreatedByEmployeeID,
+			RequestedHours:      params.RequestedHours,
+			BalanceYear:         params.BalanceYear,
+			HourlyRate:          *contract.ContractRate,
+			GrossAmount:         float64(params.RequestedHours) * *contract.ContractRate,
+			RequestNote:         params.RequestNote,
+		})
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
 }
 
 func (s *PayoutService) UpdatePayoutRequest(
@@ -243,4 +318,16 @@ func isValidPayoutStatus(value string) bool {
 	default:
 		return false
 	}
+}
+
+func payoutBalanceAsOf(year int32) time.Time {
+	now := time.Now().UTC()
+	currentYear := int32(now.Year())
+	if year < currentYear {
+		return time.Date(int(year), 12, 31, 23, 59, 59, 0, time.UTC)
+	}
+	if year > currentYear {
+		return time.Date(int(year), 1, 1, 0, 0, 0, 0, time.UTC)
+	}
+	return now
 }

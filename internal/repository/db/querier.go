@@ -43,6 +43,7 @@ type Querier interface {
 	CompleteEmployeeHandbookStep(ctx context.Context, arg CompleteEmployeeHandbookStepParams) (EmployeeHandbookStepProgress, error)
 	ComputeLegalLeaveTotalForYear(ctx context.Context, arg ComputeLegalLeaveTotalForYearParams) (int32, error)
 	ComputeLegalLeaveUsedForYear(ctx context.Context, arg ComputeLegalLeaveUsedForYearParams) (int32, error)
+	ComputeReservedPayoutMinutesForYear(ctx context.Context, arg ComputeReservedPayoutMinutesForYearParams) (int32, error)
 	CountEligibleEmployeesForHandbookAssignment(ctx context.Context, arg CountEligibleEmployeesForHandbookAssignmentParams) (int64, error)
 	CountEmployeeHandbookAssignments(ctx context.Context, arg CountEmployeeHandbookAssignmentsParams) (int64, error)
 	CountEmployeeProfile(ctx context.Context, arg CountEmployeeProfileParams) (int64, error)
