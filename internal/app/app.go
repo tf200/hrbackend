@@ -355,6 +355,12 @@ func buildRouter(
 
 	adminDashboardRepo := repository.NewAdminDashboardRepository(store)
 	adminDashboardService := service.NewAdminDashboardService(adminDashboardRepo, logger)
+	employeeDashboardRepo := repository.NewEmployeeDashboardRepository(store)
+	employeeDashboardService := service.NewEmployeeDashboardService(
+		employeeDashboardRepo,
+		salaryService,
+		logger,
+	)
 	bugReportRepo := repository.NewBugReportRepository(store)
 	bugReportPublisher := newTrelloBugReportPublisher(cfg)
 	bugReportService := service.NewBugReportService(bugReportRepo, bugReportPublisher, logger)
@@ -385,6 +391,7 @@ func buildRouter(
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	lateArrivalHandler := handler.NewLateArrivalHandler(lateArrivalService)
 	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
+	employeeDashboardHandler := handler.NewEmployeeDashboardHandler(employeeDashboardService)
 	bugReportHandler := handler.NewBugReportHandler(bugReportService)
 
 	api := router.Group("/api")
@@ -415,6 +422,7 @@ func buildRouter(
 	handler.RegisterNotificationRoutes(api, notificationHandler, auth)
 	handler.RegisterLateArrivalRoutes(api, lateArrivalHandler, auth, requirePermission)
 	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)
+	handler.RegisterEmployeeDashboardRoutes(api, employeeDashboardHandler, auth, requirePermission)
 	handler.RegisterBugReportRoutes(api, bugReportHandler, auth)
 
 	return router
