@@ -111,6 +111,7 @@ type Querier interface {
 	DeleteSignDocumentFields(ctx context.Context, documentID uuid.UUID) error
 	// Removes all explicit overrides for the given user.
 	DeleteUserPermissionOverrides(ctx context.Context, userID uuid.UUID) error
+	Disable2Fa(ctx context.Context, id uuid.UUID) error
 	Enable2Fa(ctx context.Context, arg Enable2FaParams) (int64, error)
 	EndEmployeeContractSegment(ctx context.Context, arg EndEmployeeContractSegmentParams) (EmployeeContract, error)
 	EndEmployeeSalaryAssignment(ctx context.Context, arg EndEmployeeSalaryAssignmentParams) error
@@ -145,6 +146,7 @@ type Querier interface {
 	GetEmployeePayoutContract(ctx context.Context, employeeID uuid.UUID) (GetEmployeePayoutContractRow, error)
 	GetEmployeeProfileByID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByIDRow, error)
 	GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileByUserIDRow, error)
+	GetEmployeeProfileDetailsByUserID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileDetailsByUserIDRow, error)
 	GetEmployeeSalaryAssignmentByContract(ctx context.Context, arg GetEmployeeSalaryAssignmentByContractParams) (EmployeeSalaryAssignment, error)
 	GetEmployeeSalaryAssignmentDetailByID(ctx context.Context, id uuid.UUID) (GetEmployeeSalaryAssignmentDetailByIDRow, error)
 	GetEmployeeScheduleManager(ctx context.Context, employeeID uuid.UUID) (GetEmployeeScheduleManagerRow, error)

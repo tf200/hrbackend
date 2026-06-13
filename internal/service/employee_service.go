@@ -75,6 +75,73 @@ func (s *EmployeeService) GetEmployeeProfile(
 	return profile, nil
 }
 
+func (s *EmployeeService) GetEmployeeProfileDetails(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*domain.EmployeeProfileDetails, error) {
+	details, err := s.repo.GetEmployeeProfileDetails(ctx, userID)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeProfileDetails", err, zap.String("user_id", userID.String()))
+		return nil, err
+	}
+
+	details.ActiveSessions, err = s.repo.ListActiveSessions(ctx, userID)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeProfileDetails", err, zap.String("user_id", userID.String()))
+		return nil, err
+	}
+
+	details.Education, err = s.repo.ListEducation(ctx, details.EmployeeID)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeProfileDetails", err, zap.String("employee_id", details.EmployeeID.String()))
+		return nil, err
+	}
+
+	details.WorkExperience, err = s.repo.ListExperience(ctx, details.EmployeeID)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeProfileDetails", err, zap.String("employee_id", details.EmployeeID.String()))
+		return nil, err
+	}
+
+	qualifications, err := s.repo.ListQualifications(ctx, details.EmployeeID)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeProfileDetails", err, zap.String("employee_id", details.EmployeeID.String()))
+		return nil, err
+	}
+	details.Qualifications = currentQualifications(qualifications)
+
+	authorizations, err := s.repo.ListEmployeeAuthorizations(ctx, details.EmployeeID)
+	if err != nil {
+		s.logError(ctx, "GetEmployeeProfileDetails", err, zap.String("employee_id", details.EmployeeID.String()))
+		return nil, err
+	}
+	details.Authorizations = currentAuthorizations(authorizations)
+
+	return details, nil
+}
+
+func currentQualifications(qualifications []domain.Qualification) []domain.Qualification {
+	now := time.Now()
+	current := make([]domain.Qualification, 0, len(qualifications))
+	for _, qualification := range qualifications {
+		if qualification.ExpirationDate == nil || !qualification.ExpirationDate.Before(now) {
+			current = append(current, qualification)
+		}
+	}
+	return current
+}
+
+func currentAuthorizations(authorizations []domain.EmployeeAuthorization) []domain.EmployeeAuthorization {
+	now := time.Now()
+	current := make([]domain.EmployeeAuthorization, 0, len(authorizations))
+	for _, authorization := range authorizations {
+		if authorization.IsActive && !authorization.ExpiryDate.Before(now) {
+			current = append(current, authorization)
+		}
+	}
+	return current
+}
+
 // computePortalAccess derives portal routing from effective permissions.
 func computePortalAccess(permissions []domain.Permission) string {
 	hasAdmin := false

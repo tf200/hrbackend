@@ -395,6 +395,29 @@ func (h *EmployeeHandler) GetEmployeeProfile(ctx *gin.Context) {
 	)
 }
 
+func (h *EmployeeHandler) GetEmployeeProfileDetails(ctx *gin.Context) {
+	payload, ok := middleware.AuthPayloadFromContext(ctx.Request.Context())
+	if !ok || payload == nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	details, err := h.service.GetEmployeeProfileDetails(ctx.Request.Context(), payload.UserID)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeNotFound) {
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to get employee profile details", ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toEmployeeProfileDetailsResponse(details), "Employee profile details retrieved successfully"),
+	)
+}
+
 func (h *EmployeeHandler) AddEducation(ctx *gin.Context) {
 	employeeID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

@@ -52,6 +52,11 @@ type enable2FAResponse struct {
 	RecoveryCodes []string `json:"recovery_codes" example:"["code1", "code2"]"`
 }
 
+type disable2FARequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	ValidationCode  string `json:"validation_code"  binding:"required"`
+}
+
 type changePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`

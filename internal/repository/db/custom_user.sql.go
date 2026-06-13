@@ -74,6 +74,20 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CustomU
 	return i, err
 }
 
+const disable2Fa = `-- name: Disable2Fa :exec
+UPDATE custom_user
+SET two_factor_enabled = false,
+    two_factor_secret = NULL,
+    two_factor_secret_temp = NULL,
+    recovery_codes = NULL
+WHERE id = $1
+`
+
+func (q *Queries) Disable2Fa(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, disable2Fa, id)
+	return err
+}
+
 const enable2Fa = `-- name: Enable2Fa :execrows
 UPDATE custom_user
 SET two_factor_secret = $2,

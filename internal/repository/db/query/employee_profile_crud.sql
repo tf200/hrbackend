@@ -178,6 +178,78 @@ LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN employee_profile mgr ON mgr.id = ep.manager_employee_id
 WHERE ep.id = $1;
 
+-- name: GetEmployeeProfileDetailsByUserID :one
+WITH active_contract AS (
+    SELECT c.*
+    FROM employee_contracts c
+    JOIN employee_profile ep ON ep.id = c.employee_id
+    WHERE ep.user_id = $1
+      AND c.start_date <= CURRENT_DATE
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= CURRENT_DATE)
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= CURRENT_DATE)
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+), active_salary AS (
+    SELECT css.hourly_rate
+    FROM employee_salary_assignments esa
+    JOIN cao_salary_scale_steps css ON css.id = esa.salary_scale_step_id
+    JOIN active_contract ac ON ac.id = esa.contract_id
+    WHERE esa.effective_from <= CURRENT_DATE
+      AND (esa.effective_to IS NULL OR esa.effective_to >= CURRENT_DATE)
+    ORDER BY esa.effective_from DESC, esa.created_at DESC
+    LIMIT 1
+)
+SELECT
+    cu.id AS user_id,
+    ep.id AS employee_id,
+    cu.email,
+    cu.two_factor_enabled,
+    cu.last_login,
+    ep.first_name,
+    ep.last_name,
+    ep.street,
+    ep.house_number,
+    ep.house_number_addition,
+    ep.postal_code,
+    ep.city,
+    ep.employee_number,
+    ep.employment_number,
+    ep.private_email_address,
+    ep.work_email_address,
+    ep.private_phone_number,
+    ep.work_phone_number,
+    ep.home_telephone_number,
+    ep.date_of_birth,
+    ep.gender,
+    ep.out_of_service,
+    ep.is_archived,
+    ac.id AS contract_id,
+    ac.job_title AS position,
+    d.name AS department,
+    ac.location_id,
+    l.name AS location_name,
+    ac.contract_type,
+    ac.hours_per_week AS contract_hours,
+    ac.start_date AS contract_start_date,
+    ac.contract_end_date,
+    active_salary.hourly_rate AS contract_rate,
+    (
+        SELECT COALESCE(json_agg(json_build_object(
+            'id', r.id,
+            'name', r.name
+        ) ORDER BY r.name), '[]'::json)
+        FROM user_roles ur
+        JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = cu.id
+    )::json AS roles
+FROM custom_user cu
+JOIN employee_profile ep ON ep.user_id = cu.id
+LEFT JOIN active_contract ac ON true
+LEFT JOIN departments d ON d.id = ac.department_id
+LEFT JOIN location l ON l.id = ac.location_id
+LEFT JOIN active_salary ON true
+WHERE cu.id = $1;
+
 -- name: UpdateEmployeeProfile :one
 UPDATE employee_profile
 SET

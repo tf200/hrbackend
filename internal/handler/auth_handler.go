@@ -19,6 +19,7 @@ func RegisterAuthRoutes(rg *gin.RouterGroup, handler *AuthHandler, auth gin.Hand
 	authGroup.POST("/logout", auth, handler.Logout)
 	authGroup.POST("/setup_2fa", auth, handler.Setup2FA)
 	authGroup.POST("/enable_2fa", auth, handler.Enable2FA)
+	authGroup.POST("/disable_2fa", auth, handler.Disable2FA)
 	authGroup.POST("/change_password", auth, handler.ChangePassword)
 }
 
@@ -202,6 +203,41 @@ func (h *AuthHandler) Enable2FA(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpapi.OK(toEnable2FAResponse(result), "2FA enabled successfully"))
+}
+
+func (h *AuthHandler) Disable2FA(ctx *gin.Context) {
+	payload, ok := middleware.AuthPayloadFromContext(ctx.Request.Context())
+	if !ok || payload == nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("authorization payload not found", ""))
+		return
+	}
+
+	var req disable2FARequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	if err := h.service.Disable2FA(
+		ctx.Request.Context(),
+		payload.UserID,
+		req.CurrentPassword,
+		req.ValidationCode,
+	); err != nil {
+		switch {
+		case errors.Is(err, domain.ErrUserNotFound):
+			ctx.JSON(http.StatusNotFound, httpapi.Fail(err.Error(), ""))
+		case errors.Is(err, domain.ErrInvalidCredentials),
+			errors.Is(err, domain.ErrInvalidTwoFACode),
+			errors.Is(err, domain.ErrUnauthorized):
+			ctx.JSON(http.StatusUnauthorized, httpapi.Fail(err.Error(), ""))
+		default:
+			ctx.JSON(http.StatusInternalServerError, httpapi.Fail("failed to disable 2FA", ""))
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK[any](nil, "2FA disabled successfully"))
 }
 
 func (h *AuthHandler) ChangePassword(ctx *gin.Context) {

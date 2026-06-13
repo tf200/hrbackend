@@ -338,6 +338,158 @@ func (q *Queries) GetEmployeeProfileByUserID(ctx context.Context, id uuid.UUID) 
 	return i, err
 }
 
+const getEmployeeProfileDetailsByUserID = `-- name: GetEmployeeProfileDetailsByUserID :one
+WITH active_contract AS (
+    SELECT c.id, c.employee_id, c.job_title, c.department_id, c.location_id, c.organizational_role_id, c.contract_type, c.start_date, c.contract_end_date, c.effective_end_date, c.hours_per_week, c.roster_free_day, c.wage_tax_table, c.previous_contract_id, c.contract_event_type, c.change_reason, c.updated_by_employee_id, c.created_by_employee_id, c.created_at, c.updated_at
+    FROM employee_contracts c
+    JOIN employee_profile ep ON ep.id = c.employee_id
+    WHERE ep.user_id = $1
+      AND c.start_date <= CURRENT_DATE
+      AND (c.effective_end_date IS NULL OR c.effective_end_date >= CURRENT_DATE)
+      AND (c.contract_end_date IS NULL OR c.contract_end_date >= CURRENT_DATE)
+    ORDER BY c.start_date DESC, c.created_at DESC
+    LIMIT 1
+), active_salary AS (
+    SELECT css.hourly_rate
+    FROM employee_salary_assignments esa
+    JOIN cao_salary_scale_steps css ON css.id = esa.salary_scale_step_id
+    JOIN active_contract ac ON ac.id = esa.contract_id
+    WHERE esa.effective_from <= CURRENT_DATE
+      AND (esa.effective_to IS NULL OR esa.effective_to >= CURRENT_DATE)
+    ORDER BY esa.effective_from DESC, esa.created_at DESC
+    LIMIT 1
+)
+SELECT
+    cu.id AS user_id,
+    ep.id AS employee_id,
+    cu.email,
+    cu.two_factor_enabled,
+    cu.last_login,
+    ep.first_name,
+    ep.last_name,
+    ep.street,
+    ep.house_number,
+    ep.house_number_addition,
+    ep.postal_code,
+    ep.city,
+    ep.employee_number,
+    ep.employment_number,
+    ep.private_email_address,
+    ep.work_email_address,
+    ep.private_phone_number,
+    ep.work_phone_number,
+    ep.home_telephone_number,
+    ep.date_of_birth,
+    ep.gender,
+    ep.out_of_service,
+    ep.is_archived,
+    ac.id AS contract_id,
+    ac.job_title AS position,
+    d.name AS department,
+    ac.location_id,
+    l.name AS location_name,
+    ac.contract_type,
+    ac.hours_per_week AS contract_hours,
+    ac.start_date AS contract_start_date,
+    ac.contract_end_date,
+    active_salary.hourly_rate AS contract_rate,
+    (
+        SELECT COALESCE(json_agg(json_build_object(
+            'id', r.id,
+            'name', r.name
+        ) ORDER BY r.name), '[]'::json)
+        FROM user_roles ur
+        JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = cu.id
+    )::json AS roles
+FROM custom_user cu
+JOIN employee_profile ep ON ep.user_id = cu.id
+LEFT JOIN active_contract ac ON true
+LEFT JOIN departments d ON d.id = ac.department_id
+LEFT JOIN location l ON l.id = ac.location_id
+LEFT JOIN active_salary ON true
+WHERE cu.id = $1
+`
+
+type GetEmployeeProfileDetailsByUserIDRow struct {
+	UserID              uuid.UUID                 `json:"user_id"`
+	EmployeeID          uuid.UUID                 `json:"employee_id"`
+	Email               string                    `json:"email"`
+	TwoFactorEnabled    bool                      `json:"two_factor_enabled"`
+	LastLogin           pgtype.Timestamptz        `json:"last_login"`
+	FirstName           string                    `json:"first_name"`
+	LastName            string                    `json:"last_name"`
+	Street              string                    `json:"street"`
+	HouseNumber         string                    `json:"house_number"`
+	HouseNumberAddition *string                   `json:"house_number_addition"`
+	PostalCode          string                    `json:"postal_code"`
+	City                string                    `json:"city"`
+	EmployeeNumber      *string                   `json:"employee_number"`
+	EmploymentNumber    *string                   `json:"employment_number"`
+	PrivateEmailAddress *string                   `json:"private_email_address"`
+	WorkEmailAddress    *string                   `json:"work_email_address"`
+	PrivatePhoneNumber  *string                   `json:"private_phone_number"`
+	WorkPhoneNumber     *string                   `json:"work_phone_number"`
+	HomeTelephoneNumber *string                   `json:"home_telephone_number"`
+	DateOfBirth         pgtype.Date               `json:"date_of_birth"`
+	Gender              GenderEnum                `json:"gender"`
+	OutOfService        *bool                     `json:"out_of_service"`
+	IsArchived          bool                      `json:"is_archived"`
+	ContractID          *uuid.UUID                `json:"contract_id"`
+	Position            *EmployeeJobTitleEnum     `json:"position"`
+	Department          *string                   `json:"department"`
+	LocationID          *uuid.UUID                `json:"location_id"`
+	LocationName        *string                   `json:"location_name"`
+	ContractType        *EmployeeContractTypeEnum `json:"contract_type"`
+	ContractHours       *float64                  `json:"contract_hours"`
+	ContractStartDate   pgtype.Date               `json:"contract_start_date"`
+	ContractEndDate     pgtype.Date               `json:"contract_end_date"`
+	ContractRate        *float64                  `json:"contract_rate"`
+	Roles               []byte                    `json:"roles"`
+}
+
+func (q *Queries) GetEmployeeProfileDetailsByUserID(ctx context.Context, id uuid.UUID) (GetEmployeeProfileDetailsByUserIDRow, error) {
+	row := q.db.QueryRow(ctx, getEmployeeProfileDetailsByUserID, id)
+	var i GetEmployeeProfileDetailsByUserIDRow
+	err := row.Scan(
+		&i.UserID,
+		&i.EmployeeID,
+		&i.Email,
+		&i.TwoFactorEnabled,
+		&i.LastLogin,
+		&i.FirstName,
+		&i.LastName,
+		&i.Street,
+		&i.HouseNumber,
+		&i.HouseNumberAddition,
+		&i.PostalCode,
+		&i.City,
+		&i.EmployeeNumber,
+		&i.EmploymentNumber,
+		&i.PrivateEmailAddress,
+		&i.WorkEmailAddress,
+		&i.PrivatePhoneNumber,
+		&i.WorkPhoneNumber,
+		&i.HomeTelephoneNumber,
+		&i.DateOfBirth,
+		&i.Gender,
+		&i.OutOfService,
+		&i.IsArchived,
+		&i.ContractID,
+		&i.Position,
+		&i.Department,
+		&i.LocationID,
+		&i.LocationName,
+		&i.ContractType,
+		&i.ContractHours,
+		&i.ContractStartDate,
+		&i.ContractEndDate,
+		&i.ContractRate,
+		&i.Roles,
+	)
+	return i, err
+}
+
 const listEmployeeProfile = `-- name: ListEmployeeProfile :many
 WITH latest_contract AS (
     SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at

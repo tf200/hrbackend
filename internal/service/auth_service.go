@@ -815,6 +815,60 @@ func (s *AuthService) Enable2FA(
 	}, nil
 }
 
+func (s *AuthService) Disable2FA(
+	ctx context.Context,
+	userID uuid.UUID,
+	currentPassword string,
+	code string,
+) error {
+	user, err := s.repository.GetUserByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			s.logger.LogWarn(ctx, "Disable2FA", "user not found for 2FA disable",
+				zap.String("user_id", userID.String()))
+			return domain.ErrUserNotFound
+		}
+		s.logger.LogError(ctx, "Disable2FA", "database error during user retrieval", err,
+			zap.String("user_id", userID.String()))
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	if !user.IsActive {
+		s.logger.LogWarn(ctx, "Disable2FA", "inactive user attempting 2FA disable",
+			zap.String("user_id", userID.String()))
+		return domain.ErrUnauthorized
+	}
+
+	if !user.TwoFactorEnabled || user.TwoFactorSecret == nil || *user.TwoFactorSecret == "" {
+		s.logger.LogWarn(ctx, "Disable2FA", "2FA is not enabled for user",
+			zap.String("user_id", userID.String()))
+		return domain.ErrUnauthorized
+	}
+
+	if err := password.CheckPassword(currentPassword, user.Password); err != nil {
+		s.logger.LogWarn(ctx, "Disable2FA", "invalid password for 2FA disable",
+			zap.String("user_id", userID.String()))
+		return domain.ErrInvalidCredentials
+	}
+
+	if !twofa.ValidateCode(*user.TwoFactorSecret, code) {
+		s.logger.LogWarn(ctx, "Disable2FA", "invalid 2FA validation code",
+			zap.String("user_id", userID.String()))
+		return domain.ErrInvalidTwoFACode
+	}
+
+	if err := s.repository.Disable2Fa(ctx, user.ID); err != nil {
+		s.logger.LogError(ctx, "Disable2FA", "database error disabling 2FA", err,
+			zap.String("user_id", userID.String()))
+		return fmt.Errorf("failed to disable 2FA: %w", err)
+	}
+
+	s.logger.LogInfo(ctx, "Disable2FA", "2FA disabled successfully",
+		zap.String("user_id", userID.String()))
+
+	return nil
+}
+
 func (s *AuthService) ChangePassword(
 	ctx context.Context,
 	userID uuid.UUID,

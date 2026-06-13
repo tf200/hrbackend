@@ -101,6 +101,7 @@ type AuthRepository interface {
 		secret *string,
 		recoveryCodes []string,
 	) (int64, error)
+	Disable2Fa(ctx context.Context, userID uuid.UUID) error
 	UpdatePassword(ctx context.Context, userID uuid.UUID, password string) error
 }
 
@@ -126,6 +127,7 @@ type AuthService interface {
 		currentPassword string,
 	) (*Setup2FAResponse, error)
 	Enable2FA(ctx context.Context, userID uuid.UUID, code string) (*Enable2FAResponse, error)
+	Disable2FA(ctx context.Context, userID uuid.UUID, currentPassword string, code string) error
 	ChangePassword(
 		ctx context.Context,
 		userID uuid.UUID,

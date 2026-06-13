@@ -349,6 +349,92 @@ type employeeProfileResponse struct {
 	Permissions      []permissionResponse `json:"permissions"`
 }
 
+type employeeProfileRoleResponse struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+type employeeProfileActiveSessionResponse struct {
+	ID        uuid.UUID `json:"id"`
+	UserAgent string    `json:"user_agent"`
+	ClientIP  string    `json:"client_ip"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type employeeProfileDetailsAddressResponse struct {
+	Street              string  `json:"street"`
+	HouseNumber         string  `json:"house_number"`
+	HouseNumberAddition *string `json:"house_number_addition"`
+	PostalCode          string  `json:"postal_code"`
+	City                string  `json:"city"`
+}
+
+type employeeProfileDetailsContactResponse struct {
+	PrivateEmailAddress *string `json:"private_email_address"`
+	WorkEmailAddress    *string `json:"work_email_address"`
+	PrivatePhoneNumber  *string `json:"private_phone_number"`
+	WorkPhoneNumber     *string `json:"work_phone_number"`
+	HomeTelephoneNumber *string `json:"home_telephone_number"`
+}
+
+type employeeProfileDetailsContractResponse struct {
+	ID           *uuid.UUID `json:"id"`
+	Position     *string    `json:"position"`
+	Department   *string    `json:"department"`
+	LocationID   *uuid.UUID `json:"location_id"`
+	LocationName *string    `json:"location_name"`
+	Type         *string    `json:"type"`
+	Hours        *float64   `json:"hours"`
+	StartDate    *time.Time `json:"start_date"`
+	EndDate      *time.Time `json:"end_date"`
+	Rate         *float64   `json:"rate"`
+}
+
+type briefQualificationResponse struct {
+	ID                uuid.UUID  `json:"id"`
+	EmployeeID        uuid.UUID  `json:"employee_id"`
+	QualificationID   uuid.UUID  `json:"qualification_id"`
+	AchievedOn        time.Time  `json:"achieved_on"`
+	ExpirationDate    *time.Time `json:"expiration_date"`
+	CertificateNumber *string    `json:"certificate_number"`
+}
+
+type briefAuthorizationResponse struct {
+	ID              uuid.UUID `json:"id"`
+	EmployeeID      uuid.UUID `json:"employee_id"`
+	AuthorizationID uuid.UUID `json:"authorization_id"`
+	GrantedDate     time.Time `json:"granted_date"`
+	ExpiryDate      time.Time `json:"expiry_date"`
+	IsActive        bool      `json:"is_active"`
+	Notes           *string   `json:"notes"`
+}
+
+type employeeProfileDetailsResponse struct {
+	UserID           uuid.UUID                               `json:"user_id"`
+	EmployeeID       uuid.UUID                               `json:"employee_id"`
+	Email            string                                  `json:"email"`
+	TwoFactorEnabled bool                                    `json:"two_factor_enabled"`
+	LastLogin        time.Time                               `json:"last_login"`
+	FirstName        string                                  `json:"first_name"`
+	LastName         string                                  `json:"last_name"`
+	Roles            []employeeProfileRoleResponse           `json:"roles"`
+	ActiveSessions   []employeeProfileActiveSessionResponse  `json:"active_sessions"`
+	Education        []educationResponse                     `json:"education"`
+	WorkExperience   []experienceResponse                    `json:"work_experience"`
+	Qualifications   []briefQualificationResponse            `json:"qualifications"`
+	Authorizations   []briefAuthorizationResponse            `json:"authorizations"`
+	Address          employeeProfileDetailsAddressResponse   `json:"address"`
+	Contact          employeeProfileDetailsContactResponse   `json:"contact"`
+	EmployeeNumber   *string                                 `json:"employee_number"`
+	EmploymentNumber *string                                 `json:"employment_number"`
+	DateOfBirth      *time.Time                              `json:"date_of_birth"`
+	Gender           string                                  `json:"gender"`
+	OutOfService     *bool                                   `json:"out_of_service"`
+	IsArchived       bool                                    `json:"is_archived"`
+	Contract         *employeeProfileDetailsContractResponse `json:"contract"`
+}
+
 type employeeCountsResponse struct {
 	TotalPermanent    int64 `json:"total_permanent"`
 	TotalTemporary    int64 `json:"total_temporary"`
@@ -969,6 +1055,120 @@ func toEmployeeProfileResponse(profile *domain.EmployeeProfile) employeeProfileR
 		FirstName:        profile.FirstName,
 		LastName:         profile.LastName,
 		Permissions:      permissions,
+	}
+}
+
+func toEmployeeProfileDetailsResponse(
+	details *domain.EmployeeProfileDetails,
+) employeeProfileDetailsResponse {
+	roles := make([]employeeProfileRoleResponse, len(details.Roles))
+	for i, role := range details.Roles {
+		roles[i] = employeeProfileRoleResponse{ID: role.ID, Name: role.Name}
+	}
+
+	sessions := make([]employeeProfileActiveSessionResponse, len(details.ActiveSessions))
+	for i, session := range details.ActiveSessions {
+		sessions[i] = employeeProfileActiveSessionResponse{
+			ID:        session.ID,
+			UserAgent: session.UserAgent,
+			ClientIP:  session.ClientIP,
+			ExpiresAt: session.ExpiresAt,
+			CreatedAt: session.CreatedAt,
+		}
+	}
+
+	education := make([]educationResponse, len(details.Education))
+	for i, item := range details.Education {
+		item := item
+		education[i] = toEducationResponse(&item)
+	}
+
+	experience := make([]experienceResponse, len(details.WorkExperience))
+	for i, item := range details.WorkExperience {
+		item := item
+		experience[i] = toExperienceResponse(&item)
+	}
+
+	qualifications := make([]briefQualificationResponse, len(details.Qualifications))
+	for i, qualification := range details.Qualifications {
+		qualifications[i] = briefQualificationResponse{
+			ID:                qualification.ID,
+			EmployeeID:        qualification.EmployeeID,
+			QualificationID:   qualification.QualificationID,
+			AchievedOn:        qualification.AchievedOn,
+			ExpirationDate:    qualification.ExpirationDate,
+			CertificateNumber: qualification.CertificateNumber,
+		}
+	}
+
+	authorizations := make([]briefAuthorizationResponse, len(details.Authorizations))
+	for i, authorization := range details.Authorizations {
+		authorizations[i] = briefAuthorizationResponse{
+			ID:              authorization.ID,
+			EmployeeID:      authorization.EmployeeID,
+			AuthorizationID: authorization.AuthorizationID,
+			GrantedDate:     authorization.GrantedDate,
+			ExpiryDate:      authorization.ExpiryDate,
+			IsActive:        authorization.IsActive,
+			Notes:           authorization.Notes,
+		}
+	}
+
+	return employeeProfileDetailsResponse{
+		UserID:           details.UserID,
+		EmployeeID:       details.EmployeeID,
+		Email:            details.Email,
+		TwoFactorEnabled: details.TwoFactorEnabled,
+		LastLogin:        details.LastLogin,
+		FirstName:        details.FirstName,
+		LastName:         details.LastName,
+		Roles:            roles,
+		ActiveSessions:   sessions,
+		Education:        education,
+		WorkExperience:   experience,
+		Qualifications:   qualifications,
+		Authorizations:   authorizations,
+		Address: employeeProfileDetailsAddressResponse{
+			Street:              details.Street,
+			HouseNumber:         details.HouseNumber,
+			HouseNumberAddition: details.HouseNumberAddition,
+			PostalCode:          details.PostalCode,
+			City:                details.City,
+		},
+		Contact: employeeProfileDetailsContactResponse{
+			PrivateEmailAddress: details.PrivateEmailAddress,
+			WorkEmailAddress:    details.WorkEmailAddress,
+			PrivatePhoneNumber:  details.PrivatePhoneNumber,
+			WorkPhoneNumber:     details.WorkPhoneNumber,
+			HomeTelephoneNumber: details.HomeTelephoneNumber,
+		},
+		EmployeeNumber:   details.EmployeeNumber,
+		EmploymentNumber: details.EmploymentNumber,
+		DateOfBirth:      details.DateOfBirth,
+		Gender:           details.Gender,
+		OutOfService:     details.OutOfService,
+		IsArchived:       details.IsArchived,
+		Contract:         toEmployeeProfileDetailsContractResponse(details.Contract),
+	}
+}
+
+func toEmployeeProfileDetailsContractResponse(
+	contract *domain.EmployeeProfileDetailsContract,
+) *employeeProfileDetailsContractResponse {
+	if contract == nil {
+		return nil
+	}
+	return &employeeProfileDetailsContractResponse{
+		ID:           contract.ID,
+		Position:     contract.Position,
+		Department:   contract.Department,
+		LocationID:   contract.LocationID,
+		LocationName: contract.LocationName,
+		Type:         contract.Type,
+		Hours:        contract.Hours,
+		StartDate:    contract.StartDate,
+		EndDate:      contract.EndDate,
+		Rate:         contract.Rate,
 	}
 }
 

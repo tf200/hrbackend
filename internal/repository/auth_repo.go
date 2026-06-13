@@ -73,6 +73,10 @@ func (r *AuthRepository) Enable2Fa(
 	return r.queries.Enable2Fa(ctx, params)
 }
 
+func (r *AuthRepository) Disable2Fa(ctx context.Context, userID uuid.UUID) error {
+	return r.queries.Disable2Fa(ctx, userID)
+}
+
 func (r *AuthRepository) UpdatePassword(
 	ctx context.Context,
 	userID uuid.UUID,

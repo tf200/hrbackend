@@ -334,6 +334,41 @@ func (r *EmployeeRepository) GetEmployeeByUserID(
 	return toDomainEmployeeProfile(row)
 }
 
+func (r *EmployeeRepository) GetEmployeeProfileDetails(
+	ctx context.Context,
+	userID uuid.UUID,
+) (*domain.EmployeeProfileDetails, error) {
+	row, err := r.store.GetEmployeeProfileDetailsByUserID(ctx, userID)
+	if err != nil {
+		if isDBNotFound(err) {
+			return nil, domain.ErrEmployeeNotFound
+		}
+		return nil, err
+	}
+	return toDomainEmployeeProfileDetails(row)
+}
+
+func (r *EmployeeRepository) ListActiveSessions(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]domain.EmployeeProfileActiveSession, error) {
+	rows, err := r.store.ListActiveSessionsByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	sessions := make([]domain.EmployeeProfileActiveSession, len(rows))
+	for i, row := range rows {
+		sessions[i] = domain.EmployeeProfileActiveSession{
+			ID:        row.ID,
+			UserAgent: row.UserAgent,
+			ClientIP:  row.ClientIp,
+			ExpiresAt: conv.TimeFromPgTimestamptz(row.ExpiresAt),
+			CreatedAt: conv.TimeFromPgTimestamptz(row.CreatedAt),
+		}
+	}
+	return sessions, nil
+}
+
 func (r *EmployeeRepository) ListEmployees(
 	ctx context.Context,
 	params domain.ListEmployeesParams,
@@ -1158,6 +1193,61 @@ func toDomainEmployeeProfile(
 	}, nil
 }
 
+func toDomainEmployeeProfileDetails(
+	row db.GetEmployeeProfileDetailsByUserIDRow,
+) (*domain.EmployeeProfileDetails, error) {
+	roles := make([]domain.EmployeeProfileRole, 0)
+	if len(row.Roles) > 0 {
+		if err := json.Unmarshal(row.Roles, &roles); err != nil {
+			return nil, err
+		}
+	}
+
+	var contract *domain.EmployeeProfileDetailsContract
+	if row.ContractID != nil {
+		contract = &domain.EmployeeProfileDetailsContract{
+			ID:           row.ContractID,
+			Position:     employeeJobTitleEnumPtrToStringPtr(row.Position),
+			Department:   row.Department,
+			LocationID:   row.LocationID,
+			LocationName: row.LocationName,
+			Type:         contractTypeEnumPtrToStringPtr(row.ContractType),
+			Hours:        row.ContractHours,
+			StartDate:    conv.TimePtrFromPgDate(row.ContractStartDate),
+			EndDate:      conv.TimePtrFromPgDate(row.ContractEndDate),
+			Rate:         row.ContractRate,
+		}
+	}
+
+	return &domain.EmployeeProfileDetails{
+		UserID:              row.UserID,
+		EmployeeID:          row.EmployeeID,
+		Email:               row.Email,
+		TwoFactorEnabled:    row.TwoFactorEnabled,
+		LastLogin:           conv.TimeFromPgTimestamptz(row.LastLogin),
+		FirstName:           row.FirstName,
+		LastName:            row.LastName,
+		Roles:               roles,
+		Street:              row.Street,
+		HouseNumber:         row.HouseNumber,
+		HouseNumberAddition: row.HouseNumberAddition,
+		PostalCode:          row.PostalCode,
+		City:                row.City,
+		EmployeeNumber:      row.EmployeeNumber,
+		EmploymentNumber:    row.EmploymentNumber,
+		PrivateEmailAddress: row.PrivateEmailAddress,
+		WorkEmailAddress:    row.WorkEmailAddress,
+		PrivatePhoneNumber:  row.PrivatePhoneNumber,
+		WorkPhoneNumber:     row.WorkPhoneNumber,
+		HomeTelephoneNumber: row.HomeTelephoneNumber,
+		DateOfBirth:         conv.TimePtrFromPgDate(row.DateOfBirth),
+		Gender:              string(row.Gender),
+		OutOfService:        row.OutOfService,
+		IsArchived:          row.IsArchived,
+		Contract:            contract,
+	}, nil
+}
+
 func toDomainEmployeeCounts(row db.GetEmployeeCountsRow) *domain.EmployeeCounts {
 	return &domain.EmployeeCounts{
 		TotalPermanent:    row.TotalPermanent,
@@ -1292,6 +1382,14 @@ func contractTypePtrToString(ct *db.EmployeeContractTypeEnum) string {
 	return string(*ct)
 }
 
+func contractTypeEnumPtrToStringPtr(ct *db.EmployeeContractTypeEnum) *string {
+	if ct == nil {
+		return nil
+	}
+	value := string(*ct)
+	return &value
+}
+
 func contractTypeFromString(value string) db.EmployeeContractTypeEnum {
 	switch db.EmployeeContractTypeEnum(value) {
 	case db.EmployeeContractTypeEnumPermanent,
@@ -1316,6 +1414,14 @@ func employeeJobTitleEnumFromStringPtr(value *string) *db.EmployeeJobTitleEnum {
 		return nil
 	}
 	return enumPtr(employeeJobTitleEnumFromString(*value))
+}
+
+func employeeJobTitleEnumPtrToStringPtr(value *db.EmployeeJobTitleEnum) *string {
+	if value == nil {
+		return nil
+	}
+	result := string(*value)
+	return &result
 }
 
 func employeeJobTitleEnumFromString(value string) db.EmployeeJobTitleEnum {

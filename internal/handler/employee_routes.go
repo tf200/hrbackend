@@ -38,6 +38,7 @@ func RegisterEmployeeRoutes(
 		handler.UpdateEmployee,
 	)
 	rg.GET("/employees/profile", auth, handler.GetEmployeeProfile)
+	rg.GET("/employees/profile/details", auth, handler.GetEmployeeProfileDetails)
 	rg.POST(
 		"/employees/:id/education",
 		auth,

@@ -49,6 +49,14 @@ SET two_factor_secret = $2,
     recovery_codes = $3
 WHERE id = $1;
 
+-- name: Disable2Fa :exec
+UPDATE custom_user
+SET two_factor_enabled = false,
+    two_factor_secret = NULL,
+    two_factor_secret_temp = NULL,
+    recovery_codes = NULL
+WHERE id = $1;
+
 
 -- name: GetAllAdminUsers :many
 SELECT * FROM custom_user

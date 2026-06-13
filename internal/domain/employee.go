@@ -192,6 +192,65 @@ type EmployeeProfile struct {
 	PortalAccess     string
 }
 
+type EmployeeProfileRole struct {
+	ID   uuid.UUID
+	Name string
+}
+
+type EmployeeProfileActiveSession struct {
+	ID        uuid.UUID
+	UserAgent string
+	ClientIP  string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
+
+type EmployeeProfileDetailsContract struct {
+	ID           *uuid.UUID
+	Position     *string
+	Department   *string
+	LocationID   *uuid.UUID
+	LocationName *string
+	Type         *string
+	Hours        *float64
+	StartDate    *time.Time
+	EndDate      *time.Time
+	Rate         *float64
+}
+
+type EmployeeProfileDetails struct {
+	UserID              uuid.UUID
+	EmployeeID          uuid.UUID
+	Email               string
+	TwoFactorEnabled    bool
+	LastLogin           time.Time
+	FirstName           string
+	LastName            string
+	Roles               []EmployeeProfileRole
+	ActiveSessions      []EmployeeProfileActiveSession
+	Education           []Education
+	WorkExperience      []Experience
+	Qualifications      []Qualification
+	Authorizations      []EmployeeAuthorization
+	Street              string
+	HouseNumber         string
+	HouseNumberAddition *string
+	PostalCode          string
+	City                string
+	EmployeeNumber      *string
+	EmploymentNumber    *string
+	PrivateEmailAddress *string
+	WorkEmailAddress    *string
+	PrivatePhoneNumber  *string
+	WorkPhoneNumber     *string
+	HomeTelephoneNumber *string
+	DateOfBirth         *time.Time
+	Gender              string
+	OutOfService        *bool
+	IsArchived          bool
+	Contract            *EmployeeProfileDetailsContract
+}
+
 type Permission struct {
 	ID       uuid.UUID
 	Name     string
@@ -567,6 +626,8 @@ type EmployeeRepository interface {
 	// Profile CRUD
 	GetEmployeeByID(ctx context.Context, id uuid.UUID) (*EmployeeDetail, error)
 	GetEmployeeByUserID(ctx context.Context, userID uuid.UUID) (*EmployeeProfile, error)
+	GetEmployeeProfileDetails(ctx context.Context, userID uuid.UUID) (*EmployeeProfileDetails, error)
+	ListActiveSessions(ctx context.Context, userID uuid.UUID) ([]EmployeeProfileActiveSession, error)
 	ListEmployees(ctx context.Context, params ListEmployeesParams) (*EmployeePage, error)
 	CountEmployees(ctx context.Context, params ListEmployeesParams) (int64, error)
 	CreateEmployee(ctx context.Context, params CreateEmployeeParams) (*EmployeeDetail, error)
@@ -677,6 +738,7 @@ type EmployeeService interface {
 		currentUserID uuid.UUID,
 	) (*EmployeeDetail, error)
 	GetEmployeeProfile(ctx context.Context, userID uuid.UUID) (*EmployeeProfile, error)
+	GetEmployeeProfileDetails(ctx context.Context, userID uuid.UUID) (*EmployeeProfileDetails, error)
 	ListEmployees(ctx context.Context, params ListEmployeesParams) (*EmployeePage, error)
 	CreateEmployee(ctx context.Context, params CreateEmployeeParams) (*EmployeeDetail, error)
 	UpdateEmployee(
