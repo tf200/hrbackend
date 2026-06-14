@@ -165,6 +165,26 @@ WHERE (
 ORDER BY er.requested_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
+-- name: GetMyExpenseStats :one
+SELECT
+    COALESCE(SUM(er.claimed_amount) FILTER (
+        WHERE er.status NOT IN ('rejected'::expense_request_status_enum, 'cancelled'::expense_request_status_enum)
+    ), 0)::numeric AS total_expenses,
+    COALESCE(SUM(er.claimed_amount) FILTER (
+        WHERE er.status = 'pending'::expense_request_status_enum
+    ), 0)::numeric AS pending,
+    COALESCE(SUM(er.approved_amount) FILTER (
+        WHERE er.status = 'approved'::expense_request_status_enum
+    ), 0)::numeric AS approved,
+    COALESCE(SUM(er.approved_amount) FILTER (
+        WHERE er.status = 'reimbursed'::expense_request_status_enum
+    ), 0)::numeric AS paid,
+    COALESCE(SUM(er.approved_amount) FILTER (
+        WHERE er.status = 'approved'::expense_request_status_enum
+    ), 0)::numeric AS next_payout_preview
+FROM expense_requests er
+WHERE er.employee_id = sqlc.arg('employee_id');
+
 -- name: LockExpenseRequestByID :one
 SELECT *
 FROM expense_requests

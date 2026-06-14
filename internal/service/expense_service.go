@@ -127,6 +127,22 @@ func (s *ExpenseService) ListMyExpenseRequests(
 	return page, nil
 }
 
+func (s *ExpenseService) GetMyExpenseStats(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.ExpenseStats, error) {
+	if employeeID == uuid.Nil {
+		return nil, domain.ErrExpenseRequestInvalidRequest
+	}
+
+	stats, err := s.repository.GetMyExpenseStats(ctx, employeeID)
+	if err != nil {
+		s.logError(ctx, "GetMyExpenseStats", "failed to get my expense stats", err)
+		return nil, err
+	}
+	return stats, nil
+}
+
 func (s *ExpenseService) UpdateExpenseRequest(
 	ctx context.Context,
 	employeeID, expenseRequestID uuid.UUID,

@@ -107,6 +107,14 @@ type expenseRequestResponse struct {
 	UpdatedAt              time.Time  `json:"updated_at"`
 }
 
+type expenseStatsResponse struct {
+	TotalExpenses     float64 `json:"total_expenses"`
+	Pending           float64 `json:"pending"`
+	Approved          float64 `json:"approved"`
+	Paid              float64 `json:"paid"`
+	NextPayoutPreview float64 `json:"next_payout_preview"`
+}
+
 func toCreateExpenseRequestByAdminParams(
 	req createExpenseRequestByAdminRequest,
 ) (domain.CreateExpenseRequestParams, error) {
@@ -253,6 +261,16 @@ func toExpenseRequestResponses(items []domain.ExpenseRequest) []expenseRequestRe
 		results[i] = toExpenseRequestResponse(item)
 	}
 	return results
+}
+
+func toExpenseStatsResponse(stats domain.ExpenseStats) expenseStatsResponse {
+	return expenseStatsResponse{
+		TotalExpenses:     stats.TotalExpenses,
+		Pending:           stats.Pending,
+		Approved:          stats.Approved,
+		Paid:              stats.Paid,
+		NextPayoutPreview: stats.NextPayoutPreview,
+	}
 }
 
 func parseExpenseDatePtr(value *string) (*time.Time, error) {

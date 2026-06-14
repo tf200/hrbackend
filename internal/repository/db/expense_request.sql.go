@@ -320,6 +320,48 @@ func (q *Queries) GetExpenseRequestByID(ctx context.Context, id uuid.UUID) (GetE
 	return i, err
 }
 
+const getMyExpenseStats = `-- name: GetMyExpenseStats :one
+SELECT
+    COALESCE(SUM(er.claimed_amount) FILTER (
+        WHERE er.status NOT IN ('rejected'::expense_request_status_enum, 'cancelled'::expense_request_status_enum)
+    ), 0)::numeric AS total_expenses,
+    COALESCE(SUM(er.claimed_amount) FILTER (
+        WHERE er.status = 'pending'::expense_request_status_enum
+    ), 0)::numeric AS pending,
+    COALESCE(SUM(er.approved_amount) FILTER (
+        WHERE er.status = 'approved'::expense_request_status_enum
+    ), 0)::numeric AS approved,
+    COALESCE(SUM(er.approved_amount) FILTER (
+        WHERE er.status = 'reimbursed'::expense_request_status_enum
+    ), 0)::numeric AS paid,
+    COALESCE(SUM(er.approved_amount) FILTER (
+        WHERE er.status = 'approved'::expense_request_status_enum
+    ), 0)::numeric AS next_payout_preview
+FROM expense_requests er
+WHERE er.employee_id = $1
+`
+
+type GetMyExpenseStatsRow struct {
+	TotalExpenses     float64 `json:"total_expenses"`
+	Pending           float64 `json:"pending"`
+	Approved          float64 `json:"approved"`
+	Paid              float64 `json:"paid"`
+	NextPayoutPreview float64 `json:"next_payout_preview"`
+}
+
+func (q *Queries) GetMyExpenseStats(ctx context.Context, employeeID uuid.UUID) (GetMyExpenseStatsRow, error) {
+	row := q.db.QueryRow(ctx, getMyExpenseStats, employeeID)
+	var i GetMyExpenseStatsRow
+	err := row.Scan(
+		&i.TotalExpenses,
+		&i.Pending,
+		&i.Approved,
+		&i.Paid,
+		&i.NextPayoutPreview,
+	)
+	return i, err
+}
+
 const listExpenseRequestsPaginated = `-- name: ListExpenseRequestsPaginated :many
 SELECT
     er.id,

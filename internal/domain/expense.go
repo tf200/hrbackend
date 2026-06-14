@@ -60,6 +60,14 @@ type ExpenseRequestPage struct {
 	TotalCount int64
 }
 
+type ExpenseStats struct {
+	TotalExpenses     float64
+	Pending           float64
+	Approved          float64
+	Paid              float64
+	NextPayoutPreview float64
+}
+
 type CreateExpenseRequestParams struct {
 	EmployeeID          uuid.UUID
 	CreatedByEmployeeID uuid.UUID
@@ -157,6 +165,7 @@ type ExpenseRepository interface {
 		ctx context.Context,
 		params ListExpenseRequestsParams,
 	) (*ExpenseRequestPage, error)
+	GetMyExpenseStats(ctx context.Context, employeeID uuid.UUID) (*ExpenseStats, error)
 }
 
 type ExpenseService interface {
@@ -179,6 +188,7 @@ type ExpenseService interface {
 		ctx context.Context,
 		params ListExpenseRequestsParams,
 	) (*ExpenseRequestPage, error)
+	GetMyExpenseStats(ctx context.Context, employeeID uuid.UUID) (*ExpenseStats, error)
 	UpdateExpenseRequest(
 		ctx context.Context,
 		employeeID, expenseRequestID uuid.UUID,

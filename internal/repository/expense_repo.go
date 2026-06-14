@@ -224,6 +224,24 @@ func (r *ExpenseRepository) ListExpenseRequests(
 	return page, nil
 }
 
+func (r *ExpenseRepository) GetMyExpenseStats(
+	ctx context.Context,
+	employeeID uuid.UUID,
+) (*domain.ExpenseStats, error) {
+	row, err := r.store.GetMyExpenseStats(ctx, employeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.ExpenseStats{
+		TotalExpenses:     row.TotalExpenses,
+		Pending:           row.Pending,
+		Approved:          row.Approved,
+		Paid:              row.Paid,
+		NextPayoutPreview: row.NextPayoutPreview,
+	}, nil
+}
+
 type expenseTxRepo struct {
 	queries *db.Queries
 }

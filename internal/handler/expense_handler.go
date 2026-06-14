@@ -142,6 +142,25 @@ func (h *ExpenseHandler) ListMyExpenseRequests(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Expense requests retrieved successfully"))
 }
 
+func (h *ExpenseHandler) GetMyExpenseStats(ctx *gin.Context) {
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	stats, err := h.service.GetMyExpenseStats(ctx.Request.Context(), employeeID)
+	if err != nil {
+		ctx.JSON(mapExpenseErrorStatus(err), httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	ctx.JSON(
+		http.StatusOK,
+		httpapi.OK(toExpenseStatsResponse(*stats), "Expense stats retrieved successfully"),
+	)
+}
+
 func (h *ExpenseHandler) GetExpenseRequestByID(ctx *gin.Context) {
 	expenseRequestID, err := uuid.Parse(ctx.Param("id"))
 	if err != nil {

@@ -31,6 +31,12 @@ func RegisterExpenseRoutes(
 		handler.ListMyExpenseRequests,
 	)
 	rg.GET(
+		"/expense-requests/my/stats",
+		auth,
+		requirePermission(permission.Expense.Request.View),
+		handler.GetMyExpenseStats,
+	)
+	rg.GET(
 		"/expense-requests",
 		auth,
 		requirePermission(permission.Expense.Request.ViewAll),
