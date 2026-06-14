@@ -69,11 +69,7 @@ SELECT COALESCE(SUM(requested_hours * 60), 0)::int AS reserved_payout_minutes
 FROM leave_payout_requests
 WHERE employee_id = $1
   AND balance_year = $2
-  AND status IN (
-    'pending'::payout_request_status_enum,
-    'approved'::payout_request_status_enum,
-    'paid'::payout_request_status_enum
-  )
+  AND status = 'pending'::payout_request_status_enum
 `
 
 type ComputeReservedPayoutMinutesForYearParams struct {

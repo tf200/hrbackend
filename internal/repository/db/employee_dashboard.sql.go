@@ -38,7 +38,7 @@ SELECT
                 make_date(input.year, 1, 1)::timestamptz
         END
     )::int AS leave_total_minutes,
-    COALESCE(leave_used.used_minutes, 0)::int AS leave_used_minutes,
+    (COALESCE(leave_used.used_minutes, 0) + COALESCE(payout_used.used_minutes, 0))::int AS leave_used_minutes,
     COALESCE(pending_leave.pending_count, 0)::bigint AS pending_leave_requests,
     COALESCE(pending_signatures.pending_count, 0)::bigint AS pending_signatures
 FROM input
@@ -53,6 +53,16 @@ LEFT JOIN LATERAL (
       AND lr.start_date >= make_date(input.year, 1, 1)
       AND lr.start_date < make_date(input.year + 1, 1, 1)
 ) leave_used ON TRUE
+LEFT JOIN LATERAL (
+    SELECT COALESCE(SUM(lpr.requested_hours * 60), 0)::int AS used_minutes
+    FROM leave_payout_requests lpr
+    WHERE lpr.employee_id = input.employee_id
+      AND lpr.balance_year = input.year
+      AND lpr.status IN (
+          'approved'::payout_request_status_enum,
+          'paid'::payout_request_status_enum
+      )
+) payout_used ON TRUE
 LEFT JOIN LATERAL (
     SELECT COUNT(*)::bigint AS pending_count
     FROM leave_requests lr

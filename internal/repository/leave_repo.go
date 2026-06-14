@@ -327,6 +327,39 @@ func (r *LeaveRepository) getDeductedLeaves(
 	return deductedLeaves, nil
 }
 
+func (r *LeaveRepository) getDeductedPayouts(
+	ctx context.Context,
+	employeeID uuid.UUID,
+	year int32,
+) ([]domain.DeductedPayoutSummary, error) {
+	deductedRows, err := r.store.GetDeductedPayoutsForEmployeeAndYear(
+		ctx,
+		db.GetDeductedPayoutsForEmployeeAndYearParams{
+			EmployeeID: employeeID,
+			Year:       year,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	deductedPayouts := make([]domain.DeductedPayoutSummary, len(deductedRows))
+	for i, dr := range deductedRows {
+		deductedPayouts[i] = domain.DeductedPayoutSummary{
+			ID:              dr.ID,
+			RequestedHours:  dr.RequestedHours,
+			DurationMinutes: dr.RequestedMinutes,
+			BalanceYear:     dr.BalanceYear,
+			PayPeriodStart:  conv.TimePtrFromPgDate(dr.PayPeriodStart),
+			Status:          string(dr.Status),
+			RequestedAt:     conv.TimeFromPgTimestamptz(dr.RequestedAt),
+			DecidedAt:       timePtrFromPgTimestamptz(dr.DecidedAt),
+			PaidAt:          timePtrFromPgTimestamptz(dr.PaidAt),
+		}
+	}
+	return deductedPayouts, nil
+}
+
 func (r *LeaveRepository) GetLeaveBalanceDetails(
 	ctx context.Context,
 	params domain.GetLeaveBalanceDetailsParams,
@@ -357,6 +390,10 @@ func (r *LeaveRepository) GetLeaveBalanceDetails(
 	if err != nil {
 		return nil, err
 	}
+	deductedPayouts, err := r.getDeductedPayouts(ctx, row.EmployeeID, row.Year)
+	if err != nil {
+		return nil, err
+	}
 
 	balance := toDomainLeaveBalance(
 		row.EmployeeID,
@@ -371,6 +408,7 @@ func (r *LeaveRepository) GetLeaveBalanceDetails(
 		conv.TimePtrFromPgDate(row.EffectiveEndDate),
 	)
 	balance.DeductedLeaves = deducted
+	balance.DeductedPayouts = deductedPayouts
 
 	return &domain.LeaveBalanceDetails{
 		Balance:          balance,

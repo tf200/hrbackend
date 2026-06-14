@@ -83,6 +83,18 @@ type DeductedLeaveSummary struct {
 	DurationMinutes int32
 }
 
+type DeductedPayoutSummary struct {
+	ID              uuid.UUID
+	RequestedHours  int32
+	DurationMinutes int32
+	BalanceYear     int32
+	PayPeriodStart  *time.Time
+	Status          string
+	RequestedAt     time.Time
+	DecidedAt       *time.Time
+	PaidAt          *time.Time
+}
+
 type LeaveBalance struct {
 	EmployeeID            uuid.UUID
 	EmployeeName          string
@@ -97,6 +109,7 @@ type LeaveBalance struct {
 	ContractEndDate       *time.Time
 	EffectiveEndDate      *time.Time
 	DeductedLeaves        []DeductedLeaveSummary
+	DeductedPayouts       []DeductedPayoutSummary
 }
 
 type LeaveBalancePage struct {

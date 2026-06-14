@@ -12,14 +12,28 @@ WHERE id = sqlc.arg('employee_id')
 FOR UPDATE;
 
 -- name: ComputeLegalLeaveUsedForYear :one
-SELECT COALESCE(SUM(lr.requested_minutes), 0)::int AS legal_used_minutes
-FROM leave_requests lr
-JOIN leave_policies lp ON lp.leave_type = lr.leave_type
-WHERE lr.employee_id = sqlc.arg('employee_id')
-  AND lr.status = 'approved'::leave_request_status_enum
-  AND lp.deducts_balance = TRUE
-  AND lr.start_date >= make_date(sqlc.arg('year')::int, 1, 1)
-  AND lr.start_date < make_date(sqlc.arg('year')::int + 1, 1, 1);
+SELECT (
+    COALESCE((
+        SELECT SUM(lr.requested_minutes)
+        FROM leave_requests lr
+        JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+        WHERE lr.employee_id = sqlc.arg('employee_id')
+          AND lr.status = 'approved'::leave_request_status_enum
+          AND lp.deducts_balance = TRUE
+          AND lr.start_date >= make_date(sqlc.arg('year')::int, 1, 1)
+          AND lr.start_date < make_date(sqlc.arg('year')::int + 1, 1, 1)
+    ), 0) +
+    COALESCE((
+        SELECT SUM(lpr.requested_hours * 60)
+        FROM leave_payout_requests lpr
+        WHERE lpr.employee_id = sqlc.arg('employee_id')
+          AND lpr.balance_year = sqlc.arg('year')::int
+          AND lpr.status IN (
+              'approved'::payout_request_status_enum,
+              'paid'::payout_request_status_enum
+          )
+    ), 0)
+)::int AS legal_used_minutes;
 
 -- name: GetEmployeeContractForLeave :one
 SELECT
@@ -65,14 +79,28 @@ JOIN LATERAL (
     )::int AS legal_calculated_minutes
 ) ent ON true
 JOIN LATERAL (
-    SELECT COALESCE(SUM(lr.requested_minutes), 0)::int AS legal_used_minutes
-    FROM leave_requests lr
-    JOIN leave_policies lp ON lp.leave_type = lr.leave_type
-    WHERE lr.employee_id = lb.id
-      AND lr.status = 'approved'::leave_request_status_enum
-      AND lp.deducts_balance = TRUE
-      AND lr.start_date >= make_date(input.year, 1, 1)
-      AND lr.start_date < make_date(input.year + 1, 1, 1)
+    SELECT (
+        COALESCE((
+            SELECT SUM(lr.requested_minutes)
+            FROM leave_requests lr
+            JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+            WHERE lr.employee_id = lb.id
+              AND lr.status = 'approved'::leave_request_status_enum
+              AND lp.deducts_balance = TRUE
+              AND lr.start_date >= make_date(input.year, 1, 1)
+              AND lr.start_date < make_date(input.year + 1, 1, 1)
+        ), 0) +
+        COALESCE((
+            SELECT SUM(lpr.requested_hours * 60)
+            FROM leave_payout_requests lpr
+            WHERE lpr.employee_id = lb.id
+              AND lpr.balance_year = input.year
+              AND lpr.status IN (
+                  'approved'::payout_request_status_enum,
+                  'paid'::payout_request_status_enum
+              )
+        ), 0)
+    )::int AS legal_used_minutes
 ) used ON true
 LEFT JOIN LATERAL (
     SELECT *
@@ -127,14 +155,28 @@ JOIN LATERAL (
     )::int AS legal_calculated_minutes
 ) ent ON true
 JOIN LATERAL (
-    SELECT COALESCE(SUM(lr.requested_minutes), 0)::int AS legal_used_minutes
-    FROM leave_requests lr
-    JOIN leave_policies lp ON lp.leave_type = lr.leave_type
-    WHERE lr.employee_id = lb.id
-      AND lr.status = 'approved'::leave_request_status_enum
-      AND lp.deducts_balance = TRUE
-      AND lr.start_date >= make_date(input.year, 1, 1)
-      AND lr.start_date < make_date(input.year + 1, 1, 1)
+    SELECT (
+        COALESCE((
+            SELECT SUM(lr.requested_minutes)
+            FROM leave_requests lr
+            JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+            WHERE lr.employee_id = lb.id
+              AND lr.status = 'approved'::leave_request_status_enum
+              AND lp.deducts_balance = TRUE
+              AND lr.start_date >= make_date(input.year, 1, 1)
+              AND lr.start_date < make_date(input.year + 1, 1, 1)
+        ), 0) +
+        COALESCE((
+            SELECT SUM(lpr.requested_hours * 60)
+            FROM leave_payout_requests lpr
+            WHERE lpr.employee_id = lb.id
+              AND lpr.balance_year = input.year
+              AND lpr.status IN (
+                  'approved'::payout_request_status_enum,
+                  'paid'::payout_request_status_enum
+              )
+        ), 0)
+    )::int AS legal_used_minutes
 ) used ON true
 LEFT JOIN LATERAL (
     SELECT *
@@ -177,14 +219,28 @@ JOIN LATERAL (
     )::int AS legal_calculated_minutes
 ) ent ON true
 JOIN LATERAL (
-    SELECT COALESCE(SUM(lr.requested_minutes), 0)::int AS legal_used_minutes
-    FROM leave_requests lr
-    JOIN leave_policies lp ON lp.leave_type = lr.leave_type
-    WHERE lr.employee_id = lb.id
-      AND lr.status = 'approved'::leave_request_status_enum
-      AND lp.deducts_balance = TRUE
-      AND lr.start_date >= make_date(sqlc.arg('year')::int, 1, 1)
-      AND lr.start_date < make_date(sqlc.arg('year')::int + 1, 1, 1)
+    SELECT (
+        COALESCE((
+            SELECT SUM(lr.requested_minutes)
+            FROM leave_requests lr
+            JOIN leave_policies lp ON lp.leave_type = lr.leave_type
+            WHERE lr.employee_id = lb.id
+              AND lr.status = 'approved'::leave_request_status_enum
+              AND lp.deducts_balance = TRUE
+              AND lr.start_date >= make_date(sqlc.arg('year')::int, 1, 1)
+              AND lr.start_date < make_date(sqlc.arg('year')::int + 1, 1, 1)
+        ), 0) +
+        COALESCE((
+            SELECT SUM(lpr.requested_hours * 60)
+            FROM leave_payout_requests lpr
+            WHERE lpr.employee_id = lb.id
+              AND lpr.balance_year = sqlc.arg('year')::int
+              AND lpr.status IN (
+                  'approved'::payout_request_status_enum,
+                  'paid'::payout_request_status_enum
+              )
+        ), 0)
+    )::int AS legal_used_minutes
 ) used ON true
 LEFT JOIN LATERAL (
     SELECT *
@@ -312,3 +368,22 @@ WHERE lr.employee_id = sqlc.arg('employee_id')
   AND lr.start_date < make_date(sqlc.arg('year')::int + 1, 1, 1)
 ORDER BY lr.start_date DESC;
 
+-- name: GetDeductedPayoutsForEmployeeAndYear :many
+SELECT
+    lpr.id,
+    lpr.requested_hours,
+    (lpr.requested_hours * 60)::int AS requested_minutes,
+    lpr.balance_year,
+    lpr.pay_period_start,
+    lpr.status,
+    lpr.requested_at,
+    lpr.decided_at,
+    lpr.paid_at
+FROM leave_payout_requests lpr
+WHERE lpr.employee_id = sqlc.arg('employee_id')
+  AND lpr.balance_year = sqlc.arg('year')::int
+  AND lpr.status IN (
+      'approved'::payout_request_status_enum,
+      'paid'::payout_request_status_enum
+  )
+ORDER BY COALESCE(lpr.paid_at, lpr.decided_at, lpr.requested_at) DESC, lpr.requested_at DESC;

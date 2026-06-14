@@ -102,7 +102,7 @@ WITH ranges AS (
                 sqlc.arg('employee_id'),
                 r.balance_year,
                 CURRENT_TIMESTAMP
-            ) - COALESCE(used.legal_used_minutes, 0),
+            ) - COALESCE(used.legal_used_minutes, 0) - COALESCE(payout_used.legal_used_minutes, 0),
             0
         )::int AS remaining_leave_balance_minutes
     FROM ranges r
@@ -116,6 +116,16 @@ WITH ranges AS (
           AND lr.start_date >= r.year_start
           AND lr.start_date < r.next_year_start
     ) used ON true
+    LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(lpr.requested_hours * 60), 0)::int AS legal_used_minutes
+        FROM leave_payout_requests lpr
+        WHERE lpr.employee_id = sqlc.arg('employee_id')
+          AND lpr.balance_year = r.balance_year
+          AND lpr.status IN (
+              'approved'::payout_request_status_enum,
+              'paid'::payout_request_status_enum
+          )
+    ) payout_used ON true
 ), last_review AS (
     SELECT pa.total_score::double precision AS last_performance_review_score
     FROM performance_assessments pa

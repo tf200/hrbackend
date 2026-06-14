@@ -150,15 +150,28 @@ type deductedLeaveResponse struct {
 	DurationMinutes int32     `json:"duration_minutes"`
 }
 
+type deductedPayoutResponse struct {
+	ID              uuid.UUID  `json:"id"`
+	RequestedHours  int32      `json:"requested_hours"`
+	DurationMinutes int32      `json:"duration_minutes"`
+	BalanceYear     int32      `json:"balance_year"`
+	PayPeriodStart  *string    `json:"pay_period_start,omitempty"`
+	Status          string     `json:"status"`
+	RequestedAt     time.Time  `json:"requested_at"`
+	DecidedAt       *time.Time `json:"decided_at,omitempty"`
+	PaidAt          *time.Time `json:"paid_at,omitempty"`
+}
+
 type leaveBalanceResponse struct {
-	EmployeeID            uuid.UUID               `json:"employee_id"`
-	EmployeeName          string                  `json:"employee_name"`
-	Year                  int32                   `json:"year"`
-	LegalTotalMinutes     int32                   `json:"legal_total_minutes"`
-	LegalUsedMinutes      int32                   `json:"legal_used_minutes"`
-	LegalRemainingMinutes int32                   `json:"legal_remaining_minutes"`
-	TotalRemainingMinutes int32                   `json:"total_remaining_minutes"`
-	DeductedLeaves        []deductedLeaveResponse `json:"deducted_leaves"`
+	EmployeeID            uuid.UUID                `json:"employee_id"`
+	EmployeeName          string                   `json:"employee_name"`
+	Year                  int32                    `json:"year"`
+	LegalTotalMinutes     int32                    `json:"legal_total_minutes"`
+	LegalUsedMinutes      int32                    `json:"legal_used_minutes"`
+	LegalRemainingMinutes int32                    `json:"legal_remaining_minutes"`
+	TotalRemainingMinutes int32                    `json:"total_remaining_minutes"`
+	DeductedLeaves        []deductedLeaveResponse  `json:"deducted_leaves"`
+	DeductedPayouts       []deductedPayoutResponse `json:"deducted_payouts"`
 }
 
 type leaveBudgetTypeResponse struct {
@@ -209,6 +222,8 @@ type leaveContractAccrualResponse struct {
 
 type leaveBalanceDetailsResponse struct {
 	managerLeaveBalanceResponse
+	DeductedLeaves   []deductedLeaveResponse        `json:"deducted_leaves"`
+	DeductedPayouts  []deductedPayoutResponse       `json:"deducted_payouts"`
 	ContractAccruals []leaveContractAccrualResponse `json:"contract_accruals"`
 }
 
@@ -452,17 +467,6 @@ func toLeaveRequestStatsResponse(stats *domain.LeaveRequestStats) leaveRequestSt
 }
 
 func toLeaveBalanceResponse(item domain.LeaveBalance) leaveBalanceResponse {
-	deductedLeaves := make([]deductedLeaveResponse, len(item.DeductedLeaves))
-	for i, dl := range item.DeductedLeaves {
-		deductedLeaves[i] = deductedLeaveResponse{
-			ID:              dl.ID,
-			LeaveType:       dl.LeaveType,
-			StartDate:       dl.StartDate.Format("2006-01-02"),
-			EndDate:         dl.EndDate.Format("2006-01-02"),
-			DurationMinutes: dl.DurationMinutes,
-		}
-	}
-
 	return leaveBalanceResponse{
 		EmployeeID:            item.EmployeeID,
 		EmployeeName:          item.EmployeeName,
@@ -471,7 +475,8 @@ func toLeaveBalanceResponse(item domain.LeaveBalance) leaveBalanceResponse {
 		LegalUsedMinutes:      item.LegalUsedMinutes,
 		LegalRemainingMinutes: item.LegalRemainingMinutes,
 		TotalRemainingMinutes: item.TotalRemainingMinutes,
-		DeductedLeaves:        deductedLeaves,
+		DeductedLeaves:        toDeductedLeaveResponses(item.DeductedLeaves),
+		DeductedPayouts:       toDeductedPayoutResponses(item.DeductedPayouts),
 	}
 }
 
@@ -523,8 +528,48 @@ func toLeaveBalanceDetailsResponse(item domain.LeaveBalanceDetails) leaveBalance
 
 	return leaveBalanceDetailsResponse{
 		managerLeaveBalanceResponse: toManagerLeaveBalanceResponse(item.Balance),
+		DeductedLeaves:              toDeductedLeaveResponses(item.Balance.DeductedLeaves),
+		DeductedPayouts:             toDeductedPayoutResponses(item.Balance.DeductedPayouts),
 		ContractAccruals:            accruals,
 	}
+}
+
+func toDeductedLeaveResponses(items []domain.DeductedLeaveSummary) []deductedLeaveResponse {
+	responses := make([]deductedLeaveResponse, len(items))
+	for i, item := range items {
+		responses[i] = deductedLeaveResponse{
+			ID:              item.ID,
+			LeaveType:       item.LeaveType,
+			StartDate:       item.StartDate.Format(leaveDateLayout),
+			EndDate:         item.EndDate.Format(leaveDateLayout),
+			DurationMinutes: item.DurationMinutes,
+		}
+	}
+	return responses
+}
+
+func toDeductedPayoutResponses(items []domain.DeductedPayoutSummary) []deductedPayoutResponse {
+	responses := make([]deductedPayoutResponse, len(items))
+	for i, item := range items {
+		var payPeriodStart *string
+		if item.PayPeriodStart != nil {
+			formatted := item.PayPeriodStart.Format(leaveDateLayout)
+			payPeriodStart = &formatted
+		}
+
+		responses[i] = deductedPayoutResponse{
+			ID:              item.ID,
+			RequestedHours:  item.RequestedHours,
+			DurationMinutes: item.DurationMinutes,
+			BalanceYear:     item.BalanceYear,
+			PayPeriodStart:  payPeriodStart,
+			Status:          item.Status,
+			RequestedAt:     item.RequestedAt,
+			DecidedAt:       item.DecidedAt,
+			PaidAt:          item.PaidAt,
+		}
+	}
+	return responses
 }
 
 func parseLeaveDatePtr(value *string) (*time.Time, error) {
