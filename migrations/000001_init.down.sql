@@ -98,7 +98,6 @@ DROP TABLE IF EXISTS employee_salary_assignments;
 DROP TABLE IF EXISTS cao_salary_scale_steps;
 DROP TABLE IF EXISTS cao_salary_tables;
 DROP TABLE IF EXISTS employee_contracts;
-DROP TABLE IF EXISTS organizational_roles;
 DROP TABLE IF EXISTS employee_profile CASCADE;
 
 -- Training tables

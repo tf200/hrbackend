@@ -349,12 +349,6 @@ func (f *fakeOrganizationRepository) ListAllLocations(
 	return f.listAllLocationsPage, f.listAllLocationsErr
 }
 
-func (f *fakeOrganizationRepository) ListOrganizationalRoles(
-	context.Context,
-	domain.ListOrganizationalRolesParams,
-) ([]domain.OrganizationalRole, error) {
-	return nil, nil
-}
 
 var _ domain.Cache = (*fakeCache)(nil)
 var _ domain.OrganizationRepository = (*fakeOrganizationRepository)(nil)

@@ -553,16 +553,6 @@ CREATE TYPE name_in_use_enum AS ENUM ('first_name', 'last_name');
 CREATE TYPE marital_status_enum AS ENUM ('single', 'married', 'registered_partnership', 'divorced', 'widow');
 CREATE TYPE wage_tax_table_enum AS ENUM ('white_table', 'green_table');
 
-CREATE TABLE organizational_roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL UNIQUE,
-    description TEXT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_organizational_roles_is_active ON organizational_roles(is_active);
 
 -- Employee profile (linked to custom_user)
 CREATE TABLE employee_profile (
@@ -620,7 +610,6 @@ CREATE TABLE employee_contracts (
     job_title employee_job_title_enum NOT NULL,
     department_id UUID NOT NULL REFERENCES departments(id) ON DELETE RESTRICT,
     location_id UUID NOT NULL REFERENCES location(id) ON DELETE RESTRICT,
-    organizational_role_id UUID NULL REFERENCES organizational_roles(id) ON DELETE SET NULL,
     contract_type employee_contract_type_enum NOT NULL,
     start_date DATE NOT NULL,
     contract_end_date DATE NULL,
@@ -653,7 +642,6 @@ CREATE INDEX idx_employee_contracts_effective_window
 ON employee_contracts(employee_id, start_date DESC, effective_end_date);
 CREATE INDEX idx_employee_contracts_department_id ON employee_contracts(department_id);
 CREATE INDEX idx_employee_contracts_location_id ON employee_contracts(location_id);
-CREATE INDEX idx_employee_contracts_organizational_role_id ON employee_contracts(organizational_role_id);
 CREATE INDEX idx_employee_contracts_previous_contract_id ON employee_contracts(previous_contract_id);
 
 CREATE TABLE cao_salary_tables (

@@ -539,33 +539,5 @@ func toDomainOrganizationLocationShifts(
 	return result
 }
 
-func (r *OrganizationRepository) ListOrganizationalRoles(
-	ctx context.Context,
-	params domain.ListOrganizationalRolesParams,
-) ([]domain.OrganizationalRole, error) {
-	var search *string
-	if params.Search != nil && *params.Search != "" {
-		search = params.Search
-	}
-
-	rows, err := r.queries.ListOrganizationalRoles(ctx, db.ListOrganizationalRolesParams{
-		ActiveOnly: &params.ActiveOnly,
-		Search:     search,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]domain.OrganizationalRole, len(rows))
-	for i, row := range rows {
-		result[i] = domain.OrganizationalRole{
-			ID:          row.ID,
-			Name:        row.Name,
-			Description: row.Description,
-			IsActive:    row.IsActive,
-		}
-	}
-	return result, nil
-}
 
 var _ domain.OrganizationRepository = (*OrganizationRepository)(nil)

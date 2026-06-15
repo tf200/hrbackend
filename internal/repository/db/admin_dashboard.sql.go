@@ -14,7 +14,7 @@ import (
 
 const countRecentDashboardEmployees = `-- name: CountRecentDashboardEmployees :one
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )
@@ -83,7 +83,7 @@ func (q *Queries) GetAdminDashboardKPIs(ctx context.Context) (GetAdminDashboardK
 
 const listEndingContractAlerts = `-- name: ListEndingContractAlerts :many
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )
@@ -241,7 +241,7 @@ func (q *Queries) ListExpiringCredentialAlerts(ctx context.Context, arg ListExpi
 
 const listFullTimeEmployeesByDepartment = `-- name: ListFullTimeEmployeesByDepartment :many
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )
@@ -290,7 +290,7 @@ func (q *Queries) ListFullTimeEmployeesByDepartment(ctx context.Context) ([]List
 
 const listFullTimeEmployeesByLocation = `-- name: ListFullTimeEmployeesByLocation :many
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )
@@ -394,7 +394,7 @@ func (q *Queries) ListLeaveAbsenceTrendPoints(ctx context.Context, arg ListLeave
 
 const listRecentDashboardEmployees = `-- name: ListRecentDashboardEmployees :many
 WITH latest_contract AS (
-    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts
     ORDER BY employee_id, start_date DESC, created_at DESC
 )
@@ -402,7 +402,6 @@ SELECT
     ep.id,
     ep.first_name,
     ep.last_name,
-    org_role.name AS organizational_role_name,
     d.name AS department_name,
     l.name AS location_name,
     ep.created_at
@@ -410,7 +409,6 @@ FROM employee_profile ep
 LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN location l ON l.id = ec.location_id
-LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
 WHERE ep.is_archived = FALSE AND COALESCE(ep.out_of_service, FALSE) = FALSE
 ORDER BY ep.created_at DESC
 LIMIT $1 OFFSET $2
@@ -422,13 +420,12 @@ type ListRecentDashboardEmployeesParams struct {
 }
 
 type ListRecentDashboardEmployeesRow struct {
-	ID                     uuid.UUID          `json:"id"`
-	FirstName              string             `json:"first_name"`
-	LastName               string             `json:"last_name"`
-	OrganizationalRoleName *string            `json:"organizational_role_name"`
-	DepartmentName         *string            `json:"department_name"`
-	LocationName           *string            `json:"location_name"`
-	CreatedAt              pgtype.Timestamptz `json:"created_at"`
+	ID             uuid.UUID          `json:"id"`
+	FirstName      string             `json:"first_name"`
+	LastName       string             `json:"last_name"`
+	DepartmentName *string            `json:"department_name"`
+	LocationName   *string            `json:"location_name"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 }
 
 func (q *Queries) ListRecentDashboardEmployees(ctx context.Context, arg ListRecentDashboardEmployeesParams) ([]ListRecentDashboardEmployeesRow, error) {
@@ -444,7 +441,6 @@ func (q *Queries) ListRecentDashboardEmployees(ctx context.Context, arg ListRece
 			&i.ID,
 			&i.FirstName,
 			&i.LastName,
-			&i.OrganizationalRoleName,
 			&i.DepartmentName,
 			&i.LocationName,
 			&i.CreatedAt,

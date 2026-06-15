@@ -599,24 +599,5 @@ func (s *OrganizationService) ListOrganizationLocations(
 	return page, nil
 }
 
-func (s *OrganizationService) ListOrganizationalRoles(
-	ctx context.Context,
-	params domain.ListOrganizationalRolesParams,
-) ([]domain.OrganizationalRole, error) {
-	roles, err := s.repository.ListOrganizationalRoles(ctx, params)
-	if err != nil {
-		if s.logger != nil {
-			s.logger.LogError(
-				ctx,
-				"OrganizationService.ListOrganizationalRoles",
-				"failed to list organizational roles",
-				err,
-			)
-		}
-		return nil, err
-	}
-
-	return roles, nil
-}
 
 var _ domain.OrganizationService = (*OrganizationService)(nil)

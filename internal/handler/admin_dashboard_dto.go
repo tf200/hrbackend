@@ -198,7 +198,6 @@ type listRecentEmployeesRequest struct {
 type recentEmployeeItemResponse struct {
 	ID                 uuid.UUID `json:"id"`
 	Name               string    `json:"name"`
-	OrganizationalRole *string   `json:"organizational_role"`
 	Department         *string   `json:"department"`
 	Location           *string   `json:"location"`
 	CreatedAt          string    `json:"created_at"`
@@ -208,7 +207,6 @@ func toRecentEmployeeItemResponse(emp domain.RecentDashboardEmployee) recentEmpl
 	return recentEmployeeItemResponse{
 		ID:                 emp.ID,
 		Name:               emp.FirstName + " " + emp.LastName,
-		OrganizationalRole: emp.OrganizationalRole,
 		Department:         emp.DepartmentName,
 		Location:           emp.LocationName,
 		CreatedAt:          emp.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),

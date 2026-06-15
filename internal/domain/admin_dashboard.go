@@ -21,7 +21,6 @@ type RecentDashboardEmployee struct {
 	ID                 uuid.UUID
 	FirstName          string
 	LastName           string
-	OrganizationalRole *string
 	DepartmentName     *string
 	LocationName       *string
 	CreatedAt          time.Time

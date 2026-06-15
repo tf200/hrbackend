@@ -2034,26 +2034,25 @@ type EmployeeAuthorization struct {
 }
 
 type EmployeeContract struct {
-	ID                   uuid.UUID                     `json:"id"`
-	EmployeeID           uuid.UUID                     `json:"employee_id"`
-	JobTitle             EmployeeJobTitleEnum          `json:"job_title"`
-	DepartmentID         uuid.UUID                     `json:"department_id"`
-	LocationID           uuid.UUID                     `json:"location_id"`
-	OrganizationalRoleID *uuid.UUID                    `json:"organizational_role_id"`
-	ContractType         EmployeeContractTypeEnum      `json:"contract_type"`
-	StartDate            pgtype.Date                   `json:"start_date"`
-	ContractEndDate      pgtype.Date                   `json:"contract_end_date"`
-	EffectiveEndDate     pgtype.Date                   `json:"effective_end_date"`
-	HoursPerWeek         *float64                      `json:"hours_per_week"`
-	RosterFreeDay        WeekdayEnum                   `json:"roster_free_day"`
-	WageTaxTable         *WageTaxTableEnum             `json:"wage_tax_table"`
-	PreviousContractID   *uuid.UUID                    `json:"previous_contract_id"`
-	ContractEventType    EmployeeContractEventTypeEnum `json:"contract_event_type"`
-	ChangeReason         *string                       `json:"change_reason"`
-	UpdatedByEmployeeID  *uuid.UUID                    `json:"updated_by_employee_id"`
-	CreatedByEmployeeID  *uuid.UUID                    `json:"created_by_employee_id"`
-	CreatedAt            pgtype.Timestamptz            `json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz            `json:"updated_at"`
+	ID                  uuid.UUID                     `json:"id"`
+	EmployeeID          uuid.UUID                     `json:"employee_id"`
+	JobTitle            EmployeeJobTitleEnum          `json:"job_title"`
+	DepartmentID        uuid.UUID                     `json:"department_id"`
+	LocationID          uuid.UUID                     `json:"location_id"`
+	ContractType        EmployeeContractTypeEnum      `json:"contract_type"`
+	StartDate           pgtype.Date                   `json:"start_date"`
+	ContractEndDate     pgtype.Date                   `json:"contract_end_date"`
+	EffectiveEndDate    pgtype.Date                   `json:"effective_end_date"`
+	HoursPerWeek        *float64                      `json:"hours_per_week"`
+	RosterFreeDay       WeekdayEnum                   `json:"roster_free_day"`
+	WageTaxTable        *WageTaxTableEnum             `json:"wage_tax_table"`
+	PreviousContractID  *uuid.UUID                    `json:"previous_contract_id"`
+	ContractEventType   EmployeeContractEventTypeEnum `json:"contract_event_type"`
+	ChangeReason        *string                       `json:"change_reason"`
+	UpdatedByEmployeeID *uuid.UUID                    `json:"updated_by_employee_id"`
+	CreatedByEmployeeID *uuid.UUID                    `json:"created_by_employee_id"`
+	CreatedAt           pgtype.Timestamptz            `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz            `json:"updated_at"`
 }
 
 type EmployeeEducation struct {
@@ -2373,15 +2372,6 @@ type Organisation struct {
 	BtwNumber           *string            `json:"btw_number"`
 	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
-}
-
-type OrganizationalRole struct {
-	ID          uuid.UUID          `json:"id"`
-	Name        string             `json:"name"`
-	Description *string            `json:"description"`
-	IsActive    bool               `json:"is_active"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type OvertimeEntry struct {

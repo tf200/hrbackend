@@ -44,7 +44,6 @@ type EmployeeContractSeed struct {
 	JobTitle               string
 	DepartmentAlias        string
 	LocationAlias          string
-	OrganizationalRoleName *string
 	ContractType           string
 	StartDate              time.Time
 	ContractEndDate        *time.Time
@@ -403,19 +402,7 @@ func ensureEmployeeContractAndSalary(
 		)
 	}
 
-	var organizationalRoleID *uuid.UUID
-	if item.Contract.OrganizationalRoleName != nil &&
-		strings.TrimSpace(*item.Contract.OrganizationalRoleName) != "" {
-		var id uuid.UUID
-		if err := env.DB.QueryRow(ctx, `SELECT id FROM organizational_roles WHERE name = $1`, strings.TrimSpace(*item.Contract.OrganizationalRoleName)).Scan(&id); err != nil {
-			return fmt.Errorf(
-				"resolve organizational role %q: %w",
-				*item.Contract.OrganizationalRoleName,
-				err,
-			)
-		}
-		organizationalRoleID = &id
-	}
+
 
 	if _, err := env.DB.Exec(ctx, `
 		DELETE FROM employee_salary_assignments WHERE employee_id = $1
@@ -435,7 +422,6 @@ func ensureEmployeeContractAndSalary(
 			job_title,
 			department_id,
 			location_id,
-			organizational_role_id,
 			contract_type,
 			start_date,
 			contract_end_date,
@@ -444,9 +430,9 @@ func ensureEmployeeContractAndSalary(
 			wage_tax_table,
 			contract_event_type
 		)
-		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5, $6::employee_contract_type_enum, $7, $8, $9, $10, $11::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
+		VALUES ($1, $2::employee_job_title_enum, $3, $4, $5::employee_contract_type_enum, $6, $7, $8, $9, $10::wage_tax_table_enum, 'initial'::employee_contract_event_type_enum)
 		RETURNING id
-	`, employeeID, item.Contract.JobTitle, departmentID, locationID, organizationalRoleID,
+	`, employeeID, item.Contract.JobTitle, departmentID, locationID,
 		item.Contract.ContractType, item.Contract.StartDate,
 		item.Contract.ContractEndDate, item.Contract.HoursPerWeek,
 		item.Contract.RosterFreeDay, item.Contract.WageTaxTable).Scan(&contractID)

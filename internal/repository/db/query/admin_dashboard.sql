@@ -8,7 +8,6 @@ SELECT
     ep.id,
     ep.first_name,
     ep.last_name,
-    org_role.name AS organizational_role_name,
     d.name AS department_name,
     l.name AS location_name,
     ep.created_at
@@ -16,7 +15,6 @@ FROM employee_profile ep
 LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
 LEFT JOIN departments d ON d.id = ec.department_id
 LEFT JOIN location l ON l.id = ec.location_id
-LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
 WHERE ep.is_archived = FALSE AND COALESCE(ep.out_of_service, FALSE) = FALSE
 ORDER BY ep.created_at DESC
 LIMIT $1 OFFSET $2;

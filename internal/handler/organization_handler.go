@@ -120,12 +120,7 @@ func RegisterOrganizationRoutes(
 		requirePermission(permission.Location.View),
 		handler.GetGlobalOrganizationCounts,
 	)
-	rg.GET(
-		"/organizational-roles",
-		auth,
-		requirePermission(permission.Employee.Create),
-		handler.ListOrganizationalRoles,
-	)
+
 }
 
 type OrganizationHandler struct {
@@ -546,30 +541,3 @@ func (h *OrganizationHandler) ListOrganizationLocations(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, httpapi.OK(response, "Locations retrieved successfully"))
 }
 
-func (h *OrganizationHandler) ListOrganizationalRoles(ctx *gin.Context) {
-	var req listOrganizationalRolesRequest
-	if err := ctx.ShouldBindQuery(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
-		return
-	}
-
-	roles, err := h.service.ListOrganizationalRoles(
-		ctx.Request.Context(),
-		toListOrganizationalRolesParams(req),
-	)
-	if err != nil {
-		ctx.JSON(
-			http.StatusInternalServerError,
-			httpapi.Fail("failed to list organizational roles", ""),
-		)
-		return
-	}
-
-	ctx.JSON(
-		http.StatusOK,
-		httpapi.OK(
-			toOrganizationalRoleResponses(roles),
-			"Organizational roles retrieved successfully",
-		),
-	)
-}

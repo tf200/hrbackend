@@ -52,7 +52,6 @@ func (r *AdminDashboardRepository) ListRecentEmployees(
 			ID:                 row.ID,
 			FirstName:          row.FirstName,
 			LastName:           row.LastName,
-			OrganizationalRole: row.OrganizationalRoleName,
 			DepartmentName:     row.DepartmentName,
 			LocationName:       row.LocationName,
 			CreatedAt:          row.CreatedAt.Time,

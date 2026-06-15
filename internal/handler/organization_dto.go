@@ -461,36 +461,3 @@ func toListOrganizationLocationShiftDTOs(
 	return result
 }
 
-type listOrganizationalRolesRequest struct {
-	ActiveOnly bool    `form:"active_only"`
-	Search     *string `form:"search"`
-}
-
-type organizationalRoleResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description *string   `json:"description"`
-	IsActive    bool      `json:"is_active"`
-}
-
-func toListOrganizationalRolesParams(
-	req listOrganizationalRolesRequest,
-) domain.ListOrganizationalRolesParams {
-	return domain.ListOrganizationalRolesParams{
-		ActiveOnly: req.ActiveOnly,
-		Search:     req.Search,
-	}
-}
-
-func toOrganizationalRoleResponses(roles []domain.OrganizationalRole) []organizationalRoleResponse {
-	results := make([]organizationalRoleResponse, len(roles))
-	for i, r := range roles {
-		results[i] = organizationalRoleResponse{
-			ID:          r.ID,
-			Name:        r.Name,
-			Description: r.Description,
-			IsActive:    r.IsActive,
-		}
-	}
-	return results
-}

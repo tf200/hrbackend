@@ -270,7 +270,6 @@ type Querier interface {
 	ListOnCallPayrollMonthEmployeesPaginated(ctx context.Context, arg ListOnCallPayrollMonthEmployeesPaginatedParams) ([]ListOnCallPayrollMonthEmployeesPaginatedRow, error)
 	ListOrganisations(ctx context.Context) ([]ListOrganisationsRow, error)
 	ListOrganisationsPaginated(ctx context.Context, arg ListOrganisationsPaginatedParams) ([]ListOrganisationsPaginatedRow, error)
-	ListOrganizationalRoles(ctx context.Context, arg ListOrganizationalRolesParams) ([]ListOrganizationalRolesRow, error)
 	ListOvertimeEntriesPaginated(ctx context.Context, arg ListOvertimeEntriesPaginatedParams) ([]ListOvertimeEntriesPaginatedRow, error)
 	ListPayPeriodLineItemsByPayPeriodID(ctx context.Context, payPeriodID uuid.UUID) ([]PayPeriodLineItem, error)
 	ListPayPeriodsByEmployeeIDsAndRange(ctx context.Context, arg ListPayPeriodsByEmployeeIDsAndRangeParams) ([]ListPayPeriodsByEmployeeIDsAndRangeRow, error)

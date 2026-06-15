@@ -270,7 +270,7 @@ JOIN LATERAL (
     )::int AS legal_used_minutes
 ) used ON true
 LEFT JOIN LATERAL (
-    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
     WHERE c.employee_id = ep.id
     ORDER BY c.start_date DESC, c.created_at DESC
@@ -377,7 +377,7 @@ JOIN LATERAL (
     )::int AS legal_used_minutes
 ) used ON true
 LEFT JOIN LATERAL (
-    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
     WHERE c.employee_id = ep.id
     ORDER BY c.start_date DESC, c.created_at DESC
@@ -672,7 +672,7 @@ JOIN LATERAL (
     )::int AS legal_used_minutes
 ) used ON true
 LEFT JOIN LATERAL (
-    SELECT id, employee_id, job_title, department_id, location_id, organizational_role_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    SELECT id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
     FROM employee_contracts c
     WHERE c.employee_id = ep.id
     ORDER BY c.start_date DESC, c.created_at DESC

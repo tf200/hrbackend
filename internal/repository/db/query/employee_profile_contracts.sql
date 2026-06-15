@@ -4,7 +4,6 @@ INSERT INTO employee_contracts (
     job_title,
     department_id,
     location_id,
-    organizational_role_id,
     contract_type,
     start_date,
     contract_end_date,
@@ -17,7 +16,6 @@ INSERT INTO employee_contracts (
     sqlc.arg('job_title'),
     sqlc.arg('department_id'),
     sqlc.arg('location_id'),
-    sqlc.narg('organizational_role_id'),
     sqlc.arg('contract_type'),
     sqlc.arg('start_date'),
     sqlc.narg('contract_end_date'),
@@ -37,8 +35,6 @@ SELECT
     d.name AS department_name,
     ec.location_id,
     concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address,
-    ec.organizational_role_id,
-    org_role.name AS organizational_role_name,
     ec.contract_type,
     ec.start_date,
     ec.contract_end_date,
@@ -51,7 +47,6 @@ SELECT
 FROM employee_contracts ec
 JOIN departments d ON d.id = ec.department_id
 JOIN location l ON l.id = ec.location_id
-LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
 WHERE ec.employee_id = $1
 ORDER BY ec.start_date DESC, ec.created_at DESC
 LIMIT 1;
@@ -75,8 +70,6 @@ SELECT
     d.name AS department_name,
     ec.location_id,
     concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address,
-    ec.organizational_role_id,
-    org_role.name AS organizational_role_name,
     ec.contract_type,
     ec.start_date,
     ec.contract_end_date,
@@ -89,7 +82,6 @@ SELECT
 FROM employee_contracts ec
 JOIN departments d ON d.id = ec.department_id
 JOIN location l ON l.id = ec.location_id
-LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
 WHERE ec.employee_id = $1
   AND ec.start_date <= CURRENT_DATE
   AND (ec.effective_end_date IS NULL OR ec.effective_end_date >= CURRENT_DATE)
@@ -122,8 +114,6 @@ SELECT
     d.name AS department_name,
     ec.location_id,
     concat_ws(' ', l.street, l.house_number, l.house_number_addition, l.postal_code, l.city) AS location_address,
-    ec.organizational_role_id,
-    org_role.name AS organizational_role_name,
     ec.contract_type,
     ec.start_date,
     ec.contract_end_date,
@@ -138,7 +128,6 @@ SELECT
 FROM employee_contracts ec
 JOIN departments d ON d.id = ec.department_id
 JOIN location l ON l.id = ec.location_id
-LEFT JOIN organizational_roles org_role ON org_role.id = ec.organizational_role_id
 WHERE ec.employee_id = $1
 ORDER BY ec.start_date DESC, ec.created_at DESC;
 
@@ -148,7 +137,6 @@ SET
     job_title = COALESCE(sqlc.narg('job_title')::employee_job_title_enum, job_title),
     department_id = COALESCE(sqlc.narg('department_id'), department_id),
     location_id = COALESCE(sqlc.narg('location_id'), location_id),
-    organizational_role_id = COALESCE(sqlc.narg('organizational_role_id'), organizational_role_id),
     contract_type = COALESCE(sqlc.narg('contract_type')::employee_contract_type_enum, contract_type),
     start_date = COALESCE(sqlc.narg('start_date')::date, start_date),
     contract_end_date = COALESCE(sqlc.narg('contract_end_date')::date, contract_end_date),
@@ -179,7 +167,6 @@ INSERT INTO employee_contracts (
     job_title,
     department_id,
     location_id,
-    organizational_role_id,
     contract_type,
     start_date,
     contract_end_date,
@@ -195,7 +182,6 @@ INSERT INTO employee_contracts (
     sqlc.arg('job_title'),
     sqlc.arg('department_id'),
     sqlc.arg('location_id'),
-    sqlc.narg('organizational_role_id'),
     sqlc.arg('contract_type'),
     sqlc.arg('start_date'),
     sqlc.narg('contract_end_date'),
@@ -215,7 +201,6 @@ INSERT INTO employee_contracts (
     job_title,
     department_id,
     location_id,
-    organizational_role_id,
     contract_type,
     start_date,
     contract_end_date,
@@ -230,7 +215,6 @@ INSERT INTO employee_contracts (
     sqlc.arg('job_title'),
     sqlc.arg('department_id'),
     sqlc.arg('location_id'),
-    sqlc.narg('organizational_role_id'),
     sqlc.arg('contract_type'),
     sqlc.arg('start_date'),
     sqlc.narg('contract_end_date'),

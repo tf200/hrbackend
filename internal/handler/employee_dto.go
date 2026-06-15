@@ -14,7 +14,6 @@ type createEmployeeContractRequest struct {
 	JobTitle             string     `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
 	DepartmentID         uuid.UUID  `json:"department_id"          binding:"required"`
 	LocationID           uuid.UUID  `json:"location_id"            binding:"required"`
-	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         string     `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
 	StartDate            string     `json:"start_date"             binding:"required,datetime=2006-01-02"`
 	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
@@ -27,7 +26,6 @@ type updateContractRequest struct {
 	JobTitle             *string    `json:"job_title"              binding:"omitempty,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
 	DepartmentID         *uuid.UUID `json:"department_id"`
 	LocationID           *uuid.UUID `json:"location_id"`
-	OrganizationalRoleID *uuid.UUID `json:"organizational_role_id"`
 	ContractType         *string    `json:"contract_type"          binding:"omitempty,oneof=permanent temporary on_call"`
 	StartDate            *string    `json:"start_date"             binding:"omitempty,datetime=2006-01-02"`
 	ContractEndDate      *string    `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
@@ -44,7 +42,6 @@ type createContractRequest struct {
 	JobTitle             string                                 `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
 	DepartmentID         uuid.UUID                              `json:"department_id"          binding:"required"`
 	LocationID           uuid.UUID                              `json:"location_id"            binding:"required"`
-	OrganizationalRoleID *uuid.UUID                             `json:"organizational_role_id"`
 	ContractType         string                                 `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
 	StartDate            string                                 `json:"start_date"             binding:"required,datetime=2006-01-02"`
 	ContractEndDate      *string                                `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
@@ -58,7 +55,6 @@ type createContractAmendmentRequest struct {
 	JobTitle             string                                 `json:"job_title"              binding:"required,oneof=youth_worker_d care_coordinator behavioral_scientist quality_officer pedagogical_worker team_lead manager administrative_employee"`
 	DepartmentID         uuid.UUID                              `json:"department_id"          binding:"required"`
 	LocationID           uuid.UUID                              `json:"location_id"            binding:"required"`
-	OrganizationalRoleID *uuid.UUID                             `json:"organizational_role_id"`
 	ContractType         string                                 `json:"contract_type"          binding:"required,oneof=permanent temporary on_call"`
 	StartDate            string                                 `json:"start_date"             binding:"required,datetime=2006-01-02"`
 	ContractEndDate      *string                                `json:"contract_end_date"      binding:"omitempty,datetime=2006-01-02"`
@@ -283,8 +279,6 @@ type employeeContractDetailResponse struct {
 	DepartmentName         *string    `json:"department_name"`
 	LocationID             uuid.UUID  `json:"location_id"`
 	LocationAddress        *string    `json:"location_address"`
-	OrganizationalRoleID   *uuid.UUID `json:"organizational_role_id"`
-	OrganizationalRoleName *string    `json:"organizational_role_name"`
 	ContractType           string     `json:"contract_type"`
 	StartDate              time.Time  `json:"start_date"`
 	ContractEndDate        *time.Time `json:"contract_end_date"`
@@ -526,7 +520,6 @@ func toCreateEmployeeParams(req createEmployeeRequest) domain.CreateEmployeePara
 			JobTitle:             req.Contract.JobTitle,
 			DepartmentID:         req.Contract.DepartmentID,
 			LocationID:           req.Contract.LocationID,
-			OrganizationalRoleID: req.Contract.OrganizationalRoleID,
 			ContractType:         req.Contract.ContractType,
 			StartDate:            startDate,
 			ContractEndDate:      contractEndDate,
@@ -601,7 +594,6 @@ func toUpdateEmployeeContractParams(req updateContractRequest) domain.UpdateEmpl
 		JobTitle:             req.JobTitle,
 		DepartmentID:         req.DepartmentID,
 		LocationID:           req.LocationID,
-		OrganizationalRoleID: req.OrganizationalRoleID,
 		ContractType:         req.ContractType,
 		StartDate:            startDate,
 		ContractEndDate:      contractEndDate,
@@ -620,7 +612,6 @@ func toCreateNewContractParams(req createContractRequest) domain.CreateNewContra
 		JobTitle:             req.JobTitle,
 		DepartmentID:         req.DepartmentID,
 		LocationID:           req.LocationID,
-		OrganizationalRoleID: req.OrganizationalRoleID,
 		ContractType:         req.ContractType,
 		StartDate:            startDate,
 		ContractEndDate:      contractEndDate,
@@ -642,7 +633,6 @@ func toCreateContractAmendmentParams(
 		JobTitle:             req.JobTitle,
 		DepartmentID:         req.DepartmentID,
 		LocationID:           req.LocationID,
-		OrganizationalRoleID: req.OrganizationalRoleID,
 		ContractType:         req.ContractType,
 		StartDate:            startDate,
 		ContractEndDate:      contractEndDate,
@@ -977,8 +967,6 @@ func toEmployeeContractDetailResponse(
 		DepartmentName:         contract.DepartmentName,
 		LocationID:             contract.LocationID,
 		LocationAddress:        contract.LocationAddress,
-		OrganizationalRoleID:   contract.OrganizationalRoleID,
-		OrganizationalRoleName: contract.OrganizationalRoleName,
 		ContractType:           contract.ContractType,
 		StartDate:              contract.StartDate,
 		ContractEndDate:        contract.ContractEndDate,
