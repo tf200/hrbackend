@@ -64,7 +64,6 @@ type Querier interface {
 	CreateEmployeeHandbookFromTemplate(ctx context.Context, arg CreateEmployeeHandbookFromTemplateParams) (CreateEmployeeHandbookFromTemplateRow, error)
 	CreateEmployeeProfile(ctx context.Context, arg CreateEmployeeProfileParams) (EmployeeProfile, error)
 	CreateEmployeeSalaryAssignment(ctx context.Context, arg CreateEmployeeSalaryAssignmentParams) (EmployeeSalaryAssignment, error)
-	CreateEmployeeSignatureProfile(ctx context.Context, arg CreateEmployeeSignatureProfileParams) (EmployeeSignatureProfile, error)
 	CreateExpenseRequest(ctx context.Context, arg CreateExpenseRequestParams) (ExpenseRequest, error)
 	CreateHandbookStep(ctx context.Context, arg CreateHandbookStepParams) (HandbookStep, error)
 	CreateHandbookTemplateForDepartment(ctx context.Context, arg CreateHandbookTemplateForDepartmentParams) (HandbookTemplate, error)
@@ -101,6 +100,7 @@ type Querier interface {
 	DeleteEmployeeEducation(ctx context.Context, id uuid.UUID) (EmployeeEducation, error)
 	DeleteEmployeeExperience(ctx context.Context, id uuid.UUID) (EmployeeExperience, error)
 	DeleteEmployeeQualification(ctx context.Context, id uuid.UUID) (EmployeeQualification, error)
+	DeleteEmployeeSignatureProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 	DeleteHandbookStepByID(ctx context.Context, id uuid.UUID) error
 	DeleteLocation(ctx context.Context, id uuid.UUID) (Location, error)
 	DeleteOrganisation(ctx context.Context, id uuid.UUID) (Organisation, error)
@@ -134,7 +134,6 @@ type Querier interface {
 	GetCurrentMonthOvertimeStats(ctx context.Context) (GetCurrentMonthOvertimeStatsRow, error)
 	GetDeductedLeavesForEmployeeAndYear(ctx context.Context, arg GetDeductedLeavesForEmployeeAndYearParams) ([]GetDeductedLeavesForEmployeeAndYearRow, error)
 	GetDeductedPayoutsForEmployeeAndYear(ctx context.Context, arg GetDeductedPayoutsForEmployeeAndYearParams) ([]GetDeductedPayoutsForEmployeeAndYearRow, error)
-	GetDefaultEmployeeSignatureProfile(ctx context.Context, employeeID uuid.UUID) (EmployeeSignatureProfile, error)
 	GetDepartment(ctx context.Context, id uuid.UUID) (Department, error)
 	GetEmployeeContractAtDate(ctx context.Context, arg GetEmployeeContractAtDateParams) (EmployeeContract, error)
 	GetEmployeeContractByID(ctx context.Context, id uuid.UUID) (EmployeeContract, error)
@@ -155,6 +154,7 @@ type Querier interface {
 	GetEmployeeSchedules(ctx context.Context, arg GetEmployeeSchedulesParams) ([]GetEmployeeSchedulesRow, error)
 	GetEmployeeSchedulesByDay(ctx context.Context, arg GetEmployeeSchedulesByDayParams) ([]GetEmployeeSchedulesByDayRow, error)
 	GetEmployeeShiftOverviewStats(ctx context.Context, arg GetEmployeeShiftOverviewStatsParams) (GetEmployeeShiftOverviewStatsRow, error)
+	GetEmployeeSignatureProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID) (EmployeeSignatureProfile, error)
 	GetExpenseRequestByID(ctx context.Context, id uuid.UUID) (GetExpenseRequestByIDRow, error)
 	GetGlobalOrganisationCounts(ctx context.Context) (GetGlobalOrganisationCountsRow, error)
 	GetHandbookStepByID(ctx context.Context, id uuid.UUID) (HandbookStep, error)
@@ -375,6 +375,7 @@ type Querier interface {
 	UpdateShiftSwapStatusAfterRecipientResponse(ctx context.Context, arg UpdateShiftSwapStatusAfterRecipientResponseParams) (ShiftSwapRequest, error)
 	UpdateSignDocumentFieldValue(ctx context.Context, arg UpdateSignDocumentFieldValueParams) (SignDocumentField, error)
 	UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error
+	UpsertEmployeeSignatureProfile(ctx context.Context, arg UpsertEmployeeSignatureProfileParams) (EmployeeSignatureProfile, error)
 	WaiveActiveEmployeeHandbooksByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 	WaiveEmployeeHandbookByID(ctx context.Context, id uuid.UUID) (EmployeeHandbook, error)
 }

@@ -1073,12 +1073,11 @@ CREATE TABLE employee_signature_profiles (
     type employee_signature_type_enum NOT NULL,
     typed_name TEXT NULL,
     image_file_key TEXT NULL,
-    is_default BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id)
 );
 
-CREATE UNIQUE INDEX employee_signature_profiles_one_default ON employee_signature_profiles(employee_id) WHERE is_default;
 CREATE INDEX idx_employee_signature_profiles_employee_id ON employee_signature_profiles(employee_id, created_at DESC);
 
 CREATE TABLE sign_document_signatures (

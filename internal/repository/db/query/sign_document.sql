@@ -118,34 +118,36 @@ JOIN sign_document_recipients prior_recipient
 WHERE current_recipient.id = $1
   AND prior_recipient.status <> 'signed';
 
--- name: CreateEmployeeSignatureProfile :one
-WITH reset_default AS (
-    UPDATE employee_signature_profiles
-    SET is_default = FALSE, updated_at = CURRENT_TIMESTAMP
-    WHERE employee_signature_profiles.employee_id = sqlc.arg('employee_id')
-      AND sqlc.arg('is_default')::boolean
-)
+-- name: UpsertEmployeeSignatureProfile :one
 INSERT INTO employee_signature_profiles (
     employee_id,
     type,
     typed_name,
-    image_file_key,
-    is_default
+    image_file_key
 )
 VALUES (
     sqlc.arg('employee_id'),
     sqlc.arg('type'),
     sqlc.narg('typed_name'),
-    sqlc.narg('image_file_key'),
-    sqlc.arg('is_default')
+    sqlc.narg('image_file_key')
 )
+ON CONFLICT (employee_id)
+DO UPDATE SET
+    type = EXCLUDED.type,
+    typed_name = EXCLUDED.typed_name,
+    image_file_key = EXCLUDED.image_file_key,
+    updated_at = CURRENT_TIMESTAMP
 RETURNING *;
 
--- name: GetDefaultEmployeeSignatureProfile :one
+-- name: GetEmployeeSignatureProfileByEmployeeID :one
 SELECT *
 FROM employee_signature_profiles
-WHERE employee_id = $1 AND is_default
+WHERE employee_id = $1
 LIMIT 1;
+
+-- name: DeleteEmployeeSignatureProfileByEmployeeID :exec
+DELETE FROM employee_signature_profiles
+WHERE employee_id = $1;
 
 -- name: CreateSignDocumentSignature :one
 INSERT INTO sign_document_signatures (

@@ -72,60 +72,6 @@ func (q *Queries) CountUnsignedSignDocumentRecipients(ctx context.Context, docum
 	return column_1, err
 }
 
-const createEmployeeSignatureProfile = `-- name: CreateEmployeeSignatureProfile :one
-WITH reset_default AS (
-    UPDATE employee_signature_profiles
-    SET is_default = FALSE, updated_at = CURRENT_TIMESTAMP
-    WHERE employee_signature_profiles.employee_id = $1
-      AND $5::boolean
-)
-INSERT INTO employee_signature_profiles (
-    employee_id,
-    type,
-    typed_name,
-    image_file_key,
-    is_default
-)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    $5
-)
-RETURNING id, employee_id, type, typed_name, image_file_key, is_default, created_at, updated_at
-`
-
-type CreateEmployeeSignatureProfileParams struct {
-	EmployeeID   uuid.UUID                 `json:"employee_id"`
-	Type         EmployeeSignatureTypeEnum `json:"type"`
-	TypedName    *string                   `json:"typed_name"`
-	ImageFileKey *string                   `json:"image_file_key"`
-	IsDefault    bool                      `json:"is_default"`
-}
-
-func (q *Queries) CreateEmployeeSignatureProfile(ctx context.Context, arg CreateEmployeeSignatureProfileParams) (EmployeeSignatureProfile, error) {
-	row := q.db.QueryRow(ctx, createEmployeeSignatureProfile,
-		arg.EmployeeID,
-		arg.Type,
-		arg.TypedName,
-		arg.ImageFileKey,
-		arg.IsDefault,
-	)
-	var i EmployeeSignatureProfile
-	err := row.Scan(
-		&i.ID,
-		&i.EmployeeID,
-		&i.Type,
-		&i.TypedName,
-		&i.ImageFileKey,
-		&i.IsDefault,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const createSignDocument = `-- name: CreateSignDocument :one
 INSERT INTO sign_documents (
     title,
@@ -401,6 +347,16 @@ func (q *Queries) CreateSignDocumentSignature(ctx context.Context, arg CreateSig
 	return i, err
 }
 
+const deleteEmployeeSignatureProfileByEmployeeID = `-- name: DeleteEmployeeSignatureProfileByEmployeeID :exec
+DELETE FROM employee_signature_profiles
+WHERE employee_id = $1
+`
+
+func (q *Queries) DeleteEmployeeSignatureProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteEmployeeSignatureProfileByEmployeeID, employeeID)
+	return err
+}
+
 const deleteSignDocumentFields = `-- name: DeleteSignDocumentFields :exec
 DELETE FROM sign_document_fields
 WHERE document_id = $1
@@ -411,15 +367,15 @@ func (q *Queries) DeleteSignDocumentFields(ctx context.Context, documentID uuid.
 	return err
 }
 
-const getDefaultEmployeeSignatureProfile = `-- name: GetDefaultEmployeeSignatureProfile :one
-SELECT id, employee_id, type, typed_name, image_file_key, is_default, created_at, updated_at
+const getEmployeeSignatureProfileByEmployeeID = `-- name: GetEmployeeSignatureProfileByEmployeeID :one
+SELECT id, employee_id, type, typed_name, image_file_key, created_at, updated_at
 FROM employee_signature_profiles
-WHERE employee_id = $1 AND is_default
+WHERE employee_id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetDefaultEmployeeSignatureProfile(ctx context.Context, employeeID uuid.UUID) (EmployeeSignatureProfile, error) {
-	row := q.db.QueryRow(ctx, getDefaultEmployeeSignatureProfile, employeeID)
+func (q *Queries) GetEmployeeSignatureProfileByEmployeeID(ctx context.Context, employeeID uuid.UUID) (EmployeeSignatureProfile, error) {
+	row := q.db.QueryRow(ctx, getEmployeeSignatureProfileByEmployeeID, employeeID)
 	var i EmployeeSignatureProfile
 	err := row.Scan(
 		&i.ID,
@@ -427,7 +383,6 @@ func (q *Queries) GetDefaultEmployeeSignatureProfile(ctx context.Context, employ
 		&i.Type,
 		&i.TypedName,
 		&i.ImageFileKey,
-		&i.IsDefault,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -987,6 +942,55 @@ func (q *Queries) UpdateSignDocumentFieldValue(ctx context.Context, arg UpdateSi
 		&i.Required,
 		&i.Label,
 		&i.Value,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertEmployeeSignatureProfile = `-- name: UpsertEmployeeSignatureProfile :one
+INSERT INTO employee_signature_profiles (
+    employee_id,
+    type,
+    typed_name,
+    image_file_key
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4
+)
+ON CONFLICT (employee_id)
+DO UPDATE SET
+    type = EXCLUDED.type,
+    typed_name = EXCLUDED.typed_name,
+    image_file_key = EXCLUDED.image_file_key,
+    updated_at = CURRENT_TIMESTAMP
+RETURNING id, employee_id, type, typed_name, image_file_key, created_at, updated_at
+`
+
+type UpsertEmployeeSignatureProfileParams struct {
+	EmployeeID   uuid.UUID                 `json:"employee_id"`
+	Type         EmployeeSignatureTypeEnum `json:"type"`
+	TypedName    *string                   `json:"typed_name"`
+	ImageFileKey *string                   `json:"image_file_key"`
+}
+
+func (q *Queries) UpsertEmployeeSignatureProfile(ctx context.Context, arg UpsertEmployeeSignatureProfileParams) (EmployeeSignatureProfile, error) {
+	row := q.db.QueryRow(ctx, upsertEmployeeSignatureProfile,
+		arg.EmployeeID,
+		arg.Type,
+		arg.TypedName,
+		arg.ImageFileKey,
+	)
+	var i EmployeeSignatureProfile
+	err := row.Scan(
+		&i.ID,
+		&i.EmployeeID,
+		&i.Type,
+		&i.TypedName,
+		&i.ImageFileKey,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

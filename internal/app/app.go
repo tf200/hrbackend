@@ -343,8 +343,15 @@ func buildRouter(
 	attachmentRepo := repository.NewAttachmentRepository(store)
 	attachmentService := service.NewAttachmentService(attachmentRepo, storageClient, logger)
 	signDocumentRepo := repository.NewSignDocumentRepository(store)
+	signatureProfileRepo := repository.NewEmployeeSignatureProfileRepository(store)
+	signatureProfileService := service.NewEmployeeSignatureProfileService(
+		signatureProfileRepo,
+		storageClient,
+		logger,
+	)
 	signDocumentService := service.NewSignDocumentService(
 		signDocumentRepo,
+		signatureProfileRepo,
 		attachmentRepo,
 		employeeRepo,
 		notificationService,
@@ -388,6 +395,7 @@ func buildRouter(
 	trainingHandler := handler.NewTrainingHandler(trainingService)
 	attachmentHandler := handler.NewAttachmentHandler(attachmentService)
 	signDocumentHandler := handler.NewSignDocumentHandler(signDocumentService)
+	signatureProfileHandler := handler.NewEmployeeSignatureProfileHandler(signatureProfileService)
 	notificationHandler := handler.NewNotificationHandler(notificationService)
 	lateArrivalHandler := handler.NewLateArrivalHandler(lateArrivalService)
 	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardService)
@@ -419,6 +427,7 @@ func buildRouter(
 	handler.RegisterTrainingRoutes(api, trainingHandler, auth, requirePermission)
 	handler.RegisterAttachmentRoutes(api, attachmentHandler, auth)
 	handler.RegisterSignDocumentRoutes(api, signDocumentHandler, auth, requirePermission)
+	handler.RegisterEmployeeSignatureProfileRoutes(api, signatureProfileHandler, auth)
 	handler.RegisterNotificationRoutes(api, notificationHandler, auth)
 	handler.RegisterLateArrivalRoutes(api, lateArrivalHandler, auth, requirePermission)
 	handler.RegisterAdminDashboardRoutes(api, adminDashboardHandler, auth, requirePermission)

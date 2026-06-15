@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -20,17 +21,19 @@ import (
 const signDocumentConsentText = "I agree to electronically sign this document."
 
 type SignDocumentService struct {
-	repo                domain.SignDocumentRepository
-	attachmentRepo      domain.AttachmentRepository
-	employeeRepo        domain.EmployeeRepository
-	notificationService domain.NotificationService
-	storage             domain.Storage
-	pdfStamper          domain.SignDocumentPDFStamper
-	logger              domain.Logger
+	repo                 domain.SignDocumentRepository
+	signatureProfileRepo domain.EmployeeSignatureProfileRepository
+	attachmentRepo       domain.AttachmentRepository
+	employeeRepo         domain.EmployeeRepository
+	notificationService  domain.NotificationService
+	storage              domain.Storage
+	pdfStamper           domain.SignDocumentPDFStamper
+	logger               domain.Logger
 }
 
 func NewSignDocumentService(
 	repo domain.SignDocumentRepository,
+	signatureProfileRepo domain.EmployeeSignatureProfileRepository,
 	attachmentRepo domain.AttachmentRepository,
 	employeeRepo domain.EmployeeRepository,
 	notificationService domain.NotificationService,
@@ -39,13 +42,14 @@ func NewSignDocumentService(
 	logger domain.Logger,
 ) domain.SignDocumentService {
 	return &SignDocumentService{
-		repo:                repo,
-		attachmentRepo:      attachmentRepo,
-		employeeRepo:        employeeRepo,
-		notificationService: notificationService,
-		storage:             storage,
-		pdfStamper:          pdfStamper,
-		logger:              logger,
+		repo:                 repo,
+		signatureProfileRepo: signatureProfileRepo,
+		attachmentRepo:       attachmentRepo,
+		employeeRepo:         employeeRepo,
+		notificationService:  notificationService,
+		storage:              storage,
+		pdfStamper:           pdfStamper,
+		logger:               logger,
 	}
 }
 
@@ -344,30 +348,30 @@ func (s *SignDocumentService) Sign(
 	if !hasRequiredFieldValues(fields, params.FieldValues) {
 		return nil, domain.ErrSignDocumentRequiredFieldsMissing
 	}
+	profile, err := s.signatureProfileRepo.GetByEmployeeID(ctx, employeeID)
+	if err != nil {
+		if errors.Is(err, domain.ErrEmployeeSignatureProfileNotFound) {
+			return nil, domain.ErrEmployeeSignatureProfileRequired
+		}
+		return nil, err
+	}
 
 	var signedDoc *domain.SignDocument
 	err = s.repo.WithTx(ctx, func(tx domain.SignDocumentRepository) error {
-		var profileID *uuid.UUID
-		if params.SaveSignatureForFuture {
-			typ := "typed"
-			if params.SignatureImageFileKey != nil {
-				typ = "drawn"
-			}
-			profile, err := tx.CreateSignatureProfile(
-				ctx,
-				employeeID,
-				typ,
-				params.SignatureText,
-				params.SignatureImageFileKey,
-				true,
-			)
-			if err != nil {
-				return err
-			}
-			profileID = &profile.ID
-		}
-		hash := signatureHash(params, employeeID, recipient.ID)
-		if _, err := tx.CreateSignature(ctx, params, *recipient, profileID, hash); err != nil {
+		hash := signatureHash(params, employeeID, recipient.ID, profile)
+		profileID := profile.ID
+		if _, err := tx.CreateSignature(ctx, domain.CreateSignDocumentSignatureParams{
+			DocumentID:            params.DocumentID,
+			RecipientID:           recipient.ID,
+			EmployeeID:            recipient.EmployeeID,
+			SignatureProfileID:    &profileID,
+			SignatureText:         profile.TypedName,
+			SignatureImageFileKey: profile.ImageFileKey,
+			ConsentText:           params.ConsentText,
+			IPAddress:             params.IPAddress,
+			UserAgent:             params.UserAgent,
+			SignatureHash:         hash,
+		}); err != nil {
 			return err
 		}
 		for _, fieldValue := range params.FieldValues {
@@ -624,18 +628,22 @@ func hasRequiredFieldValues(
 	}
 	return true
 }
-func signatureHash(params domain.SignDocumentSignParams, employeeID, recipientID uuid.UUID) string {
+func signatureHash(
+	params domain.SignDocumentSignParams,
+	employeeID, recipientID uuid.UUID,
+	profile *domain.EmployeeSignatureProfile,
+) string {
 	h := sha256.New()
 	_, _ = h.Write(
 		[]byte(
 			employeeID.String() + recipientID.String() + params.DocumentID.String() + params.ConsentText,
 		),
 	)
-	if params.SignatureText != nil {
-		_, _ = h.Write([]byte(*params.SignatureText))
+	if profile != nil && profile.TypedName != nil {
+		_, _ = h.Write([]byte(*profile.TypedName))
 	}
-	if params.SignatureImageFileKey != nil {
-		_, _ = h.Write([]byte(*params.SignatureImageFileKey))
+	if profile != nil && profile.ImageFileKey != nil {
+		_, _ = h.Write([]byte(*profile.ImageFileKey))
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }

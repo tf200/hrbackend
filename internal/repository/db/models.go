@@ -2169,7 +2169,6 @@ type EmployeeSignatureProfile struct {
 	Type         EmployeeSignatureTypeEnum `json:"type"`
 	TypedName    *string                   `json:"typed_name"`
 	ImageFileKey *string                   `json:"image_file_key"`
-	IsDefault    bool                      `json:"is_default"`
 	CreatedAt    pgtype.Timestamptz        `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz        `json:"updated_at"`
 }

@@ -39,12 +39,9 @@ type signDocumentFieldInput struct {
 }
 
 type signSignDocumentRequest struct {
-	SignatureText          *string                    `json:"signature_text"`
-	SignatureImageFileKey  *string                    `json:"signature_image_file_key"`
-	SaveSignatureForFuture bool                       `json:"save_signature_for_future"`
-	FieldValues            []signDocumentFieldValueIn `json:"field_values"              binding:"required"`
-	ConsentAccepted        bool                       `json:"consent_accepted"          binding:"required"`
-	ConsentText            string                     `json:"consent_text"`
+	FieldValues     []signDocumentFieldValueIn `json:"field_values"     binding:"required"`
+	ConsentAccepted bool                       `json:"consent_accepted" binding:"required"`
+	ConsentText     string                     `json:"consent_text"`
 }
 
 type signDocumentFieldValueIn struct {
@@ -117,14 +114,11 @@ func toSignDocumentSignParams(
 		)
 	}
 	return domain.SignDocumentSignParams{
-		DocumentID:             documentID,
-		SignatureText:          req.SignatureText,
-		SignatureImageFileKey:  req.SignatureImageFileKey,
-		SaveSignatureForFuture: req.SaveSignatureForFuture,
-		FieldValues:            values,
-		ConsentAccepted:        req.ConsentAccepted,
-		ConsentText:            req.ConsentText,
-		IPAddress:              ipAddress,
-		UserAgent:              userAgent,
+		DocumentID:      documentID,
+		FieldValues:     values,
+		ConsentAccepted: req.ConsentAccepted,
+		ConsentText:     req.ConsentText,
+		IPAddress:       ipAddress,
+		UserAgent:       userAgent,
 	}
 }

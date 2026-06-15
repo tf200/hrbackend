@@ -17,6 +17,9 @@ var (
 	ErrSignDocumentRequiredFieldsMissing = errors.New("required signing fields are missing")
 	ErrSignDocumentConsentRequired       = errors.New("signing consent is required")
 	ErrSignDocumentSigningOrderBlocked   = errors.New("previous signers must sign first")
+	ErrEmployeeSignatureProfileNotFound  = errors.New("employee signature profile not found")
+	ErrEmployeeSignatureProfileRequired  = errors.New("employee signature profile required")
+	ErrEmployeeSignatureProfileInvalid   = errors.New("invalid employee signature profile")
 )
 
 type SignDocument struct {
@@ -143,15 +146,52 @@ type SignDocumentFieldValueParams struct {
 }
 
 type SignDocumentSignParams struct {
-	DocumentID             uuid.UUID
-	SignatureText          *string
-	SignatureImageFileKey  *string
-	SaveSignatureForFuture bool
-	FieldValues            []SignDocumentFieldValueParams
-	ConsentAccepted        bool
-	ConsentText            string
-	IPAddress              *string
-	UserAgent              *string
+	DocumentID      uuid.UUID
+	FieldValues     []SignDocumentFieldValueParams
+	ConsentAccepted bool
+	ConsentText     string
+	IPAddress       *string
+	UserAgent       *string
+}
+
+type UpsertEmployeeSignatureProfileParams struct {
+	Type         string
+	TypedName    *string
+	ImageFileKey *string
+}
+
+type RequestSignatureUploadURLParams struct {
+	Filename    string
+	ContentType string
+	Size        int64
+}
+
+type SignatureUploadURLResponse struct {
+	UploadURL string
+	FileKey   string
+}
+
+type CreateSignDocumentSignatureParams struct {
+	DocumentID            uuid.UUID
+	RecipientID           uuid.UUID
+	EmployeeID            uuid.UUID
+	SignatureProfileID    *uuid.UUID
+	SignatureText         *string
+	SignatureImageFileKey *string
+	ConsentText           string
+	IPAddress             *string
+	UserAgent             *string
+	SignatureHash         string
+}
+
+type EmployeeSignatureProfileRepository interface {
+	GetByEmployeeID(ctx context.Context, employeeID uuid.UUID) (*EmployeeSignatureProfile, error)
+	Upsert(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params UpsertEmployeeSignatureProfileParams,
+	) (*EmployeeSignatureProfile, error)
+	DeleteByEmployeeID(ctx context.Context, employeeID uuid.UUID) error
 }
 
 type SignDocumentRepository interface {
@@ -196,19 +236,9 @@ type SignDocumentRepository interface {
 	SendDocument(ctx context.Context, documentID uuid.UUID) (*SignDocument, error)
 	MarkRecipientViewed(ctx context.Context, recipientID uuid.UUID) (*SignDocumentRecipient, error)
 	CountUnsignedPriorRecipients(ctx context.Context, recipientID uuid.UUID) (int32, error)
-	CreateSignatureProfile(
-		ctx context.Context,
-		employeeID uuid.UUID,
-		typ string,
-		typedName, imageFileKey *string,
-		isDefault bool,
-	) (*EmployeeSignatureProfile, error)
 	CreateSignature(
 		ctx context.Context,
-		params SignDocumentSignParams,
-		recipient SignDocumentRecipient,
-		profileID *uuid.UUID,
-		signatureHash string,
+		params CreateSignDocumentSignatureParams,
 	) (*SignDocumentSignature, error)
 	UpdateFieldValue(
 		ctx context.Context,
@@ -272,4 +302,20 @@ type SignDocumentService interface {
 	) (*SignDocument, error)
 	GetSourceURL(ctx context.Context, employeeID, documentID uuid.UUID) (string, error)
 	GetSignedURL(ctx context.Context, employeeID, documentID uuid.UUID) (string, error)
+}
+
+type EmployeeSignatureProfileService interface {
+	GetMySignatureProfile(ctx context.Context, employeeID uuid.UUID) (*EmployeeSignatureProfile, error)
+	UpsertMySignatureProfile(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params UpsertEmployeeSignatureProfileParams,
+	) (*EmployeeSignatureProfile, error)
+	DeleteMySignatureProfile(ctx context.Context, employeeID uuid.UUID) error
+	RequestUploadURL(
+		ctx context.Context,
+		employeeID uuid.UUID,
+		params RequestSignatureUploadURLParams,
+	) (*SignatureUploadURLResponse, error)
+	GetSignatureImageURL(ctx context.Context, employeeID uuid.UUID) (string, error)
 }

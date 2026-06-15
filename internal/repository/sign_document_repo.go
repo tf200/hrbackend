@@ -244,50 +244,23 @@ func (r *SignDocumentRepository) CountUnsignedPriorRecipients(
 	return r.store.CountUnsignedPriorSignDocumentRecipients(ctx, recipientID)
 }
 
-func (r *SignDocumentRepository) CreateSignatureProfile(
-	ctx context.Context,
-	employeeID uuid.UUID,
-	typ string,
-	typedName, imageFileKey *string,
-	isDefault bool,
-) (*domain.EmployeeSignatureProfile, error) {
-	row, err := r.store.CreateEmployeeSignatureProfile(
-		ctx,
-		db.CreateEmployeeSignatureProfileParams{
-			EmployeeID:   employeeID,
-			Type:         db.EmployeeSignatureTypeEnum(typ),
-			TypedName:    typedName,
-			ImageFileKey: imageFileKey,
-			IsDefault:    isDefault,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	model := toDomainEmployeeSignatureProfile(row)
-	return &model, nil
-}
-
 func (r *SignDocumentRepository) CreateSignature(
 	ctx context.Context,
-	params domain.SignDocumentSignParams,
-	recipient domain.SignDocumentRecipient,
-	profileID *uuid.UUID,
-	signatureHash string,
+	params domain.CreateSignDocumentSignatureParams,
 ) (*domain.SignDocumentSignature, error) {
 	row, err := r.store.CreateSignDocumentSignature(
 		ctx,
 		db.CreateSignDocumentSignatureParams{
 			DocumentID:            params.DocumentID,
-			RecipientID:           recipient.ID,
-			EmployeeID:            recipient.EmployeeID,
-			SignatureProfileID:    profileID,
+			RecipientID:           params.RecipientID,
+			EmployeeID:            params.EmployeeID,
+			SignatureProfileID:    params.SignatureProfileID,
 			SignatureText:         params.SignatureText,
 			SignatureImageFileKey: params.SignatureImageFileKey,
 			ConsentText:           params.ConsentText,
 			IpAddress:             params.IPAddress,
 			UserAgent:             params.UserAgent,
-			SignatureHash:         signatureHash,
+			SignatureHash:         params.SignatureHash,
 		},
 	)
 	if err != nil {
@@ -499,7 +472,7 @@ func toDomainEmployeeSignatureProfile(
 		Type:         string(row.Type),
 		TypedName:    row.TypedName,
 		ImageFileKey: row.ImageFileKey,
-		IsDefault:    row.IsDefault,
+		IsDefault:    true,
 		CreatedAt:    conv.TimeFromPgTimestamptz(row.CreatedAt),
 		UpdatedAt:    conv.TimeFromPgTimestamptz(row.UpdatedAt),
 	}

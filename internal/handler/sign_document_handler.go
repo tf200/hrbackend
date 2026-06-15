@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -213,7 +214,7 @@ func (h *SignDocumentHandler) Sign(ctx *gin.Context) {
 		toSignDocumentSignParams(documentID, req, ip, ua),
 	)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), signDocumentErrorCode(err)))
 		return
 	}
 	ctx.JSON(http.StatusOK, httpapi.OK(doc, "Document signed"))
@@ -264,4 +265,15 @@ func requestIPAndUserAgent(ctx *gin.Context) (*string, *string) {
 	ip := ctx.ClientIP()
 	ua := ctx.Request.UserAgent()
 	return &ip, &ua
+}
+
+func signDocumentErrorCode(err error) string {
+	switch {
+	case errors.Is(err, domain.ErrEmployeeSignatureProfileRequired):
+		return "SIGNATURE_PROFILE_REQUIRED"
+	case errors.Is(err, domain.ErrEmployeeSignatureProfileInvalid):
+		return "INVALID_SIGNATURE_PROFILE"
+	default:
+		return ""
+	}
 }
