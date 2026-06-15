@@ -192,6 +192,14 @@ type PayrollMonthORTOverviewParams struct {
 	EmployeeSearch *string
 }
 
+type PayrollPeriodORTOverviewParams struct {
+	PeriodStart    time.Time
+	PeriodEnd      time.Time
+	Limit          int32
+	Offset         int32
+	EmployeeSearch *string
+}
+
 type PayrollMonthSummaryPage struct {
 	Items      []PayrollMonthSummaryRow
 	TotalCount int64
@@ -221,6 +229,14 @@ type PayrollMonthORTOverviewPage struct {
 	Month        time.Time
 	Distribution []PayrollMultiplierSummary
 	Items        []PayrollMonthORTOverviewRow
+	TotalCount   int64
+}
+
+type PayrollPeriodORTOverviewPage struct {
+	PeriodStart  time.Time
+	PeriodEnd    time.Time
+	Distribution []PayrollMultiplierSummary
+	Items        []PayrollPeriodORTOverviewRow
 	TotalCount   int64
 }
 
@@ -374,6 +390,25 @@ type PayrollMonthORTOverviewRow struct {
 	EmployeeName      string
 	Month             time.Time
 	IsCurrentMonth    bool
+	IsLocked          bool
+	HasLockedSnapshot bool
+	DataSource        string
+	WorkedMinutes     float64
+	PaidMinutes       float64
+	BaseAmount        float64
+	PremiumAmount     float64
+	PayPeriodID       *uuid.UUID
+	PayPeriodStatus   *string
+	PaidAt            *time.Time
+	Distribution      []PayrollMultiplierSummary
+}
+
+type PayrollPeriodORTOverviewRow struct {
+	EmployeeID        uuid.UUID
+	EmployeeName      string
+	PeriodStart       time.Time
+	PeriodEnd         time.Time
+	IsCurrentPeriod   bool
 	IsLocked          bool
 	HasLockedSnapshot bool
 	DataSource        string
@@ -856,6 +891,10 @@ type SalaryService interface {
 		ctx context.Context,
 		params PayrollMonthORTOverviewParams,
 	) (*PayrollMonthORTOverviewPage, error)
+	GetPayrollPeriodORTOverview(
+		ctx context.Context,
+		params PayrollPeriodORTOverviewParams,
+	) (*PayrollPeriodORTOverviewPage, error)
 	GetORTRules(ctx context.Context) (*ORTRulesResponse, error)
 	GetPayrollMonthDetail(
 		ctx context.Context,

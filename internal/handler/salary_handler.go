@@ -458,20 +458,20 @@ func (h *SalaryHandler) GetPayrollPeriodOptions(ctx *gin.Context) {
 	)
 }
 
-func (h *SalaryHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
-	var req payrollMonthSummaryRequest
+func (h *SalaryHandler) GetPayrollPeriodORTOverview(ctx *gin.Context) {
+	var req payrollPeriodSummaryRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	params, err := toPayrollMonthORTOverviewParams(req)
+	params, err := toPayrollPeriodORTOverviewParams(req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
 		return
 	}
 
-	page, err := h.service.GetPayrollMonthORTOverview(ctx.Request.Context(), params)
+	page, err := h.service.GetPayrollPeriodORTOverview(ctx.Request.Context(), params)
 	if err != nil {
 		ctx.JSON(mapSalaryErrorStatus(err), httpapi.Fail(err.Error(), ""))
 		return
@@ -480,13 +480,13 @@ func (h *SalaryHandler) GetPayrollMonthORTOverview(ctx *gin.Context) {
 	paged := httpapi.NewPageResponse(
 		ctx,
 		req.PageRequest,
-		toPayrollMonthORTOverviewEmployeeResponses(page.Items),
+		toPayrollPeriodORTOverviewEmployeeResponses(page.Items),
 		page.TotalCount,
 	)
-	response := toPayrollMonthORTOverviewResponse(page, paged)
+	response := toPayrollPeriodORTOverviewResponse(page, paged)
 	ctx.JSON(
 		http.StatusOK,
-		httpapi.OK(response, "Payroll month ORT overview retrieved successfully"),
+		httpapi.OK(response, "Payroll period ORT overview retrieved successfully"),
 	)
 }
 

@@ -1598,6 +1598,201 @@ func (s *SalaryService) GetPayrollMonthORTOverview(
 	}, nil
 }
 
+func (s *SalaryService) GetPayrollPeriodORTOverview(
+	ctx context.Context,
+	params domain.PayrollPeriodORTOverviewParams,
+) (*domain.PayrollPeriodORTOverviewPage, error) {
+	if params.PeriodStart.IsZero() || params.PeriodEnd.IsZero() {
+		return nil, domain.ErrSalaryInvalidRequest
+	}
+
+	periodStart := time.Date(
+		params.PeriodStart.UTC().Year(),
+		params.PeriodStart.UTC().Month(),
+		params.PeriodStart.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	periodEnd := time.Date(
+		params.PeriodEnd.UTC().Year(),
+		params.PeriodEnd.UTC().Month(),
+		params.PeriodEnd.UTC().Day(),
+		0,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	if !isPayrollPeriodRange(periodStart, periodEnd) {
+		return nil, domain.ErrSalaryInvalidRequest
+	}
+
+	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	isCurrentPeriod := !today.Before(periodStart) && !today.After(periodEnd)
+
+	repoParams := domain.PayrollMonthORTOverviewParams{
+		EmployeeSearch: params.EmployeeSearch,
+	}
+	employees, err := s.repo.ListPayrollMonthEmployeesAll(ctx, repoParams, periodStart, periodEnd)
+	if err != nil {
+		s.logError(ctx, "GetPayrollPeriodORTOverview", "failed to list payroll month employees", err)
+		return nil, fmt.Errorf("failed to list payroll month employees: %w", err)
+	}
+	if len(employees) == 0 {
+		return &domain.PayrollPeriodORTOverviewPage{
+			PeriodStart:  periodStart,
+			PeriodEnd:    periodEnd,
+			Distribution: []domain.PayrollMultiplierSummary{},
+			Items:        []domain.PayrollPeriodORTOverviewRow{},
+			TotalCount:   0,
+		}, nil
+	}
+
+	employeeIDs := make([]uuid.UUID, 0, len(employees))
+	for _, employee := range employees {
+		employeeIDs = append(employeeIDs, employee.EmployeeID)
+	}
+
+	lockedPayPeriods, err := s.repo.ListPayPeriodsByEmployeesAndRange(
+		ctx,
+		employeeIDs,
+		periodStart,
+		periodEnd,
+	)
+	if err != nil {
+		s.logError(ctx, "GetPayrollPeriodORTOverview", "failed to list locked pay periods", err)
+		return nil, fmt.Errorf("failed to list pay periods for payroll period ORT overview: %w", err)
+	}
+
+	lockedByEmployee := make(map[uuid.UUID]domain.PayPeriod, len(lockedPayPeriods))
+	payPeriodIDs := make([]uuid.UUID, 0, len(lockedPayPeriods))
+	for _, payPeriod := range lockedPayPeriods {
+		lockedByEmployee[payPeriod.EmployeeID] = payPeriod
+		payPeriodIDs = append(payPeriodIDs, payPeriod.ID)
+	}
+
+	lockedDistributionByPeriod := make(
+		map[uuid.UUID][]domain.PayrollMultiplierSummary,
+		len(payPeriodIDs),
+	)
+	if len(payPeriodIDs) > 0 {
+		lockedSummaries, err := s.repo.ListPayrollMonthLockedMultiplierSummaries(ctx, payPeriodIDs)
+		if err != nil {
+			s.logError(
+				ctx,
+				"GetPayrollPeriodORTOverview",
+				"failed to list locked pay period multiplier summaries",
+				err,
+			)
+			return nil, fmt.Errorf(
+				"failed to list locked payroll period multiplier summaries: %w",
+				err,
+			)
+		}
+		lockedDistributionByPeriod = buildLockedORTDistributionMap(lockedSummaries)
+	}
+
+	approvedWorkItems, err := s.repo.ListPayrollMonthApprovedWorkItems(
+		ctx,
+		employeeIDs,
+		periodStart,
+		periodEnd,
+	)
+	if err != nil {
+		s.logError(
+			ctx,
+			"GetPayrollPeriodORTOverview",
+			"failed to list approved payroll work items",
+			err,
+		)
+		return nil, fmt.Errorf("failed to list approved payroll period work items: %w", err)
+	}
+
+	liveSummaries := make(map[uuid.UUID]payrollMonthLiveSummary)
+	if len(approvedWorkItems) > 0 {
+		holidaySet, err := s.loadHolidaySet(ctx, periodStart, periodEnd)
+		if err != nil {
+			return nil, err
+		}
+		liveSummaries, err = buildPayrollMonthLiveSummaries(approvedWorkItems, holidaySet)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	totalBuckets := make(map[float64]*domain.PayrollMultiplierSummary)
+	items := make([]domain.PayrollPeriodORTOverviewRow, 0, len(employees))
+	for _, employee := range employees {
+		row := domain.PayrollPeriodORTOverviewRow{
+			EmployeeID:      employee.EmployeeID,
+			EmployeeName:    employee.EmployeeName,
+			PeriodStart:     periodStart,
+			PeriodEnd:       periodEnd,
+			IsCurrentPeriod: isCurrentPeriod,
+		}
+
+		lockedPayPeriod, hasLockedSnapshot := lockedByEmployee[employee.EmployeeID]
+		if hasLockedSnapshot {
+			row.HasLockedSnapshot = true
+			row.PayPeriodID = &lockedPayPeriod.ID
+			status := lockedPayPeriod.Status
+			row.PayPeriodStatus = &status
+			row.PaidAt = lockedPayPeriod.PaidAt
+		}
+
+		switch {
+		case isCurrentPeriod:
+			live, ok := liveSummaries[employee.EmployeeID]
+			if !ok {
+				continue
+			}
+			row.DataSource = "live"
+			row.Distribution = positiveMultiplierSummaries(live.MultiplierSummaries)
+		case hasLockedSnapshot:
+			row.IsLocked = true
+			row.DataSource = "locked"
+			row.Distribution = lockedDistributionByPeriod[lockedPayPeriod.ID]
+		default:
+			live, ok := liveSummaries[employee.EmployeeID]
+			if !ok {
+				continue
+			}
+			row.DataSource = "live"
+			row.Distribution = positiveMultiplierSummaries(live.MultiplierSummaries)
+		}
+
+		if len(row.Distribution) == 0 {
+			continue
+		}
+
+		applyPeriodORTOverviewTotals(&row)
+		addMultiplierSummaries(totalBuckets, row.Distribution)
+		items = append(items, row)
+	}
+
+	totalCount := int64(len(items))
+	start := int(params.Offset)
+	if start > len(items) {
+		start = len(items)
+	}
+	end := start + int(params.Limit)
+	if end > len(items) {
+		end = len(items)
+	}
+
+	return &domain.PayrollPeriodORTOverviewPage{
+		PeriodStart:  periodStart,
+		PeriodEnd:    periodEnd,
+		Distribution: sortedMultiplierSummaries(totalBuckets),
+		Items:        items[start:end],
+		TotalCount:   totalCount,
+	}, nil
+}
+
 func (s *SalaryService) GetPayrollMonthDetail(
 	ctx context.Context,
 	employeeID uuid.UUID,
@@ -3575,6 +3770,15 @@ func buildLockedORTDistributionMap(
 }
 
 func applyORTOverviewTotals(row *domain.PayrollMonthORTOverviewRow) {
+	for _, item := range row.Distribution {
+		row.WorkedMinutes = roundCurrency(row.WorkedMinutes + item.WorkedMinutes)
+		row.PaidMinutes = roundCurrency(row.PaidMinutes + item.PaidMinutes)
+		row.BaseAmount = roundCurrency(row.BaseAmount + item.BaseAmount)
+		row.PremiumAmount = roundCurrency(row.PremiumAmount + item.PremiumAmount)
+	}
+}
+
+func applyPeriodORTOverviewTotals(row *domain.PayrollPeriodORTOverviewRow) {
 	for _, item := range row.Distribution {
 		row.WorkedMinutes = roundCurrency(row.WorkedMinutes + item.WorkedMinutes)
 		row.PaidMinutes = roundCurrency(row.PaidMinutes + item.PaidMinutes)

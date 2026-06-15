@@ -15,14 +15,15 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
+func TestSalaryHandlerGetPayrollPeriodORTOverviewSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	employeeID := uuid.New()
 	payPeriodID := uuid.New()
 	service := &fakeSalaryService{
-		ortOverviewPage: &domain.PayrollMonthORTOverviewPage{
-			Month: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+		ortPeriodOverviewPage: &domain.PayrollPeriodORTOverviewPage{
+			PeriodStart: time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC),
+			PeriodEnd:   time.Date(2026, 7, 12, 0, 0, 0, 0, time.UTC),
 			Distribution: []domain.PayrollMultiplierSummary{
 				{
 					RatePercent:   45,
@@ -32,12 +33,13 @@ func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 					PremiumAmount: 9,
 				},
 			},
-			Items: []domain.PayrollMonthORTOverviewRow{
+			Items: []domain.PayrollPeriodORTOverviewRow{
 				{
 					EmployeeID:        employeeID,
 					EmployeeName:      "Annie Case",
-					Month:             time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
-					IsCurrentMonth:    true,
+					PeriodStart:       time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC),
+					PeriodEnd:         time.Date(2026, 7, 12, 0, 0, 0, 0, time.UTC),
+					IsCurrentPeriod:   true,
 					IsLocked:          false,
 					HasLockedSnapshot: true,
 					DataSource:        "live",
@@ -63,11 +65,11 @@ func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 
 	router := gin.New()
 	handler := NewSalaryHandler(service)
-	router.GET("/payroll-month-summary/ort-overview", handler.GetPayrollMonthORTOverview)
+	router.GET("/payroll-month-summary/ort-overview", handler.GetPayrollPeriodORTOverview)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/payroll-month-summary/ort-overview?month=2026-04&page=1&page_size=5&employee_search=annie",
+		"/payroll-month-summary/ort-overview?period_start=2026-06-15&page=1&page_size=5&employee_search=annie",
 		nil,
 	)
 	recorder := httptest.NewRecorder()
@@ -77,21 +79,21 @@ func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
 	}
-	if service.ortOverviewParams.Month.Format("2006-01") != "2026-04" {
-		t.Fatalf("unexpected parsed month: %s", service.ortOverviewParams.Month.Format("2006-01"))
+	if service.ortPeriodOverviewParams.PeriodStart.Format("2006-01-02") != "2026-06-15" {
+		t.Fatalf("unexpected parsed period_start: %s", service.ortPeriodOverviewParams.PeriodStart.Format("2006-01-02"))
 	}
-	if service.ortOverviewParams.Limit != 5 || service.ortOverviewParams.Offset != 0 {
-		t.Fatalf("unexpected pagination params: %#v", service.ortOverviewParams)
+	if service.ortPeriodOverviewParams.Limit != 5 || service.ortPeriodOverviewParams.Offset != 0 {
+		t.Fatalf("unexpected pagination params: %#v", service.ortPeriodOverviewParams)
 	}
-	if service.ortOverviewParams.EmployeeSearch == nil ||
-		*service.ortOverviewParams.EmployeeSearch != "annie" {
-		t.Fatalf("unexpected employee_search: %#v", service.ortOverviewParams.EmployeeSearch)
+	if service.ortPeriodOverviewParams.EmployeeSearch == nil ||
+		*service.ortPeriodOverviewParams.EmployeeSearch != "annie" {
+		t.Fatalf("unexpected employee_search: %#v", service.ortPeriodOverviewParams.EmployeeSearch)
 	}
 
 	var response struct {
-		Success bool                            `json:"success"`
-		Message string                          `json:"message"`
-		Data    payrollMonthORTOverviewResponse `json:"data"`
+		Success bool                             `json:"success"`
+		Message string                           `json:"message"`
+		Data    payrollPeriodORTOverviewResponse `json:"data"`
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("unmarshal response: %v", err)
@@ -100,11 +102,11 @@ func TestSalaryHandlerGetPayrollMonthORTOverviewSuccess(t *testing.T) {
 	if !response.Success {
 		t.Fatalf("expected success response")
 	}
-	if response.Message != "Payroll month ORT overview retrieved successfully" {
+	if response.Message != "Payroll period ORT overview retrieved successfully" {
 		t.Fatalf("unexpected message: %s", response.Message)
 	}
-	if response.Data.Month != "2026-04" {
-		t.Fatalf("unexpected response month: %s", response.Data.Month)
+	if response.Data.PeriodStart != "2026-06-15" {
+		t.Fatalf("unexpected response period start: %s", response.Data.PeriodStart)
 	}
 	if response.Data.Count != 1 || response.Data.PageSize != 5 || len(response.Data.Results) != 1 {
 		t.Fatalf("unexpected page response: %#v", response.Data)
@@ -401,10 +403,13 @@ func TestResolvePayrollPeriodRequestAllowsFiveWeekFinalPeriod(t *testing.T) {
 }
 
 type fakeSalaryService struct {
-	ortOverviewPage      *domain.PayrollMonthORTOverviewPage
-	ortOverviewParams    domain.PayrollMonthORTOverviewParams
-	ortOverviewErr       error
-	ortRules             *domain.ORTRulesResponse
+	ortOverviewPage         *domain.PayrollMonthORTOverviewPage
+	ortOverviewParams       domain.PayrollMonthORTOverviewParams
+	ortOverviewErr          error
+	ortPeriodOverviewPage   *domain.PayrollPeriodORTOverviewPage
+	ortPeriodOverviewParams domain.PayrollPeriodORTOverviewParams
+	ortPeriodOverviewErr    error
+	ortRules                *domain.ORTRulesResponse
 	ortRulesErr          error
 	fixedStats           *domain.PayrollMonthStats
 	fixedStatsParams     domain.PayrollMonthSummaryParams
@@ -560,6 +565,16 @@ func (f *fakeSalaryService) GetPayrollMonthORTOverview(
 		return nil, f.ortOverviewErr
 	}
 	return f.ortOverviewPage, nil
+}
+func (f *fakeSalaryService) GetPayrollPeriodORTOverview(
+	_ context.Context,
+	params domain.PayrollPeriodORTOverviewParams,
+) (*domain.PayrollPeriodORTOverviewPage, error) {
+	f.ortPeriodOverviewParams = params
+	if f.ortPeriodOverviewErr != nil {
+		return nil, f.ortPeriodOverviewErr
+	}
+	return f.ortPeriodOverviewPage, nil
 }
 func (f *fakeSalaryService) GetORTRules(_ context.Context) (*domain.ORTRulesResponse, error) {
 	if f.ortRulesErr != nil {
