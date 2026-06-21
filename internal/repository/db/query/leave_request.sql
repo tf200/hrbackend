@@ -141,6 +141,12 @@ ORDER BY lr.requested_at DESC
 LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: ListLeaveCalendarRows :many
+WITH latest_contract AS (
+    -- Department is stored on employee_contracts, not employee_profile.
+    SELECT DISTINCT ON (employee_id) *
+    FROM employee_contracts
+    ORDER BY employee_id, start_date DESC, created_at DESC
+)
 SELECT
     ep.id AS employee_id,
     ep.first_name AS employee_first_name,
@@ -156,7 +162,8 @@ SELECT
     lr.reason
 FROM leave_requests lr
 JOIN employee_profile ep ON ep.id = lr.employee_id
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
+LEFT JOIN departments d ON d.id = ec.department_id
 WHERE lr.start_date < sqlc.arg('month_end_exclusive')::date
   AND lr.end_date >= sqlc.arg('month_start')::date
   AND lr.status = ANY(ARRAY[
@@ -165,7 +172,7 @@ WHERE lr.start_date < sqlc.arg('month_end_exclusive')::date
   ])
   AND (
     sqlc.narg('department_id')::uuid IS NULL
-    OR ep.department_id = sqlc.narg('department_id')::uuid
+    OR ec.department_id = sqlc.narg('department_id')::uuid
   )
   AND (
     sqlc.narg('employee_search')::text IS NULL

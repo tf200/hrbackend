@@ -54,7 +54,7 @@ UPDATE custom_user
 SET two_factor_enabled = false,
     two_factor_secret = NULL,
     two_factor_secret_temp = NULL,
-    recovery_codes = NULL
+    recovery_codes = '{}'
 WHERE id = $1;
 
 

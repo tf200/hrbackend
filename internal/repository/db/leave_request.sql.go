@@ -172,6 +172,12 @@ func (q *Queries) GetMyLeaveRequestStats(ctx context.Context, employeeID uuid.UU
 }
 
 const listLeaveCalendarRows = `-- name: ListLeaveCalendarRows :many
+WITH latest_contract AS (
+    -- Department is stored on employee_contracts, not employee_profile.
+    SELECT DISTINCT ON (employee_id) id, employee_id, job_title, department_id, location_id, contract_type, start_date, contract_end_date, effective_end_date, hours_per_week, roster_free_day, wage_tax_table, previous_contract_id, contract_event_type, change_reason, updated_by_employee_id, created_by_employee_id, created_at, updated_at
+    FROM employee_contracts
+    ORDER BY employee_id, start_date DESC, created_at DESC
+)
 SELECT
     ep.id AS employee_id,
     ep.first_name AS employee_first_name,
@@ -187,7 +193,8 @@ SELECT
     lr.reason
 FROM leave_requests lr
 JOIN employee_profile ep ON ep.id = lr.employee_id
-LEFT JOIN departments d ON d.id = ep.department_id
+LEFT JOIN latest_contract ec ON ec.employee_id = ep.id
+LEFT JOIN departments d ON d.id = ec.department_id
 WHERE lr.start_date < $1::date
   AND lr.end_date >= $2::date
   AND lr.status = ANY(ARRAY[
@@ -196,7 +203,7 @@ WHERE lr.start_date < $1::date
   ])
   AND (
     $3::uuid IS NULL
-    OR ep.department_id = $3::uuid
+    OR ec.department_id = $3::uuid
   )
   AND (
     $4::text IS NULL
