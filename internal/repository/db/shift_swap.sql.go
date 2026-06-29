@@ -653,6 +653,7 @@ const lockSchedulesByIDsForSwap = `-- name: LockSchedulesByIDsForSwap :many
 SELECT
     id,
     employee_id,
+    location_id,
     start_datetime,
     end_datetime
 FROM schedules
@@ -664,6 +665,7 @@ FOR UPDATE
 type LockSchedulesByIDsForSwapRow struct {
 	ID            uuid.UUID          `json:"id"`
 	EmployeeID    uuid.UUID          `json:"employee_id"`
+	LocationID    uuid.UUID          `json:"location_id"`
 	StartDatetime pgtype.Timestamptz `json:"start_datetime"`
 	EndDatetime   pgtype.Timestamptz `json:"end_datetime"`
 }
@@ -680,6 +682,7 @@ func (q *Queries) LockSchedulesByIDsForSwap(ctx context.Context, dollar_1 []uuid
 		if err := rows.Scan(
 			&i.ID,
 			&i.EmployeeID,
+			&i.LocationID,
 			&i.StartDatetime,
 			&i.EndDatetime,
 		); err != nil {

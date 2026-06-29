@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -391,6 +392,57 @@ type UpdateScheduleParams struct {
 	EndDatetime            time.Time
 }
 
+const (
+	ScheduleHistoryActionCreated                   = "created"
+	ScheduleHistoryActionUpdated                   = "updated"
+	ScheduleHistoryActionDeleted                   = "deleted"
+	ScheduleHistoryActionEmployeeAssignmentChanged = "employee_assignment_changed"
+)
+
+type CreateScheduleHistoryParams struct {
+	ScheduleID            uuid.UUID
+	LocationID            uuid.UUID
+	AffectedEmployeeID    *uuid.UUID
+	AffectedStartDatetime *time.Time
+	AffectedEndDatetime   *time.Time
+	AffectedShiftDate     *time.Time
+	Action                string
+	ActorEmployeeID       *uuid.UUID
+	OldValues             json.RawMessage
+	NewValues             json.RawMessage
+	Metadata              json.RawMessage
+}
+
+type ListScheduleHistoryParams struct {
+	LocationID      uuid.UUID
+	Limit           int32
+	Offset          int32
+	StartDate       *time.Time
+	EndDate         *time.Time
+	ShiftDate       *time.Time
+	Action          *string
+	EmployeeID      *uuid.UUID
+	ActorEmployeeID *uuid.UUID
+}
+
+type ScheduleHistoryEntry struct {
+	ID                    uuid.UUID       `json:"id"`
+	ScheduleID            uuid.UUID       `json:"schedule_id"`
+	LocationID            uuid.UUID       `json:"location_id"`
+	AffectedEmployeeID    *uuid.UUID      `json:"affected_employee_id,omitempty"`
+	AffectedStartDatetime *time.Time      `json:"affected_start_datetime,omitempty"`
+	AffectedEndDatetime   *time.Time      `json:"affected_end_datetime,omitempty"`
+	AffectedShiftDate     *string         `json:"affected_shift_date,omitempty"`
+	Action                string          `json:"action"`
+	ActorEmployeeID       *uuid.UUID      `json:"actor_employee_id,omitempty"`
+	ActorFirstName        *string         `json:"actor_first_name,omitempty"`
+	ActorLastName         *string         `json:"actor_last_name,omitempty"`
+	OldValues             json.RawMessage `json:"old_values,omitempty"`
+	NewValues             json.RawMessage `json:"new_values,omitempty"`
+	Metadata              json.RawMessage `json:"metadata"`
+	CreatedAt             time.Time       `json:"created_at"`
+}
+
 type CreateShiftSwapRequest struct {
 	RecipientEmployeeID uuid.UUID
 	RequesterScheduleID uuid.UUID
@@ -574,6 +626,16 @@ type ScheduleRepository interface {
 		params UpdateScheduleParams,
 	) (*UpdateScheduleResponse, error)
 	DeleteSchedule(ctx context.Context, scheduleID uuid.UUID) error
+	CreateScheduleHistory(ctx context.Context, params CreateScheduleHistoryParams) error
+	ListScheduleHistoryByScheduleID(
+		ctx context.Context,
+		scheduleID uuid.UUID,
+		limit, offset int32,
+	) ([]ScheduleHistoryEntry, error)
+	ListScheduleHistoryByLocationID(
+		ctx context.Context,
+		params ListScheduleHistoryParams,
+	) ([]ScheduleHistoryEntry, error)
 	GetLocationByID(ctx context.Context, locationID uuid.UUID) (*ScheduleLocation, error)
 	GetShiftByID(ctx context.Context, shiftID uuid.UUID) (*ScheduleLocationShift, error)
 	GetShiftsByLocationID(
@@ -686,7 +748,11 @@ type ScheduleService interface {
 		updaterEmployeeID uuid.UUID,
 		req *UpdateScheduleRequest,
 	) (*UpdateScheduleResponse, error)
-	DeleteSchedule(ctx context.Context, scheduleID uuid.UUID) error
+	DeleteSchedule(ctx context.Context, scheduleID, actorEmployeeID uuid.UUID) error
+	ListScheduleHistoryByLocationID(
+		ctx context.Context,
+		params ListScheduleHistoryParams,
+	) ([]ScheduleHistoryEntry, error)
 	AutoGenerateSchedules(
 		ctx context.Context,
 		req *AutoGenerateSchedulesRequest,

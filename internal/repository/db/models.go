@@ -1502,6 +1502,50 @@ func (ns NullReminderChannelEnum) Value() (driver.Value, error) {
 	return string(ns.ReminderChannelEnum), nil
 }
 
+type ScheduleHistoryActionEnum string
+
+const (
+	ScheduleHistoryActionEnumCreated                   ScheduleHistoryActionEnum = "created"
+	ScheduleHistoryActionEnumUpdated                   ScheduleHistoryActionEnum = "updated"
+	ScheduleHistoryActionEnumDeleted                   ScheduleHistoryActionEnum = "deleted"
+	ScheduleHistoryActionEnumEmployeeAssignmentChanged ScheduleHistoryActionEnum = "employee_assignment_changed"
+)
+
+func (e *ScheduleHistoryActionEnum) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ScheduleHistoryActionEnum(s)
+	case string:
+		*e = ScheduleHistoryActionEnum(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ScheduleHistoryActionEnum: %T", src)
+	}
+	return nil
+}
+
+type NullScheduleHistoryActionEnum struct {
+	ScheduleHistoryActionEnum ScheduleHistoryActionEnum `json:"schedule_history_action_enum"`
+	Valid                     bool                      `json:"valid"` // Valid is true if ScheduleHistoryActionEnum is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullScheduleHistoryActionEnum) Scan(value interface{}) error {
+	if value == nil {
+		ns.ScheduleHistoryActionEnum, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ScheduleHistoryActionEnum.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullScheduleHistoryActionEnum) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ScheduleHistoryActionEnum), nil
+}
+
 type ShiftSwapStatusEnum string
 
 const (
@@ -2544,6 +2588,22 @@ type Schedule struct {
 	CreatedByEmployeeID    uuid.UUID          `json:"created_by_employee_id"`
 	CreatedAt              pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ScheduleHistory struct {
+	ID                    uuid.UUID                 `json:"id"`
+	ScheduleID            uuid.UUID                 `json:"schedule_id"`
+	LocationID            uuid.UUID                 `json:"location_id"`
+	AffectedEmployeeID    *uuid.UUID                `json:"affected_employee_id"`
+	AffectedStartDatetime pgtype.Timestamptz        `json:"affected_start_datetime"`
+	AffectedEndDatetime   pgtype.Timestamptz        `json:"affected_end_datetime"`
+	AffectedShiftDate     pgtype.Date               `json:"affected_shift_date"`
+	Action                ScheduleHistoryActionEnum `json:"action"`
+	ActorEmployeeID       *uuid.UUID                `json:"actor_employee_id"`
+	OldValues             []byte                    `json:"old_values"`
+	NewValues             []byte                    `json:"new_values"`
+	Metadata              []byte                    `json:"metadata"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
 }
 
 type Session struct {

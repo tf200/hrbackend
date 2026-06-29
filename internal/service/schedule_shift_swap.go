@@ -226,10 +226,32 @@ func (s *ScheduleService) CreateAdminShiftSwapRequest(
 		); err != nil {
 			return err
 		}
+		if err := s.recordScheduleAssignmentHistory(
+			ctx,
+			tx,
+			requesterSchedule,
+			adminEmployeeID,
+			requesterSchedule.EmployeeID,
+			req.RecipientEmployeeID,
+			created.ID,
+		); err != nil {
+			return err
+		}
 		if err := tx.UpdateScheduleEmployeeAssignment(
 			ctx,
 			recipientSchedule.ID,
 			req.RequesterEmployeeID,
+		); err != nil {
+			return err
+		}
+		if err := s.recordScheduleAssignmentHistory(
+			ctx,
+			tx,
+			recipientSchedule,
+			adminEmployeeID,
+			recipientSchedule.EmployeeID,
+			req.RequesterEmployeeID,
+			created.ID,
 		); err != nil {
 			return err
 		}
@@ -390,10 +412,32 @@ func (s *ScheduleService) AdminDecisionShiftSwapRequest(
 			); err != nil {
 				return err
 			}
+			if err := s.recordScheduleAssignmentHistory(
+				ctx,
+				tx,
+				requesterSchedule,
+				adminEmployeeID,
+				requesterSchedule.EmployeeID,
+				swapRow.RecipientEmployeeID,
+				swapID,
+			); err != nil {
+				return err
+			}
 			if err := tx.UpdateScheduleEmployeeAssignment(
 				ctx,
 				recipientSchedule.ID,
 				swapRow.RequesterEmployeeID,
+			); err != nil {
+				return err
+			}
+			if err := s.recordScheduleAssignmentHistory(
+				ctx,
+				tx,
+				recipientSchedule,
+				adminEmployeeID,
+				recipientSchedule.EmployeeID,
+				swapRow.RequesterEmployeeID,
+				swapID,
 			); err != nil {
 				return err
 			}
@@ -484,6 +528,36 @@ func (s *ScheduleService) ListShiftSwapRequests(
 
 func (s *ScheduleService) GetShiftSwapStats(ctx context.Context) (*domain.ShiftSwapStats, error) {
 	return s.repository.GetShiftSwapStats(ctx)
+}
+
+func (s *ScheduleService) recordScheduleAssignmentHistory(
+	ctx context.Context,
+	repo domain.ScheduleRepository,
+	schedule domain.ScheduleSwapValidation,
+	actorEmployeeID uuid.UUID,
+	oldEmployeeID uuid.UUID,
+	newEmployeeID uuid.UUID,
+	shiftSwapID uuid.UUID,
+) error {
+	return s.recordScheduleHistoryWithRepository(
+		ctx,
+		repo,
+		schedule.ID,
+		schedule.LocationID,
+		domain.ScheduleHistoryActionEmployeeAssignmentChanged,
+		&actorEmployeeID,
+		scheduleHistoryAffected{
+			EmployeeID:    oldEmployeeID,
+			StartDatetime: schedule.StartDatetime,
+			EndDatetime:   schedule.EndDatetime,
+		},
+		scheduleHistoryAffected{
+			EmployeeID:    newEmployeeID,
+			StartDatetime: schedule.StartDatetime,
+			EndDatetime:   schedule.EndDatetime,
+		},
+		map[string]uuid.UUID{"shift_swap_request_id": shiftSwapID},
+	)
 }
 
 func isValidShiftSwapStatus(value string) bool {

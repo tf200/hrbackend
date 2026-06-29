@@ -102,6 +102,83 @@ func (q *Queries) CreateSchedule(ctx context.Context, arg CreateScheduleParams) 
 	return i, err
 }
 
+const createScheduleHistory = `-- name: CreateScheduleHistory :one
+INSERT INTO schedule_history (
+    schedule_id,
+    location_id,
+    affected_employee_id,
+    affected_start_datetime,
+    affected_end_datetime,
+    affected_shift_date,
+    action,
+    actor_employee_id,
+    old_values,
+    new_values,
+    metadata
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    COALESCE($11, '{}'::jsonb)
+)
+RETURNING id, schedule_id, location_id, affected_employee_id, affected_start_datetime, affected_end_datetime, affected_shift_date, action, actor_employee_id, old_values, new_values, metadata, created_at
+`
+
+type CreateScheduleHistoryParams struct {
+	ScheduleID            uuid.UUID                 `json:"schedule_id"`
+	LocationID            uuid.UUID                 `json:"location_id"`
+	AffectedEmployeeID    *uuid.UUID                `json:"affected_employee_id"`
+	AffectedStartDatetime pgtype.Timestamptz        `json:"affected_start_datetime"`
+	AffectedEndDatetime   pgtype.Timestamptz        `json:"affected_end_datetime"`
+	AffectedShiftDate     pgtype.Date               `json:"affected_shift_date"`
+	Action                ScheduleHistoryActionEnum `json:"action"`
+	ActorEmployeeID       *uuid.UUID                `json:"actor_employee_id"`
+	OldValues             []byte                    `json:"old_values"`
+	NewValues             []byte                    `json:"new_values"`
+	Metadata              interface{}               `json:"metadata"`
+}
+
+func (q *Queries) CreateScheduleHistory(ctx context.Context, arg CreateScheduleHistoryParams) (ScheduleHistory, error) {
+	row := q.db.QueryRow(ctx, createScheduleHistory,
+		arg.ScheduleID,
+		arg.LocationID,
+		arg.AffectedEmployeeID,
+		arg.AffectedStartDatetime,
+		arg.AffectedEndDatetime,
+		arg.AffectedShiftDate,
+		arg.Action,
+		arg.ActorEmployeeID,
+		arg.OldValues,
+		arg.NewValues,
+		arg.Metadata,
+	)
+	var i ScheduleHistory
+	err := row.Scan(
+		&i.ID,
+		&i.ScheduleID,
+		&i.LocationID,
+		&i.AffectedEmployeeID,
+		&i.AffectedStartDatetime,
+		&i.AffectedEndDatetime,
+		&i.AffectedShiftDate,
+		&i.Action,
+		&i.ActorEmployeeID,
+		&i.OldValues,
+		&i.NewValues,
+		&i.Metadata,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteSchedule = `-- name: DeleteSchedule :exec
 DELETE FROM schedules
 WHERE id = $1
@@ -821,6 +898,172 @@ func (q *Queries) ListEmployeeWeekShiftCounts(ctx context.Context, arg ListEmplo
 	for rows.Next() {
 		var i ListEmployeeWeekShiftCountsRow
 		if err := rows.Scan(&i.Day, &i.ShiftCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listScheduleHistoryByLocationID = `-- name: ListScheduleHistoryByLocationID :many
+SELECT
+    sh.id, sh.schedule_id, sh.location_id, sh.affected_employee_id, sh.affected_start_datetime, sh.affected_end_datetime, sh.affected_shift_date, sh.action, sh.actor_employee_id, sh.old_values, sh.new_values, sh.metadata, sh.created_at,
+    actor.first_name AS actor_first_name,
+    actor.last_name AS actor_last_name
+FROM schedule_history sh
+LEFT JOIN employee_profile actor ON actor.id = sh.actor_employee_id
+WHERE sh.location_id = $1
+  AND ($2::schedule_history_action_enum IS NULL OR sh.action = $2::schedule_history_action_enum)
+  AND ($3::uuid IS NULL OR sh.affected_employee_id = $3::uuid)
+  AND ($4::uuid IS NULL OR sh.actor_employee_id = $4::uuid)
+  AND ($5::date IS NULL OR sh.affected_shift_date = $5::date)
+  AND ($6::date IS NULL OR sh.affected_shift_date >= $6::date)
+  AND ($7::date IS NULL OR sh.affected_shift_date <= $7::date)
+ORDER BY sh.created_at DESC
+LIMIT $9 OFFSET $8
+`
+
+type ListScheduleHistoryByLocationIDParams struct {
+	LocationID      uuid.UUID                  `json:"location_id"`
+	Action          *ScheduleHistoryActionEnum `json:"action"`
+	EmployeeID      *uuid.UUID                 `json:"employee_id"`
+	ActorEmployeeID *uuid.UUID                 `json:"actor_employee_id"`
+	ShiftDate       pgtype.Date                `json:"shift_date"`
+	StartDate       pgtype.Date                `json:"start_date"`
+	EndDate         pgtype.Date                `json:"end_date"`
+	OffsetCount     int32                      `json:"offset_count"`
+	LimitCount      int32                      `json:"limit_count"`
+}
+
+type ListScheduleHistoryByLocationIDRow struct {
+	ID                    uuid.UUID                 `json:"id"`
+	ScheduleID            uuid.UUID                 `json:"schedule_id"`
+	LocationID            uuid.UUID                 `json:"location_id"`
+	AffectedEmployeeID    *uuid.UUID                `json:"affected_employee_id"`
+	AffectedStartDatetime pgtype.Timestamptz        `json:"affected_start_datetime"`
+	AffectedEndDatetime   pgtype.Timestamptz        `json:"affected_end_datetime"`
+	AffectedShiftDate     pgtype.Date               `json:"affected_shift_date"`
+	Action                ScheduleHistoryActionEnum `json:"action"`
+	ActorEmployeeID       *uuid.UUID                `json:"actor_employee_id"`
+	OldValues             []byte                    `json:"old_values"`
+	NewValues             []byte                    `json:"new_values"`
+	Metadata              []byte                    `json:"metadata"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	ActorFirstName        *string                   `json:"actor_first_name"`
+	ActorLastName         *string                   `json:"actor_last_name"`
+}
+
+func (q *Queries) ListScheduleHistoryByLocationID(ctx context.Context, arg ListScheduleHistoryByLocationIDParams) ([]ListScheduleHistoryByLocationIDRow, error) {
+	rows, err := q.db.Query(ctx, listScheduleHistoryByLocationID,
+		arg.LocationID,
+		arg.Action,
+		arg.EmployeeID,
+		arg.ActorEmployeeID,
+		arg.ShiftDate,
+		arg.StartDate,
+		arg.EndDate,
+		arg.OffsetCount,
+		arg.LimitCount,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListScheduleHistoryByLocationIDRow{}
+	for rows.Next() {
+		var i ListScheduleHistoryByLocationIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ScheduleID,
+			&i.LocationID,
+			&i.AffectedEmployeeID,
+			&i.AffectedStartDatetime,
+			&i.AffectedEndDatetime,
+			&i.AffectedShiftDate,
+			&i.Action,
+			&i.ActorEmployeeID,
+			&i.OldValues,
+			&i.NewValues,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.ActorFirstName,
+			&i.ActorLastName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listScheduleHistoryByScheduleID = `-- name: ListScheduleHistoryByScheduleID :many
+SELECT
+    sh.id, sh.schedule_id, sh.location_id, sh.affected_employee_id, sh.affected_start_datetime, sh.affected_end_datetime, sh.affected_shift_date, sh.action, sh.actor_employee_id, sh.old_values, sh.new_values, sh.metadata, sh.created_at,
+    actor.first_name AS actor_first_name,
+    actor.last_name AS actor_last_name
+FROM schedule_history sh
+LEFT JOIN employee_profile actor ON actor.id = sh.actor_employee_id
+WHERE sh.schedule_id = $1
+ORDER BY sh.created_at DESC
+LIMIT $3 OFFSET $2
+`
+
+type ListScheduleHistoryByScheduleIDParams struct {
+	ScheduleID  uuid.UUID `json:"schedule_id"`
+	OffsetCount int32     `json:"offset_count"`
+	LimitCount  int32     `json:"limit_count"`
+}
+
+type ListScheduleHistoryByScheduleIDRow struct {
+	ID                    uuid.UUID                 `json:"id"`
+	ScheduleID            uuid.UUID                 `json:"schedule_id"`
+	LocationID            uuid.UUID                 `json:"location_id"`
+	AffectedEmployeeID    *uuid.UUID                `json:"affected_employee_id"`
+	AffectedStartDatetime pgtype.Timestamptz        `json:"affected_start_datetime"`
+	AffectedEndDatetime   pgtype.Timestamptz        `json:"affected_end_datetime"`
+	AffectedShiftDate     pgtype.Date               `json:"affected_shift_date"`
+	Action                ScheduleHistoryActionEnum `json:"action"`
+	ActorEmployeeID       *uuid.UUID                `json:"actor_employee_id"`
+	OldValues             []byte                    `json:"old_values"`
+	NewValues             []byte                    `json:"new_values"`
+	Metadata              []byte                    `json:"metadata"`
+	CreatedAt             pgtype.Timestamptz        `json:"created_at"`
+	ActorFirstName        *string                   `json:"actor_first_name"`
+	ActorLastName         *string                   `json:"actor_last_name"`
+}
+
+func (q *Queries) ListScheduleHistoryByScheduleID(ctx context.Context, arg ListScheduleHistoryByScheduleIDParams) ([]ListScheduleHistoryByScheduleIDRow, error) {
+	rows, err := q.db.Query(ctx, listScheduleHistoryByScheduleID, arg.ScheduleID, arg.OffsetCount, arg.LimitCount)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListScheduleHistoryByScheduleIDRow{}
+	for rows.Next() {
+		var i ListScheduleHistoryByScheduleIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ScheduleID,
+			&i.LocationID,
+			&i.AffectedEmployeeID,
+			&i.AffectedStartDatetime,
+			&i.AffectedEndDatetime,
+			&i.AffectedShiftDate,
+			&i.Action,
+			&i.ActorEmployeeID,
+			&i.OldValues,
+			&i.NewValues,
+			&i.Metadata,
+			&i.CreatedAt,
+			&i.ActorFirstName,
+			&i.ActorLastName,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

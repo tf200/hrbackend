@@ -277,7 +277,13 @@ func (h *ScheduleHandler) DeleteSchedule(ctx *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteSchedule(ctx.Request.Context(), scheduleID); err != nil {
+	employeeID := middleware.EmployeeIDFromContext(ctx.Request.Context())
+	if employeeID == uuid.Nil {
+		ctx.JSON(http.StatusUnauthorized, httpapi.Fail("unauthorized", ""))
+		return
+	}
+
+	if err := h.service.DeleteSchedule(ctx.Request.Context(), scheduleID, employeeID); err != nil {
 		ctx.JSON(
 			http.StatusInternalServerError,
 			httpapi.Fail(fmt.Sprintf("failed to delete schedule: %v", err), ""),
@@ -286,6 +292,37 @@ func (h *ScheduleHandler) DeleteSchedule(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, httpapi.OK[any](nil, "Schedule deleted successfully"))
+}
+
+func (h *ScheduleHandler) ListScheduleHistoryByLocation(ctx *gin.Context) {
+	locationID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail("invalid location ID format", ""))
+		return
+	}
+
+	var req listScheduleHistoryRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	params, err := req.toDomainParams(locationID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, httpapi.Fail(err.Error(), ""))
+		return
+	}
+
+	items, err := h.service.ListScheduleHistoryByLocationID(ctx.Request.Context(), params)
+	if err != nil {
+		ctx.JSON(
+			http.StatusInternalServerError,
+			httpapi.Fail(fmt.Sprintf("failed to get schedule history: %v", err), ""),
+		)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, httpapi.OK(items, "Schedule history retrieved successfully"))
 }
 
 func (h *ScheduleHandler) AutoGenerateSchedules(ctx *gin.Context) {

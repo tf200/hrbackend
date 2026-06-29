@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -590,16 +591,75 @@ func (s *ScheduleService) UpdateSchedule(
 			return nil, err
 		}
 	}
+	if err := s.recordScheduleHistory(
+		ctx,
+		scheduleID,
+		res.LocationID,
+		domain.ScheduleHistoryActionUpdated,
+		&updaterEmployeeID,
+		existingSchedule,
+		res,
+		nil,
+	); err != nil {
+		return nil, err
+	}
 
 	return res, nil
 }
 
-func (s *ScheduleService) DeleteSchedule(ctx context.Context, scheduleID uuid.UUID) error {
-	if err := s.repository.DeleteSchedule(ctx, scheduleID); err != nil {
+func (s *ScheduleService) DeleteSchedule(
+	ctx context.Context,
+	scheduleID, actorEmployeeID uuid.UUID,
+) error {
+	if err := s.repository.WithTx(ctx, func(tx domain.ScheduleRepository) error {
+		existingSchedule, err := tx.GetScheduleByID(ctx, scheduleID)
+		if err != nil {
+			return err
+		}
+		if err := tx.DeleteSchedule(ctx, scheduleID); err != nil {
+			return err
+		}
+		return s.recordScheduleHistoryWithRepository(
+			ctx,
+			tx,
+			scheduleID,
+			existingSchedule.LocationID,
+			domain.ScheduleHistoryActionDeleted,
+			&actorEmployeeID,
+			existingSchedule,
+			nil,
+			nil,
+		)
+	}); err != nil {
 		s.logError(ctx, "DeleteSchedule", "failed to delete schedule", err)
 		return fmt.Errorf("failed to delete schedule: %w", err)
 	}
 	return nil
+}
+
+func (s *ScheduleService) ListScheduleHistoryByLocationID(
+	ctx context.Context,
+	params domain.ListScheduleHistoryParams,
+) ([]domain.ScheduleHistoryEntry, error) {
+	if params.LocationID == uuid.Nil {
+		return nil, fmt.Errorf("location_id is required")
+	}
+	if params.Limit <= 0 || params.Limit > 100 {
+		params.Limit = 50
+	}
+	if params.Offset < 0 {
+		params.Offset = 0
+	}
+	if params.Action != nil && !isValidScheduleHistoryAction(*params.Action) {
+		return nil, fmt.Errorf("invalid action")
+	}
+	if params.ShiftDate != nil && (params.StartDate != nil || params.EndDate != nil) {
+		return nil, fmt.Errorf("shift_date cannot be combined with start_date or end_date")
+	}
+	if params.StartDate != nil && params.EndDate != nil && params.EndDate.Before(*params.StartDate) {
+		return nil, fmt.Errorf("end_date must be on or after start_date")
+	}
+	return s.repository.ListScheduleHistoryByLocationID(ctx, params)
 }
 
 func (s *ScheduleService) validateCreateScheduleRequest(req *domain.CreateScheduleRequest) error {
@@ -723,6 +783,18 @@ func (s *ScheduleService) createCustomSchedule(
 		s.logError(ctx, "createCustomSchedule", "failed to create custom schedule", err)
 		return nil, fmt.Errorf("failed to create custom schedule: %w", err)
 	}
+	if err := s.recordScheduleHistory(
+		ctx,
+		schedule.ID,
+		schedule.LocationID,
+		domain.ScheduleHistoryActionCreated,
+		&creatorID,
+		nil,
+		schedule,
+		nil,
+	); err != nil {
+		return nil, err
+	}
 	return schedule, nil
 }
 
@@ -828,6 +900,18 @@ func (s *ScheduleService) createPresetScheduleForDate(
 	if err != nil {
 		s.logError(ctx, "createPresetSchedule", "failed to create preset schedule", err)
 		return nil, fmt.Errorf("failed to create preset schedule: %w", err)
+	}
+	if err := s.recordScheduleHistory(
+		ctx,
+		schedule.ID,
+		schedule.LocationID,
+		domain.ScheduleHistoryActionCreated,
+		&creatorID,
+		nil,
+		schedule,
+		nil,
+	); err != nil {
+		return nil, err
 	}
 	return schedule, nil
 }
@@ -1039,6 +1123,154 @@ func (s *ScheduleService) logError(
 		return
 	}
 	s.logger.LogError(ctx, "ScheduleService."+operation, message, err, fields...)
+}
+
+func (s *ScheduleService) recordScheduleHistory(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	locationID uuid.UUID,
+	action string,
+	actorEmployeeID *uuid.UUID,
+	oldValues any,
+	newValues any,
+	metadata any,
+) error {
+	return s.recordScheduleHistoryWithRepository(
+		ctx,
+		s.repository,
+		scheduleID,
+		locationID,
+		action,
+		actorEmployeeID,
+		oldValues,
+		newValues,
+		metadata,
+	)
+}
+
+func (s *ScheduleService) recordScheduleHistoryWithRepository(
+	ctx context.Context,
+	repo domain.ScheduleRepository,
+	scheduleID uuid.UUID,
+	locationID uuid.UUID,
+	action string,
+	actorEmployeeID *uuid.UUID,
+	oldValues any,
+	newValues any,
+	metadata any,
+) error {
+	oldJSON, err := marshalScheduleHistoryJSON(oldValues)
+	if err != nil {
+		return err
+	}
+	newJSON, err := marshalScheduleHistoryJSON(newValues)
+	if err != nil {
+		return err
+	}
+	metadataJSON, err := marshalScheduleHistoryJSON(metadata)
+	if err != nil {
+		return err
+	}
+	if len(metadataJSON) == 0 {
+		metadataJSON = json.RawMessage(`{}`)
+	}
+	affected := scheduleHistoryAffectedFromValue(newValues)
+	if affected == nil {
+		affected = scheduleHistoryAffectedFromValue(oldValues)
+	}
+
+	var affectedEmployeeID *uuid.UUID
+	var affectedStartDatetime *time.Time
+	var affectedEndDatetime *time.Time
+	var affectedShiftDate *time.Time
+	if affected != nil {
+		affectedEmployeeID = &affected.EmployeeID
+		affectedStartDatetime = &affected.StartDatetime
+		affectedEndDatetime = &affected.EndDatetime
+		shiftDate := time.Date(
+			affected.StartDatetime.Year(),
+			affected.StartDatetime.Month(),
+			affected.StartDatetime.Day(),
+			0,
+			0,
+			0,
+			0,
+			time.UTC,
+		)
+		affectedShiftDate = &shiftDate
+	}
+	if err := repo.CreateScheduleHistory(ctx, domain.CreateScheduleHistoryParams{
+		ScheduleID:            scheduleID,
+		LocationID:            locationID,
+		AffectedEmployeeID:    affectedEmployeeID,
+		AffectedStartDatetime: affectedStartDatetime,
+		AffectedEndDatetime:   affectedEndDatetime,
+		AffectedShiftDate:     affectedShiftDate,
+		Action:                action,
+		ActorEmployeeID:       actorEmployeeID,
+		OldValues:             oldJSON,
+		NewValues:             newJSON,
+		Metadata:              metadataJSON,
+	}); err != nil {
+		s.logError(ctx, "recordScheduleHistory", "failed to record schedule history", err)
+		return fmt.Errorf("failed to record schedule history: %w", err)
+	}
+	return nil
+}
+
+type scheduleHistoryAffected struct {
+	EmployeeID    uuid.UUID
+	StartDatetime time.Time
+	EndDatetime   time.Time
+}
+
+func scheduleHistoryAffectedFromValue(value any) *scheduleHistoryAffected {
+	switch v := value.(type) {
+	case *domain.CreateScheduleResponse:
+		if v == nil {
+			return nil
+		}
+		return &scheduleHistoryAffected{EmployeeID: v.EmployeeID, StartDatetime: v.StartDatetime, EndDatetime: v.EndDatetime}
+	case *domain.UpdateScheduleResponse:
+		if v == nil {
+			return nil
+		}
+		return &scheduleHistoryAffected{EmployeeID: v.EmployeeID, StartDatetime: v.StartDatetime, EndDatetime: v.EndDatetime}
+	case *domain.GetScheduleByIdResponse:
+		if v == nil {
+			return nil
+		}
+		return &scheduleHistoryAffected{EmployeeID: v.EmployeeID, StartDatetime: v.StartDatetime, EndDatetime: v.EndDatetime}
+	case scheduleHistoryAffected:
+		return &v
+	case *scheduleHistoryAffected:
+		return v
+	default:
+		return nil
+	}
+}
+
+func isValidScheduleHistoryAction(value string) bool {
+	switch value {
+	case domain.ScheduleHistoryActionCreated,
+		domain.ScheduleHistoryActionUpdated,
+		domain.ScheduleHistoryActionDeleted,
+		domain.ScheduleHistoryActionEmployeeAssignmentChanged:
+		return true
+	default:
+		return false
+	}
+}
+
+func marshalScheduleHistoryJSON(value any) (json.RawMessage, error) {
+	if value == nil {
+		return nil, nil
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal schedule history: %w", err)
+	}
+	return data, nil
 }
 
 func microsecondsToTimeComponents(microseconds int64) (hour, min, sec, nano int) {

@@ -60,6 +60,12 @@ func RegisterScheduleRoutes(
 		requirePermission(permission.Schedule.View),
 		handler.GetScheduleByID,
 	)
+	rg.GET(
+		"/locations/:id/schedules/history",
+		auth,
+		requirePermission(permission.Schedule.View),
+		handler.ListScheduleHistoryByLocation,
+	)
 	rg.PUT(
 		"/schedules/:id",
 		auth,

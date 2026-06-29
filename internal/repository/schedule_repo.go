@@ -371,6 +371,112 @@ func (r *ScheduleRepository) DeleteSchedule(ctx context.Context, scheduleID uuid
 	return r.store.DeleteSchedule(ctx, scheduleID)
 }
 
+func (r *ScheduleRepository) CreateScheduleHistory(
+	ctx context.Context,
+	params domain.CreateScheduleHistoryParams,
+) error {
+	_, err := r.store.CreateScheduleHistory(ctx, db.CreateScheduleHistoryParams{
+		ScheduleID:            params.ScheduleID,
+		LocationID:            params.LocationID,
+		AffectedEmployeeID:    params.AffectedEmployeeID,
+		AffectedStartDatetime: pgTimestamptzFromTimePtr(params.AffectedStartDatetime),
+		AffectedEndDatetime:   pgTimestamptzFromTimePtr(params.AffectedEndDatetime),
+		AffectedShiftDate:     schedulePgDateFromTimePtr(params.AffectedShiftDate),
+		Action:                db.ScheduleHistoryActionEnum(params.Action),
+		ActorEmployeeID:       params.ActorEmployeeID,
+		OldValues:             params.OldValues,
+		NewValues:             params.NewValues,
+		Metadata:              params.Metadata,
+	})
+	return err
+}
+
+func (r *ScheduleRepository) ListScheduleHistoryByScheduleID(
+	ctx context.Context,
+	scheduleID uuid.UUID,
+	limit, offset int32,
+) ([]domain.ScheduleHistoryEntry, error) {
+	rows, err := r.store.ListScheduleHistoryByScheduleID(
+		ctx,
+		db.ListScheduleHistoryByScheduleIDParams{
+			ScheduleID:  scheduleID,
+			LimitCount:  limit,
+			OffsetCount: offset,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.ScheduleHistoryEntry, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.ScheduleHistoryEntry{
+			ID:              row.ID,
+			ScheduleID:      row.ScheduleID,
+			LocationID:      row.LocationID,
+			Action:          string(row.Action),
+			ActorEmployeeID: row.ActorEmployeeID,
+			ActorFirstName:  row.ActorFirstName,
+			ActorLastName:   row.ActorLastName,
+			OldValues:       row.OldValues,
+			NewValues:       row.NewValues,
+			Metadata:        row.Metadata,
+			CreatedAt:       conv.TimeFromPgTimestamptz(row.CreatedAt),
+		})
+	}
+	return items, nil
+}
+
+func (r *ScheduleRepository) ListScheduleHistoryByLocationID(
+	ctx context.Context,
+	params domain.ListScheduleHistoryParams,
+) ([]domain.ScheduleHistoryEntry, error) {
+	var action *db.ScheduleHistoryActionEnum
+	if params.Action != nil {
+		parsed := db.ScheduleHistoryActionEnum(*params.Action)
+		action = &parsed
+	}
+	rows, err := r.store.ListScheduleHistoryByLocationID(
+		ctx,
+		db.ListScheduleHistoryByLocationIDParams{
+			LocationID:      params.LocationID,
+			Action:          action,
+			EmployeeID:      params.EmployeeID,
+			ActorEmployeeID: params.ActorEmployeeID,
+			ShiftDate:       schedulePgDateFromTimePtr(params.ShiftDate),
+			StartDate:       schedulePgDateFromTimePtr(params.StartDate),
+			EndDate:         schedulePgDateFromTimePtr(params.EndDate),
+			LimitCount:      params.Limit,
+			OffsetCount:     params.Offset,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]domain.ScheduleHistoryEntry, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, domain.ScheduleHistoryEntry{
+			ID:                    row.ID,
+			ScheduleID:            row.ScheduleID,
+			LocationID:            row.LocationID,
+			AffectedEmployeeID:    row.AffectedEmployeeID,
+			AffectedStartDatetime: scheduleTimePtrFromPgTimestamptz(row.AffectedStartDatetime),
+			AffectedEndDatetime:   scheduleTimePtrFromPgTimestamptz(row.AffectedEndDatetime),
+			AffectedShiftDate:     dateStringPtrFromPgDate(row.AffectedShiftDate),
+			Action:                string(row.Action),
+			ActorEmployeeID:       row.ActorEmployeeID,
+			ActorFirstName:        row.ActorFirstName,
+			ActorLastName:         row.ActorLastName,
+			OldValues:             row.OldValues,
+			NewValues:             row.NewValues,
+			Metadata:              row.Metadata,
+			CreatedAt:             conv.TimeFromPgTimestamptz(row.CreatedAt),
+		})
+	}
+	return items, nil
+}
+
 func (r *ScheduleRepository) GetLocationByID(
 	ctx context.Context,
 	locationID uuid.UUID,
@@ -453,6 +559,36 @@ func toPgTimePtr(value *int64) pgtype.Time {
 		Microseconds: *value,
 		Valid:        true,
 	}
+}
+
+func pgTimestamptzFromTimePtr(value *time.Time) pgtype.Timestamptz {
+	if value == nil {
+		return pgtype.Timestamptz{Valid: false}
+	}
+	return conv.PgTimestamptzFromTime(*value)
+}
+
+func schedulePgDateFromTimePtr(value *time.Time) pgtype.Date {
+	if value == nil {
+		return pgtype.Date{Valid: false}
+	}
+	return conv.PgDateFromTime(*value)
+}
+
+func scheduleTimePtrFromPgTimestamptz(value pgtype.Timestamptz) *time.Time {
+	if !value.Valid {
+		return nil
+	}
+	t := conv.TimeFromPgTimestamptz(value)
+	return &t
+}
+
+func dateStringPtrFromPgDate(value pgtype.Date) *string {
+	if !value.Valid {
+		return nil
+	}
+	date := conv.TimeFromPgDate(value).Format("2006-01-02")
+	return &date
 }
 
 func (r *ScheduleRepository) WithTx(
@@ -701,6 +837,7 @@ func (r *ScheduleRepository) LockSchedulesByIDsForSwap(
 		result = append(result, domain.ScheduleSwapValidation{
 			ID:            row.ID,
 			EmployeeID:    row.EmployeeID,
+			LocationID:    row.LocationID,
 			StartDatetime: conv.TimeFromPgTimestamptz(row.StartDatetime),
 			EndDatetime:   conv.TimeFromPgTimestamptz(row.EndDatetime),
 		})

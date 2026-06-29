@@ -106,6 +106,63 @@ JOIN location l ON s.location_id = l.id;
 DELETE FROM schedules
 WHERE id = $1;
 
+-- name: CreateScheduleHistory :one
+INSERT INTO schedule_history (
+    schedule_id,
+    location_id,
+    affected_employee_id,
+    affected_start_datetime,
+    affected_end_datetime,
+    affected_shift_date,
+    action,
+    actor_employee_id,
+    old_values,
+    new_values,
+    metadata
+)
+VALUES (
+    sqlc.arg('schedule_id'),
+    sqlc.arg('location_id'),
+    sqlc.narg('affected_employee_id'),
+    sqlc.narg('affected_start_datetime'),
+    sqlc.narg('affected_end_datetime'),
+    sqlc.narg('affected_shift_date'),
+    sqlc.arg('action'),
+    sqlc.narg('actor_employee_id'),
+    sqlc.narg('old_values'),
+    sqlc.narg('new_values'),
+    COALESCE(sqlc.narg('metadata'), '{}'::jsonb)
+)
+RETURNING *;
+
+-- name: ListScheduleHistoryByScheduleID :many
+SELECT
+    sh.*,
+    actor.first_name AS actor_first_name,
+    actor.last_name AS actor_last_name
+FROM schedule_history sh
+LEFT JOIN employee_profile actor ON actor.id = sh.actor_employee_id
+WHERE sh.schedule_id = sqlc.arg('schedule_id')
+ORDER BY sh.created_at DESC
+LIMIT sqlc.arg('limit_count') OFFSET sqlc.arg('offset_count');
+
+-- name: ListScheduleHistoryByLocationID :many
+SELECT
+    sh.*,
+    actor.first_name AS actor_first_name,
+    actor.last_name AS actor_last_name
+FROM schedule_history sh
+LEFT JOIN employee_profile actor ON actor.id = sh.actor_employee_id
+WHERE sh.location_id = sqlc.arg('location_id')
+  AND (sqlc.narg('action')::schedule_history_action_enum IS NULL OR sh.action = sqlc.narg('action')::schedule_history_action_enum)
+  AND (sqlc.narg('employee_id')::uuid IS NULL OR sh.affected_employee_id = sqlc.narg('employee_id')::uuid)
+  AND (sqlc.narg('actor_employee_id')::uuid IS NULL OR sh.actor_employee_id = sqlc.narg('actor_employee_id')::uuid)
+  AND (sqlc.narg('shift_date')::date IS NULL OR sh.affected_shift_date = sqlc.narg('shift_date')::date)
+  AND (sqlc.narg('start_date')::date IS NULL OR sh.affected_shift_date >= sqlc.narg('start_date')::date)
+  AND (sqlc.narg('end_date')::date IS NULL OR sh.affected_shift_date <= sqlc.narg('end_date')::date)
+ORDER BY sh.created_at DESC
+LIMIT sqlc.arg('limit_count') OFFSET sqlc.arg('offset_count');
+
 
 
 -- name: GetEmployeeSchedules :many

@@ -83,6 +83,7 @@ type Querier interface {
 	// Insert a new role and return the created row.
 	CreateRole(ctx context.Context, arg CreateRoleParams) (Role, error)
 	CreateSchedule(ctx context.Context, arg CreateScheduleParams) (CreateScheduleRow, error)
+	CreateScheduleHistory(ctx context.Context, arg CreateScheduleHistoryParams) (ScheduleHistory, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateShift(ctx context.Context, arg CreateShiftParams) (LocationShift, error)
 	CreateShiftSwapRequest(ctx context.Context, arg CreateShiftSwapRequestParams) (ShiftSwapRequest, error)
@@ -295,6 +296,8 @@ type Querier interface {
 	// Returns every role ordered by id with count of permissions and employees.
 	ListRoles(ctx context.Context) ([]ListRolesRow, error)
 	ListSalaryScaleSteps(ctx context.Context, activeOnly *bool) ([]ListSalaryScaleStepsRow, error)
+	ListScheduleHistoryByLocationID(ctx context.Context, arg ListScheduleHistoryByLocationIDParams) ([]ListScheduleHistoryByLocationIDRow, error)
+	ListScheduleHistoryByScheduleID(ctx context.Context, arg ListScheduleHistoryByScheduleIDParams) ([]ListScheduleHistoryByScheduleIDRow, error)
 	ListShiftColleaguesByScheduleIDs(ctx context.Context, arg ListShiftColleaguesByScheduleIDsParams) ([]ListShiftColleaguesByScheduleIDsRow, error)
 	ListShiftSwapRequestsPaginated(ctx context.Context, arg ListShiftSwapRequestsPaginatedParams) ([]ListShiftSwapRequestsPaginatedRow, error)
 	ListSignDocumentEvents(ctx context.Context, documentID uuid.UUID) ([]SignDocumentEvent, error)

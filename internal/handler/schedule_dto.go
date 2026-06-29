@@ -49,11 +49,74 @@ type getMyUpcomingShiftsRequest struct {
 	Limit int32 `form:"limit" binding:"omitempty,min=1,max=30"`
 }
 
+type listScheduleHistoryRequest struct {
+	StartDate       *string    `form:"start_date"`
+	EndDate         *string    `form:"end_date"`
+	ShiftDate       *string    `form:"shift_date"`
+	Action          *string    `form:"action"`
+	EmployeeID      *uuid.UUID `form:"employee_id"`
+	ActorEmployeeID *uuid.UUID `form:"actor_employee_id"`
+	Limit           int32      `form:"limit"  binding:"omitempty,min=1,max=100"`
+	Offset          int32      `form:"offset" binding:"omitempty,min=0"`
+}
+
 func (r getMyUpcomingShiftsRequest) normalizedLimit() int32 {
 	if r.Limit == 0 {
 		return 15
 	}
 	return r.Limit
+}
+
+func (r listScheduleHistoryRequest) normalizedLimit() int32 {
+	if r.Limit == 0 {
+		return 50
+	}
+	return r.Limit
+}
+
+func (r listScheduleHistoryRequest) normalizedOffset() int32 {
+	return r.Offset
+}
+
+func (r listScheduleHistoryRequest) toDomainParams(
+	locationID uuid.UUID,
+) (domain.ListScheduleHistoryParams, error) {
+	startDate, err := parseOptionalDate(r.StartDate, "start_date")
+	if err != nil {
+		return domain.ListScheduleHistoryParams{}, err
+	}
+	endDate, err := parseOptionalDate(r.EndDate, "end_date")
+	if err != nil {
+		return domain.ListScheduleHistoryParams{}, err
+	}
+	shiftDate, err := parseOptionalDate(r.ShiftDate, "shift_date")
+	if err != nil {
+		return domain.ListScheduleHistoryParams{}, err
+	}
+
+	return domain.ListScheduleHistoryParams{
+		LocationID:      locationID,
+		Limit:           r.normalizedLimit(),
+		Offset:          r.normalizedOffset(),
+		StartDate:       startDate,
+		EndDate:         endDate,
+		ShiftDate:       shiftDate,
+		Action:          ptr.TrimString(r.Action),
+		EmployeeID:      r.EmployeeID,
+		ActorEmployeeID: r.ActorEmployeeID,
+	}, nil
+}
+
+func parseOptionalDate(value *string, field string) (*time.Time, error) {
+	trimmed := ptr.TrimString(value)
+	if trimmed == nil {
+		return nil, nil
+	}
+	parsed, err := time.Parse("2006-01-02", *trimmed)
+	if err != nil {
+		return nil, fmt.Errorf("%s must be in YYYY-MM-DD format", field)
+	}
+	return &parsed, nil
 }
 
 var uuidExtractRegex = regexp.MustCompile(

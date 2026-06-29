@@ -120,6 +120,7 @@ FOR UPDATE;
 SELECT
     id,
     employee_id,
+    location_id,
     start_datetime,
     end_datetime
 FROM schedules
@@ -342,4 +343,3 @@ SELECT
         END
     ) IN ('recipient_rejected'::shift_swap_status_enum, 'admin_rejected'::shift_swap_status_enum, 'confirmed'::shift_swap_status_enum, 'cancelled'::shift_swap_status_enum, 'expired'::shift_swap_status_enum) THEN 1 END)::bigint AS handled_count
 FROM shift_swap_requests;
-
