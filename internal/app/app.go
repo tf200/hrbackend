@@ -46,6 +46,9 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("setup logger: %w", err)
 	}
+	if err := runMigrations(ctx, cfg, logger); err != nil {
+		return nil, fmt.Errorf("migrate db: %w", err)
+	}
 
 	poolConfig, err := pgxpool.ParseConfig(cfg.DbSource)
 	if err != nil {

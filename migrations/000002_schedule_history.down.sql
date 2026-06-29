@@ -1,3 +1,7 @@
+DROP INDEX IF EXISTS idx_schedule_history_location_actor_created_at;
+DROP INDEX IF EXISTS idx_schedule_history_location_employee_created_at;
+DROP INDEX IF EXISTS idx_schedule_history_location_action_created_at;
+DROP INDEX IF EXISTS idx_schedule_history_location_shift_date_created_at;
 DROP INDEX IF EXISTS idx_schedule_history_actor_created_at;
 DROP INDEX IF EXISTS idx_schedule_history_location_created_at;
 DROP INDEX IF EXISTS idx_schedule_history_schedule_created_at;
