@@ -113,7 +113,7 @@ func (l *Logger) log(
 	fields ...zap.Field,
 ) {
 	requestID := "unknown"
-	if v, ok := ctx.Value("request_id").(string); ok {
+	if v, ok := domain.RequestIDFromContext(ctx); ok {
 		requestID = v
 	}
 

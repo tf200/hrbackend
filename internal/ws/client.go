@@ -2,11 +2,11 @@ package ws
 
 import (
 	"bytes"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 const (
@@ -42,7 +42,11 @@ func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
-		log.Printf("Client %d disconnected (readPump exit)", c.userID)
+		c.hub.logInfo(
+			"WebSocketClient.readPump",
+			"client disconnected",
+			zap.String("user_id", c.userID.String()),
+		)
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
 	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -59,15 +63,30 @@ func (c *Client) readPump() {
 				websocket.CloseGoingAway,
 				websocket.CloseAbnormalClosure,
 			) {
-				log.Printf("error reading message for user %d: %v", c.userID, err)
+				c.hub.logWarn(
+					"WebSocketClient.readPump",
+					"error reading websocket message",
+					zap.String("user_id", c.userID.String()),
+					zap.Error(err),
+				)
 			} else {
-				log.Printf("websocket closed for user %d: %v", c.userID, err)
+				c.hub.logInfo(
+					"WebSocketClient.readPump",
+					"websocket closed",
+					zap.String("user_id", c.userID.String()),
+					zap.Error(err),
+				)
 			}
 			break
 		}
 
 		message = bytes.TrimSpace(bytes.ReplaceAll(message, newline, space))
-		log.Printf("Received message from user %d: %s", c.userID, message)
+		c.hub.logInfo(
+			"WebSocketClient.readPump",
+			"websocket message received",
+			zap.String("user_id", c.userID.String()),
+			zap.Int("message_size", len(message)),
+		)
 		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	}
 }
@@ -77,39 +96,67 @@ func (c *Client) writePump() {
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
-		log.Printf("Client %d disconnected (writePump exit)", c.userID)
+		c.hub.logInfo(
+			"WebSocketClient.writePump",
+			"client write pump stopped",
+			zap.String("user_id", c.userID.String()),
+		)
 	}()
 	for {
 		select {
 		case message, ok := <-c.send:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				log.Printf("Hub closed channel for user %d. Closing connection.", c.userID)
+				c.hub.logInfo(
+					"WebSocketClient.writePump",
+					"hub closed client channel",
+					zap.String("user_id", c.userID.String()),
+				)
 				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				log.Printf("Error getting next writer for user %d: %v", c.userID, err)
+				c.hub.logWarn(
+					"WebSocketClient.writePump",
+					"failed to get websocket writer",
+					zap.String("user_id", c.userID.String()),
+					zap.Error(err),
+				)
 				return
 			}
 			_, err = w.Write(message)
 			if err != nil {
-				log.Printf("Error writing message for user %d: %v", c.userID, err)
+				c.hub.logWarn(
+					"WebSocketClient.writePump",
+					"failed to write websocket message",
+					zap.String("user_id", c.userID.String()),
+					zap.Error(err),
+				)
 				_ = w.Close()
 				return
 			}
 
 			if err := w.Close(); err != nil {
-				log.Printf("Error closing writer for user %d: %v", c.userID, err)
+				c.hub.logWarn(
+					"WebSocketClient.writePump",
+					"failed to close websocket writer",
+					zap.String("user_id", c.userID.String()),
+					zap.Error(err),
+				)
 				return
 			}
 
 		case <-ticker.C:
 			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Printf("Error writing ping for user %d: %v", c.userID, err)
+				c.hub.logWarn(
+					"WebSocketClient.writePump",
+					"failed to write websocket ping",
+					zap.String("user_id", c.userID.String()),
+					zap.Error(err),
+				)
 				return
 			}
 		}
@@ -119,5 +166,9 @@ func (c *Client) writePump() {
 func (c *Client) Start() {
 	go c.writePump()
 	go c.readPump()
-	log.Printf("Client pumps started for user %d", c.userID)
+	c.hub.logInfo(
+		"WebSocketClient.Start",
+		"client pumps started",
+		zap.String("user_id", c.userID.String()),
+	)
 }

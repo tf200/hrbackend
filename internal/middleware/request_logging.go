@@ -40,10 +40,8 @@ func (m *RequestLoggingMiddleware) Handle() gin.HandlerFunc {
 
 		statusCode := ctx.Writer.Status()
 		duration := time.Since(startTime)
-		requestID, _ := RequestIDFromContext(ctx.Request.Context())
 
 		fields := []zap.Field{
-			zap.String("request_id", requestID),
 			zap.String("method", ctx.Request.Method),
 			zap.String("path", path),
 			zap.Int("status", statusCode),

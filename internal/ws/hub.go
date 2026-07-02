@@ -1,11 +1,14 @@
 package ws
 
 import (
-	"log"
+	"context"
 	"sync"
+
+	"hrbackend/internal/domain"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 type UserMessage struct {
@@ -15,6 +18,7 @@ type UserMessage struct {
 
 type Hub struct {
 	clients map[uuid.UUID]map[*Client]bool
+	logger  domain.Logger
 
 	register   chan *Client
 	unregister chan *Client
@@ -24,9 +28,10 @@ type Hub struct {
 	shutdownOnce sync.Once
 }
 
-func NewHub() *Hub {
+func NewHub(logger domain.Logger) *Hub {
 	return &Hub{
 		clients:    make(map[uuid.UUID]map[*Client]bool),
+		logger:     logger,
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		sendToUser: make(chan *UserMessage),
@@ -44,10 +49,11 @@ func (h *Hub) Run() {
 				h.clients[client.userID] = userClients
 			}
 			userClients[client] = true
-			log.Printf(
-				"Client registered via channel for user %d. Total connections for user: %d",
-				client.userID,
-				len(userClients),
+			h.logInfo(
+				"WebSocketHub.Run",
+				"client registered",
+				zap.String("user_id", client.userID.String()),
+				zap.Int("connections", len(userClients)),
 			)
 
 		case client := <-h.unregister:
@@ -56,16 +62,18 @@ func (h *Hub) Run() {
 				if _, clientExists := userClients[client]; clientExists {
 					close(client.send)
 					delete(userClients, client)
-					log.Printf(
-						"Client unregistered via channel for user %d. Remaining connections for user: %d",
-						client.userID,
-						len(userClients),
+					h.logInfo(
+						"WebSocketHub.Run",
+						"client unregistered",
+						zap.String("user_id", client.userID.String()),
+						zap.Int("connections", len(userClients)),
 					)
 					if len(userClients) == 0 {
 						delete(h.clients, client.userID)
-						log.Printf(
-							"User %d has no more connections. Removed user entry.",
-							client.userID,
+						h.logInfo(
+							"WebSocketHub.Run",
+							"user has no active websocket connections",
+							zap.String("user_id", client.userID.String()),
 						)
 					}
 				}
@@ -80,40 +88,49 @@ func (h *Hub) Run() {
 					case client.send <- userMessage.Message:
 						activeClients++
 					default:
-						log.Printf(
-							"Client send buffer full for user %d. Forcing unregister.",
-							client.userID,
+						h.logWarn(
+							"WebSocketHub.Run",
+							"client send buffer full; forcing unregister",
+							zap.String("user_id", client.userID.String()),
 						)
 						close(client.send)
 						delete(userClients, client)
 						if len(userClients) == 0 {
 							delete(h.clients, client.userID)
-							log.Printf(
-								"User %d has no more connections after forced unregister. Removed user entry.",
-								client.userID,
+							h.logInfo(
+								"WebSocketHub.Run",
+								"user has no active websocket connections after forced unregister",
+								zap.String("user_id", client.userID.String()),
 							)
 						}
 					}
 				}
 				if activeClients == 0 && len(userClients) > 0 {
-					log.Printf(
-						"Warning: No active clients could receive message for user %d, but %d clients were registered.",
-						userMessage.UserID,
-						len(userClients),
+					h.logWarn(
+						"WebSocketHub.Run",
+						"no active clients could receive websocket message",
+						zap.String("user_id", userMessage.UserID.String()),
+						zap.Int("connections", len(userClients)),
 					)
-				} else if ok {
-					log.Printf(
-						"Message sent to %d active connections for user %d",
-						activeClients,
-						userMessage.UserID,
+				} else {
+					h.logInfo(
+						"WebSocketHub.Run",
+						"message sent to active websocket connections",
+						zap.String("user_id", userMessage.UserID.String()),
+						zap.Int("active_connections", activeClients),
 					)
 				}
 			}
 
 		case <-h.shutdown:
-			log.Println("Hub shutting down...")
+			h.logInfo("WebSocketHub.Run", "hub shutting down")
 			for userID, userClients := range h.clients {
-				log.Printf("Closing %d connections for user %d", len(userClients), userID)
+				h.logInfo(
+					"WebSocketHub.Run",
+					"closing user websocket connections",
+					zap.String("user_id", userID.String()),
+					zap.Int("connections", len(userClients)),
+				)
 				for client := range userClients {
 					close(client.send)
 					_ = client.conn.WriteMessage(
@@ -136,12 +153,9 @@ func (h *Hub) Run() {
 func (h *Hub) Register(client *Client) {
 	select {
 	case h.register <- client:
-		log.Printf("Client for user %d queued for registration", client.userID)
+		h.logInfo("WebSocketHub.Register", "client queued for registration", zap.String("user_id", client.userID.String()))
 	default:
-		log.Printf(
-			"CRITICAL: Hub register channel blocked. Cannot register client for user %d. Closing client.",
-			client.userID,
-		)
+		h.logWarn("WebSocketHub.Register", "hub register channel blocked; closing client", zap.String("user_id", client.userID.String()))
 		_ = client.conn.Close()
 	}
 }
@@ -154,16 +168,25 @@ func (h *Hub) SendToUser(userID uuid.UUID, message []byte) {
 	select {
 	case h.sendToUser <- msg:
 	default:
-		log.Printf(
-			"Warning: Hub's sendToUser channel is blocked or Hub is not running. Message for user %d dropped.",
-			userID,
-		)
+		h.logWarn("WebSocketHub.SendToUser", "hub send channel blocked; message dropped", zap.String("user_id", userID.String()))
 	}
 }
 
 func (h *Hub) Shutdown() {
 	h.shutdownOnce.Do(func() {
-		log.Println("Signaling Hub shutdown...")
+		h.logInfo("WebSocketHub.Shutdown", "signaling hub shutdown")
 		close(h.shutdown)
 	})
+}
+
+func (h *Hub) logInfo(operation, message string, fields ...zap.Field) {
+	if h.logger != nil {
+		h.logger.LogInfo(context.Background(), operation, message, fields...)
+	}
+}
+
+func (h *Hub) logWarn(operation, message string, fields ...zap.Field) {
+	if h.logger != nil {
+		h.logger.LogWarn(context.Background(), operation, message, fields...)
+	}
 }

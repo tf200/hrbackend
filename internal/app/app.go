@@ -80,7 +80,7 @@ func Build(ctx context.Context, cfg config.Config) (*App, error) {
 		pool.Close()
 		return nil, fmt.Errorf("setup cache: %w", err)
 	}
-	wsHub := ws.NewHub()
+	wsHub := ws.NewHub(logger)
 	go wsHub.Run()
 	wsTicketStore := newWebSocketTicketStore(cfg)
 
